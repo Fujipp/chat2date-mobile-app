@@ -14,14 +14,11 @@ public class WebConfig {
             @Override
             public void addCorsMappings(CorsRegistry registry) {
                 registry.addMapping("/**")
-                        .allowedOrigins(
-                                "http://localhost:5555",
-                                "http://localhost:5173",
-                                "http://cp25ssi2.sit.kmutt.ac.th"
-                        )
+                        .allowedOriginPatterns("http://localhost:*", "http://cp25ssi2.sit.kmutt.ac.th")
                         .allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS")
                         .allowedHeaders("*")
                         .allowCredentials(true);
+
             }
         };
     }
