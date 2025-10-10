@@ -2,7 +2,7 @@
 import { onMounted, ref } from 'vue'
 let users = ref([])
 const getUser = () => {
-  fetch('http://localhost:8080/users', {
+  fetch('http://cp25ssi2.sit.kmutt.ac.th:8080/users', {
     method: 'GET', // optional, GET is default
   })
     .then((response) => {
