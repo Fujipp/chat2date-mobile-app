@@ -1,0 +1,160 @@
+import 'package:chat2date/components/card/generic_card.dart';
+import 'package:flutter/material.dart';
+
+class ComponentTestScreen extends StatelessWidget {
+  const ComponentTestScreen({Key? key}) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: Colors.grey[100],
+      appBar: AppBar(
+        title: const Text('Generic Card Test'),
+        backgroundColor: Colors.white,
+        foregroundColor: Colors.black,
+        elevation: 0,
+      ),
+      body: ListView(
+        padding: const EdgeInsets.all(16),
+        children: [
+          GenericCard(
+            iconType: CardIconType.image,
+            iconBackground: Colors.blue[50],
+            title: 'Title',
+            subtitle: 'Subtitle',
+            actionType: CardActionType.button,
+            buttonText: 'Button',
+            onTap: () => print('Card tapped'),
+            onButtonTap: () => print('Button tapped'),
+          ),
+
+          GenericCard(
+            iconType: CardIconType.image,
+            iconBackground: Colors.blue[50],
+            title: 'Title',
+            subtitle: 'Subtitle',
+            actionType: CardActionType.chevron,
+            onTap: () => print('Card tapped'),
+          ),
+
+          GenericCard(
+            iconType: CardIconType.image,
+            iconBackground: Colors.blue[50],
+            title: 'Title',
+            subtitle: 'Subtitle',
+            onTap: () => print('Card tapped'),
+          ),
+
+          const SizedBox(height: 16),
+          const Text(
+            'Avatar Variants',
+            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+          ),
+          const SizedBox(height: 8),
+
+          GenericCard(
+            iconType: CardIconType.avatar,
+            iconBackground: Colors.blue[100],
+            icon: Icons.person,
+            iconColor: Colors.blue[700],
+            title: 'Title',
+            subtitle: 'Subtitle',
+            actionType: CardActionType.button,
+            buttonText: 'Button',
+            onButtonTap: () => print('Button tapped'),
+          ),
+
+          GenericCard(
+            iconType: CardIconType.avatar,
+            iconBackground: Colors.blue[100],
+            icon: Icons.person,
+            iconColor: Colors.blue[700],
+            title: 'Title',
+            subtitle: 'Subtitle',
+            actionType: CardActionType.chevron,
+            onTap: () => print('Card tapped'),
+          ),
+
+          GenericCard(
+            iconType: CardIconType.avatar,
+            iconBackground: Colors.blue[100],
+            icon: Icons.person,
+            iconColor: Colors.blue[700],
+            title: 'Title',
+            subtitle: 'Subtitle',
+          ),
+
+          GenericCard(
+            iconType: CardIconType.avatar,
+            iconBackground: Colors.grey[800],
+            icon: Icons.person,
+            iconColor: Colors.white,
+            title: 'Title',
+            subtitle: 'Subtitle',
+          ),
+
+          const SizedBox(height: 16),
+          const Text(
+            'Icon Variants',
+            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+          ),
+          const SizedBox(height: 8),
+
+          GenericCard(
+            iconType: CardIconType.icon,
+            icon: Icons.favorite,
+            iconColor: Colors.blue,
+            iconBackground: Colors.blue[50],
+            title: 'Title',
+            subtitle: 'Subtitle',
+            actionType: CardActionType.button,
+            buttonText: 'Button',
+            onButtonTap: () => print('Button tapped'),
+          ),
+
+          GenericCard(
+            iconType: CardIconType.icon,
+            icon: Icons.favorite,
+            iconColor: Colors.blue,
+            iconBackground: Colors.blue[50],
+            title: 'Title',
+            subtitle: 'Subtitle',
+            actionType: CardActionType.chevron,
+            onTap: () => print('Card tapped'),
+          ),
+
+          GenericCard(
+            iconType: CardIconType.icon,
+            icon: Icons.favorite,
+            iconColor: Colors.blue,
+            iconBackground: Colors.blue[50],
+            title: 'Title',
+            subtitle: 'Subtitle',
+          ),
+
+          const SizedBox(height: 16),
+          const Text(
+            'No Icon Variants',
+            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+          ),
+          const SizedBox(height: 8),
+
+          const GenericCard(
+            title: 'Title',
+            subtitle: 'Subtitle',
+            actionType: CardActionType.button,
+            buttonText: 'Button',
+          ),
+
+          const GenericCard(
+            title: 'Title',
+            subtitle: 'Subtitle',
+            actionType: CardActionType.chevron,
+          ),
+
+          const GenericCard(title: 'Title', subtitle: 'Subtitle'),
+        ],
+      ),
+    );
+  }
+}
