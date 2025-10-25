@@ -1,4 +1,5 @@
 import 'package:chat2date/components/card/generic_card.dart';
+import 'package:chat2date/components/layout/header.dart';
 import 'package:flutter/material.dart';
 
 class ComponentTestScreen extends StatelessWidget {
@@ -17,6 +18,10 @@ class ComponentTestScreen extends StatelessWidget {
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
+          const Text(
+            'Generic_card',
+            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+          ),
           GenericCard(
             iconType: CardIconType.image,
             iconBackground: Colors.blue[50],
@@ -45,11 +50,6 @@ class ComponentTestScreen extends StatelessWidget {
             onTap: () => print('Card tapped'),
           ),
 
-          const SizedBox(height: 16),
-          const Text(
-            'Avatar Variants',
-            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-          ),
           const SizedBox(height: 8),
 
           GenericCard(
@@ -93,11 +93,6 @@ class ComponentTestScreen extends StatelessWidget {
             subtitle: 'Subtitle',
           ),
 
-          const SizedBox(height: 16),
-          const Text(
-            'Icon Variants',
-            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-          ),
           const SizedBox(height: 8),
 
           GenericCard(
@@ -132,11 +127,6 @@ class ComponentTestScreen extends StatelessWidget {
             subtitle: 'Subtitle',
           ),
 
-          const SizedBox(height: 16),
-          const Text(
-            'No Icon Variants',
-            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-          ),
           const SizedBox(height: 8),
 
           const GenericCard(
@@ -153,6 +143,26 @@ class ComponentTestScreen extends StatelessWidget {
           ),
 
           const GenericCard(title: 'Title', subtitle: 'Subtitle'),
+
+          const Text(
+            'Headers',
+            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+          ),
+          Header(
+            name: 'John Doe',
+            showCalendar: true,
+            showSpinwheel: true,
+            showFlag: true,
+            onBack: () => print('Back pressed'),
+          ),
+
+          SizedBox(height: 16),
+
+          Header(name: 'เบรโต', showCalendar: true, showFlag: true),
+
+          SizedBox(height: 16),
+
+          Header(name: 'User 3', showSpinwheel: true),
         ],
       ),
     );
