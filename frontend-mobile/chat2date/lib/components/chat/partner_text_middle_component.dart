@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
-class PartnerTextTopComponent extends StatelessWidget {
-  const PartnerTextTopComponent({super.key});
+class PartnerTextMiddleComponent extends StatelessWidget {
+  const PartnerTextMiddleComponent({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -14,7 +14,7 @@ class PartnerTextTopComponent extends StatelessWidget {
         borderRadius: BorderRadius.only(
           topLeft: Radius.circular(0),
           topRight: Radius.circular(20),
-          bottomLeft: Radius.circular(20),
+          bottomLeft: Radius.circular(0),
           bottomRight: Radius.circular(20),
         ),
       ),
