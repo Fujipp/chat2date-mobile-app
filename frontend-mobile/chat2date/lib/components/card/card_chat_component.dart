@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 
 class CardChatNewComponent extends StatelessWidget {
   const CardChatNewComponent({super.key});
@@ -27,9 +28,11 @@ class CardChatNewComponent extends StatelessWidget {
       ),
       child: Row(
         children: [
-          Image.asset("assets/images/avatar.png", width: 40, height: 40),
+          SvgPicture.asset("assets/images/avatar.svg", width: 40, height: 40),
+          SizedBox(width: 16),
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisAlignment: MainAxisAlignment.center,
             children: [
               Text(
                 'header',
@@ -43,7 +46,7 @@ class CardChatNewComponent extends StatelessWidget {
             ],
           ),
           const Spacer(),
-          Image.asset("assets/images/new-white.png", width: 20, height: 14),
+          SvgPicture.asset("assets/images/new-white.svg", width: 20, height: 14),
         ],
       ),
     );
@@ -57,7 +60,7 @@ class CardChatNewV2Component extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
-      height: 72,
+      height: 97,
       width: 310,
       decoration: BoxDecoration(
         gradient: LinearGradient(
@@ -77,17 +80,17 @@ class CardChatNewV2Component extends StatelessWidget {
       ),
       child: Row(
         children: [
-          Image.asset("assets/images/avatar.png", width: 40, height: 40),
+          SvgPicture.asset("assets/images/avatar.svg", width: 40, height: 40),
+          SizedBox(width: 16),
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Image.asset("assets/images/new-black.png", width: 24, height: 24),
-              SizedBox(height: 5),
+              SvgPicture.asset("assets/images/new-black.svg", width: 24, height: 24),
               Text(
                 'header',
                 style: TextStyle(fontSize: 14, color: Color(0xFF0F172A)),
               ),
-              SizedBox(height: 5),
               Text(
                 'description',
                 style: TextStyle(fontSize: 10, color: Color(0xFF6B7280)),
@@ -95,7 +98,7 @@ class CardChatNewV2Component extends StatelessWidget {
             ],
           ),
           const Spacer(),
-          Image.asset("assets/images/new-white.png", width: 20, height: 14),
+          SvgPicture.asset("assets/images/new-white.svg", width: 20, height: 14),
         ],
       ),
     );
@@ -122,9 +125,11 @@ class CardChatNormalComponent extends StatelessWidget {
       ),
       child: Row(
         children: [
-          Image.asset("assets/images/avatar.png", width: 40, height: 40),
+          SvgPicture.asset("assets/images/avatar.svg", width: 40, height: 40),
+          SizedBox(width: 16),
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisAlignment: MainAxisAlignment.center,
             children: [
               Text(
                 'header',
@@ -170,9 +175,11 @@ class CardChatNotificationComponent extends StatelessWidget {
       ),
       child: Row(
         children: [
-          Image.asset("assets/images/avatar.png", width: 40, height: 40),
+          SvgPicture.asset("assets/images/avatar.svg", width: 40, height: 40),
+          SizedBox(width: 16),
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisAlignment: MainAxisAlignment.center,
             children: [
               Text(
                 'header',
@@ -186,7 +193,7 @@ class CardChatNotificationComponent extends StatelessWidget {
             ],
           ),
           const Spacer(),
-          Image.asset("assets/images/new-white.png", width: 33, height: 33),
+          SvgPicture.asset("assets/images/unseen-message.svg", width: 33, height: 33),
         ],
       ),
     );

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 
 class PartnerTextTopComponent extends StatelessWidget {
   const PartnerTextTopComponent({super.key});
@@ -60,7 +61,7 @@ class PartnerTextBottomComponent extends StatelessWidget {
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        Image.asset("assets/images/person.png", width: 50, height: 50),
+        SvgPicture.asset("assets/images/person.svg", width: 50, height: 50),
         SizedBox(width: 16),
         Container(
           decoration: BoxDecoration(
@@ -172,7 +173,7 @@ class StatusTextComponent extends StatelessWidget {
         'เห็นแล้ว',
         style: TextStyle(fontSize: 12, color: Color(0xFF93A1B3))),
         SizedBox(width: 3),
-        Image.asset("assets/images/seen.png", width: 12.6, height: 12),
+        SvgPicture.asset("assets/images/seen.svg", width: 12.6, height: 12),
       ],
     );
   }
@@ -205,7 +206,7 @@ class BotTextDateComponent extends StatelessWidget {
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.end,
       children: [
-        Image.asset("assets/images/bot.png", width: 50, height: 50),
+        SvgPicture.asset("assets/images/bot.svg", width: 50, height: 50),
         Container(
           padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
           height: 142,
@@ -291,7 +292,7 @@ class BotTextGameComponent extends StatelessWidget {
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.end,
       children: [
-        Image.asset("assets/images/bot.png", width: 50, height: 50),
+        SvgPicture.asset("assets/images/bot.svg", width: 50, height: 50),
         Container(
           padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
           height: 162,
@@ -357,7 +358,7 @@ class BotTextSuccessComponent extends StatelessWidget {
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.end,
       children: [
-        Image.asset("assets/images/bot.png", width: 50, height: 50),
+        SvgPicture.asset("assets/images/bot.svg", width: 50, height: 50),
         Container(
           padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
           height: 66,
@@ -400,7 +401,7 @@ class BotTextUnSuccessComponent extends StatelessWidget {
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.end,
       children: [
-        Image.asset("assets/images/bot.png", width: 50, height: 50),
+        SvgPicture.asset("assets/images/bot.svg", width: 50, height: 50),
         Container(
           padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
           height: 66,
