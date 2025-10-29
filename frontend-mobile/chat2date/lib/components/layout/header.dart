@@ -6,7 +6,9 @@ class Header extends StatelessWidget {
   final String? avatarUrl;
   final bool showCalendar;
   final bool showSpinwheel;
+  final bool showSpinwait;
   final bool showFlag;
+  final bool showOptions;
   final VoidCallback? onBack;
   final VoidCallback? onCalendar;
   final VoidCallback? onSettings;
@@ -18,6 +20,8 @@ class Header extends StatelessWidget {
     this.avatarUrl,
     this.showCalendar = false,
     this.showSpinwheel = false,
+    this.showSpinwait = false,
+    this.showOptions = false,
     this.showFlag = false,
     this.onBack,
     this.onCalendar,
@@ -116,6 +120,21 @@ class Header extends StatelessWidget {
                   ),
                   const SizedBox(width: 8),
                 ],
+                if (showSpinwait) ...[
+                  InkWell(
+                    onTap: onSettings,
+                    child: SizedBox(
+                      width: 30,
+                      height: 30,
+                      child: SvgPicture.asset(
+                        'assets/icons/icon_spinwheel_7.svg',
+                        width: 30,
+                        height: 30,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                ],
                 if (showFlag)
                   InkWell(
                     onTap: onFlag,
@@ -129,7 +148,166 @@ class Header extends StatelessWidget {
                       ),
                     ),
                   ),
+                if (showOptions)
+                  InkWell(
+                    onTap: onFlag,
+                    child: SizedBox(
+                      width: 30,
+                      height: 20,
+                      child: Icon(
+                        Icons.more_horiz,
+                        size: 30,
+                        color: Colors.red,
+                      ),
+                    ),
+                  ),
               ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class ChatToDateHeaderWhite extends StatelessWidget {
+  final String leftIconPath;
+  final String rightIconPath;
+  final Color? iconColor;
+  final VoidCallback? onSettings;
+  final VoidCallback? onBack;
+
+  const ChatToDateHeaderWhite({
+    Key? key,
+    required this.leftIconPath,
+    required this.rightIconPath,
+    this.iconColor,
+    this.onSettings,
+    this.onBack,
+  }) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    final Color svgColor = iconColor ?? const Color(0xFF78CEFF);
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 10,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Row(
+        children: [
+          InkWell(
+            onTap: onBack,
+            child: SizedBox(
+              width: 120,
+              height: 40,
+              child: SvgPicture.asset(
+                leftIconPath,
+                width: 120,
+                height: 40,
+                color: svgColor,
+                fit: BoxFit.contain,
+              ),
+            ),
+          ),
+
+          const Spacer(),
+
+          InkWell(
+            onTap: onSettings,
+            child: SizedBox(
+              width: 24,
+              height: 24,
+              child: SvgPicture.asset(
+                rightIconPath,
+                width: 24,
+                height: 24,
+                color: svgColor,
+                fit: BoxFit.contain,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class ChatToDateHeaderGradient extends StatelessWidget {
+  final String leftIconPath;
+  final String rightIconPath;
+  final Color? iconColor;
+  final VoidCallback? onSettings;
+  final VoidCallback? onBack;
+
+  const ChatToDateHeaderGradient({
+    Key? key,
+    required this.leftIconPath,
+    required this.rightIconPath,
+    this.iconColor,
+    this.onSettings,
+    this.onBack,
+  }) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    final Color svgColor = iconColor ?? Colors.white;
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(
+          colors: [Color(0xFF5ce1e6), Color(0xFF98FB98)],
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0xFF5ce1e6).withOpacity(0.3),
+            blurRadius: 15,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Row(
+        children: [
+          InkWell(
+            onTap: onBack,
+            child: SizedBox(
+              width: 120,
+              height: 40,
+              child: SvgPicture.asset(
+                leftIconPath,
+                width: 120,
+                height: 40,
+                color: svgColor,
+                fit: BoxFit.contain,
+              ),
+            ),
+          ),
+
+          const Spacer(),
+
+          InkWell(
+            onTap: onSettings,
+            child: SizedBox(
+              width: 24,
+              height: 24,
+              child: SvgPicture.asset(
+                rightIconPath,
+                width: 24,
+                height: 24,
+                color: svgColor,
+                fit: BoxFit.contain,
+              ),
             ),
           ),
         ],

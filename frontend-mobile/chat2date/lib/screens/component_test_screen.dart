@@ -158,11 +158,40 @@ class ComponentTestScreen extends StatelessWidget {
 
           SizedBox(height: 16),
 
-          Header(name: 'เบรโต', showCalendar: true, showFlag: true),
+          Header(
+            name: 'เบรโต',
+            showCalendar: true,
+            showSpinwait: true,
+            showFlag: true,
+          ),
 
           SizedBox(height: 16),
 
-          Header(name: 'User 3', showSpinwheel: true),
+          Header(name: 'User 3', showFlag: true),
+
+          SizedBox(height: 16),
+
+          Header(name: 'โมจิกิ', showOptions: true),
+
+          SizedBox(height: 16),
+
+          ChatToDateHeaderWhite(
+            leftIconPath: 'assets/icons/icon_chat2date_full.svg',
+            rightIconPath: 'assets/icons/icon_menu.svg',
+            iconColor: Color(0xFF5ce1e6),
+            onBack: () {},
+            onSettings: () {},
+          ),
+
+          SizedBox(height: 16),
+
+          ChatToDateHeaderGradient(
+            leftIconPath: 'assets/icons/icon_chat2date_full.svg',
+            rightIconPath: 'assets/icons/icon_menu.svg',
+            iconColor: Colors.white,
+            onBack: () {},
+            onSettings: () {},
+          ),
         ],
       ),
     );
