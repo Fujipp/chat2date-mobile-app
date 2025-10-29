@@ -1,6 +1,7 @@
 import 'package:chat2date/components/card/generic_card.dart';
 import 'package:chat2date/components/chat/content_switcher.dart';
 import 'package:chat2date/components/layout/header.dart';
+import 'package:chat2date/components/layout/menu_bar.dart';
 import 'package:flutter/material.dart';
 
 class ComponentTestScreen extends StatefulWidget {
@@ -15,6 +16,8 @@ class _ComponentTestScreenState extends State<ComponentTestScreen> {
   int selectedIndex2 = 1; // เริ่มที่ Tab 2
   int selectedIndex3 = 1; // เริ่มที่ icon people
   int selectedIndex4 = 0; // เริ่มที่ Name A
+
+  int bottomNavIndex = 0;
 
   @override
   Widget build(BuildContext context) {
@@ -211,6 +214,19 @@ class _ComponentTestScreenState extends State<ComponentTestScreen> {
           ),
           const SizedBox(height: 24),
         ],
+      ),
+      bottomNavigationBar: CustomBottomNavBar(
+        currentIndex: bottomNavIndex,
+        items: [
+          NavItem(icon: Icons.home, label: 'Home'),
+          NavItem(icon: Icons.chat_bubble, label: 'Chat'),
+          NavItem(icon: Icons.person, label: 'Profile'),
+          NavItem(icon: Icons.settings, label: 'Setting'),
+        ],
+        onTap: (index) {
+          setState(() => bottomNavIndex = index);
+          print('Selected bottom nav: $index');
+        },
       ),
     );
   }
