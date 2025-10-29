@@ -2,6 +2,7 @@ import 'package:chat2date/components/card/generic_card.dart';
 import 'package:chat2date/components/chat/content_switcher.dart';
 import 'package:chat2date/components/layout/header.dart';
 import 'package:chat2date/components/layout/menu_bar.dart';
+import 'package:chat2date/components/status_bar/gps_alert.dart';
 import 'package:flutter/material.dart';
 
 class ComponentTestScreen extends StatefulWidget {
@@ -212,6 +213,18 @@ class _ComponentTestScreenState extends State<ComponentTestScreen> {
             selectedIndex: selectedIndex4,
             onChanged: (index) => setState(() => selectedIndex4 = index),
           ),
+          const SizedBox(height: 24),
+
+          const Text(
+            'GPS Map Alert',
+
+            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+          ),
+
+          const SizedBox(height: 12),
+
+          const GpsMapAlert(),
+
           const SizedBox(height: 24),
         ],
       ),
