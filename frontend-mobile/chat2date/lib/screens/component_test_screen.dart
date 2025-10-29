@@ -24,7 +24,7 @@ class ComponentTestScreen extends StatelessWidget {
           ),
           GenericCard(
             iconType: CardIconType.image,
-            iconBackground: Colors.blue[50],
+            //iconBackground: Colors.blue[50],
             title: 'Title',
             subtitle: 'Subtitle',
             actionType: CardActionType.button,
@@ -35,7 +35,7 @@ class ComponentTestScreen extends StatelessWidget {
 
           GenericCard(
             iconType: CardIconType.image,
-            iconBackground: Colors.blue[50],
+            //iconBackground: Colors.blue[50],
             title: 'Title',
             subtitle: 'Subtitle',
             actionType: CardActionType.chevron,
@@ -44,7 +44,7 @@ class ComponentTestScreen extends StatelessWidget {
 
           GenericCard(
             iconType: CardIconType.image,
-            iconBackground: Colors.blue[50],
+            //iconBackground: Colors.blue[50],
             title: 'Title',
             subtitle: 'Subtitle',
             onTap: () => print('Card tapped'),
@@ -54,7 +54,7 @@ class ComponentTestScreen extends StatelessWidget {
 
           GenericCard(
             iconType: CardIconType.avatar,
-            iconBackground: Colors.blue[100],
+            //iconBackground: Colors.blue[100],
             icon: Icons.person,
             iconColor: Colors.blue[700],
             title: 'Title',
@@ -66,7 +66,7 @@ class ComponentTestScreen extends StatelessWidget {
 
           GenericCard(
             iconType: CardIconType.avatar,
-            iconBackground: Colors.blue[100],
+            //iconBackground: Colors.blue[100],
             icon: Icons.person,
             iconColor: Colors.blue[700],
             title: 'Title',
@@ -77,7 +77,7 @@ class ComponentTestScreen extends StatelessWidget {
 
           GenericCard(
             iconType: CardIconType.avatar,
-            iconBackground: Colors.blue[100],
+            //iconBackground: Colors.blue[100],
             icon: Icons.person,
             iconColor: Colors.blue[700],
             title: 'Title',
@@ -86,7 +86,7 @@ class ComponentTestScreen extends StatelessWidget {
 
           GenericCard(
             iconType: CardIconType.avatar,
-            iconBackground: Colors.grey[800],
+            //iconBackground: Colors.grey[800],
             icon: Icons.person,
             iconColor: Colors.white,
             title: 'Title',
@@ -99,7 +99,7 @@ class ComponentTestScreen extends StatelessWidget {
             iconType: CardIconType.icon,
             icon: Icons.favorite,
             iconColor: Colors.blue,
-            iconBackground: Colors.blue[50],
+            //iconBackground: Colors.blue[50],
             title: 'Title',
             subtitle: 'Subtitle',
             actionType: CardActionType.button,
@@ -111,7 +111,7 @@ class ComponentTestScreen extends StatelessWidget {
             iconType: CardIconType.icon,
             icon: Icons.favorite,
             iconColor: Colors.blue,
-            iconBackground: Colors.blue[50],
+            //iconBackground: Colors.blue[50],
             title: 'Title',
             subtitle: 'Subtitle',
             actionType: CardActionType.chevron,
@@ -120,9 +120,7 @@ class ComponentTestScreen extends StatelessWidget {
 
           GenericCard(
             iconType: CardIconType.icon,
-            icon: Icons.favorite,
-            iconColor: Colors.blue,
-            iconBackground: Colors.blue[50],
+
             title: 'Title',
             subtitle: 'Subtitle',
           ),

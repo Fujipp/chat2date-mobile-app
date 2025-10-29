@@ -44,14 +44,14 @@ class GenericCard extends StatelessWidget {
     return Container(
       margin: const EdgeInsets.only(bottom: 8),
       decoration: BoxDecoration(
-        color: backgroundColor ?? Colors.white,
-        borderRadius: BorderRadius.circular(12),
+        color: backgroundColor ?? Color(0xFFf8f9fe),
+        borderRadius: BorderRadius.circular(16),
       ),
       child: Material(
         color: Colors.transparent,
         child: InkWell(
           onTap: onTap,
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(16),
           child: Padding(
             padding: iconType == CardIconType.image
                 ? const EdgeInsets.only(right: 16) // ซ้าย 0 แต่เว้นขวา
@@ -114,12 +114,17 @@ class GenericCard extends StatelessWidget {
           width: 80,
           height: 72,
           decoration: BoxDecoration(
-            color: iconBackground ?? Colors.blue[50],
-            borderRadius: BorderRadius.circular(12),
+            color: iconBackground ?? Color(0xFFeaf2ff),
+            borderRadius: BorderRadius.only(
+              topLeft: Radius.circular(16),
+              bottomLeft: Radius.circular(16),
+              topRight: Radius.circular(0),
+              bottomRight: Radius.circular(0),
+            ),
           ),
           child: imageUrl != null
               ? ClipRRect(
-                  borderRadius: BorderRadius.circular(12),
+                  borderRadius: BorderRadius.circular(16),
                   child: Image.network(
                     imageUrl!,
                     fit: BoxFit.cover,
@@ -140,7 +145,7 @@ class GenericCard extends StatelessWidget {
           height: 40,
           decoration: BoxDecoration(
             color: iconBackground ?? Colors.blue[100],
-            borderRadius: BorderRadius.circular(16), // ปรับมุมโค้งตามใจชอบ
+            borderRadius: BorderRadius.circular(16),
           ),
           child: ClipRRect(
             borderRadius: BorderRadius.circular(8),
@@ -168,13 +173,13 @@ class GenericCard extends StatelessWidget {
           width: 48,
           height: 48,
           decoration: BoxDecoration(
-            color: iconBackground ?? Colors.blue[50],
+            color: iconBackground ?? Colors.grey[200],
             shape: BoxShape.circle,
           ),
           child: Icon(
             icon ?? Icons.favorite,
-            color: iconColor ?? Colors.blue,
-            size: 24,
+            color: iconColor ?? Color(0xFF006ffd),
+            size: 28,
           ),
         );
 
