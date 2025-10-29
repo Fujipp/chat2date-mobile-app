@@ -17,12 +17,20 @@ class ModalDoneComponent extends StatelessWidget {
           bottomLeft: Radius.circular(16),
           bottomRight: Radius.circular(16),
         ),
+        color: Colors.white,
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.1),
+            blurRadius: 15,
+            offset: const Offset(0, 4),
+          ),
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
           SvgPicture.asset("assets/images/done.svg", width: 77.27, height: 78),
-          SizedBox(width: 15),
+          SizedBox(height: 15),
           Text(
             'topic',
             style: TextStyle(
@@ -31,7 +39,7 @@ class ModalDoneComponent extends StatelessWidget {
               fontWeight: FontWeight.bold,
             ),
           ),
-          SizedBox(width: 15),
+          SizedBox(height: 15),
           Text(
             'description',
             style: TextStyle(fontSize: 12, color: Color(0xFF6B7280)),
@@ -58,16 +66,24 @@ class ModalWarningComponent extends StatelessWidget {
           bottomLeft: Radius.circular(16),
           bottomRight: Radius.circular(16),
         ),
+        color: Colors.white,
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.1),
+            blurRadius: 15,
+            offset: const Offset(0, 4),
+          ),
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
           SvgPicture.asset(
-            "assets/images/caution.svg",
+            "assets/images/warning.svg",
             width: 77.27,
-            height: 78,
+            height: 68,
           ),
-          SizedBox(width: 15),
+          SizedBox(height: 15),
           Text(
             'topic',
             style: TextStyle(
@@ -76,7 +92,7 @@ class ModalWarningComponent extends StatelessWidget {
               fontWeight: FontWeight.bold,
             ),
           ),
-          SizedBox(width: 15),
+          SizedBox(height: 15),
           Text(
             'description',
             style: TextStyle(fontSize: 12, color: Color(0xFF6B7280)),
@@ -103,13 +119,24 @@ class ModalBanComponent extends StatelessWidget {
           bottomLeft: Radius.circular(16),
           bottomRight: Radius.circular(16),
         ),
+        color: Colors.white,
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.1),
+            blurRadius: 15,
+            offset: const Offset(0, 4),
+          ),
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          SizedBox(width: 10),
-          SvgPicture.asset("assets/images/ban.svg", width: 77.27, height: 78),
-          SizedBox(width: 15),
+          SvgPicture.asset(
+            "assets/images/banning.svg",
+            width: 77.27,
+            height: 78,
+          ),
+          SizedBox(height: 15),
           Text(
             'topic',
             style: TextStyle(
@@ -118,7 +145,7 @@ class ModalBanComponent extends StatelessWidget {
               fontWeight: FontWeight.bold,
             ),
           ),
-          SizedBox(width: 15),
+          SizedBox(height: 15),
           Text(
             'description',
             style: TextStyle(fontSize: 12, color: Color(0xFF6B7280)),
@@ -145,6 +172,14 @@ class ModalGoodEndingComponent extends StatelessWidget {
           bottomLeft: Radius.circular(16),
           bottomRight: Radius.circular(16),
         ),
+        color: Colors.white,
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.1),
+            blurRadius: 15,
+            offset: const Offset(0, 4),
+          ),
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.center,
@@ -154,7 +189,7 @@ class ModalGoodEndingComponent extends StatelessWidget {
             width: 77.27,
             height: 78,
           ),
-          SizedBox(width: 15),
+          SizedBox(height: 15),
           Text(
             'topic',
             style: TextStyle(
@@ -163,7 +198,7 @@ class ModalGoodEndingComponent extends StatelessWidget {
               fontWeight: FontWeight.bold,
             ),
           ),
-          SizedBox(width: 15),
+          SizedBox(height: 15),
           Text(
             'description',
             style: TextStyle(fontSize: 12, color: Color(0xFF6B7280)),
@@ -190,6 +225,14 @@ class ModalOneSidedComponent extends StatelessWidget {
           bottomLeft: Radius.circular(16),
           bottomRight: Radius.circular(16),
         ),
+        color: Colors.white,
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.1),
+            blurRadius: 15,
+            offset: const Offset(0, 4),
+          ),
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.center,
@@ -199,7 +242,7 @@ class ModalOneSidedComponent extends StatelessWidget {
             width: 77.27,
             height: 78,
           ),
-          SizedBox(width: 15),
+          SizedBox(height: 15),
           Text(
             'topic',
             style: TextStyle(
@@ -208,16 +251,17 @@ class ModalOneSidedComponent extends StatelessWidget {
               fontWeight: FontWeight.bold,
             ),
           ),
-          SizedBox(width: 15),
+          SizedBox(height: 15),
           Text(
             'description',
             style: TextStyle(fontSize: 12, color: Color(0xFF6B7280)),
           ),
+          SizedBox(height: 15),
           Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               SizedBox(
-                width: 100,
+                width: 115,
                 height: 40,
                 child: ElevatedButton(
                   style: ElevatedButton.styleFrom(
@@ -228,7 +272,10 @@ class ModalOneSidedComponent extends StatelessWidget {
                     ),
                   ),
                   onPressed: () {},
-                  child: const Text('ไม่ต้องการ'),
+                  child: const Text(
+                    'ไม่ต้องการ',
+                    style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
+                  ),
                 ),
               ),
               SizedBox(width: 15),
@@ -244,7 +291,10 @@ class ModalOneSidedComponent extends StatelessWidget {
                     ),
                   ),
                   onPressed: () {},
-                  child: const Text('ต้องการ'),
+                  child: const Text(
+                    'ต้องการ',
+                    style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
+                  ),
                 ),
               ),
             ],
@@ -271,16 +321,24 @@ class ModalBadEndingComponent extends StatelessWidget {
           bottomLeft: Radius.circular(16),
           bottomRight: Radius.circular(16),
         ),
+        color: Colors.white,
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.1),
+            blurRadius: 15,
+            offset: const Offset(0, 4),
+          ),
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
           SvgPicture.asset(
             "assets/images/bad-ending.svg",
-            width: 100,
-            height: 100,
+            width: 77.28,
+            height: 78,
           ),
-          SizedBox(width: 15),
+          SizedBox(height: 15),
           Text(
             'topic',
             style: TextStyle(
@@ -289,16 +347,17 @@ class ModalBadEndingComponent extends StatelessWidget {
               fontWeight: FontWeight.bold,
             ),
           ),
-          SizedBox(width: 15),
+          SizedBox(height: 15),
           Text(
             'description',
             style: TextStyle(fontSize: 12, color: Color(0xFF6B7280)),
           ),
+          SizedBox(height: 15),
           Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               SizedBox(
-                width: 100,
+                width: 115,
                 height: 40,
                 child: ElevatedButton(
                   style: ElevatedButton.styleFrom(
@@ -309,7 +368,10 @@ class ModalBadEndingComponent extends StatelessWidget {
                     ),
                   ),
                   onPressed: () {},
-                  child: const Text('ไม่ต้องการ'),
+                  child: const Text(
+                    'ไม่ต้องการ',
+                    style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
+                  ),
                 ),
               ),
               SizedBox(width: 15),
@@ -325,7 +387,10 @@ class ModalBadEndingComponent extends StatelessWidget {
                     ),
                   ),
                   onPressed: () {},
-                  child: const Text('ต้องการ'),
+                  child: const Text(
+                    'ต้องการ',
+                    style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
+                  ),
                 ),
               ),
             ],
@@ -342,7 +407,7 @@ class ModalAssesmentComponent extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.fromLTRB(15, 12, 15, 12),
+      padding: const EdgeInsets.fromLTRB(12, 12, 12, 12),
       height: 380,
       width: 310,
       decoration: BoxDecoration(
@@ -352,6 +417,14 @@ class ModalAssesmentComponent extends StatelessWidget {
           bottomLeft: Radius.circular(16),
           bottomRight: Radius.circular(16),
         ),
+        color: Colors.white,
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.1),
+            blurRadius: 15,
+            offset: const Offset(0, 4),
+          ),
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.center,
@@ -364,32 +437,37 @@ class ModalAssesmentComponent extends StatelessWidget {
               fontWeight: FontWeight.bold,
             ),
           ),
-          SizedBox(width: 15),
+          SizedBox(height: 15),
           SvgPicture.asset(
             "assets/images/person.svg",
             width: 83.33,
             height: 90.89,
           ),
-          SizedBox(width: 5),
+          SizedBox(height: 5),
           Text(
             'name',
             style: TextStyle(fontSize: 16, color: Color(0xFF0F172A)),
           ),
-          SizedBox(width: 15),
+          SizedBox(height: 15),
           Text(
             'name',
             style: TextStyle(fontSize: 12, color: Color(0xFF6B7280)),
           ),
+          SizedBox(height: 15),
           Row(
             mainAxisAlignment: MainAxisAlignment.start,
             children: [
               Text(
-                'description',
-                style: TextStyle(fontSize: 12, color: Color(0xFF6B7280)),
+                'คำเตือน การเลือกจะมีผลต่อความสัมพันธ์คู่ของคุณ\n'
+                'พึงพอใจทั้งคู่ ถือว่าทั้งคู่ประสบความสำเร็จ\n'
+                'ไม่พึงพอใจทั้งคู่ จะมีให้เลือกว่าจะ unmatch หรือไม่\n'
+                'ไม่พอใจฝ่ายใดฝ่ายหนึ่ง จะมีให้เลือกไปต่อหรือพอแค่นี้\n'
+                'หากฝ่ายใดฝ่ายหนึ่งเลือก unmatch หรือ พอแค่นี้ จะจบทันที',
+                style: TextStyle(fontSize: 10, color: Color(0xFF6B7280)),
               ),
             ],
           ),
-          SizedBox(width: 15),
+          SizedBox(height: 15),
           Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
@@ -405,7 +483,10 @@ class ModalAssesmentComponent extends StatelessWidget {
                     ),
                   ),
                   onPressed: () {},
-                  child: const Text('ปิด'),
+                  child: const Text(
+                    'ไม่พอใจ',
+                    style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
+                  ),
                 ),
               ),
               SizedBox(width: 15),
@@ -421,7 +502,10 @@ class ModalAssesmentComponent extends StatelessWidget {
                     ),
                   ),
                   onPressed: () {},
-                  child: const Text('ส่ง'),
+                  child: const Text(
+                    'พอใจ',
+                    style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
+                  ),
                 ),
               ),
             ],
@@ -438,7 +522,7 @@ class ModalFeedbackComponent extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.fromLTRB(10, 68, 10, 68),
+      padding: const EdgeInsets.fromLTRB(7.5, 55, 7.5, 55),
       height: 380,
       width: 310,
       decoration: BoxDecoration(
@@ -448,6 +532,14 @@ class ModalFeedbackComponent extends StatelessWidget {
           bottomLeft: Radius.circular(16),
           bottomRight: Radius.circular(16),
         ),
+        color: Colors.white,
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.1),
+            blurRadius: 15,
+            offset: const Offset(0, 4),
+          ),
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.center,
@@ -460,23 +552,25 @@ class ModalFeedbackComponent extends StatelessWidget {
               fontWeight: FontWeight.bold,
             ),
           ),
-          SizedBox(width: 15),
+          SizedBox(height: 15),
           SvgPicture.asset(
             "assets/images/star-rating.svg",
             width: 203,
             height: 35,
           ),
-          SizedBox(width: 15),
+          SizedBox(height: 15),
           Row(
-            mainAxisAlignment: MainAxisAlignment.start,
             children: [
               Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
                     'description',
                     style: TextStyle(fontSize: 12, color: Color(0xFF0F172A)),
                   ),
+                  SizedBox(height: 10),
                   Container(
+                    padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
                     width: 295,
                     height: 97,
                     decoration: BoxDecoration(
@@ -492,7 +586,7 @@ class ModalFeedbackComponent extends StatelessWidget {
               ),
             ],
           ),
-          SizedBox(width: 15),
+          SizedBox(height: 15),
           Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
@@ -508,7 +602,10 @@ class ModalFeedbackComponent extends StatelessWidget {
                     ),
                   ),
                   onPressed: () {},
-                  child: const Text('ปิด'),
+                  child: const Text(
+                    'ปิด',
+                    style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
+                  ),
                 ),
               ),
               SizedBox(width: 15),
@@ -524,7 +621,10 @@ class ModalFeedbackComponent extends StatelessWidget {
                     ),
                   ),
                   onPressed: () {},
-                  child: const Text('ส่ง'),
+                  child: const Text(
+                    'ส่ง',
+                    style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
+                  ),
                 ),
               ),
             ],
@@ -551,6 +651,14 @@ class ModalThanksComponent extends StatelessWidget {
           bottomLeft: Radius.circular(16),
           bottomRight: Radius.circular(16),
         ),
+        color: Colors.white,
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.1),
+            blurRadius: 15,
+            offset: const Offset(0, 4),
+          ),
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.center,
@@ -563,13 +671,10 @@ class ModalThanksComponent extends StatelessWidget {
               fontWeight: FontWeight.bold,
             ),
           ),
-          SizedBox(width: 20),
+          SizedBox(height: 20),
           Text(
             'description',
-            style: TextStyle(
-              fontSize: 12,
-              color: Color(0xFF6B7280),
-            ),
+            style: TextStyle(fontSize: 12, color: Color(0xFF6B7280)),
           ),
         ],
       ),
@@ -583,7 +688,7 @@ class ModalUnlockComponent extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.fromLTRB(12, 40, 12, 40),
+      padding: const EdgeInsets.fromLTRB(12, 35, 12, 35),
       height: 140,
       width: 310,
       decoration: BoxDecoration(
@@ -593,16 +698,24 @@ class ModalUnlockComponent extends StatelessWidget {
           bottomLeft: Radius.circular(16),
           bottomRight: Radius.circular(16),
         ),
+        color: Colors.white,
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.1),
+            blurRadius: 15,
+            offset: const Offset(0, 4),
+          ),
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
           SvgPicture.asset(
-            "assets/images/star-rating.svg",
+            "assets/images/unlock.svg",
             width: 18,
             height: 24,
           ),
-          SizedBox(width: 20),
+          SizedBox(height: 20),
           Text(
             'topic',
             style: TextStyle(
@@ -623,7 +736,7 @@ class ModalConfirmComponent extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.fromLTRB(12, 40, 12, 40),
+      padding: const EdgeInsets.fromLTRB(12, 33, 12, 33),
       height: 190,
       width: 310,
       decoration: BoxDecoration(
@@ -633,6 +746,14 @@ class ModalConfirmComponent extends StatelessWidget {
           bottomLeft: Radius.circular(16),
           bottomRight: Radius.circular(16),
         ),
+        color: Colors.white,
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.1),
+            blurRadius: 15,
+            offset: const Offset(0, 4),
+          ),
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.center,
@@ -645,15 +766,12 @@ class ModalConfirmComponent extends StatelessWidget {
               fontWeight: FontWeight.bold,
             ),
           ),
-          SizedBox(width: 10),
+          SizedBox(height: 10),
           Text(
-            'descripsion',
-            style: TextStyle(
-              fontSize: 12,
-              color: Color(0xFF6B7280),
-            ),
+            'descripsion\n'
+            'dssss\n',
+            style: TextStyle(fontSize: 12, color: Color(0xFF6B7280)),
           ),
-          SizedBox(width: 10),
           Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [

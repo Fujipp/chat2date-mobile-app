@@ -2,7 +2,7 @@
 import 'package:flutter/material.dart';
 
 // เรียกใช้ Component ของเรา
-import 'components/card/card_chat_component.dart';
+import 'components/common/modal_component.dart';
 //import 'components/chat/partner_text_top_component.dart';
 
 void main() {
@@ -35,7 +35,7 @@ class HomePage extends StatelessWidget {
       ),
       body: const Center(
         // เรียกใช้ component ของเรา
-        child: CardChatNotificationComponent(),
+        child: ModalConfirmComponent(),
       ),
     );
   }
