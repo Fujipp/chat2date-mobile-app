@@ -787,7 +787,10 @@ class ModalConfirmComponent extends StatelessWidget {
                     ),
                   ),
                   onPressed: () {},
-                  child: const Text('ยกเลิก'),
+                  child: const Text(
+                    'ยกเลิก',
+                    style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
+                  ),
                 ),
               ),
               SizedBox(width: 32),
@@ -803,7 +806,10 @@ class ModalConfirmComponent extends StatelessWidget {
                     ),
                   ),
                   onPressed: () {},
-                  child: const Text('ยืนยัน'),
+                  child: const Text(
+                    'ยืนยัน',
+                    style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
+                  ),
                 ),
               ),
             ],

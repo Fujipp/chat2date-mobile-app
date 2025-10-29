@@ -170,8 +170,9 @@ class StatusTextComponent extends StatelessWidget {
       mainAxisSize: MainAxisSize.min,
       children: [
         Text(
-        'เห็นแล้ว',
-        style: TextStyle(fontSize: 12, color: Color(0xFF93A1B3))),
+          'เห็นแล้ว',
+          style: TextStyle(fontSize: 12, color: Color(0xFF93A1B3)),
+        ),
         SizedBox(width: 3),
         SvgPicture.asset("assets/images/seen.svg", width: 12.6, height: 12),
       ],
@@ -186,9 +187,7 @@ class SystemTextComponent extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: Color(0xFFF0F8FF),
-      ),
+      decoration: BoxDecoration(color: Color(0xFFF0F8FF)),
       child: const Text(
         'System Text',
         style: TextStyle(fontSize: 14, color: Color(0xFF0F172A)),
@@ -214,29 +213,29 @@ class BotTextDateComponent extends StatelessWidget {
           decoration: BoxDecoration(
             color: Color(0xFFFFF1C1),
             borderRadius: BorderRadius.only(
-            topLeft: Radius.circular(20),
-            topRight: Radius.circular(20),
-            bottomLeft: Radius.circular(0),
-            bottomRight: Radius.circular(20),
+              topLeft: Radius.circular(20),
+              topRight: Radius.circular(20),
+              bottomLeft: Radius.circular(0),
+              bottomRight: Radius.circular(20),
             ),
           ),
           child: Column(
             children: [
               Text(
                 'header',
-                style: TextStyle(fontSize: 14, color: Color(0xFF0F172A))
+                style: TextStyle(fontSize: 14, color: Color(0xFF0F172A)),
               ),
               SizedBox(height: 5),
               Text(
                 'description',
-                style: TextStyle(fontSize: 10, color: Color(0xFF7C4A00))
+                style: TextStyle(fontSize: 10, color: Color(0xFF7C4A00)),
               ),
               const Spacer(),
               Center(
                 child: Text(
-                'ตอบแล้ว 0/2',
-                style: TextStyle(fontSize: 10, color: Color(0xFFFF6B6B))
-                )
+                  'ตอบแล้ว 0/2',
+                  style: TextStyle(fontSize: 10, color: Color(0xFFFF6B6B)),
+                ),
               ),
               SizedBox(height: 14),
               Row(
@@ -246,15 +245,21 @@ class BotTextDateComponent extends StatelessWidget {
                     width: 100,
                     height: 40,
                     child: ElevatedButton(
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Color(0xFFFF6B6B),
-                      foregroundColor: Color(0xFFFFFFFF),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12)
-                        )
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Color(0xFFFF6B6B),
+                        foregroundColor: Color(0xFFFFFFFF),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
                       ),
-                    onPressed: (){}, 
-                    child: const Text('ไม่ไป')
+                      onPressed: () {},
+                      child: const Text(
+                        'ไม่ไป',
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
                     ),
                   ),
                   SizedBox(width: 27),
@@ -262,22 +267,28 @@ class BotTextDateComponent extends StatelessWidget {
                     width: 100,
                     height: 40,
                     child: ElevatedButton(
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Color(0xFF98FB98),
-                      foregroundColor: Color(0xFFFFFFFF),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12)
-                        )
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Color(0xFF98FB98),
+                        foregroundColor: Color(0xFFFFFFFF),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
                       ),
-                    onPressed: (){}, 
-                    child: const Text('ไป')
+                      onPressed: () {},
+                      child: const Text(
+                        'ไป',
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
                     ),
-                  )
-                ]
-              )
+                  ),
+                ],
+              ),
             ],
-          )
-        )
+          ),
+        ),
       ],
     );
   }
@@ -300,10 +311,10 @@ class BotTextGameComponent extends StatelessWidget {
           decoration: BoxDecoration(
             color: Color(0xFFFFF1C1),
             borderRadius: BorderRadius.only(
-            topLeft: Radius.circular(20),
-            topRight: Radius.circular(20),
-            bottomLeft: Radius.circular(0),
-            bottomRight: Radius.circular(20),
+              topLeft: Radius.circular(20),
+              topRight: Radius.circular(20),
+              bottomLeft: Radius.circular(0),
+              bottomRight: Radius.circular(20),
             ),
           ),
           child: Column(
@@ -311,39 +322,39 @@ class BotTextGameComponent extends StatelessWidget {
             children: [
               Text(
                 'header',
-                style: TextStyle(fontSize: 14, color: Color(0xFF0F172A))
+                style: TextStyle(fontSize: 14, color: Color(0xFF0F172A)),
               ),
               SizedBox(height: 5),
               Text(
                 'description',
-                style: TextStyle(fontSize: 10, color: Color(0xFF7C4A00))
+                style: TextStyle(fontSize: 10, color: Color(0xFF7C4A00)),
               ),
               const Spacer(),
               Center(
                 child: Text(
-                'time remaining',
-                style: TextStyle(fontSize: 10, color: Color(0xFFFF6B6B))
-                )
+                  'time remaining',
+                  style: TextStyle(fontSize: 10, color: Color(0xFFFF6B6B)),
+                ),
               ),
               SizedBox(height: 14),
               SizedBox(
                 width: 227,
                 height: 40,
                 child: ElevatedButton(
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Color(0xFF4DF8FF),
-                  foregroundColor: Color(0xFFFFFFFF),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12)
-                    )
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Color(0xFF4DF8FF),
+                    foregroundColor: Color(0xFFFFFFFF),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                  onPressed: () {},
+                  child: const Text('เริ่ม'),
                 ),
-                onPressed: (){}, 
-                child: const Text('เริ่ม')
-                ),
-              )
+              ),
             ],
-          )
-        )
+          ),
+        ),
       ],
     );
   }
@@ -366,27 +377,26 @@ class BotTextSuccessComponent extends StatelessWidget {
           decoration: BoxDecoration(
             color: Color(0xFFE9FFE9),
             borderRadius: BorderRadius.only(
-            topLeft: Radius.circular(20),
-            topRight: Radius.circular(20),
-            bottomLeft: Radius.circular(0),
-            bottomRight: Radius.circular(20),
+              topLeft: Radius.circular(20),
+              topRight: Radius.circular(20),
+              bottomLeft: Radius.circular(0),
+              bottomRight: Radius.circular(20),
             ),
           ),
           child: Column(
             children: [
               Text(
                 'header',
-                style: TextStyle(fontSize: 14, color: Color(0xFF0F172A))
+                style: TextStyle(fontSize: 14, color: Color(0xFF0F172A)),
               ),
               SizedBox(height: 5),
               Text(
                 'description',
-                style: TextStyle(fontSize: 10, color: Color(0xFF134F2C))
+                style: TextStyle(fontSize: 10, color: Color(0xFF134F2C)),
               ),
             ],
-          )
-
-        )
+          ),
+        ),
       ],
     );
   }
@@ -409,27 +419,26 @@ class BotTextUnSuccessComponent extends StatelessWidget {
           decoration: BoxDecoration(
             color: Color(0xFFFFE6E6),
             borderRadius: BorderRadius.only(
-            topLeft: Radius.circular(20),
-            topRight: Radius.circular(20),
-            bottomLeft: Radius.circular(0),
-            bottomRight: Radius.circular(20),
+              topLeft: Radius.circular(20),
+              topRight: Radius.circular(20),
+              bottomLeft: Radius.circular(0),
+              bottomRight: Radius.circular(20),
             ),
           ),
           child: Column(
             children: [
               Text(
                 'header',
-                style: TextStyle(fontSize: 14, color: Color(0xFF0F172A))
+                style: TextStyle(fontSize: 14, color: Color(0xFF0F172A)),
               ),
               SizedBox(height: 5),
               Text(
                 'description',
-                style: TextStyle(fontSize: 10, color: Color(0xFF991B1B))
+                style: TextStyle(fontSize: 10, color: Color(0xFF991B1B)),
               ),
             ],
-          )
-
-        )
+          ),
+        ),
       ],
     );
   }
