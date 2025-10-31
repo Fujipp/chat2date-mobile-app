@@ -1,3 +1,4 @@
+import 'package:chat2date/theme/app_colors.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/svg.dart';
 
@@ -15,7 +16,7 @@ class Header extends StatelessWidget {
   final VoidCallback? onFlag;
 
   const Header({
-    Key? key,
+    super.key,
     required this.name,
     this.avatarUrl,
     this.showCalendar = false,
@@ -27,7 +28,7 @@ class Header extends StatelessWidget {
     this.onCalendar,
     this.onSettings,
     this.onFlag,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -73,7 +74,7 @@ class Header extends StatelessWidget {
                 width: 40,
                 height: 40,
                 decoration: const BoxDecoration(
-                  color: Color(0xFF98FB98),
+                  color: AppColors.brandSecondary,
                   shape: BoxShape.circle,
                 ),
                 child: const Icon(
@@ -157,7 +158,7 @@ class Header extends StatelessWidget {
                       child: Icon(
                         Icons.more_horiz,
                         size: 30,
-                        color: Colors.red,
+                        color: AppColors.error,
                       ),
                     ),
                   ),
@@ -178,17 +179,17 @@ class ChatToDateHeaderWhite extends StatelessWidget {
   final VoidCallback? onBack;
 
   const ChatToDateHeaderWhite({
-    Key? key,
+    super.key,
     required this.leftIconPath,
     required this.rightIconPath,
     this.iconColor,
     this.onSettings,
     this.onBack,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {
-    final Color svgColor = iconColor ?? const Color(0xFF78CEFF);
+    final Color svgColor = iconColor ?? AppColors.btnPrimary;
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
@@ -249,13 +250,13 @@ class ChatToDateHeaderGradient extends StatelessWidget {
   final VoidCallback? onBack;
 
   const ChatToDateHeaderGradient({
-    Key? key,
+    super.key,
     required this.leftIconPath,
     required this.rightIconPath,
     this.iconColor,
     this.onSettings,
     this.onBack,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -265,13 +266,13 @@ class ChatToDateHeaderGradient extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
       decoration: BoxDecoration(
         gradient: const LinearGradient(
-          colors: [Color(0xFF5ce1e6), Color(0xFF98FB98)],
+          colors: [AppColors.btnPrimary, AppColors.brandSecondary],
           begin: Alignment.topCenter,
           end: Alignment.bottomCenter,
         ),
         boxShadow: [
           BoxShadow(
-            color: const Color(0xFF5ce1e6).withOpacity(0.3),
+            color: AppColors.btnPrimary.withOpacity(0.3),
             blurRadius: 15,
             offset: const Offset(0, 4),
           ),

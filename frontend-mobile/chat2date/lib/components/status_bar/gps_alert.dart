@@ -216,7 +216,7 @@ class _GpsMapAlertState extends State<GpsMapAlert> {
                           decoration: const BoxDecoration(
                             image: DecorationImage(
                               image: NetworkImage(
-                                'https://i.imgur.com/8QhT3oY.png',
+                                'https://i.imgur.com/vzclCwF.jpeg',
                               ),
                               fit: BoxFit.cover,
                             ),
