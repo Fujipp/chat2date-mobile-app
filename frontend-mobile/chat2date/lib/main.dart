@@ -31,6 +31,7 @@ class HomePage extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: const Text('Home Page')),
+      backgroundColor: Colors.white,
       body: SingleChildScrollView(
         child: const Column(
           spacing: 15,
