@@ -228,19 +228,7 @@ class _ComponentTestScreenState extends State<ComponentTestScreen> {
           const SizedBox(height: 24),
         ],
       ),
-      bottomNavigationBar: CustomBottomNavBar(
-        currentIndex: bottomNavIndex,
-        items: [
-          NavItem(icon: Icons.home, label: 'Home'),
-          NavItem(icon: Icons.chat_bubble, label: 'Chat'),
-          NavItem(icon: Icons.person, label: 'Profile'),
-          NavItem(icon: Icons.settings, label: 'Setting'),
-        ],
-        onTap: (index) {
-          setState(() => bottomNavIndex = index);
-          print('Selected bottom nav: $index');
-        },
-      ),
+      bottomNavigationBar: CustomBottomNavBar(),
     );
   }
 }
