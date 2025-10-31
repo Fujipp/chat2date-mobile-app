@@ -1,820 +1,345 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 
-class ModalDoneComponent extends StatelessWidget {
-  const ModalDoneComponent({super.key});
+class ModalComponent extends StatelessWidget {
+  final String? svgPath;
+  final String? imagePath;
+  final String? imageName;
+  final IconData? icon;
+  final bool textOnly;
+  final double heightSvg;
+  final Color? colorIcon;
+  final double widthSvg;
+  final String topic;
+  final bool? topicTop;
+  final String? description;
+  final double spaceTop;
+  final double spaceBottom;
+  final bool? choice;
+  final String? firstChoiceText;
+  final Color? firstChoiceColor;
+  final String? secondChoiceText;
+  final Color? secondChoiceColor;
+  final bool? subDescription;
+  final String? headingSubDescriptionText;
+  final String? subDescriptionText;
+  final double? headingSubDescriptionSize;
+  final Color? headingSubDescriptionColor;
+  final FontWeight headingSubDescriptionWeight;
+  final bool? placeholder;
+  final String? placeholderText;
+  final VoidCallback? onFirstChoice;
+  final VoidCallback? onSecondChoice;
+
+  const ModalComponent({
+    super.key,
+    this.svgPath,
+    this.imagePath,
+    this.imageName,
+    this.icon,
+    this.colorIcon,
+    this.textOnly = false,
+    this.spaceTop = 0,
+    this.spaceBottom = 0,
+    this.choice = false,
+    this.firstChoiceText,
+    this.secondChoiceText,
+    this.firstChoiceColor,
+    this.secondChoiceColor,
+    this.subDescription = false,
+    this.subDescriptionText,
+    this.headingSubDescriptionText,
+    this.headingSubDescriptionSize = 12,
+    this.headingSubDescriptionColor = const Color(0xFF7A4D0B),
+    this.headingSubDescriptionWeight = FontWeight.w400,
+    this.topicTop = false,
+    this.placeholder = false,
+    this.placeholderText,
+    required this.heightSvg,
+    required this.widthSvg,
+    required this.topic,
+    this.description,
+    this.onFirstChoice,
+    this.onSecondChoice,
+  }) : assert(
+         (svgPath != null && textOnly == false) ^
+             (icon != null && colorIcon != null && textOnly == false) ^
+             (imagePath != null && imageName != null && textOnly == false) ^
+             (textOnly == true),
+         'ต้องใส่ svgPath หรือ icon หรือ imagePath หรือ อย่างใดอย่างหนึ่ง แต่ห้ามใส่ทั้งสองพร้อมกัน ต้อง มี height width topic เสมอ',
+       );
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.fromLTRB(15, 25, 15, 25),
-      height: 220,
-      width: 310,
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.only(
-          topLeft: Radius.circular(16),
-          topRight: Radius.circular(16),
-          bottomLeft: Radius.circular(16),
-          bottomRight: Radius.circular(16),
-        ),
-        color: Colors.white,
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.1),
-            blurRadius: 15,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.center,
-        children: [
-          SvgPicture.asset("assets/images/done.svg", width: 77.27, height: 78),
-          SizedBox(height: 15),
-          Text(
-            'topic',
-            style: TextStyle(
-              fontSize: 16,
-              color: Color(0xFF0F172A),
-              fontWeight: FontWeight.bold,
+    return Align(
+      alignment: Alignment.center,
+      child: Container(
+        padding: const EdgeInsets.all(10),
+        width: 310,
+        decoration: ShapeDecoration(
+          color: Colors.white,
+          shape: RoundedRectangleBorder(
+            side: BorderSide(
+              width: 1,
+              strokeAlign: BorderSide.strokeAlignCenter,
+              color: Colors.black.withOpacity(0.10),
             ),
+            borderRadius: BorderRadius.circular(16),
           ),
-          SizedBox(height: 15),
-          Text(
-            'description',
-            style: TextStyle(fontSize: 12, color: Color(0xFF6B7280)),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class ModalWarningComponent extends StatelessWidget {
-  const ModalWarningComponent({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.fromLTRB(16, 40, 16, 40),
-      height: 220,
-      width: 310,
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.only(
-          topLeft: Radius.circular(16),
-          topRight: Radius.circular(16),
-          bottomLeft: Radius.circular(16),
-          bottomRight: Radius.circular(16),
-        ),
-        color: Colors.white,
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.1),
-            blurRadius: 15,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.center,
-        children: [
-          SvgPicture.asset(
-            "assets/images/warning.svg",
-            width: 77.27,
-            height: 68,
-          ),
-          SizedBox(height: 15),
-          Text(
-            'topic',
-            style: TextStyle(
-              fontSize: 16,
-              color: Color(0xFF0F172A),
-              fontWeight: FontWeight.bold,
+          shadows: [
+            BoxShadow(
+              color: Color(0x14000000),
+              blurRadius: 20,
+              offset: Offset(20, 20),
+              spreadRadius: 0,
             ),
-          ),
-          SizedBox(height: 15),
-          Text(
-            'description',
-            style: TextStyle(fontSize: 12, color: Color(0xFF6B7280)),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class ModalBanComponent extends StatelessWidget {
-  const ModalBanComponent({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.fromLTRB(15, 10, 15, 10),
-      height: 220,
-      width: 310,
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.only(
-          topLeft: Radius.circular(16),
-          topRight: Radius.circular(16),
-          bottomLeft: Radius.circular(16),
-          bottomRight: Radius.circular(16),
+          ],
         ),
-        color: Colors.white,
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.1),
-            blurRadius: 15,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.center,
-        children: [
-          SvgPicture.asset(
-            "assets/images/banning.svg",
-            width: 77.27,
-            height: 78,
-          ),
-          SizedBox(height: 15),
-          Text(
-            'topic',
-            style: TextStyle(
-              fontSize: 16,
-              color: Color(0xFF0F172A),
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-          SizedBox(height: 15),
-          Text(
-            'description',
-            style: TextStyle(fontSize: 12, color: Color(0xFF6B7280)),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class ModalGoodEndingComponent extends StatelessWidget {
-  const ModalGoodEndingComponent({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.fromLTRB(15, 20, 15, 20),
-      height: 220,
-      width: 310,
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.only(
-          topLeft: Radius.circular(16),
-          topRight: Radius.circular(16),
-          bottomLeft: Radius.circular(16),
-          bottomRight: Radius.circular(16),
-        ),
-        color: Colors.white,
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.1),
-            blurRadius: 15,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.center,
-        children: [
-          SvgPicture.asset(
-            "assets/images/good-ending.svg",
-            width: 77.27,
-            height: 78,
-          ),
-          SizedBox(height: 15),
-          Text(
-            'topic',
-            style: TextStyle(
-              fontSize: 16,
-              color: Color(0xFF0F172A),
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-          SizedBox(height: 15),
-          Text(
-            'description',
-            style: TextStyle(fontSize: 12, color: Color(0xFF6B7280)),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class ModalOneSidedComponent extends StatelessWidget {
-  const ModalOneSidedComponent({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.fromLTRB(15, 20, 15, 20),
-      height: 260,
-      width: 310,
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.only(
-          topLeft: Radius.circular(16),
-          topRight: Radius.circular(16),
-          bottomLeft: Radius.circular(16),
-          bottomRight: Radius.circular(16),
-        ),
-        color: Colors.white,
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.1),
-            blurRadius: 15,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.center,
-        children: [
-          SvgPicture.asset(
-            "assets/images/one-sided.svg",
-            width: 77.27,
-            height: 78,
-          ),
-          SizedBox(height: 15),
-          Text(
-            'topic',
-            style: TextStyle(
-              fontSize: 16,
-              color: Color(0xFF0F172A),
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-          SizedBox(height: 15),
-          Text(
-            'description',
-            style: TextStyle(fontSize: 12, color: Color(0xFF6B7280)),
-          ),
-          SizedBox(height: 15),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
+        child: Column(
+          spacing: 15,
+          mainAxisSize: MainAxisSize.min, // ขยายพอดี content
+          crossAxisAlignment: CrossAxisAlignment.center,
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            if (spaceTop != 0) SizedBox(height: spaceTop),
+            if (topicTop != false)
               SizedBox(
-                width: 115,
-                height: 40,
-                child: ElevatedButton(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Color(0xFFFF6B6B),
-                    foregroundColor: Color(0xFFFFFFFF),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                  ),
-                  onPressed: () {},
-                  child: const Text(
-                    'ไม่ต้องการ',
-                    style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
+                width: 310,
+                child: Text(
+                  topic,
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    color: const Color(0xFF0F172A) /* Light-Text-Primary */,
+                    fontSize: 16,
+                    fontFamily: 'Inter',
+                    fontWeight: FontWeight.w700,
+                    height: 1.25,
                   ),
                 ),
               ),
-              SizedBox(width: 15),
-              SizedBox(
-                width: 100,
-                height: 40,
-                child: ElevatedButton(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Color(0xFF98FB98),
-                    foregroundColor: Color(0xFFFFFFFF),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                  ),
-                  onPressed: () {},
-                  child: const Text(
-                    'ต้องการ',
-                    style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
-                  ),
+            if (icon != null && textOnly == false)
+              Container(
+                width: widthSvg,
+                height: heightSvg,
+                alignment: Alignment.center,
+                child: FittedBox(
+                  fit: BoxFit.contain,
+                  child: Icon(icon, color: colorIcon, size: heightSvg),
                 ),
               ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class ModalBadEndingComponent extends StatelessWidget {
-  const ModalBadEndingComponent({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.fromLTRB(15, 20, 15, 20),
-      height: 260,
-      width: 310,
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.only(
-          topLeft: Radius.circular(16),
-          topRight: Radius.circular(16),
-          bottomLeft: Radius.circular(16),
-          bottomRight: Radius.circular(16),
-        ),
-        color: Colors.white,
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.1),
-            blurRadius: 15,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.center,
-        children: [
-          SvgPicture.asset(
-            "assets/images/bad-ending.svg",
-            width: 77.28,
-            height: 78,
-          ),
-          SizedBox(height: 15),
-          Text(
-            'topic',
-            style: TextStyle(
-              fontSize: 16,
-              color: Color(0xFF0F172A),
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-          SizedBox(height: 15),
-          Text(
-            'description',
-            style: TextStyle(fontSize: 12, color: Color(0xFF6B7280)),
-          ),
-          SizedBox(height: 15),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              SizedBox(
-                width: 115,
-                height: 40,
-                child: ElevatedButton(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Color(0xFFFF6B6B),
-                    foregroundColor: Color(0xFFFFFFFF),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                  ),
-                  onPressed: () {},
-                  child: const Text(
-                    'ไม่ต้องการ',
-                    style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
-                  ),
-                ),
-              ),
-              SizedBox(width: 15),
-              SizedBox(
-                width: 100,
-                height: 40,
-                child: ElevatedButton(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Color(0xFF98FB98),
-                    foregroundColor: Color(0xFFFFFFFF),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                  ),
-                  onPressed: () {},
-                  child: const Text(
-                    'ต้องการ',
-                    style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class ModalAssesmentComponent extends StatelessWidget {
-  const ModalAssesmentComponent({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.fromLTRB(12, 12, 12, 12),
-      height: 380,
-      width: 310,
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.only(
-          topLeft: Radius.circular(16),
-          topRight: Radius.circular(16),
-          bottomLeft: Radius.circular(16),
-          bottomRight: Radius.circular(16),
-        ),
-        color: Colors.white,
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.1),
-            blurRadius: 15,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.center,
-        children: [
-          Text(
-            'topic',
-            style: TextStyle(
-              fontSize: 16,
-              color: Color(0xFF0F172A),
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-          SizedBox(height: 15),
-          SvgPicture.asset(
-            "assets/images/person.svg",
-            width: 83.33,
-            height: 90.89,
-          ),
-          SizedBox(height: 5),
-          Text(
-            'name',
-            style: TextStyle(fontSize: 16, color: Color(0xFF0F172A)),
-          ),
-          SizedBox(height: 15),
-          Text(
-            'name',
-            style: TextStyle(fontSize: 12, color: Color(0xFF6B7280)),
-          ),
-          SizedBox(height: 15),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.start,
-            children: [
-              Text(
-                'คำเตือน การเลือกจะมีผลต่อความสัมพันธ์คู่ของคุณ\n'
-                'พึงพอใจทั้งคู่ ถือว่าทั้งคู่ประสบความสำเร็จ\n'
-                'ไม่พึงพอใจทั้งคู่ จะมีให้เลือกว่าจะ unmatch หรือไม่\n'
-                'ไม่พอใจฝ่ายใดฝ่ายหนึ่ง จะมีให้เลือกไปต่อหรือพอแค่นี้\n'
-                'หากฝ่ายใดฝ่ายหนึ่งเลือก unmatch หรือ พอแค่นี้ จะจบทันที',
-                style: TextStyle(fontSize: 10, color: Color(0xFF6B7280)),
-              ),
-            ],
-          ),
-          SizedBox(height: 15),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              SizedBox(
-                width: 100,
-                height: 40,
-                child: ElevatedButton(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Color(0xFFFF6B6B),
-                    foregroundColor: Color(0xFFFFFFFF),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                  ),
-                  onPressed: () {},
-                  child: const Text(
-                    'ไม่พอใจ',
-                    style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
-                  ),
-                ),
-              ),
-              SizedBox(width: 15),
-              SizedBox(
-                width: 100,
-                height: 40,
-                child: ElevatedButton(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Color(0xFF98FB98),
-                    foregroundColor: Color(0xFFFFFFFF),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                  ),
-                  onPressed: () {},
-                  child: const Text(
-                    'พอใจ',
-                    style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class ModalFeedbackComponent extends StatelessWidget {
-  const ModalFeedbackComponent({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.fromLTRB(7.5, 55, 7.5, 55),
-      height: 380,
-      width: 310,
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.only(
-          topLeft: Radius.circular(16),
-          topRight: Radius.circular(16),
-          bottomLeft: Radius.circular(16),
-          bottomRight: Radius.circular(16),
-        ),
-        color: Colors.white,
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.1),
-            blurRadius: 15,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.center,
-        children: [
-          Text(
-            'topic',
-            style: TextStyle(
-              fontSize: 16,
-              color: Color(0xFF0F172A),
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-          SizedBox(height: 15),
-          SvgPicture.asset(
-            "assets/images/star-rating.svg",
-            width: 203,
-            height: 35,
-          ),
-          SizedBox(height: 15),
-          Row(
-            children: [
+            if (svgPath != null && textOnly == false)
+              SvgPicture.asset(svgPath!, width: widthSvg, height: heightSvg),
+            if (imagePath != null && textOnly == false)
               Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+                crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
-                  Text(
-                    'description',
-                    style: TextStyle(fontSize: 12, color: Color(0xFF0F172A)),
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(50),
+                    child: imagePath!.startsWith('http')
+                        ? Image.network(
+                            imagePath!,
+                            width: widthSvg,
+                            height: heightSvg,
+                            fit: BoxFit.cover,
+                          )
+                        : Image.asset(
+                            imagePath!,
+                            width: widthSvg,
+                            height: heightSvg,
+                            fit: BoxFit.cover,
+                          ),
                   ),
-                  SizedBox(height: 10),
-                  Container(
-                    padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
-                    width: 295,
-                    height: 97,
-                    decoration: BoxDecoration(
-                      border: Border.all(color: Color(0xFF6B7280), width: 1.5),
-                      borderRadius: BorderRadius.circular(12),
-                    ),
+                  SizedBox(
+                    width: 100,
                     child: Text(
-                      'Placeholder',
-                      style: TextStyle(color: Color(0xFF6B7280)),
+                      imageName!,
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        color: const Color(0xFF0F172A) /* Light-Text-Primary */,
+                        fontSize: 16,
+                        fontFamily: 'Inter',
+                        fontWeight: FontWeight.w400,
+                      ),
                     ),
                   ),
                 ],
               ),
-            ],
-          ),
-          SizedBox(height: 15),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
+            if (topicTop != true)
               SizedBox(
-                width: 100,
-                height: 40,
-                child: ElevatedButton(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Color(0xFFFF6B6B),
-                    foregroundColor: Color(0xFFFFFFFF),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                  ),
-                  onPressed: () {},
-                  child: const Text(
-                    'ปิด',
-                    style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
+                width: 310,
+                child: Text(
+                  topic,
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    color: const Color(0xFF0F172A) /* Light-Text-Primary */,
+                    fontSize: 16,
+                    fontFamily: 'Inter',
+                    fontWeight: FontWeight.w700,
+                    height: 1.25,
                   ),
                 ),
               ),
-              SizedBox(width: 15),
+            if (description != null)
               SizedBox(
-                width: 100,
-                height: 40,
-                child: ElevatedButton(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Color(0xFF98FB98),
-                    foregroundColor: Color(0xFFFFFFFF),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                  ),
-                  onPressed: () {},
-                  child: const Text(
-                    'ส่ง',
-                    style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
+                width: 310,
+                child: Text(
+                  description!,
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    color: const Color(0xFF94A3B8) /* text-muted */,
+                    fontSize: 12,
+                    fontFamily: 'Inter',
+                    fontWeight: FontWeight.w400,
+                    height: 1.67,
                   ),
                 ),
               ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class ModalThanksComponent extends StatelessWidget {
-  const ModalThanksComponent({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.fromLTRB(12, 40, 12, 40),
-      height: 140,
-      width: 310,
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.only(
-          topLeft: Radius.circular(16),
-          topRight: Radius.circular(16),
-          bottomLeft: Radius.circular(16),
-          bottomRight: Radius.circular(16),
+            if (subDescription != false)
+              Text.rich(
+                TextSpan(
+                  children: [
+                    TextSpan(
+                      text: headingSubDescriptionText,
+                      style: TextStyle(
+                        color: headingSubDescriptionColor,
+                        fontSize: headingSubDescriptionSize,
+                        fontFamily: 'Inter',
+                        fontWeight: headingSubDescriptionWeight,
+                        height: 1.67,
+                      ),
+                    ),
+                    if (placeholder == false)
+                      TextSpan(
+                        text: subDescriptionText,
+                        style: TextStyle(
+                          color: const Color(0xFF94A3B8) /* text-muted */,
+                          fontSize: 12,
+                          fontFamily: 'Inter',
+                          fontWeight: FontWeight.w400,
+                          height: 1.67,
+                        ),
+                      ),
+                    if (placeholder == true)
+                      WidgetSpan(
+                        alignment: PlaceholderAlignment.middle,
+                        child: Container(
+                          width: double.infinity,
+                          height: 73,
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 16,
+                            vertical: 12,
+                          ),
+                          decoration: ShapeDecoration(
+                            shape: RoundedRectangleBorder(
+                              side: BorderSide(
+                                width: 1,
+                                color: Color(0xFFC5C6CC),
+                              ),
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                          ),
+                          clipBehavior: Clip.antiAlias,
+                          child: Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            mainAxisSize: MainAxisSize.min,
+                            mainAxisAlignment: MainAxisAlignment.start,
+                            children: [
+                              Text(
+                                placeholderText!,
+                                style: TextStyle(
+                                  color: Color(0xFF8F9098),
+                                  fontSize: 14,
+                                  fontFamily: 'Inter',
+                                  fontWeight: FontWeight.w400,
+                                  height: 1.43,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+            if (choice != false)
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                crossAxisAlignment: CrossAxisAlignment.center,
+                spacing: 15,
+                children: [
+                  GestureDetector(
+                    onTap: onFirstChoice,
+                    child: Container(
+                      width: 105,
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 12,
+                      ),
+                      clipBehavior: Clip.antiAlias,
+                      decoration: ShapeDecoration(
+                        color: firstChoiceColor /* Light-Error */,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        crossAxisAlignment: CrossAxisAlignment.center,
+                        spacing: 8,
+                        children: [
+                          Text(
+                            firstChoiceText!,
+                            style: TextStyle(
+                              color: Colors.white /* Light-Text-Secondary */,
+                              fontSize: 14,
+                              fontFamily: 'Inter',
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                  GestureDetector(
+                    onTap: onSecondChoice,
+                    child: Container(
+                      width: 105,
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 12,
+                      ),
+                      clipBehavior: Clip.antiAlias,
+                      decoration: ShapeDecoration(
+                        color: secondChoiceColor /* Light-Secondary */,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        crossAxisAlignment: CrossAxisAlignment.center,
+                        spacing: 8,
+                        children: [
+                          Text(
+                            secondChoiceText!,
+                            style: TextStyle(
+                              color: Colors.white /* Light-Text-Secondary */,
+                              fontSize: 14,
+                              fontFamily: 'Inter',
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            if (spaceBottom != 0) SizedBox(height: spaceBottom),
+          ],
         ),
-        color: Colors.white,
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.1),
-            blurRadius: 15,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.center,
-        children: [
-          Text(
-            'topic',
-            style: TextStyle(
-              fontSize: 16,
-              color: Color(0xFF0F172A),
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-          SizedBox(height: 20),
-          Text(
-            'description',
-            style: TextStyle(fontSize: 12, color: Color(0xFF6B7280)),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class ModalUnlockComponent extends StatelessWidget {
-  const ModalUnlockComponent({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.fromLTRB(12, 35, 12, 35),
-      height: 140,
-      width: 310,
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.only(
-          topLeft: Radius.circular(16),
-          topRight: Radius.circular(16),
-          bottomLeft: Radius.circular(16),
-          bottomRight: Radius.circular(16),
-        ),
-        color: Colors.white,
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.1),
-            blurRadius: 15,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.center,
-        children: [
-          SvgPicture.asset(
-            "assets/images/unlock.svg",
-            width: 18,
-            height: 24,
-          ),
-          SizedBox(height: 20),
-          Text(
-            'topic',
-            style: TextStyle(
-              fontSize: 16,
-              color: Color(0xFF0F172A),
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class ModalConfirmComponent extends StatelessWidget {
-  const ModalConfirmComponent({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.fromLTRB(12, 33, 12, 33),
-      height: 190,
-      width: 310,
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.only(
-          topLeft: Radius.circular(16),
-          topRight: Radius.circular(16),
-          bottomLeft: Radius.circular(16),
-          bottomRight: Radius.circular(16),
-        ),
-        color: Colors.white,
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.1),
-            blurRadius: 15,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.center,
-        children: [
-          Text(
-            'topic',
-            style: TextStyle(
-              fontSize: 16,
-              color: Color(0xFF0F172A),
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-          SizedBox(height: 10),
-          Text(
-            'descripsion\n'
-            'dssss\n',
-            style: TextStyle(fontSize: 12, color: Color(0xFF6B7280)),
-          ),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              SizedBox(
-                width: 100,
-                height: 40,
-                child: ElevatedButton(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Color(0xFFFF6B6B),
-                    foregroundColor: Color(0xFFFFFFFF),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                  ),
-                  onPressed: () {},
-                  child: const Text(
-                    'ยกเลิก',
-                    style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
-                  ),
-                ),
-              ),
-              SizedBox(width: 32),
-              SizedBox(
-                width: 100,
-                height: 40,
-                child: ElevatedButton(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Color(0xFF98FB98),
-                    foregroundColor: Color(0xFFFFFFFF),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                  ),
-                  onPressed: () {},
-                  child: const Text(
-                    'ยืนยัน',
-                    style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ],
       ),
     );
   }

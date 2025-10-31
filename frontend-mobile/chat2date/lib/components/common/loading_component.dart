@@ -49,26 +49,3 @@ class CircularLoading extends StatelessWidget {
     );
   }
 }
-
-/// Linear Loading Component
-class LinearLoading extends StatelessWidget {
-  final double percent;
-
-  const LinearLoading({super.key, required this.percent});
-
-  @override
-  Widget build(BuildContext context) {
-    return LinearPercentIndicator(
-      lineHeight: 25.0,
-      percent: percent,
-      center: Text(
-        '${(percent * 100).toInt()}%',
-        style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-      ),
-      backgroundColor: Colors.grey.shade200,
-      progressColor: getProgressColor(percent),
-      linearStrokeCap: LinearStrokeCap.roundAll,
-      animation: true,
-    );
-  }
-}
