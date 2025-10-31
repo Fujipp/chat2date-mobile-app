@@ -1,3 +1,4 @@
+import 'package:chat2date/theme/app_theme.dart'; // <— เพิ่ม
 import 'package:flutter/material.dart';
 
 import 'screens/component_test_screen.dart';
@@ -7,16 +8,13 @@ void main() {
 }
 
 class MyApp extends StatelessWidget {
-  MyApp({super.key});
+  const MyApp({super.key});
 
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
       title: 'Component Test',
-      theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(seedColor: Colors.blue),
-        useMaterial3: true,
-      ),
+      theme: buildLightTheme(),
       home: ComponentTestScreen(),
     );
   }
