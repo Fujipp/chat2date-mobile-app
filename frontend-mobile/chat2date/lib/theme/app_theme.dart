@@ -3,7 +3,10 @@ import 'app_color_schemes.dart';
 import 'app_colors.dart';
 
 ThemeData buildLightTheme() {
-  return ThemeData(
+  const baseFont = 'Inter';
+  const fontFallback = ['Itim']; // เมื่อเจออักษรไทยจะตกไปใช้ Itim
+
+  final base = ThemeData(
     useMaterial3: true,
     colorScheme: lightColorScheme,
     scaffoldBackgroundColor: AppColors.background,
@@ -16,11 +19,11 @@ ThemeData buildLightTheme() {
       filled: true,
       fillColor: AppColors.inputBg,
       hintStyle: const TextStyle(color: AppColors.inputPlaceholder),
-      border: OutlineInputBorder(
+      border: const OutlineInputBorder(
         borderSide: BorderSide(color: AppColors.inputBorder),
         borderRadius: BorderRadius.all(Radius.circular(8)),
       ),
-      focusedBorder: OutlineInputBorder(
+      focusedBorder: const OutlineInputBorder(
         borderSide: BorderSide(color: AppColors.inputBorderFocus, width: 2),
         borderRadius: BorderRadius.all(Radius.circular(8)),
       ),
@@ -33,5 +36,39 @@ ThemeData buildLightTheme() {
       ),
     ),
     dividerColor: AppColors.divider,
+
+    // === ตั้งค่าฟอนต์หลักทั้งแอป ===
+    fontFamily: baseFont,
+    fontFamilyFallback: fontFallback,
+  );
+
+  // ปรับน้ำหนักตัวอักษรที่ใช้บ่อย ๆ ให้เหมาะกับ Inter
+  return base.copyWith(
+    textTheme: base.textTheme.copyWith(
+      displayLarge: base.textTheme.displayLarge?.copyWith(
+        fontWeight: FontWeight.w700,
+      ),
+      displayMedium: base.textTheme.displayMedium?.copyWith(
+        fontWeight: FontWeight.w700,
+      ),
+      headlineLarge: base.textTheme.headlineLarge?.copyWith(
+        fontWeight: FontWeight.w600,
+      ),
+      headlineMedium: base.textTheme.headlineMedium?.copyWith(
+        fontWeight: FontWeight.w600,
+      ),
+      titleLarge: base.textTheme.titleLarge?.copyWith(
+        fontWeight: FontWeight.w600,
+      ),
+      bodyLarge: base.textTheme.bodyLarge?.copyWith(
+        fontWeight: FontWeight.w400,
+      ),
+      bodyMedium: base.textTheme.bodyMedium?.copyWith(
+        fontWeight: FontWeight.w400,
+      ),
+      labelLarge: base.textTheme.labelLarge?.copyWith(
+        fontWeight: FontWeight.w600,
+      ),
+    ),
   );
 }

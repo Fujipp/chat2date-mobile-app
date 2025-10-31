@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:chat2date/components/inputs/index.dart';
+import 'package:chat2date/theme/app_theme.dart'; // <— เพิ่ม
 
 void main() {
   runApp(const MyApp());
@@ -12,13 +13,7 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       title: 'Flutter Demo',
-      theme: ThemeData(
-        useMaterial3: true,
-        // ใช้ seed ง่าย ๆ ไปก่อนไม่ชนกับระบบสีของ Dev
-        colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFF7987AC)),
-        // ถ้าอยากให้พื้นหลังสว่างขึ้น ให้ปรับค่านี้
-        scaffoldBackgroundColor: const Color(0xFFF9FAFB),
-      ),
+      theme: buildLightTheme(), // <— ใช้ธีมส่วนกลางที่กำหนด font ไว้
       home: const MyHomePage(title: 'Flutter Demo Home Page'),
     );
   }
