@@ -1,3 +1,4 @@
+import 'package:chat2date/theme/app_colors.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/svg.dart';
 
@@ -98,7 +99,7 @@ class _GpsMapAlertState extends State<GpsMapAlert> {
           width: 25,
           height: 25,
         ),
-        backgroundColor: const Color(0xfff2f3fa),
+        backgroundColor: AppColors.surfaceMuted,
         onTap: () => _onButtonTapped(0),
       ),
       _AlertActionButton(
@@ -107,7 +108,7 @@ class _GpsMapAlertState extends State<GpsMapAlert> {
           width: 25,
           height: 25,
         ),
-        backgroundColor: const Color(0xfff2f3fa),
+        backgroundColor: AppColors.surfaceMuted,
         onTap: () => _onButtonTapped(1),
       ),
       _AlertActionButton(
@@ -116,7 +117,7 @@ class _GpsMapAlertState extends State<GpsMapAlert> {
           width: 25,
           height: 25,
         ),
-        backgroundColor: const Color(0xfff3f3fa),
+        backgroundColor: AppColors.surfaceMuted,
         onTap: () => _onButtonTapped(2),
       ),
     ];
@@ -163,7 +164,7 @@ class _GpsMapAlertState extends State<GpsMapAlert> {
                           'LOCATION',
                           style: TextStyle(
                             fontWeight: FontWeight.bold,
-                            color: Colors.black87,
+                            color: AppColors.textPrimary,
                           ),
                         ),
                       ),
@@ -194,7 +195,7 @@ class _GpsMapAlertState extends State<GpsMapAlert> {
                       _getCurrentInstructionText(),
                       style: TextStyle(
                         color: (_selectedButtonIndex == 2 && _emergencyStep > 0)
-                            ? Colors.red
+                            ? AppColors.error
                             : Colors.grey[700],
                         fontSize: 12,
                         fontWeight: FontWeight.w600,
@@ -247,7 +248,7 @@ class _GpsMapAlertState extends State<GpsMapAlert> {
                               color:
                                   (_selectedButtonIndex == 2 &&
                                       _emergencyStep > 0)
-                                  ? Colors.red
+                                  ? AppColors.error
                                   : Colors.grey[700],
                               fontSize: 12,
                               fontWeight: FontWeight.w600,
