@@ -1,3 +1,4 @@
+import 'package:chat2date/theme/app_colors.dart';
 import 'package:flutter/material.dart';
 import 'package:percent_indicator/percent_indicator.dart';
 
@@ -6,19 +7,23 @@ Color getProgressColor(double percent) {
   if (percent <= 0.25) {
     // แดงเข้ม → แดงอ่อน
     double t = percent / 0.25; // 0.0 - 1.0
-    return Color.lerp(const Color(0xFFFF0000), const Color(0xFFFF6B6B), t)!;
+    return Color.lerp(const Color(0xFFFF0000), AppColors.error, t)!;
   } else if (percent <= 0.5) {
     // แดงอ่อน → ส้ม
     double t = (percent - 0.25) / 0.25;
-    return Color.lerp(const Color(0xFFFF6B6B), const Color(0xFFFFD166), t)!;
+    return Color.lerp(AppColors.error, AppColors.warning, t)!;
   } else if (percent <= 0.75) {
     // ส้ม → เขียวอ่อน
     double t = (percent - 0.5) / 0.25;
-    return Color.lerp(const Color(0xFFFFD166), const Color(0xFF98FB98), t)!;
+    return Color.lerp(AppColors.warning, AppColors.brandSecondary, t)!;
   } else {
     // เขียวอ่อน → เขียวเข้ม
     double t = (percent - 0.75) / 0.25;
-    return Color.lerp(const Color(0xFF98FB98), const Color(0xFF32CD32), t)!;
+    return Color.lerp(
+      AppColors.brandSecondary,
+      AppColors.brandSecondary500,
+      t,
+    )!;
   }
 }
 
@@ -42,7 +47,7 @@ class CircularLoading extends StatelessWidget {
           style: const TextStyle(fontSize: 32),
         ),
         progressColor: getProgressColor(percent),
-        backgroundColor: Colors.grey.shade200,
+        backgroundColor: AppColors.divider,
         circularStrokeCap: CircularStrokeCap.round,
         animation: true,
       ),

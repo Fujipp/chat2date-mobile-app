@@ -1,5 +1,6 @@
 // main.dart
 import 'package:chat2date/components/chat/chat_text_component.dart';
+import 'package:chat2date/components/common/loading_component.dart';
 import 'package:chat2date/components/common/modal_component.dart';
 import 'package:chat2date/theme/app_colors.dart';
 import 'package:chat2date/theme/app_theme.dart'; // <— เพิ่ม
@@ -120,7 +121,7 @@ class HomePage extends StatelessWidget {
               firstChoiceText: 'ไม่ต้องการ',
               firstChoiceColor: AppColors.error,
               secondChoiceText: 'ต้องการ',
-              secondChoiceColor: AppColors.brandSecondary,
+              secondChoiceColor: Color(0xFF98FB98),
             ),
             ModalComponent(
               imagePath: 'https://i.pravatar.cc/150?img=47',
@@ -134,7 +135,7 @@ class HomePage extends StatelessWidget {
               firstChoiceText: 'ไม่พอใจ',
               firstChoiceColor: AppColors.error,
               secondChoiceText: 'พอใจ',
-              secondChoiceColor: AppColors.brandSecondary,
+              secondChoiceColor: Color(0xFF98FB98),
               subDescription: true,
               headingSubDescriptionText: 'คำเตือน: ',
               subDescriptionText:
@@ -156,7 +157,7 @@ class HomePage extends StatelessWidget {
               firstChoiceText: 'ปิด',
               firstChoiceColor: AppColors.error,
               secondChoiceText: 'ส่ง',
-              secondChoiceColor: AppColors.brandSecondary,
+              secondChoiceColor: Color(0xFF98FB98),
               subDescription: true,
               headingSubDescriptionText: 'อธิบายเพิ่มเติม',
               headingSubDescriptionColor: Colors.black,
@@ -299,6 +300,12 @@ class HomePage extends StatelessWidget {
               bottomLeftRadius: 0,
               bottomRightRadius: 20,
             ),
+
+            SizedBox(height: 10),
+            Text("Loading", style: TextStyle(fontSize: 20)),
+            CircularLoading(percent: 0.2),
+            CircularLoading(percent: 0.5),
+            CircularLoading(percent: 0.9),
           ],
         ),
       ),
