@@ -1,3 +1,4 @@
+import 'package:chat2date/theme/app_colors.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 
@@ -51,7 +52,7 @@ class ChatTextComponent extends StatelessWidget {
     this.crossAlignmentRow = CrossAxisAlignment.center,
     this.bottomLeftRadius = 20,
     this.bottomRightRadius = 0,
-    this.color = const Color(0xFFFF8FB3),
+    this.color = AppColors.surfaceLight,
     this.svgPath,
     this.imagePath,
     this.icon,

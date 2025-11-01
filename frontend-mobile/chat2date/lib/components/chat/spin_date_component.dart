@@ -1,5 +1,7 @@
 import 'dart:async';
 import 'dart:math';
+
+import 'package:chat2date/theme/app_colors.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 
@@ -75,9 +77,7 @@ class _SpinDateModeComponentState extends State<SpinDateModeComponent> {
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(16),
                 color: Colors.white,
-                border: Border.all(
-                  color: Colors.grey.shade300
-                ),
+                border: Border.all(color: AppColors.neutral600),
                 boxShadow: [
                   BoxShadow(
                     color: Colors.black.withOpacity(0.1),
@@ -140,8 +140,8 @@ class _SpinDateModeComponentState extends State<SpinDateModeComponent> {
                   values: selectedRange,
                   min: 1,
                   max: 1900,
-                  activeColor: Colors.grey.shade600,
-                  inactiveColor: Colors.grey.shade300,
+                  activeColor: AppColors.neutral600,
+                  inactiveColor: AppColors.neutral300,
                   onChanged: (RangeValues values) {
                     setState(() {
                       selectedRange = values;
@@ -252,7 +252,7 @@ class _InlineWheelPainter extends CustomPainter {
     // ขอบวงล้อ
     final borderPaint = Paint()
       ..style = PaintingStyle.stroke
-      ..color = Colors.grey.shade600
+      ..color = AppColors.neutral600
       ..strokeWidth = 8;
     canvas.drawCircle(center, radius, borderPaint);
 
@@ -272,7 +272,7 @@ class _InlineWheelPainter extends CustomPainter {
     );
 
     // จุดกลาง
-    canvas.drawCircle(center, 16, Paint()..color = Colors.grey.shade600);
+    canvas.drawCircle(center, 16, Paint()..color = AppColors.neutral600);
   }
 
   @override

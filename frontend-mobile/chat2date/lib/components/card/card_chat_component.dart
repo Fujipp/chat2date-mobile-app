@@ -1,3 +1,4 @@
+import 'package:chat2date/theme/app_colors.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 
@@ -49,8 +50,8 @@ class CardChatComponent extends StatelessWidget {
     this.heightSvgMiddle,
     this.widthSvgMiddle,
     this.colorIconMiddle,
-    
-    this.colors = const [Color(0xFF4FE3F7), Color(0xFFA4FBA6)],
+
+    this.colors = const [AppColors.btnPrimary, AppColors.brandSecondary],
     required this.title,
     required this.subtitle,
     this.titleWeight = FontWeight.w700,

@@ -1,3 +1,4 @@
+import 'package:chat2date/theme/app_colors.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 
@@ -88,7 +89,7 @@ class InputChatComponent extends StatelessWidget {
               decoration: InputDecoration(
                 hintText: 'เขียนข้อความ',
                 filled: true,
-                fillColor: const Color(0xFFF6F9FC),
+                fillColor: AppColors.neutralLight,
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(20),
                   borderSide: BorderSide.none,
