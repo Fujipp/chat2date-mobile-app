@@ -1,10 +1,8 @@
 // main.dart
 import 'package:chat2date/components/chat/chat_text_component.dart';
 import 'package:chat2date/components/common/modal_component.dart';
+import 'package:chat2date/theme/app_theme.dart'; // <— เพิ่ม
 import 'package:flutter/material.dart';
-
-// เรียกใช้ Component ของเรา
-import 'components/chat/input_chat_component.dart';
 //import 'components/chat/partner_text_top_component.dart';
 
 void main() {
@@ -17,8 +15,8 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Flutter Component Example',
-      theme: ThemeData(primarySwatch: Colors.blue),
+      title: 'Flutter Demo',
+      theme: buildLightTheme(), // <— ใช้ธีมส่วนกลางที่กำหนด font ไว้
       home: const HomePage(),
     );
   }
