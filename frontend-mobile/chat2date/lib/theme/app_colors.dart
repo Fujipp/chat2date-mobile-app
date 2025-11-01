@@ -24,6 +24,7 @@ class AppColors {
   static const Color background = Color(0xFFFFFFFF);
   static const Color surface = Color(0xFFF8FBF3);
   static const Color surfaceMuted = Color(0xFFF7FaFe);
+  static const Color surfaceLight = Color(0xFFFF8FB3);
   static const Color textPrimary = Color(0xFF0F172A);
   static const Color textSecondary = Color(0xFF334155);
   static const Color textMuted = Color(0xFF94A3B8);
@@ -33,6 +34,7 @@ class AppColors {
   // === Status ===
   static const Color success = Color(0xFF9FE2BF);
   static const Color warning = Color(0xFFFFD166);
+  static const Color badgeWarning = Color(0xFFFFF2CC);
   static const Color error = Color(0xFFFF6B6B);
   static const Color info = Color(0xFFA7E0FF);
 
