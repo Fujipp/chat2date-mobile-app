@@ -1,6 +1,7 @@
 // main.dart
 import 'package:chat2date/components/chat/chat_text_component.dart';
 import 'package:chat2date/components/common/modal_component.dart';
+import 'package:chat2date/theme/app_colors.dart';
 import 'package:chat2date/theme/app_theme.dart'; // <— เพิ่ม
 import 'package:flutter/material.dart';
 //import 'components/chat/partner_text_top_component.dart';
@@ -103,9 +104,9 @@ class HomePage extends StatelessWidget {
                   'ไปต่อกับคู่ของคุณหรือไม่?',
               choice: true,
               firstChoiceText: 'ไม่ต้องการ',
-              firstChoiceColor: Color(0xFFFF6B6B),
+              firstChoiceColor: AppColors.error,
               secondChoiceText: 'ต้องการ',
-              secondChoiceColor: Color(0xFF98FB98),
+              secondChoiceColor: AppColors.brandSecondary,
             ),
             ModalComponent(
               icon: Icons.heart_broken,
@@ -117,9 +118,9 @@ class HomePage extends StatelessWidget {
                   'ต้องการ ยกเลิกการจับคู่ (Unmatch) กับคู่ของคุณหรือไม่?',
               choice: true,
               firstChoiceText: 'ไม่ต้องการ',
-              firstChoiceColor: Color(0xFFFF6B6B),
+              firstChoiceColor: AppColors.error,
               secondChoiceText: 'ต้องการ',
-              secondChoiceColor: Color(0xFF98FB98),
+              secondChoiceColor: AppColors.brandSecondary,
             ),
             ModalComponent(
               imagePath: 'https://i.pravatar.cc/150?img=47',
@@ -131,9 +132,9 @@ class HomePage extends StatelessWidget {
               description: 'คุณพึงพอใจกับคู่เดทของคุณหรือไม่',
               choice: true,
               firstChoiceText: 'ไม่พอใจ',
-              firstChoiceColor: Color(0xFFFF6B6B),
+              firstChoiceColor: AppColors.error,
               secondChoiceText: 'พอใจ',
-              secondChoiceColor: Color(0xFF98FB98),
+              secondChoiceColor: AppColors.brandSecondary,
               subDescription: true,
               headingSubDescriptionText: 'คำเตือน: ',
               subDescriptionText:
@@ -153,9 +154,9 @@ class HomePage extends StatelessWidget {
               topicTop: true,
               choice: true,
               firstChoiceText: 'ปิด',
-              firstChoiceColor: Color(0xFFFF6B6B),
+              firstChoiceColor: AppColors.error,
               secondChoiceText: 'ส่ง',
-              secondChoiceColor: Color(0xFF98FB98),
+              secondChoiceColor: AppColors.brandSecondary,
               subDescription: true,
               headingSubDescriptionText: 'อธิบายเพิ่มเติม',
               headingSubDescriptionColor: Colors.black,

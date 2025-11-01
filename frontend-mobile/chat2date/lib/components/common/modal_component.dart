@@ -1,3 +1,4 @@
+import 'package:chat2date/theme/app_colors.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 
@@ -109,7 +110,7 @@ class ModalComponent extends StatelessWidget {
                   topic,
                   textAlign: TextAlign.center,
                   style: TextStyle(
-                    color: const Color(0xFF0F172A) /* Light-Text-Primary */,
+                    color: AppColors.textPrimary /* Light-Text-Primary */,
                     fontSize: 16,
                     fontFamily: 'Inter',
                     fontWeight: FontWeight.w700,
@@ -155,7 +156,7 @@ class ModalComponent extends StatelessWidget {
                       imageName!,
                       textAlign: TextAlign.center,
                       style: TextStyle(
-                        color: const Color(0xFF0F172A) /* Light-Text-Primary */,
+                        color: AppColors.textPrimary /* Light-Text-Primary */,
                         fontSize: 16,
                         fontFamily: 'Inter',
                         fontWeight: FontWeight.w400,
@@ -171,7 +172,7 @@ class ModalComponent extends StatelessWidget {
                   topic,
                   textAlign: TextAlign.center,
                   style: TextStyle(
-                    color: const Color(0xFF0F172A) /* Light-Text-Primary */,
+                    color: AppColors.textPrimary /* Light-Text-Primary */,
                     fontSize: 16,
                     fontFamily: 'Inter',
                     fontWeight: FontWeight.w700,
@@ -186,7 +187,7 @@ class ModalComponent extends StatelessWidget {
                   description!,
                   textAlign: TextAlign.center,
                   style: TextStyle(
-                    color: const Color(0xFF94A3B8) /* text-muted */,
+                    color: AppColors.textMuted /* text-muted */,
                     fontSize: 12,
                     fontFamily: 'Inter',
                     fontWeight: FontWeight.w400,
@@ -212,7 +213,7 @@ class ModalComponent extends StatelessWidget {
                       TextSpan(
                         text: subDescriptionText,
                         style: TextStyle(
-                          color: const Color(0xFF94A3B8) /* text-muted */,
+                          color: AppColors.textMuted /* text-muted */,
                           fontSize: 12,
                           fontFamily: 'Inter',
                           fontWeight: FontWeight.w400,
