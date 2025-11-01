@@ -3,29 +3,38 @@ import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 
 class CardChatComponent extends StatelessWidget {
+  //path รูปแรก
   final String? svgPath;
   final String? imagePath;
   final IconData? icon;
-  final double? heightSvg;
   final Color? colorIcon;
-  final double? widthSvg;
+
+  //path รูปกลาง
+  final String? svgPathMiddle;
+  final String? imagePathMiddle;
+  final IconData? iconMiddle;
+  final Color? colorIconMiddle;
+
+  //path รูปท้าย
   final String? svgPathEnd;
   final String? imagePathEnd;
   final IconData? iconEnd;
   final double? heightSvgEnd;
   final Color? colorIconEnd;
   final double? widthSvgEnd;
+
+  //color สี content
   final List<Color>? colors;
+
+  //title
   final String title;
-  final FontWeight titleWeight;
+
+  //subtitle
   final String subtitle;
-  final FontWeight subtitleWeight;
-  final String? svgPathMiddle;
-  final String? imagePathMiddle;
-  final IconData? iconMiddle;
-  final double? heightSvgMiddle;
-  final Color? colorIconMiddle;
-  final double? widthSvgMiddle;
+  final FontWeight? subtitleWeight;
+  final Color? subtitleColor;
+
+  //เรียกใช้เมื่อกด
   final VoidCallback? onClick;
 
   const CardChatComponent({
@@ -33,8 +42,6 @@ class CardChatComponent extends StatelessWidget {
     this.svgPath,
     this.imagePath,
     this.icon,
-    this.heightSvg,
-    this.widthSvg,
     this.colorIcon,
 
     this.svgPathEnd,
@@ -47,15 +54,13 @@ class CardChatComponent extends StatelessWidget {
     this.svgPathMiddle,
     this.imagePathMiddle,
     this.iconMiddle,
-    this.heightSvgMiddle,
-    this.widthSvgMiddle,
     this.colorIconMiddle,
 
     this.colors = const [AppColors.btnPrimary, AppColors.brandSecondary],
     required this.title,
     required this.subtitle,
-    this.titleWeight = FontWeight.w700,
     this.subtitleWeight = FontWeight.w700,
+    this.subtitleColor  = AppColors.neutralLight,
     this.onClick,
   });
 
@@ -82,28 +87,28 @@ class CardChatComponent extends StatelessWidget {
           children: [
             if (icon != null)
               SizedBox(
-                width: widthSvg,
-                height: heightSvg,
+                width: 40,
+                height: 40,
                 child: FittedBox(
                   fit: BoxFit.contain,
-                  child: Icon(icon, color: colorIcon, size: heightSvg),
+                  child: Icon(icon, color: colorIcon, size: 40),
                 ),
               ),
             if (svgPath != null)
-              SvgPicture.asset(svgPath!, width: widthSvg, height: heightSvg),
+              SvgPicture.asset(svgPath!, width: 40, height: 40),
             if (imagePath != null)
               Container(
                 child: imagePath!.startsWith('http')
                     ? Image.network(
                         imagePath!,
-                        width: widthSvg,
-                        height: heightSvg,
+                        width: 40,
+                        height: 40,
                         fit: BoxFit.cover,
                       )
                     : Image.asset(
                         imagePath!,
-                        width: widthSvg,
-                        height: heightSvg,
+                        width: 40,
+                        height: 40,
                         fit: BoxFit.cover,
                       ),
               ),
@@ -114,36 +119,36 @@ class CardChatComponent extends StatelessWidget {
               children: [
                 if (iconMiddle != null)
                   SizedBox(
-                    width: widthSvgMiddle,
-                    height: heightSvgMiddle,
+                    width: 24,
+                    height: 24,
                     child: FittedBox(
                       fit: BoxFit.contain,
                       child: Icon(
                         iconMiddle,
-                        color: colorIconMiddle,
-                        size: heightSvgMiddle,
+                        color: AppColors.brandOnPrimary,
+                        size: 24,
                       ),
                     ),
                   ),
                 if (svgPathMiddle != null)
                   SvgPicture.asset(
                     svgPathMiddle!,
-                    width: widthSvgMiddle,
-                    height: heightSvgMiddle,
+                    width: 24,
+                    height: 24,
                   ),
                 if (imagePathMiddle != null)
                   Container(
                     child: imagePathMiddle!.startsWith('http')
                         ? Image.network(
                             imagePathMiddle!,
-                            width: widthSvgMiddle,
-                            height: heightSvgMiddle,
+                            width: 24,
+                            height: 24,
                             fit: BoxFit.cover,
                           )
                         : Image.asset(
                             imagePathMiddle!,
-                            width: widthSvgMiddle,
-                            height: heightSvgMiddle,
+                            width: 24,
+                            height: 24,
                             fit: BoxFit.cover,
                           ),
                   ),
@@ -152,10 +157,10 @@ class CardChatComponent extends StatelessWidget {
                   child: Text(
                     title,
                     style: TextStyle(
-                      color: const Color(0xFF1F2024),
+                      color:AppColors.btnTextPrimary,
                       fontSize: 14,
                       fontFamily: 'Inter',
-                      fontWeight: titleWeight,
+                      fontWeight: FontWeight.w700,
                     ),
                   ),
                 ),

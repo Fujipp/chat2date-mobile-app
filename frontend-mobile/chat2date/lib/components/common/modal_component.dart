@@ -3,65 +3,90 @@ import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 
 class ModalComponent extends StatelessWidget {
+  //รูป
   final String? svgPath;
   final String? imagePath;
   final String? imageName;
   final IconData? icon;
-  final bool textOnly;
-  final double heightSvg;
+  final double? heightSvg;
   final Color? colorIcon;
-  final double widthSvg;
+  final double? widthSvg;
+
+  //โหมด text เท่านั้น
+  final bool textOnly;
+
+  //หัวเรื่อง กับ ทำให้หัวเรื่องอยู่หัวสุด
   final String topic;
   final bool? topicTop;
+
+  //มี description
   final String? description;
+
+  //space หัวท้ายเพื่อความสวยงาม
   final double spaceTop;
   final double spaceBottom;
+
+  //มี choice
   final bool? choice;
   final String? firstChoiceText;
-  final Color? firstChoiceColor;
   final String? secondChoiceText;
-  final Color? secondChoiceColor;
-  final bool? subDescription;
-  final String? headingSubDescriptionText;
-  final String? subDescriptionText;
-  final double? headingSubDescriptionSize;
-  final Color? headingSubDescriptionColor;
-  final FontWeight headingSubDescriptionWeight;
-  final bool? placeholder;
-  final String? placeholderText;
   final VoidCallback? onFirstChoice;
   final VoidCallback? onSecondChoice;
 
+  //มี subdescription
+  final bool? subDescription;
+  final String? headingSubDescriptionText;
+  final Color? headingSubDescriptionColor;
+  final FontWeight headingSubDescriptionWeight;
+  final String? subDescriptionText;
+
+  //มี placeholder
+  final bool? placeholder;
+  final String? placeholderText;
+
   const ModalComponent({
     super.key,
+
+    //รูปและ title
+    this.heightSvg,
+    this.widthSvg,
+    required this.topic,
     this.svgPath,
     this.imagePath,
     this.imageName,
     this.icon,
     this.colorIcon,
+
+    //โหมดใส่ text เท่านั้น
     this.textOnly = false,
+
+    //มี space หัวท้าย
     this.spaceTop = 0,
     this.spaceBottom = 0,
+
+    //มี choice
     this.choice = false,
     this.firstChoiceText,
     this.secondChoiceText,
-    this.firstChoiceColor,
-    this.secondChoiceColor,
+    this.onFirstChoice,
+    this.onSecondChoice,
+
+    //มี subdescription ย่อยอีกที
     this.subDescription = false,
     this.subDescriptionText,
     this.headingSubDescriptionText,
-    this.headingSubDescriptionSize = 12,
     this.headingSubDescriptionColor = const Color(0xFF7A4D0B),
     this.headingSubDescriptionWeight = FontWeight.w400,
+
+    //ทำให้ topic อยู่หัว
     this.topicTop = false,
+
+    //มี placeholder
     this.placeholder = false,
     this.placeholderText,
-    required this.heightSvg,
-    required this.widthSvg,
-    required this.topic,
+
+    //มี description
     this.description,
-    this.onFirstChoice,
-    this.onSecondChoice,
   }) : assert(
          (svgPath != null && textOnly == false) ^
              (icon != null && colorIcon != null && textOnly == false) ^
@@ -203,7 +228,7 @@ class ModalComponent extends StatelessWidget {
                       text: headingSubDescriptionText,
                       style: TextStyle(
                         color: headingSubDescriptionColor,
-                        fontSize: headingSubDescriptionSize,
+                        fontSize: 12,
                         fontFamily: 'Inter',
                         fontWeight: headingSubDescriptionWeight,
                         height: 1.67,
@@ -278,7 +303,7 @@ class ModalComponent extends StatelessWidget {
                       ),
                       clipBehavior: Clip.antiAlias,
                       decoration: ShapeDecoration(
-                        color: firstChoiceColor /* Light-Error */,
+                        color: AppColors.error /* Light-Error */,
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(12),
                         ),
@@ -312,7 +337,7 @@ class ModalComponent extends StatelessWidget {
                       ),
                       clipBehavior: Clip.antiAlias,
                       decoration: ShapeDecoration(
-                        color: secondChoiceColor /* Light-Secondary */,
+                        color: AppColors.brandSecondary /* Light-Secondary */,
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(12),
                         ),

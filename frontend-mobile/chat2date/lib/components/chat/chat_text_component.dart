@@ -3,98 +3,120 @@ import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 
 class ChatTextComponent extends StatelessWidget {
+  //ข้อความ
   final String text;
+
+  //การจัดเรียง content
   final MainAxisAlignment? mainAlignmentRow;
   final CrossAxisAlignment? crossAlignmentRow;
+
+  //สี content
   final Color? color;
+
+  //ความมนของมุม
   final double? bottomLeftRadius;
   final double? bottomRightRadius;
+
+  //path รูป
   final String? svgPath;
   final String? imagePath;
   final IconData? icon;
-  final double? heightSvg;
   final Color? colorIcon;
-  final double? widthSvg;
+
+  //ความห่างจากจอหรือ content อื่น
   final double? horizontal;
   final double? vertical;
+
+  //สี text
   final Color? colorText;
-  final double? textSize;
-  final FontWeight? textWeight;
+
+  //description + สี
   final String? description;
-  final double? descriptionSize;
-  final FontWeight? descriptionWeight;
   final Color? colorDescription;
+
+  //subdescription
   final String? subDescription;
-  final Color? subDescriptionColor;
-  final double? subDescriptionSize;
-  final FontWeight? subDescriptionWeight;
+
+  //content text ในกล่องเรียงแบบไหน
   final MainAxisAlignment? mainAxisAlignmentContentColumn;
   final CrossAxisAlignment? crossAxisAlignmentContentColumn;
-  final TextAlign subDescriptionAlignment;
+
+  //มี choice
   final bool? choice;
   final String? firstChoiceText;
-  final Color? firstChoiceColor;
   final String? secondChoiceText;
-  final Color? secondChoiceColor;
   final VoidCallback? onFirstChoice;
   final VoidCallback? onSecondChoice;
+
+  //มีปุ่ม action ปุ่มกดเดียว
   final bool? actionButton;
   final String? actionButtonText;
-  final double spaceContent;
-  final Color? actionColor;
   final VoidCallback? actionClick;
-  final Color? actionButtonTextColor;
+  final bool? isDisabled;
+
+  //ความห่างแต่ละ content ความห่างของ text pic ต่างๆ
+  final double spaceContent;
+
 
   const ChatTextComponent({
     super.key,
+    //ข้อความ
     required this.text,
+
+    //การจัดเรียง content
     this.mainAlignmentRow = MainAxisAlignment.end,
     this.crossAlignmentRow = CrossAxisAlignment.center,
+
+    //ความมนของมุม
     this.bottomLeftRadius = 20,
     this.bottomRightRadius = 0,
+
+    //สี content
     this.color = AppColors.surfaceLight,
+
+    //path รูป
     this.svgPath,
     this.imagePath,
     this.icon,
-    this.heightSvg,
-    this.widthSvg,
     this.colorIcon,
+
+    //ความห่างจากจอหรือ content อื่น
     this.horizontal = 16,
     this.vertical = 0,
+
+    //สี text
     this.colorText = Colors.white,
-    this.textSize = 12,
-    this.textWeight = FontWeight.w400,
+
+    //description + สี
     this.description,
-    this.descriptionSize = 12,
-    this.descriptionWeight = FontWeight.w400,
     this.colorDescription = const Color(0xFF7A4D0B),
+
+    //subdescription
     this.subDescription,
-    this.subDescriptionColor = const Color(0xFFFF6B6B),
-    this.subDescriptionSize = 10,
-    this.subDescriptionWeight = FontWeight.w400,
+
+    //content text ในกล่องเรียงแบบไหน
     this.mainAxisAlignmentContentColumn = MainAxisAlignment.start,
     this.crossAxisAlignmentContentColumn = CrossAxisAlignment.center,
-    this.subDescriptionAlignment = TextAlign.center,
+
+    //มี choice
     this.choice = false,
     this.firstChoiceText,
     this.secondChoiceText,
-    this.firstChoiceColor,
-    this.secondChoiceColor,
     this.onFirstChoice,
     this.onSecondChoice,
+
+    //มีปุ่ม action ปุ่มกดเดียว
     this.actionButton = false,
+    this.isDisabled = false,
     this.actionButtonText,
-    this.spaceContent = 5,
     this.actionClick,
-    this.actionColor = const Color(0xFF5CE1E6),
-    this.actionButtonTextColor,
+
+    //ความห่างแต่ละ content ความห่างของ text pic ต่างๆ
+    this.spaceContent = 5,
   }) : assert(
-         (svgPath != null && widthSvg != null && heightSvg != null) ^
-             (icon != null &&
-                 colorIcon != null &&
-                 widthSvg != null &&
-                 heightSvg != null) ^
-             (imagePath != null && widthSvg != null && heightSvg != null) ^
+         (svgPath != null) ^
+             (icon != null && colorIcon != null) ^
+             (imagePath != null) ^
              (svgPath == null && icon == null && imagePath == null),
          'ไม่จำเป็น แต่ถ้าจะใส่ต้องใส่ svgPath หรือ icon หรือ imagePath หรือ อย่างใดอย่างหนึ่ง แต่ห้ามใส่ทั้งสองพร้อมกัน ต้อง มี height width เสมอ',
        );
@@ -112,28 +134,28 @@ class ChatTextComponent extends StatelessWidget {
         children: [
           if (icon != null)
             SizedBox(
-              width: widthSvg,
-              height: heightSvg,
+              width: 50,
+              height: 50,
               child: FittedBox(
                 fit: BoxFit.contain,
-                child: Icon(icon, color: colorIcon, size: heightSvg),
+                child: Icon(icon, color: colorIcon, size: 50),
               ),
             ),
           if (svgPath != null)
-            SvgPicture.asset(svgPath!, width: widthSvg, height: heightSvg),
+            SvgPicture.asset(svgPath!, width: 50, height: 50),
           if (imagePath != null)
             Container(
               child: imagePath!.startsWith('http')
                   ? Image.network(
                       imagePath!,
-                      width: widthSvg,
-                      height: heightSvg,
+                      width: 50,
+                      height: 50,
                       fit: BoxFit.cover,
                     )
                   : Image.asset(
                       imagePath!,
-                      width: widthSvg,
-                      height: heightSvg,
+                      width: 50,
+                      height: 50,
                       fit: BoxFit.cover,
                     ),
             ),
@@ -164,9 +186,9 @@ class ChatTextComponent extends StatelessWidget {
                   text, // header
                   style: TextStyle(
                     color: colorText,
-                    fontSize: textSize,
+                    fontSize: 14,
                     fontFamily: 'Inter',
-                    fontWeight: textWeight,
+                    fontWeight: FontWeight.w400,
                     height: 1.43,
                   ),
                 ),
@@ -179,9 +201,9 @@ class ChatTextComponent extends StatelessWidget {
                       description!,
                       style: TextStyle(
                         color: colorDescription,
-                        fontSize: descriptionSize,
+                        fontSize: 10,
                         fontFamily: 'Inter',
-                        fontWeight: descriptionWeight,
+                        fontWeight: FontWeight.w400,
                         height: 1.6,
                       ),
                     ),
@@ -192,19 +214,19 @@ class ChatTextComponent extends StatelessWidget {
                     height: 20,
                     child: Text(
                       subDescription!,
-                      textAlign: subDescriptionAlignment,
+                      textAlign: TextAlign.center,
                       style: TextStyle(
-                        color: subDescriptionColor /* Light-Error */,
-                        fontSize: subDescriptionSize,
+                        color: AppColors.error /* Light-Error */,
+                        fontSize: 10,
                         fontFamily: 'Inter',
-                        fontWeight: subDescriptionWeight,
+                        fontWeight: FontWeight.w400,
                         height: 2.20,
                       ),
                     ),
                   ),
                 if (actionButton != false)
                   GestureDetector(
-                    onTap: actionClick ?? () {},
+                    onTap: isDisabled! ? null : (actionClick ?? () {}),
                     child: Container(
                       width: 227,
                       height: 40,
@@ -214,7 +236,10 @@ class ChatTextComponent extends StatelessWidget {
                       ),
                       clipBehavior: Clip.antiAlias,
                       decoration: ShapeDecoration(
-                        color: actionColor /* btn-bg-Primary */,
+                        color: isDisabled!
+                            ? AppColors
+                                  .neutralLight // สีตอน disable
+                            : AppColors.btnActivePrimary, // สีปกติ
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(12),
                         ),
@@ -228,7 +253,11 @@ class ChatTextComponent extends StatelessWidget {
                           Text(
                             actionButtonText!,
                             style: TextStyle(
-                              color: actionButtonTextColor /* Light-Text-Secondary */,
+                              color: isDisabled!
+                                  ? Colors
+                                        .grey
+                                        .shade400 // สีตัวอักษรตอน disable
+                                  : Colors.white,
                               fontSize: 14,
                               fontFamily: 'Inter',
                               fontWeight: FontWeight.w600,
@@ -256,7 +285,7 @@ class ChatTextComponent extends StatelessWidget {
                           ),
                           clipBehavior: Clip.antiAlias,
                           decoration: ShapeDecoration(
-                            color: firstChoiceColor /* Light-Error */,
+                            color: AppColors.error /* Light-Error */,
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(12),
                             ),
@@ -291,7 +320,8 @@ class ChatTextComponent extends StatelessWidget {
                           ),
                           clipBehavior: Clip.antiAlias,
                           decoration: ShapeDecoration(
-                            color: secondChoiceColor /* Light-Secondary */,
+                            color:
+                                AppColors.brandSecondary /* Light-Secondary */,
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(12),
                             ),
@@ -329,35 +359,25 @@ class ChatTextComponent extends StatelessWidget {
 
 class StatusTextComponent extends StatelessWidget {
   final String text;
-  final Alignment alignment;
-  final Color color;
+  final Color textColor;
   final double textSize;
-  final FontWeight textWeight;
-  final double width;
-  final double height;
+  final Alignment contentAlignment;
   final IconData? icon;
   final Color? iconColor;
-  final double? iconSize;
-  final double? svgWidth;
-  final double? svgHeight;
   final String? svgPath;
+  final double? size;
   final double? horizontal;
   final double? vertical;
 
   const StatusTextComponent({
     super.key,
     required this.text,
-    required this.width,
-    required this.height,
-    this.color = Colors.black,
-    this.alignment = Alignment.topCenter,
+    this.textColor = Colors.black,
+    this.contentAlignment = Alignment.topCenter,
     this.textSize = 14,
-    this.textWeight = FontWeight.w400,
     this.icon,
     this.iconColor,
-    this.iconSize,
-    this.svgHeight,
-    this.svgWidth,
+    this.size,
     this.svgPath,
     this.horizontal = 16,
     this.vertical = 0,
@@ -366,14 +386,14 @@ class StatusTextComponent extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Align(
-      alignment: alignment,
+      alignment: contentAlignment,
       child: Padding(
         padding: EdgeInsets.symmetric(
           horizontal: horizontal!,
           vertical: vertical!,
         ),
         child: Row(
-          mainAxisSize: MainAxisSize.min, // ขยายตาม content
+          mainAxisSize: MainAxisSize.min,
           mainAxisAlignment: MainAxisAlignment.center,
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
@@ -381,10 +401,10 @@ class StatusTextComponent extends StatelessWidget {
               text,
               textAlign: TextAlign.center,
               style: TextStyle(
-                color: color,
+                color: textColor,
                 fontSize: textSize,
                 fontFamily: 'Inter',
-                fontWeight: textWeight,
+                fontWeight: FontWeight.w400,
               ),
             ),
             if (icon != null)
@@ -393,7 +413,7 @@ class StatusTextComponent extends StatelessWidget {
                 child: Icon(
                   icon,
                   color: iconColor ?? Colors.black,
-                  size: iconSize ?? 24,
+                  size: size ?? 24,
                 ),
               ),
             if (svgPath != null)
@@ -401,8 +421,8 @@ class StatusTextComponent extends StatelessWidget {
                 padding: const EdgeInsets.only(left: 4.0),
                 child: SvgPicture.asset(
                   svgPath!,
-                  width: svgWidth ?? 24,
-                  height: svgHeight ?? 24,
+                  width: size ?? 24,
+                  height: size ?? 24,
                 ),
               ),
           ],
