@@ -1,3 +1,4 @@
+import 'package:chat2date/theme/app_colors.dart';
 import 'package:flutter/material.dart';
 
 enum CardIconType { image, avatar, icon, none }
@@ -23,7 +24,7 @@ class GenericCard extends StatelessWidget {
   final EdgeInsets? padding;
 
   const GenericCard({
-    Key? key,
+    super.key,
     this.iconType = CardIconType.none,
     this.icon,
     this.iconColor,
@@ -37,14 +38,14 @@ class GenericCard extends StatelessWidget {
     this.onButtonTap,
     this.backgroundColor,
     this.padding,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {
     return Container(
       margin: const EdgeInsets.only(bottom: 8),
       decoration: BoxDecoration(
-        color: backgroundColor ?? Color(0xFFf8f9fe),
+        color: backgroundColor ?? AppColors.neutralLight,
         borderRadius: BorderRadius.circular(16),
       ),
       child: Material(

@@ -1,3 +1,4 @@
+import 'package:chat2date/theme/app_colors.dart';
 import 'package:flutter/material.dart';
 
 //แนวนอน
@@ -7,11 +8,11 @@ class ContentSwitcher extends StatelessWidget {
   final Function(int) onChanged;
 
   const ContentSwitcher({
-    Key? key,
+    super.key,
     required this.items,
     required this.selectedIndex,
     required this.onChanged,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -19,9 +20,8 @@ class ContentSwitcher extends StatelessWidget {
       height: 39,
       padding: const EdgeInsets.all(4),
       decoration: BoxDecoration(
-        color: Color(0xFFf8f9fe),
+        color: AppColors.neutralLight,
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: Colors.grey[400]!, width: 1),
       ),
       child: Row(
         children: List.generate(items.length, (index) {
@@ -32,7 +32,7 @@ class ContentSwitcher extends StatelessWidget {
               child: AnimatedContainer(
                 duration: const Duration(milliseconds: 200),
                 decoration: BoxDecoration(
-                  color: isSelected ? Colors.cyan[400] : null,
+                  color: isSelected ? AppColors.btnPrimary : null,
                   borderRadius: BorderRadius.circular(16),
                 ),
                 alignment: Alignment.center,
@@ -40,9 +40,9 @@ class ContentSwitcher extends StatelessWidget {
                   items[index],
                   textAlign: TextAlign.center,
                   style: TextStyle(
-                    color: isSelected ? Colors.white : Colors.black87,
-                    fontWeight: FontWeight.w500,
-                    fontSize: 14,
+                    color: isSelected ? Colors.white : AppColors.inputText,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w700,
                   ),
                 ),
               ),
@@ -60,21 +60,21 @@ class IconSwitcher extends StatelessWidget {
   final Function(int) onChanged;
 
   const IconSwitcher({
-    Key? key,
+    super.key,
     required this.selectedIndex,
     required this.onChanged,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      height: 39,
       width: 120,
+      height: 45,
       padding: const EdgeInsets.all(4),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: Colors.grey[400]!, width: 1),
+        border: Border.all(color: AppColors.textMuted, width: 1),
       ),
       child: Row(
         children: [
@@ -98,7 +98,7 @@ class IconSwitcher extends StatelessWidget {
         alignment: Alignment.center,
         child: Icon(
           icon,
-          color: isSelected ? Colors.cyan[400] : Colors.grey[600],
+          color: isSelected ? AppColors.btnPrimary : AppColors.textMuted,
           size: 24,
         ),
       ),
@@ -113,42 +113,55 @@ class NameSwitcher extends StatelessWidget {
   final Function(int) onChanged;
 
   const NameSwitcher({
-    Key? key,
+    super.key,
     required this.items,
     required this.selectedIndex,
     required this.onChanged,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      height: 39,
-      width: 120,
+      width: 310,
+      height: 45,
       padding: const EdgeInsets.all(4),
-      decoration: BoxDecoration(
+      decoration: ShapeDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: Colors.grey[400]!, width: 1),
+        shape: RoundedRectangleBorder(
+          side: const BorderSide(width: 1, color: AppColors.textMuted),
+          borderRadius: BorderRadius.circular(16),
+        ),
       ),
       child: Row(
+        mainAxisSize: MainAxisSize.min,
+        mainAxisAlignment: MainAxisAlignment.center,
+        crossAxisAlignment: CrossAxisAlignment.center,
         children: List.generate(items.length, (index) {
           final isSelected = index == selectedIndex;
+
           return Expanded(
             child: GestureDetector(
               onTap: () => onChanged(index),
               child: Container(
-                decoration: BoxDecoration(
-                  color: isSelected ? Colors.cyan[400] : Colors.transparent,
-                  borderRadius: BorderRadius.circular(16),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 8,
+                ),
+                decoration: ShapeDecoration(
+                  color: isSelected ? AppColors.btnPrimary : Colors.transparent,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
                 ),
                 alignment: Alignment.center,
                 child: Text(
                   items[index],
                   textAlign: TextAlign.center,
                   style: TextStyle(
-                    color: isSelected ? Colors.white : Colors.black87,
-                    fontWeight: FontWeight.w500,
-                    fontSize: 14,
+                    color: isSelected ? Colors.white : AppColors.textPrimary,
+                    fontSize: 16,
+
+                    fontWeight: FontWeight.w700,
                   ),
                 ),
               ),
