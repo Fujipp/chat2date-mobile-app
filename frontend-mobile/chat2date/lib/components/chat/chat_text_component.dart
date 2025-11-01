@@ -80,7 +80,7 @@ class ChatTextComponent extends StatelessWidget {
     this.icon,
     this.colorIcon,
 
-    //ความห่างจากจอหรือ content อื่น
+    //ความห่างจากจอหรือ content อื่น ไม่ค่อยจำเป็น
     this.horizontal = 16,
     this.vertical = 0,
 
@@ -368,6 +368,7 @@ class StatusTextComponent extends StatelessWidget {
   final double? size;
   final double? horizontal;
   final double? vertical;
+  //isSeen
 
   const StatusTextComponent({
     super.key,
@@ -379,8 +380,10 @@ class StatusTextComponent extends StatelessWidget {
     this.iconColor,
     this.size,
     this.svgPath,
+    //ไม่จำเป้น
     this.horizontal = 16,
     this.vertical = 0,
+
   });
 
   @override

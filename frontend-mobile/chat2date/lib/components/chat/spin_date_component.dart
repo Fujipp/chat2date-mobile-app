@@ -54,7 +54,7 @@ class _SpinDateComponentState extends State<SpinDateComponent> {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               SvgPicture.asset(
-                "assets/images/refresh.svg",
+                "assets/icons/icon_refresh.svg",
                 width: 31,
                 height: 31,
               ),
@@ -66,7 +66,7 @@ class _SpinDateComponentState extends State<SpinDateComponent> {
                   fontWeight: FontWeight.bold,
                 ),
               ),
-              SvgPicture.asset("assets/icons/close.svg", width: 21, height: 21),
+              SvgPicture.asset("assets/icons/icon_close.svg", width: 21, height: 21),
             ],
           ),
           if (mode == 'single') const SizedBox(height: 20),
@@ -283,8 +283,8 @@ class _SpinDateComponentState extends State<SpinDateComponent> {
               ),
               child: SvgPicture.asset(
                 mode == "pair"
-                    ? "assets/icons/pair.svg"
-                    : "assets/icons/single.svg", // เปลี่ยนภาพตามโหมด
+                    ? "assets/icons/icon_pair.svg"
+                    : "assets/icons/icon_single.svg", // เปลี่ยนภาพตามโหมด
                 width: 77.27,
                 height: 78,
               ),

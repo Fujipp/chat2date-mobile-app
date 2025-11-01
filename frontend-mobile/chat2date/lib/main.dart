@@ -1,5 +1,6 @@
 // main.dart
 import 'package:chat2date/components/chat/chat_text_component.dart';
+import 'package:chat2date/components/chat/input_chat_component.dart';
 import 'package:chat2date/components/common/loading_component.dart';
 import 'package:chat2date/components/common/modal_component.dart';
 import 'package:chat2date/components/chat/spin_date_component.dart';
@@ -72,7 +73,7 @@ class HomePage extends StatelessWidget {
                   'สร้างบัญชีใหม่ของคุณได้อีก',
             ),
             ModalComponent(
-              svgPath: 'assets/images/good-ending.svg',
+              svgPath: 'assets/icons/icon_good-ending.svg',
               heightSvg: 68,
               widthSvg: 77,
               topic: 'คุณถูกแบน',
@@ -129,7 +130,7 @@ class HomePage extends StatelessWidget {
             ModalComponent(
               spaceTop: 12,
               spaceBottom: 12,
-              svgPath: 'assets/icons/star-rating.svg',
+              svgPath: 'assets/icons/icon_star-rating.svg',
               heightSvg: 35,
               widthSvg: 203,
               topic: 'ให้คะแนนแอปเรา',
@@ -172,7 +173,7 @@ class HomePage extends StatelessWidget {
               text: 'nion[ionokdvnov[nvfo[nkbfa[bnfk[ m]]]]]',
               mainAlignmentRow: MainAxisAlignment.start,
               crossAlignmentRow: CrossAxisAlignment.end,
-              svgPath: 'assets/icons/bot.svg',
+              svgPath: 'assets/icons/icon_bot.svg',
               bottomLeftRadius: 0,
               bottomRightRadius: 20,
               color: Color(0xFFFFF2CC),
@@ -186,7 +187,7 @@ class HomePage extends StatelessWidget {
               color: Colors.orangeAccent,
               colorText: Colors.white,
               colorDescription: Colors.yellowAccent,
-              svgPath: 'assets/icons/bot.svg',
+              svgPath: 'assets/icons/icon_bot.svg',
               bottomLeftRadius: 0,
               bottomRightRadius: 20,
               mainAlignmentRow: MainAxisAlignment.start,
@@ -197,7 +198,7 @@ class HomePage extends StatelessWidget {
               text: "รายการชำระเงินสำเร็จ",
               color: Colors.green,
               subDescription: "เวลา: 10:35 น.",
-              svgPath: 'assets/icons/bot.svg',
+              svgPath: 'assets/icons/icon_bot.svg',
               bottomLeftRadius: 0,
               bottomRightRadius: 20,
               mainAlignmentRow: MainAxisAlignment.start,
@@ -216,7 +217,7 @@ class HomePage extends StatelessWidget {
 
             ChatTextComponent(
               text: "ข้อความพร้อม SVG",
-              svgPath: 'assets/icons/avatar.svg',
+              svgPath: 'assets/icons/icon_avatar.svg',
               mainAlignmentRow: MainAxisAlignment.start,
               crossAlignmentRow: CrossAxisAlignment.end,
               bottomLeftRadius: 0,
@@ -226,12 +227,13 @@ class HomePage extends StatelessWidget {
             ChatTextComponent(
               mainAlignmentRow: MainAxisAlignment.start,
               crossAlignmentRow: CrossAxisAlignment.end,
-              color: Colors.yellow,
               text: "คุณต้องการดำเนินการต่อหรือไม่?",
+              color: AppColors.badgeWarning,
+              colorText: AppColors.textPrimary,
               actionButton: true,
               actionButtonText: "ดำเนินการต่อ",
               subDescription: 'เหลือเวลาเริ่มใหม่ 24 ชั่วโมง',
-              svgPath: 'assets/icons/bot.svg',
+              svgPath: 'assets/icons/icon_bot.svg',
               bottomLeftRadius: 0,
               bottomRightRadius: 20,
             ),
@@ -239,16 +241,17 @@ class HomePage extends StatelessWidget {
             ChatTextComponent(
               mainAlignmentRow: MainAxisAlignment.start,
               crossAlignmentRow: CrossAxisAlignment.end,
-              color: Colors.yellow,
+              color: AppColors.badgeWarning,
+              colorText: AppColors.textPrimary,
               text: "กลับไปเล่นใหม่อีกรอบ",
               choice: true,
-              firstChoiceText: "ใช่",
-              secondChoiceText: "ไม่ใช่",
+              firstChoiceText: "ไม่ใช่",
+              secondChoiceText: "ใช่",
               description:
                   "หมายเหตุ เมื่อกดเริ่มแล้วจะไม่สามารถกลับ\n"
                   "มาเล่นอีกรอบได้ควรคุยหรือรอคู่ของคุณก่อน",
               subDescription: 'เหลือเวลาเริ่มใหม่ 24 ชั่วโมง',
-              svgPath: 'assets/icons/bot.svg',
+              svgPath: 'assets/icons/icon_bot.svg',
               bottomLeftRadius: 0,
               bottomRightRadius: 20,
             ),
@@ -269,6 +272,7 @@ class HomePage extends StatelessWidget {
               ],
               initialMode: 'single',
             ), // <-- // กำหนดโหมดเริ่มต้นเป็น pair
+            InputChatComponent(svgPath: 'assets/icons/icon_more-options.svg',svgPathLast: 'assets/icons/icon_send.svg',)
           ],
         ),
       ),
