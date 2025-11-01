@@ -23,6 +23,7 @@ class AppColors {
   // === Basic ===
   static const Color background = Color(0xFFFFFFFF);
   static const Color surface = Color(0xFFF8FBF3);
+  static const Color surfaceMuted = Color(0xFFF7FaFe);
   static const Color textPrimary = Color(0xFF0F172A);
   static const Color textSecondary = Color(0xFF334155);
   static const Color textMuted = Color(0xFF94A3B8);
@@ -68,4 +69,5 @@ class AppColors {
   static const Color neutral700 = Color(0xFF475569);
   static const Color neutral800 = Color(0xFF334155);
   static const Color neutral900 = Color(0xFF0F172A);
+  static const Color neutralLight = Color(0xFFF8F9Fe);
 }
