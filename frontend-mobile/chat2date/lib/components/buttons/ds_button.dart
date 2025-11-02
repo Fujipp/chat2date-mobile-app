@@ -12,6 +12,10 @@ enum DsButtonVariant {
 }
 
 /// ขนาดปุ่มหลัก ๆ (คงชื่อเดิม + เพิ่ม xs)
+/// - xs  => width: 39,  font: 12
+/// - sm  => width: 100, font: 14
+/// - md  => width: 231, font: 16
+/// - lg  => width: 310, font: 16
 enum DsButtonSize { xs, sm, md, lg }
 
 /// ปุ่มมาตรฐานของดีไซน์ (รองรับ leading/trailing, ขนาด, มุมโค้ง, padding)
@@ -20,6 +24,7 @@ class DsButton extends StatelessWidget {
   final VoidCallback? onPressed;
   final DsButtonVariant variant;
   final DsButtonSize size;
+
   final double radius; // มุมโค้ง (ดีฟอลต์ 12 ตาม Figma)
   final FontWeight fontWeight; // น้ำหนักฟอนต์
   final String? fontFamily; // ระบุชื่อฟอนต์ (เช่น 'Inter')
@@ -32,7 +37,7 @@ class DsButton extends StatelessWidget {
     required this.label,
     required this.onPressed,
     this.variant = DsButtonVariant.primary,
-    this.size = DsButtonSize.md, // เดิมใช้ md ก็ยังได้เหมือนเดิม
+    this.size = DsButtonSize.md, // ใช้ต่อได้เหมือนเดิม
     this.radius = 12,
     this.fontWeight = FontWeight.w600,
     this.fontFamily,
@@ -61,32 +66,32 @@ class DsButton extends StatelessWidget {
   /// mapping: (width, height, fontSize, padding)
   (double, double, double, EdgeInsets) _metrics() {
     switch (size) {
-      case DsButtonSize.xs: // 39px (สั้นมาก)
+      case DsButtonSize.xs: // 39px | font 12
         return (
           39,
           40,
           12,
           const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
         );
-      case DsButtonSize.sm: // 100px
+      case DsButtonSize.sm: // 100px | font 14
         return (
           100,
           40,
           12,
           const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
         );
-      case DsButtonSize.md: // 231px
+      case DsButtonSize.md: // 231px | font 16
         return (
           231,
           40,
-          16,
+          12,
           const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
         );
-      case DsButtonSize.lg: // 310px
+      case DsButtonSize.lg: // 310px | font 16
         return (
           310,
           40,
-          14,
+          12,
           const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
         );
     }
@@ -117,9 +122,9 @@ class DsButton extends StatelessWidget {
     final text = Text(
       label,
       style: TextStyle(
-        fontSize: fs,
+        fontSize: fs, // ใช้ตาม mapping: 12/14/16/16
         fontWeight: fontWeight,
-        fontFamily: fontFamily, // ถ้ากำหนดในธีมไว้แล้วไม่ต้องส่งก็ได้
+        fontFamily: fontFamily, // ถ้าตั้งในธีมแล้ว ไม่ต้องส่งก็ได้
       ),
       overflow: TextOverflow.ellipsis,
       maxLines: 1,
