@@ -11,6 +11,7 @@ import 'package:chat2date/components/common/modal_component.dart';
 import 'package:chat2date/components/inputs/index.dart';
 import 'package:chat2date/components/layout/header.dart';
 import 'package:chat2date/components/layout/menu_bar.dart';
+import 'package:chat2date/components/layout/responsive_container.dart';
 import 'package:chat2date/components/status_bar/gps_alert.dart';
 // Status Bar components
 import 'package:chat2date/components/status_bar/score_row.dart';
@@ -256,10 +257,6 @@ class _ComponentTestScreenState extends State<ComponentTestScreen> {
           TagSelection(
             items: const ['Style 1', 'Style 2', 'Style 3'],
             initialSelected: [0, 2],
-            multiSelect: true,
-            onChanged: (selected) {
-              print('Selected indices: $selected');
-            },
           ),
 
           const SizedBox(height: 24),
