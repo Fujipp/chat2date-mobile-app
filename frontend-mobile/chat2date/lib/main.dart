@@ -18,7 +18,8 @@ class MyApp extends StatelessWidget {
       title: 'Component Test',
       theme: buildLightTheme(),
       navigatorKey: navigatorKey,
-      initialRoute: '/profile',
+      initialRoute:
+          '/profile', //เวลาโค้ดเปลี่ยนเป็น path ตัวเองเอาไว้แสดงหน้าของตัวเองเด้อ
       routes: {
         '/test': (context) => const ComponentTestScreen(),
         '/profile': (context) => const ProfileSetupScreen(),
