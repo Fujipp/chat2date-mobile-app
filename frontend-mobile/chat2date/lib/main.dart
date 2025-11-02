@@ -26,9 +26,9 @@ class MyApp extends StatelessWidget {
 
         //Amp
         '/profileSetup': (context) => const ProfileSetupScreen(),
-        '/lifestylesSelection': (context) => const LifestylesSelectionScreen(),
-        '/interestsSelection': (context) => const LifestylesSelectionScreen(),
-
+        '/lifestylesSelection': (context) => LifestylesSelectionScreen(),
+        '/interestsSelection': (context) => InterestsSelectionScreen(),
+        '/tagsSelection': (context) => TagsSelectionScreen(),
         //Hutch
 
         //Fuji
