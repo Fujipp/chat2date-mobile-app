@@ -70,7 +70,7 @@ class DsTextField extends StatelessWidget {
               suffixIcon: suffixIcon != null
                   ? InkWell(
                       onTap: onSuffixTap,
-                      child: Icon(suffixIcon, color: AppColors.textSecondary),
+                      child: Icon(suffixIcon, color: AppColors.infoIcon),
                     )
                   : null,
               filled: true,

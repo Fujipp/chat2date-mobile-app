@@ -30,6 +30,7 @@ class AppColors {
   static const Color textMuted = Color(0xFF94A3B8);
   static const Color divider = Color(0xFFE0E0E0);
   static const Color outline = Color(0xFFCDE7FF);
+  static const Color infoIcon = Color(0xFF075985);
 
   // === Status ===
   static const Color success = Color(0xFF9FE2BF);
