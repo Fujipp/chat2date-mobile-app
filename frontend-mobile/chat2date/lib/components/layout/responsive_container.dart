@@ -448,14 +448,14 @@ class _TagSelectionState extends State<TagSelection> {
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                if (_selected.contains(index))
-                  const Padding(
-                    padding: EdgeInsets.only(right: 5),
-                    child: Icon(Icons.check, size: 16),
-                  ),
+                const Padding(
+                  padding: EdgeInsets.only(right: 5),
+                  child: Icon(Icons.check, size: 12),
+                ),
                 Text(
                   widget.items[index],
                   style: TextStyle(
+                    fontSize: 12,
                     color: _selected.contains(index)
                         ? const Color(0xFF0F172A)
                         : const Color(0xFF94A3B8),
