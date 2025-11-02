@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+enum TagShape { rounded, rectangle }
+
 /// Responsive Container - Flexbox-like layout ที่รองรับทุกขนาดหน้าจอ
 class ResponsiveContainer extends StatelessWidget {
   final List<Widget> children;
@@ -395,11 +397,13 @@ class ResponsiveContainerDemo extends StatelessWidget {
 class TagSelection extends StatefulWidget {
   final List<String> items;
   final List<int> initialSelected;
+  final TagShape shape;
 
   const TagSelection({
     super.key,
     required this.items,
     this.initialSelected = const [],
+    this.shape = TagShape.rounded,
   });
 
   @override
@@ -417,55 +421,86 @@ class _TagSelectionState extends State<TagSelection> {
 
   @override
   Widget build(BuildContext context) {
-    return Wrap(
-      spacing: 8,
-      runSpacing: 8,
-      children: List.generate(
-        widget.items.length,
-        (index) => GestureDetector(
-          onTap: () {
-            setState(() {
-              if (_selected.contains(index)) {
-                _selected.remove(index);
-              } else {
-                _selected.add(index);
-              }
-            });
-          },
-          child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-            decoration: BoxDecoration(
-              color: _selected.contains(index)
-                  ? const Color(0xFFFF8FB3)
-                  : const Color(0xFFF7FAFE),
-              border: Border.all(
-                color: _selected.contains(index)
-                    ? const Color(0xFFFF739F)
-                    : const Color(0xFFE2E8F0),
-              ),
-              borderRadius: BorderRadius.circular(30),
-            ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                const Padding(
-                  padding: EdgeInsets.only(right: 5),
-                  child: Icon(Icons.check, size: 12),
-                ),
-                Text(
-                  widget.items[index],
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: _selected.contains(index)
-                        ? const Color(0xFF0F172A)
-                        : const Color(0xFF94A3B8),
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        // กำหนดจำนวน tag ต่อแถว (ตัวอย่าง: 3 tag ต่อแถว)
+        int itemsPerRow = 3;
+        double spacing = 8; // gap ระหว่าง tag
+        double totalSpacing = spacing * (itemsPerRow - 1);
+        double itemWidth = (constraints.maxWidth - totalSpacing) / itemsPerRow;
+
+        return Wrap(
+          spacing: spacing,
+          runSpacing: spacing,
+          children: List.generate(widget.items.length, (index) {
+            final isSelected = _selected.contains(index);
+
+            return SizedBox(
+              width: widget.shape == TagShape.rectangle ? itemWidth : null,
+              child: GestureDetector(
+                onTap: () {
+                  setState(() {
+                    if (isSelected) {
+                      _selected.remove(index);
+                    } else {
+                      _selected.add(index);
+                    }
+                  });
+                },
+                child: Container(
+                  padding: widget.shape == TagShape.rounded
+                      ? const EdgeInsets.symmetric(horizontal: 16, vertical: 8)
+                      : const EdgeInsets.symmetric(horizontal: 8, vertical: 12),
+                  height: widget.shape == TagShape.rectangle ? 48 : null,
+                  decoration: BoxDecoration(
+                    color: isSelected
+                        ? const Color(0xFFFF8FB3)
+                        : const Color(0xFFF7FAFE),
+                    border: Border.all(
+                      color: isSelected
+                          ? const Color(0xFFFF739F)
+                          : const Color(0xFFE2E8F0),
+                    ),
+                    borderRadius: widget.shape == TagShape.rounded
+                        ? BorderRadius.circular(30)
+                        : BorderRadius.circular(12),
                   ),
+                  child: widget.shape == TagShape.rounded
+                      ? Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const Padding(
+                              padding: EdgeInsets.only(right: 5),
+                              child: Icon(Icons.check, size: 12),
+                            ),
+                            Text(
+                              widget.items[index],
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: isSelected
+                                    ? const Color(0xFF0F172A)
+                                    : const Color(0xFF94A3B8),
+                              ),
+                            ),
+                          ],
+                        )
+                      : Center(
+                          child: Text(
+                            widget.items[index],
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: isSelected
+                                  ? const Color(0xFF0F172A)
+                                  : const Color(0xFF94A3B8),
+                            ),
+                          ),
+                        ),
                 ),
-              ],
-            ),
-          ),
-        ),
-      ),
+              ),
+            );
+          }),
+        );
+      },
     );
   }
 }
