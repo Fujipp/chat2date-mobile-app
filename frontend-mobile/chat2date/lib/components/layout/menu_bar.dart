@@ -9,7 +9,7 @@ class CustomBottomNavBar extends StatefulWidget {
 }
 
 class _CustomBottomNavBarState extends State<CustomBottomNavBar> {
-  int _selectedIndex = 0;  
+  int _selectedIndex = 0;
 
   final List<String> _iconPaths = [
     'assets/icons/icon_home.svg',
@@ -30,13 +30,11 @@ class _CustomBottomNavBarState extends State<CustomBottomNavBar> {
   final double _textContainerWidth = 60;
   final double _bottomNavBarHeight = 65;
   final double _bottomNavBarTopPadding = 25;
-  final double _circleTopOffset = -15; // วงกลมลอยสูง
+  final double _circleTopOffset = -15;
 
-  // --- ค่าคงที่สำหรับรอยเว้า (แบบสมูทและเหลี่ยม) ---
-  final double _notchWidth = 92;
-  final double _notchSlopeWidth = 16;
-  final double _notchDepth = 42;
-  final double _notchCornerRadius = 6.4;
+  // --- ค่าสำหรับรอยเว้าแบบ Figma (teardrop style) ---
+  final double _notchWidth = 100; // ความกว้างรวมของรอยเว้า
+  final double _notchDepth = 24; // ความลึกของรอยเว้า (ครึ่งหนึ่งของ notchWidth)
   final double _cornerRadius = 6.0;
 
   @override
@@ -60,20 +58,18 @@ class _CustomBottomNavBarState extends State<CustomBottomNavBar> {
       child: Stack(
         clipBehavior: Clip.none,
         children: [
-          // 1. พื้นหลัง (ใช้ Clipper ที่อัปเดตแล้ว)
+          // 1. พื้นหลัง
           Positioned(
             left: 0,
             top: _bottomNavBarTopPadding,
             child: ClipPath(
-              clipper: TrapezoidNotchedClipper(
+              clipper: FigmaTeardropNotchedClipper(
                 selectedIndex: _selectedIndex,
                 circleLeftPositions: dynamicCircleLeft,
                 circleRadius: _circleRadius,
                 cornerRadius: _cornerRadius,
-                notchTopWidth: _notchWidth,
+                notchWidth: _notchWidth,
                 notchDepth: _notchDepth,
-                notchSlopeWidth: _notchSlopeWidth,
-                notchCornerRadius: _notchCornerRadius,
               ),
               child: Container(
                 width: screenWidth,
@@ -100,22 +96,16 @@ class _CustomBottomNavBarState extends State<CustomBottomNavBar> {
           ),
 
           // 3. สร้างเมนูทั้ง 4 อัน (ไอคอน + ข้อความ)
-          // *** เปลี่ยนจาก Positioned เป็น AnimatedPositioned ***
           ...List.generate(_labels.length, (index) {
             bool isSelected = _selectedIndex == index;
 
             return AnimatedPositioned(
-              // <--- แก้ไขตรงนี้
-              duration: const Duration(
-                milliseconds: 300,
-              ), // <--- เพิ่ม duration
-              curve: Curves.easeInOutCubic, // <--- เพิ่ม curve
-
+              duration: const Duration(milliseconds: 300),
+              curve: Curves.easeInOutCubic,
               left: dynamicTextLeft[index],
               top: isSelected ? _circleTopOffset + 5 : _bottomNavBarTopPadding,
               height: isSelected ? _circleSize : _bottomNavBarHeight,
               width: _textContainerWidth,
-
               child: GestureDetector(
                 behavior: HitTestBehavior.translucent,
                 onTap: () {
@@ -128,20 +118,20 @@ class _CustomBottomNavBarState extends State<CustomBottomNavBar> {
                   children: [
                     SvgPicture.asset(
                       _iconPaths[index],
-                      width: 24,
-                      height: 24,
+                      width: 30,
+                      height: 30,
                       colorFilter: ColorFilter.mode(
                         isSelected ? _selectedColor : _unselectedColor,
                         BlendMode.srcIn,
                       ),
                     ),
-                    SizedBox(height: isSelected ? 4 : 2),
+                    SizedBox(height: 2),
                     Text(
                       _labels[index],
                       textAlign: TextAlign.center,
                       style: TextStyle(
                         color: isSelected ? _selectedColor : _unselectedColor,
-                        fontSize: 12,
+                        fontSize: 8,
                         fontFamily: 'Inter',
                         fontWeight: FontWeight.w600,
                       ),
@@ -159,72 +149,72 @@ class _CustomBottomNavBarState extends State<CustomBottomNavBar> {
 }
 
 // -------------------------------------------------------------------
-// 2. คลาส CLIPPER (โค้ดส่วนนี้เหมือนเดิม ไม่ต้องแก้ไข)
+// Custom Clipper แบบ Figma (Teardrop/Petal Style)
 // -------------------------------------------------------------------
-class TrapezoidNotchedClipper extends CustomClipper<Path> {
+class FigmaTeardropNotchedClipper extends CustomClipper<Path> {
   final int selectedIndex;
   final List<double> circleLeftPositions;
   final double circleRadius;
   final double cornerRadius;
-  final double notchTopWidth;
+  final double notchWidth;
   final double notchDepth;
-  final double notchSlopeWidth;
-  final double notchCornerRadius;
 
-  TrapezoidNotchedClipper({
+  FigmaTeardropNotchedClipper({
     required this.selectedIndex,
     required this.circleLeftPositions,
     required this.circleRadius,
     required this.cornerRadius,
-    required this.notchTopWidth,
+    required this.notchWidth,
     required this.notchDepth,
-    required this.notchSlopeWidth,
-    required this.notchCornerRadius,
   });
 
   @override
   Path getClip(Size size) {
     final double centerX = circleLeftPositions[selectedIndex] + circleRadius;
+    final double radius = notchWidth / 2;
 
-    final double notchTopStartX = centerX - (notchTopWidth / 2);
-    final double notchTopEndX = centerX + (notchTopWidth / 2);
-
-    final double notchBottomStartX = notchTopStartX + notchSlopeWidth;
-    final double notchBottomEndX = notchTopEndX - notchSlopeWidth;
+    // จุดเริ่มต้นและจุดสิ้นสุดของรอยเว้า
+    final double notchStartX = centerX - radius;
+    final double notchEndX = centerX + radius;
 
     final Path path = Path();
+
+    // 1. เริ่มจากมุมซ้ายบนของ Nav Bar
     path.moveTo(0, cornerRadius);
     path.quadraticBezierTo(0, 0, cornerRadius, 0);
-    path.lineTo(notchTopStartX, 0);
 
-    // --- 4.1: วาดสโลป `\` แบบเส้นตรง ---
-    path.lineTo(notchBottomStartX, notchDepth - notchCornerRadius);
+    // 2. วาดเส้นไปถึงจุดเริ่มต้นของรอยเว้า
+    path.lineTo(notchStartX, 0);
 
-    // --- 4.2: วาดมุมโค้งมน `\_` (Bottom-Left) ---
-    path.quadraticBezierTo(
-      notchBottomStartX,
-      notchDepth,
-      notchBottomStartX + notchCornerRadius,
-      notchDepth,
+    // 3. วาดรอยเว้าแบบ Figma (teardrop/petal shape)
+    path.cubicTo(
+      notchStartX + (radius * 0.47),
+      notchDepth * 2,
+      notchStartX +
+          (radius *
+              0.35), // ⬅️ เปลี่ยนจาก 0.173 เป็น 0.35 (เข้าใกล้กลางมากขึ้น)
+      notchDepth * 2,
+      centerX,
+      notchDepth * 2,
     );
 
-    // --- 4.3: เส้นฐาน `_` ---
-    path.lineTo(notchBottomEndX - notchCornerRadius, notchDepth);
-
-    // --- 4.4: วาดมุมโค้งมน `_/` (Bottom-Right) ---
-    path.quadraticBezierTo(
-      notchBottomEndX,
-      notchDepth,
-      notchBottomEndX,
-      notchDepth - notchCornerRadius,
+    // ด้านขวา: โค้งขึ้นมา
+    path.cubicTo(
+      notchEndX -
+          (radius *
+              0.35), // ⬅️ เปลี่ยนจาก 0.173 เป็น 0.35 (เข้าใกล้กลางมากขึ้น)
+      notchDepth * 2,
+      notchEndX - (radius * 0.47),
+      notchDepth * 2,
+      notchEndX,
+      0,
     );
 
-    // --- 4.5: วาดสโลป `/` แบบเส้นตรง ---
-    path.lineTo(notchTopEndX, 0);
-
-    // 5. วาดส่วนที่เหลือของ Nav Bar
+    // 4. วาดเส้นไปถึงมุมขวาบน
     path.lineTo(size.width - cornerRadius, 0);
     path.quadraticBezierTo(size.width, 0, size.width, cornerRadius);
+
+    // 5. วาดด้านขวา
     path.lineTo(size.width, size.height - cornerRadius);
     path.quadraticBezierTo(
       size.width,
@@ -232,6 +222,8 @@ class TrapezoidNotchedClipper extends CustomClipper<Path> {
       size.width - cornerRadius,
       size.height,
     );
+
+    // 6. วาดด้านล่าง
     path.lineTo(cornerRadius, size.height);
     path.quadraticBezierTo(0, size.height, 0, size.height - cornerRadius);
 
