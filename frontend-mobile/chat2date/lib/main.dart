@@ -1,7 +1,7 @@
 import 'package:chat2date/theme/app_theme.dart'; // <— เพิ่ม
 import 'package:flutter/material.dart';
 
-import 'screens/component_test_screen.dart';
+import 'screens/index.dart';
 
 void main() {
   runApp(MyApp());
@@ -15,7 +15,12 @@ class MyApp extends StatelessWidget {
     return MaterialApp(
       title: 'Component Test',
       theme: buildLightTheme(),
-      home: ComponentTestScreen(),
+      initialRoute: '/test',
+      routes: {
+        '/test': (context) => const ComponentTestScreen(),
+        '/profile': (context) => const ProfileSetupScreen(),
+      },
+      // home: ComponentTestScreen(),
     );
   }
 }
