@@ -173,26 +173,32 @@ class FigmaTeardropNotchedClipper extends CustomClipper<Path> {
     final double centerX = circleLeftPositions[selectedIndex] + circleRadius;
     final double radius = notchWidth / 2;
 
-    // จุดเริ่มต้นและจุดสิ้นสุดของรอยเว้า
     final double notchStartX = centerX - radius;
     final double notchEndX = centerX + radius;
 
-    final Path path = Path();
+    // ⭐ ตรวจสอบว่าวงกลมอยู่ใกล้ขอบหรือไม่
+    final bool isLeftEdge = notchStartX < cornerRadius + 10;
+    final bool isRightEdge = notchEndX > size.width - cornerRadius - 10;
 
     // 1. เริ่มจากมุมซ้ายบนของ Nav Bar
-    path.moveTo(0, cornerRadius);
-    path.quadraticBezierTo(0, 0, cornerRadius, 0);
+    final Path path = Path();
 
     // 2. วาดเส้นไปถึงจุดเริ่มต้นของรอยเว้า
-    path.lineTo(notchStartX, 0);
+    // 1. มุมซ้ายบน - ถ้าวงกลมอยู่ซ้ายสุด ข้ามมุมโค้ง
+    if (isLeftEdge) {
+      path.moveTo(0, 0);
+      path.lineTo(notchStartX, 0);
+    } else {
+      path.moveTo(0, cornerRadius);
+      path.quadraticBezierTo(0, 0, cornerRadius, 0);
+      path.lineTo(notchStartX, 0);
+    }
 
     // 3. วาดรอยเว้าแบบ Figma (teardrop/petal shape)
     path.cubicTo(
       notchStartX + (radius * 0.47),
       notchDepth * 2,
-      notchStartX +
-          (radius *
-              0.35), // ⬅️ เปลี่ยนจาก 0.173 เป็น 0.35 (เข้าใกล้กลางมากขึ้น)
+      notchStartX + (radius * 0.35),
       notchDepth * 2,
       centerX,
       notchDepth * 2,
@@ -200,9 +206,7 @@ class FigmaTeardropNotchedClipper extends CustomClipper<Path> {
 
     // ด้านขวา: โค้งขึ้นมา
     path.cubicTo(
-      notchEndX -
-          (radius *
-              0.35), // ⬅️ เปลี่ยนจาก 0.173 เป็น 0.35 (เข้าใกล้กลางมากขึ้น)
+      notchEndX - (radius * 0.35),
       notchDepth * 2,
       notchEndX - (radius * 0.47),
       notchDepth * 2,
@@ -211,11 +215,16 @@ class FigmaTeardropNotchedClipper extends CustomClipper<Path> {
     );
 
     // 4. วาดเส้นไปถึงมุมขวาบน
-    path.lineTo(size.width - cornerRadius, 0);
-    path.quadraticBezierTo(size.width, 0, size.width, cornerRadius);
+    if (isRightEdge) {
+      path.lineTo(size.width, 0);
+      path.lineTo(size.width, size.height - cornerRadius);
+    } else {
+      path.lineTo(size.width - cornerRadius, 0);
+      path.quadraticBezierTo(size.width, 0, size.width, cornerRadius);
+      path.lineTo(size.width, size.height - cornerRadius);
+    }
 
     // 5. วาดด้านขวา
-    path.lineTo(size.width, size.height - cornerRadius);
     path.quadraticBezierTo(
       size.width,
       size.height,
