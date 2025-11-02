@@ -25,12 +25,16 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
               label: 'ชื่อเล่น',
               required: true,
               controller: _nicknameCtrl,
-              
+              labelFontSize: 20,
             ),
 
             Align(
               alignment: Alignment.centerLeft,
-              child: DsLabel(label: 'สไตล์การท่องเที่ยว', required: true),
+              child: DsLabel(
+                label: 'สไตล์การท่องเที่ยว',
+                required: true,
+                labelFontSize: 20,
+              ),
             ),
 
             TagSelection(
@@ -53,10 +57,9 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
               controller: _lifeStyleCtrl,
               suffixIcon: Icons.arrow_circle_right_rounded,
               onSuffixTap: () {
-                ScaffoldMessenger.of(
-                  context,
-                ).showSnackBar(const SnackBar(content: Text('Go next')));
+                Navigator.pushNamed(context, '/lifestylesSelection');
               },
+              labelFontSize: 20,
             ),
 
             DsTextField(
@@ -69,6 +72,7 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
                   context,
                 ).showSnackBar(const SnackBar(content: Text('Go next')));
               },
+              labelFontSize: 20,
             ),
 
             DsTextField(
@@ -81,6 +85,7 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
                   context,
                 ).showSnackBar(const SnackBar(content: Text('Go next')));
               },
+              labelFontSize: 20,
             ),
 
             DsButton(
