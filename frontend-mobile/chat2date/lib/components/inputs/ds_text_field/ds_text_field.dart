@@ -5,7 +5,7 @@ import '../../../theme/app_colors.dart'; // ใช้สีจาก Figma (ถ�
 class DsTextField extends StatelessWidget {
   const DsTextField({
     super.key,
-    required this.label,
+    this.label,
     this.required = false,
     this.enabled = true,
     this.hintText,
@@ -14,9 +14,11 @@ class DsTextField extends StatelessWidget {
     this.supportText,
     this.controller,
     this.onSuffixTap,
+    this.labelFontSize,
+    this.inputFontSize,
   });
 
-  final String label;
+  final String? label;
   final bool required;
   final bool enabled;
   final String? hintText;
@@ -26,33 +28,39 @@ class DsTextField extends StatelessWidget {
   final TextEditingController? controller;
   final VoidCallback? onSuffixTap;
 
+  final double? labelFontSize;
+  final double? inputFontSize;
   @override
   Widget build(BuildContext context) {
     // ✅ คืนค่า Widget เสมอ
+    final hasLabel = label != null && label!.isNotEmpty;
+    final labelSize = labelFontSize ?? 14.0;
+    final inputSize = inputFontSize ?? 14.0;
     return Padding(
       padding: const EdgeInsets.only(bottom: 20),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Label + required mark
-          RichText(
-            text: TextSpan(
-              text: label,
-              style: DefaultTextStyle.of(context).style.copyWith(
-                color: AppColors.textPrimary,
-                fontWeight: FontWeight.w500,
+          if (hasLabel)
+            RichText(
+              text: TextSpan(
+                text: label,
+                style: DefaultTextStyle.of(context).style.copyWith(
+                  color: AppColors.textPrimary,
+                  fontWeight: FontWeight.w500,
+                  fontSize: labelSize,
+                ),
+                children: required
+                    ? const [
+                        TextSpan(
+                          text: ' *',
+                          style: TextStyle(color: Colors.redAccent),
+                        ),
+                      ]
+                    : null,
               ),
-              children: required
-                  ? const [
-                      TextSpan(
-                        text: ' *',
-                        style: TextStyle(color: Colors.redAccent),
-                      ),
-                    ]
-                  : null,
             ),
-          ),
-          const SizedBox(height: 6),
+          if (hasLabel) const SizedBox(height: 6),
 
           // ตัว TextField
           TextField(
@@ -60,10 +68,14 @@ class DsTextField extends StatelessWidget {
             controller: controller,
             style: TextStyle(
               color: enabled ? AppColors.textPrimary : AppColors.textMuted,
+              fontSize: inputSize,
             ),
             decoration: InputDecoration(
-              hintText: hintText,
-              hintStyle: const TextStyle(color: AppColors.inputPlaceholder),
+              hintText: hasLabel ? hintText : supportText ?? '',
+              hintStyle: TextStyle(
+                color: AppColors.inputPlaceholder,
+                fontSize: inputSize,
+              ),
               prefixIcon: prefixIcon != null
                   ? Icon(prefixIcon, color: AppColors.textSecondary)
                   : null,
@@ -103,8 +115,7 @@ class DsTextField extends StatelessWidget {
             ),
           ),
 
-          // Support text (optional)
-          if (supportText != null) ...[
+          if (supportText != null && hasLabel) ...[
             const SizedBox(height: 4),
             Text(
               supportText!,
