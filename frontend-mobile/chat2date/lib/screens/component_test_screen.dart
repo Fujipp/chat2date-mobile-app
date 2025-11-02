@@ -248,6 +248,21 @@ class _ComponentTestScreenState extends State<ComponentTestScreen> {
 
           const SizedBox(height: 24),
 
+          const Text(
+            'TagSelection',
+            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+          ),
+
+          TagSelection(
+            items: const ['Style 1', 'Style 2', 'Style 3'],
+            initialSelected: [0, 2],
+            multiSelect: true,
+            onChanged: (selected) {
+              print('Selected indices: $selected');
+            },
+          ),
+
+          const SizedBox(height: 24),
           //Hutch
           ModalComponent(
             icon: Icons.check_circle,
