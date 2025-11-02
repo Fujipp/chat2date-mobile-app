@@ -27,50 +27,47 @@ class InputChatComponent extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Align(
-      alignment: Alignment.bottomCenter,
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-        height: 72,
-        width: double.infinity,
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.end,
-          children: [
-            GestureDetector(
-              onTap: onClick,
-              child: SvgPicture.asset(svgPath!, width: 16, height: 16),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: TextField(
-                decoration: InputDecoration(
-                  hintText: 'เขียนข้อความ',
-                  filled: true,
-                  fillColor: AppColors.neutralLight,
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(20),
-                    borderSide: BorderSide.none,
-                  ),
-                  suffixIcon: SizedBox(
-                    width: 48,
-                    height: 48,
-                    child: GestureDetector(
-                      onTap: onSend ?? () {},
-                      behavior: HitTestBehavior.opaque,
-                      child: Center(
-                        child: SvgPicture.asset(
-                          svgPathLast!,
-                          width: 32,
-                          height: 32,
-                        ),
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      height: 72,
+      width: double.infinity,
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          GestureDetector(
+            onTap: onClick,
+            child: SvgPicture.asset(svgPath!, width: 16, height: 16),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: TextField(
+              decoration: InputDecoration(
+                hintText: 'เขียนข้อความ',
+                filled: true,
+                fillColor: AppColors.neutralLight,
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(20),
+                  borderSide: BorderSide.none,
+                ),
+                suffixIcon: SizedBox(
+                  width: 48,
+                  height: 48,
+                  child: GestureDetector(
+                    onTap: onSend ?? () {},
+                    behavior: HitTestBehavior.opaque,
+                    child: Center(
+                      child: SvgPicture.asset(
+                        svgPathLast!,
+                        width: 32,
+                        height: 32,
                       ),
                     ),
                   ),
                 ),
               ),
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }

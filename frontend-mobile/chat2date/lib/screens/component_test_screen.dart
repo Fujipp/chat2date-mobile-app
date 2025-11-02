@@ -1,6 +1,7 @@
 import 'package:chat2date/components/buttons/ds_button.dart';
 import 'package:chat2date/components/buttons/ds_icon_button.dart';
 import 'package:chat2date/components/calendar/index.dart';
+import 'package:chat2date/components/card/card_chat_component.dart';
 import 'package:chat2date/components/card/generic_card.dart';
 import 'package:chat2date/components/chat/chat_text_component.dart';
 import 'package:chat2date/components/chat/content_switcher.dart';
@@ -260,10 +261,17 @@ class _ComponentTestScreenState extends State<ComponentTestScreen> {
           ),
 
           const SizedBox(height: 24),
+
+          const Text(
+            'TagSelection',
+            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+          ),
+
+          const SizedBox(height: 24),
+
           //Hutch
           ModalComponent(
-            icon: Icons.check_circle,
-            colorIcon: Colors.green,
+            svgPath: 'assets/icons/icon_done.svg',
             heightSvg: 78,
             widthSvg: 77,
             topic: 'บันทึกเสร็จสิ้น',
@@ -273,9 +281,11 @@ class _ComponentTestScreenState extends State<ComponentTestScreen> {
             spaceBottom: 15,
             spaceTop: 15,
           ),
+
+          const SizedBox(height: 12),
+
           ModalComponent(
-            icon: Icons.warning,
-            colorIcon: Colors.yellow,
+            svgPath: 'assets/icons/icon_warning.svg',
             heightSvg: 78,
             widthSvg: 77,
             topic: 'ติดคูลดาวน์การหาสถานที่เดต 7 วัน',
@@ -283,9 +293,11 @@ class _ComponentTestScreenState extends State<ComponentTestScreen> {
             spaceBottom: 15,
             spaceTop: 15,
           ),
+
+          const SizedBox(height: 12),
+
           ModalComponent(
-            icon: Icons.warning,
-            colorIcon: Colors.red,
+            svgPath: 'assets/icons/icon_banning.svg',
             heightSvg: 68,
             widthSvg: 77,
             topic: 'คุณถูกแบน',
@@ -295,6 +307,9 @@ class _ComponentTestScreenState extends State<ComponentTestScreen> {
                 'คุณจะไม่สามารถใช้บัญชีนี้ได้อีกต่อไปและไม่สามารถ\n'
                 'สร้างบัญชีใหม่ของคุณได้อีก',
           ),
+
+          const SizedBox(height: 12),
+
           ModalComponent(
             svgPath: 'assets/icons/icon_good-ending.svg',
             heightSvg: 68,
@@ -305,9 +320,11 @@ class _ComponentTestScreenState extends State<ComponentTestScreen> {
                 'หวังว่าการเดินทางครั้งนี้\n'
                 'จะเป็นก้าวแรกของความสัมพันธ์ที่ดีขึ้นไปอีก',
           ),
+
+          const SizedBox(height: 12),
+
           ModalComponent(
-            icon: Icons.bolt,
-            colorIcon: Colors.yellow,
+            svgPath: 'assets/icons/icon_one-sided.svg',
             heightSvg: 68,
             widthSvg: 77,
             topic: 'มีฝ่ายหนึ่งรู้สึกไม่พอใจกับการเดินทางครั้งนี้',
@@ -318,9 +335,11 @@ class _ComponentTestScreenState extends State<ComponentTestScreen> {
             firstChoiceText: 'ไม่ต้องการ',
             secondChoiceText: 'ต้องการ',
           ),
+
+          const SizedBox(height: 12),
+
           ModalComponent(
-            icon: Icons.heart_broken,
-            colorIcon: Colors.red,
+            svgPath: 'assets/icons/icon_bad-ending.svg',
             heightSvg: 68,
             widthSvg: 77,
             topic: 'เสียใจด้วย',
@@ -330,6 +349,9 @@ class _ComponentTestScreenState extends State<ComponentTestScreen> {
             firstChoiceText: 'ไม่ต้องการ',
             secondChoiceText: 'ต้องการ',
           ),
+
+          const SizedBox(height: 12),
+
           ModalComponent(
             imagePath: 'https://i.pravatar.cc/150?img=47',
             heightSvg: 68,
@@ -350,6 +372,9 @@ class _ComponentTestScreenState extends State<ComponentTestScreen> {
                 'ไม่พอใจฝ่ายใดฝ่ายหนึ่ง จะมีให้เลือกไปต่อหรือพอแค่นี้\n'
                 'หากฝ่ายใดฝ่ายหนึ่งเลือก unmatch หรือ พอแค่นี้ จะจบทันที',
           ),
+
+          const SizedBox(height: 12),
+
           ModalComponent(
             spaceTop: 12,
             spaceBottom: 12,
@@ -368,108 +393,89 @@ class _ComponentTestScreenState extends State<ComponentTestScreen> {
             placeholder: true,
             placeholderText: 'Placeholderrrr',
           ),
-          StatusTextComponent(text: 'เวลา 416545631432'),
-          ChatTextComponent(text: 'tekxt Message'),
-          ChatTextComponent(text: 'nion[ionokdvnov[nvfo[nkbfa[bnfk[ m]]]]]'),
-          ChatTextComponent(
-            text: 'text Message',
-            mainAlignmentRow: MainAxisAlignment.end,
+
+          const SizedBox(height: 24),
+
+          const Text(
+            'Status + chat',
+            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
           ),
+
+          const SizedBox(height: 24),
+
+          StatusTextComponent(text: 'วันเสาร์ เวลา 12.30 น.', isMiddle: true),
+
+          const SizedBox(height: 12),
+
+          ChatTextComponent(text: 'tekxt Message', isChatRight: true),
+
+          const SizedBox(height: 12),
+
+          ChatTextComponent(
+            text: 'nion[ionokdvnov[nvfo[nkbfa[bnfk[ m]]]]]',
+            isChatRight: true,
+          ),
+
+          const SizedBox(height: 12),
+
+          ChatTextComponent(text: 'text Message', isChatRight: true),
+
+          const SizedBox(height: 12),
+
           StatusTextComponent(
             text: 'เห็นแล้ว',
             textSize: 12,
-            contentAlignment: Alignment.topRight,
-            icon: Icons.visibility,
-            iconColor: Colors.amber,
+            svgPath: "assets/icons/icon_seen.svg",
+            size: 12,
+            isMiddle: false,
           ),
+
+          const SizedBox(height: 12),
+
           ChatTextComponent(
-            text: 'nion[ionokdvnov[nvfo[nkbfa[bnfk[ m]]]]]',
-            mainAlignmentRow: MainAxisAlignment.start,
-            icon: Icons.abc,
-            colorIcon: Colors.green,
+            text: 'hi kate!',
+            svgPath: 'assets/icons/icon_avatar.svg',
             bottomLeftRadius: 0,
             bottomRightRadius: 20,
             color: Color(0xFFF7FAFE),
-            colorText: Colors.black,
           ),
+
+          const SizedBox(height: 12),
+
+          ChatTextComponent(text: "สวัสดีครับ", isChatRight: true),
+
+          const SizedBox(height: 12),
+
           ChatTextComponent(
-            text: 'nion[ionokdvnov[nvfo[nkbfa[bnfk[ m]]]]]',
-            mainAlignmentRow: MainAxisAlignment.start,
-            crossAlignmentRow: CrossAxisAlignment.end,
+            text: "สำเร็จ!",
+            description: "กรุณากรอกวันที่ออกเดตของคุณในปฏิทิน",
+            color: AppColors.badgeSecondaryBg,
+            colorDescription: AppColors.successText,
             svgPath: 'assets/icons/icon_bot.svg',
             bottomLeftRadius: 0,
             bottomRightRadius: 20,
-            color: Color(0xFFFFF2CC),
-            colorText: Colors.black,
+            isContentMiddle: true,
           ),
-          ChatTextComponent(text: "สวัสดีครับ"),
+
+          const SizedBox(height: 12),
 
           ChatTextComponent(
-            text: "ยอดรวมทั้งหมด: ",
-            description: "1,250 บาท",
-            color: Colors.orangeAccent,
-            colorText: Colors.white,
-            colorDescription: Colors.yellowAccent,
+            isContentMiddle: true,
+            text: "เสียใจด้วย!",
+            color: AppColors.badgeErrorBg,
+            subDescription: "คุณทั้ง 2 คนความคิดเห็นไม่ตรงกัน",
             svgPath: 'assets/icons/icon_bot.svg',
             bottomLeftRadius: 0,
             bottomRightRadius: 20,
-            mainAlignmentRow: MainAxisAlignment.start,
-            crossAlignmentRow: CrossAxisAlignment.end,
           ),
 
-          ChatTextComponent(
-            text: "รายการชำระเงินสำเร็จ",
-            color: Colors.green,
-            subDescription: "เวลา: 10:35 น.",
-            svgPath: 'assets/icons/icon_bot.svg',
-            bottomLeftRadius: 0,
-            bottomRightRadius: 20,
-            mainAlignmentRow: MainAxisAlignment.start,
-            crossAlignmentRow: CrossAxisAlignment.end,
-          ),
+          const SizedBox(height: 12),
 
           ChatTextComponent(
-            text: "ข้อความพร้อมไอคอน",
-            icon: Icons.chat_bubble_outline,
-            colorIcon: Colors.yellow,
-            bottomLeftRadius: 0,
-            bottomRightRadius: 20,
-            mainAlignmentRow: MainAxisAlignment.start,
-            crossAlignmentRow: CrossAxisAlignment.end,
-          ),
-
-          ChatTextComponent(
-            text: "ข้อความพร้อม SVG",
-            svgPath: 'assets/icons/icon_avatar.svg',
-            mainAlignmentRow: MainAxisAlignment.start,
-            crossAlignmentRow: CrossAxisAlignment.end,
-            bottomLeftRadius: 0,
-            bottomRightRadius: 20,
-          ),
-
-          ChatTextComponent(
-            mainAlignmentRow: MainAxisAlignment.start,
-            crossAlignmentRow: CrossAxisAlignment.end,
             text: "คุณต้องการดำเนินการต่อหรือไม่?",
             color: AppColors.badgeWarning,
-            colorText: AppColors.textPrimary,
             actionButton: true,
-            actionButtonText: "ดำเนินการต่อ",
-            subDescription: 'เหลือเวลาเริ่มใหม่ 24 ชั่วโมง',
-            svgPath: 'assets/icons/icon_bot.svg',
-            bottomLeftRadius: 0,
-            bottomRightRadius: 20,
-          ),
-
-          ChatTextComponent(
-            mainAlignmentRow: MainAxisAlignment.start,
-            crossAlignmentRow: CrossAxisAlignment.end,
-            color: AppColors.badgeWarning,
-            colorText: AppColors.textPrimary,
-            text: "กลับไปเล่นใหม่อีกรอบ",
-            choice: true,
-            firstChoiceText: "ไม่ใช่",
-            secondChoiceText: "ใช่",
+            actionButtonText: "เริ่ม",
             description:
                 "หมายเหตุ เมื่อกดเริ่มแล้วจะไม่สามารถกลับ\n"
                 "มาเล่นอีกรอบได้ควรคุยหรือรอคู่ของคุณก่อน",
@@ -479,11 +485,61 @@ class _ComponentTestScreenState extends State<ComponentTestScreen> {
             bottomRightRadius: 20,
           ),
 
-          SizedBox(height: 10),
-          Text("Loading", style: TextStyle(fontSize: 20)),
+          const SizedBox(height: 12),
+
+          ChatTextComponent(
+            text: "คุณต้องการดำเนินการต่อหรือไม่?",
+            color: AppColors.badgeWarning,
+            actionButton: true,
+            actionButtonText: "เริ่ม",
+            description:
+                "หมายเหตุ เมื่อกดเริ่มแล้วจะไม่สามารถกลับ\n"
+                "มาเล่นอีกรอบได้ควรคุยหรือรอคู่ของคุณก่อน",
+            subDescription: 'เหลือเวลาเริ่มใหม่ 24 ชั่วโมง',
+            svgPath: 'assets/icons/icon_bot.svg',
+            bottomLeftRadius: 0,
+            bottomRightRadius: 20,
+            isDisabled: true,
+          ),
+
+          const SizedBox(height: 12),
+
+          ChatTextComponent(
+            isContentMiddle: true,
+            color: AppColors.badgeWarning,
+            text: "สุ่มได้ไปเที่ยวที่ อควาเรียมบางแสน !!!",
+            choice: true,
+            firstChoiceText: "ไม่ไป",
+            secondChoiceText: "ไป",
+            description: "คุณอยากไปเที่ยว 'อความเรียมบางแสน' หรือไม่",
+            subDescription: 'ตอบแล้ว 0/2',
+            svgPath: 'assets/icons/icon_bot.svg',
+            bottomLeftRadius: 0,
+            bottomRightRadius: 20,
+          ),
+
+          const SizedBox(height: 24),
+
+          const Text(
+            "Loading",
+            style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+          ),
+
+          const SizedBox(height: 24),
+
           CircularLoading(percent: 0.2),
           CircularLoading(percent: 0.5),
           CircularLoading(percent: 0.9),
+
+          const SizedBox(height: 24),
+
+          const Text(
+            "Spin",
+            style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+          ),
+
+          const SizedBox(height: 24),
+
           SpinDateComponent(
             prizes: [
               {'label': 'Coffee'},
@@ -493,12 +549,50 @@ class _ComponentTestScreenState extends State<ComponentTestScreen> {
               {'label': 'Gift'},
               {'label': 'Ice-cream'},
             ],
-            initialMode: 'single',
-          ), // <-- // กำหนดโหมดเริ่มต้นเป็น pair
+          ),
+
+          const SizedBox(height: 24),
+
+          const Text(
+            "Input Chat",
+            style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+          ),
+
+          const SizedBox(height: 24),
+
           InputChatComponent(
             svgPath: 'assets/icons/icon_more-options.svg',
             svgPathLast: 'assets/icons/icon_send.svg',
           ),
+
+          const SizedBox(height: 24),
+
+          const Text(
+            "Input Chat",
+            style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+          ),
+
+          const SizedBox(height: 24),
+
+          CardChatComponent(svgPath: 'assets/icons/icon_avatar.svg', title: 'Sassy', subtitle: 'Nuna', ),
+
+          const SizedBox(height: 12),
+
+          CardChatComponent(svgPath: 'assets/icons/icon_avatar.svg', title: 'Sassy', subtitle: 'Nuna', svgPathEnd: 'assets/icons/icon_unseen-message.svg',),
+
+          const SizedBox(height: 12),
+
+          CardChatComponent(svgPath: 'assets/icons/icon_avatar.svg', title: 'Sassy', subtitle: 'Nuna', svgPathEnd: 'assets/icons/icon_new-white.svg',),
+          
+          const SizedBox(height: 12),
+
+          CardChatComponent(svgPath: 'assets/icons/icon_avatar.svg', title: 'Sassy', subtitle: 'Nuna', svgPathEnd: 'assets/icons/icon_new-white.svg', svgPathMiddle: 'assets/icons/icon_new-black.svg',),
+
+          const SizedBox(height: 12),
+
+          CardChatComponent(svgPath: 'assets/icons/icon_avatar.svg', title: 'Sassy', subtitle: 'Nuna', colors: [AppColors.backgroundWhite]),
+
+          const SizedBox(height: 12),
 
           //Fuji
           DsTextField(

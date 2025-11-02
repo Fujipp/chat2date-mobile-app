@@ -32,7 +32,6 @@ class CardChatComponent extends StatelessWidget {
   //subtitle
   final String subtitle;
   final FontWeight? subtitleWeight;
-  final Color? subtitleColor;
 
   //เรียกใช้เมื่อกด
   final VoidCallback? onClick;
@@ -60,17 +59,17 @@ class CardChatComponent extends StatelessWidget {
     required this.title,
     required this.subtitle,
     this.subtitleWeight = FontWeight.w700,
-    this.subtitleColor  = AppColors.neutralLight,
     this.onClick,
   });
 
   @override
   Widget build(BuildContext context) {
+    bool? isWhite = colors?.length == 1 && colors?[0] == AppColors.backgroundWhite;
+
     return GestureDetector(
       onTap: onClick ?? () {},
       child: Container(
         padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
-        height: 97,
         width: 310,
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(20),
@@ -116,6 +115,7 @@ class CardChatComponent extends StatelessWidget {
             Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisAlignment: MainAxisAlignment.center,
+              spacing: 2,
               children: [
                 if (iconMiddle != null)
                   SizedBox(
@@ -169,7 +169,7 @@ class CardChatComponent extends StatelessWidget {
                   child: Text(
                     subtitle,
                     style: TextStyle(
-                      color: Colors.white /* Light-Text-Secondary */,
+                      color: isWhite ? AppColors.textNeutral : Colors.white/* Light-Text-Secondary */,
                       fontSize: 12,
                       fontFamily: 'Inter',
                       fontWeight: subtitleWeight,

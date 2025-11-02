@@ -15,6 +15,10 @@ class AppColors {
   static const Color brandSecondary700 = Color(0xFF61E461);
   static const Color brandOnSecondary = Color(0xFF0F172A);
 
+  // === Badge
+  static const Color badgeSecondaryBg = Color(0xFF98FB98);
+  static const Color badgeErrorBg = Color(0xFFFFE6E6);
+
   // === Brand Accent ===
   static const Color brandAccentPink = Color(0xFFF8FBF3);
   static const Color brandAccentStrong = Color(0xFFFF739F);
@@ -31,6 +35,8 @@ class AppColors {
   static const Color divider = Color(0xFFE0E0E0);
   static const Color outline = Color(0xFFCDE7FF);
   static const Color infoIcon = Color(0xFF075985);
+  static const Color textNeutral = Color(0xFF71727A);
+  static const Color backgroundWhite = Color(0xFFF7F8FD);
 
   // === Status ===
   static const Color success = Color(0xFF9FE2BF);
@@ -73,4 +79,7 @@ class AppColors {
   static const Color neutral800 = Color(0xFF334155);
   static const Color neutral900 = Color(0xFF0F172A);
   static const Color neutralLight = Color(0xFFF8F9Fe);
+
+  // === Success ===
+  static const Color successText = Color(0xFF14532D);
 }
