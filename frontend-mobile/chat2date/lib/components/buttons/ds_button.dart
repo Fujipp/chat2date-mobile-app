@@ -11,8 +11,8 @@ enum DsButtonVariant {
   outlinePrimary,
 }
 
-/// ขนาดปุ่มหลัก ๆ
-enum DsButtonSize { sm, md, lg }
+/// ขนาดปุ่มหลัก ๆ (คงชื่อเดิม + เพิ่ม xs)
+enum DsButtonSize { xs, sm, md, lg }
 
 /// ปุ่มมาตรฐานของดีไซน์ (รองรับ leading/trailing, ขนาด, มุมโค้ง, padding)
 class DsButton extends StatelessWidget {
@@ -32,7 +32,7 @@ class DsButton extends StatelessWidget {
     required this.label,
     required this.onPressed,
     this.variant = DsButtonVariant.primary,
-    this.size = DsButtonSize.md,
+    this.size = DsButtonSize.md, // เดิมใช้ md ก็ยังได้เหมือนเดิม
     this.radius = 12,
     this.fontWeight = FontWeight.w600,
     this.fontFamily,
@@ -58,37 +58,48 @@ class DsButton extends StatelessWidget {
     }
   }
 
-  /// กำหนดส่วนสูง/ฟอนต์/แพดดิ้งตามไซซ์
-  (double height, double fontSize, EdgeInsets pad) _metrics() {
+  /// mapping: (width, height, fontSize, padding)
+  (double, double, double, EdgeInsets) _metrics() {
     switch (size) {
-      case DsButtonSize.sm:
+      case DsButtonSize.xs: // 39px (สั้นมาก)
         return (
+          39,
+          40,
+          12,
+          const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
+        );
+      case DsButtonSize.sm: // 100px
+        return (
+          100,
           40,
           12,
           const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
         );
-      case DsButtonSize.md:
+      case DsButtonSize.md: // 231px
         return (
+          231,
+          40,
+          16,
+          const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        );
+      case DsButtonSize.lg: // 310px
+        return (
+          310,
           40,
           14,
           const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-        ); // ตรง Figma
-      case DsButtonSize.lg:
-        return (
-          48,
-          16,
-          const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
         );
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    final (h, fs, pad) = _metrics();
+    final (w, h, fs, pad) = _metrics();
     final resolvedPad = padding ?? pad;
 
     final ButtonStyle style = ButtonStyle(
-      minimumSize: WidgetStateProperty.all(Size.fromHeight(h)),
+      // บังคับความกว้าง/สูงตาม preset
+      fixedSize: WidgetStateProperty.all(Size(w, h)),
       padding: WidgetStateProperty.all(resolvedPad),
       shape: WidgetStateProperty.all(
         RoundedRectangleBorder(borderRadius: BorderRadius.circular(radius)),
@@ -108,11 +119,11 @@ class DsButton extends StatelessWidget {
       style: TextStyle(
         fontSize: fs,
         fontWeight: fontWeight,
-        fontFamily:
-            fontFamily, // ใส่ 'Inter' ถ้ากำหนดในธีมไว้แล้วไม่ต้องส่งก็ได้
+        fontFamily: fontFamily, // ถ้ากำหนดในธีมไว้แล้วไม่ต้องส่งก็ได้
       ),
       overflow: TextOverflow.ellipsis,
       maxLines: 1,
+      softWrap: false,
     );
 
     final child = Row(
@@ -127,8 +138,7 @@ class DsButton extends StatelessWidget {
 
     return ElevatedButton(
       style: style,
-      onPressed:
-          onPressed, // ถ้า null => disabled (ใช้สีจาก scheme.bgDisabled/fgDisabled)
+      onPressed: onPressed, // null => disabled (ใช้สีจาก scheme)
       child: child,
     );
   }

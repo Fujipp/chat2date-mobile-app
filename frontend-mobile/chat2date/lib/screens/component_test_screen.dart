@@ -574,23 +574,48 @@ class _ComponentTestScreenState extends State<ComponentTestScreen> {
 
           const SizedBox(height: 24),
 
-          CardChatComponent(svgPath: 'assets/icons/icon_avatar.svg', title: 'Sassy', subtitle: 'Nuna', ),
+          CardChatComponent(
+            svgPath: 'assets/icons/icon_avatar.svg',
+            title: 'Sassy',
+            subtitle: 'Nuna',
+          ),
 
           const SizedBox(height: 12),
 
-          CardChatComponent(svgPath: 'assets/icons/icon_avatar.svg', title: 'Sassy', subtitle: 'Nuna', svgPathEnd: 'assets/icons/icon_unseen-message.svg',),
+          CardChatComponent(
+            svgPath: 'assets/icons/icon_avatar.svg',
+            title: 'Sassy',
+            subtitle: 'Nuna',
+            svgPathEnd: 'assets/icons/icon_unseen-message.svg',
+          ),
 
           const SizedBox(height: 12),
 
-          CardChatComponent(svgPath: 'assets/icons/icon_avatar.svg', title: 'Sassy', subtitle: 'Nuna', svgPathEnd: 'assets/icons/icon_new-white.svg',),
-          
+          CardChatComponent(
+            svgPath: 'assets/icons/icon_avatar.svg',
+            title: 'Sassy',
+            subtitle: 'Nuna',
+            svgPathEnd: 'assets/icons/icon_new-white.svg',
+          ),
+
           const SizedBox(height: 12),
 
-          CardChatComponent(svgPath: 'assets/icons/icon_avatar.svg', title: 'Sassy', subtitle: 'Nuna', svgPathEnd: 'assets/icons/icon_new-white.svg', svgPathMiddle: 'assets/icons/icon_new-black.svg',),
+          CardChatComponent(
+            svgPath: 'assets/icons/icon_avatar.svg',
+            title: 'Sassy',
+            subtitle: 'Nuna',
+            svgPathEnd: 'assets/icons/icon_new-white.svg',
+            svgPathMiddle: 'assets/icons/icon_new-black.svg',
+          ),
 
           const SizedBox(height: 12),
 
-          CardChatComponent(svgPath: 'assets/icons/icon_avatar.svg', title: 'Sassy', subtitle: 'Nuna', colors: [AppColors.backgroundWhite]),
+          CardChatComponent(
+            svgPath: 'assets/icons/icon_avatar.svg',
+            title: 'Sassy',
+            subtitle: 'Nuna',
+            colors: [AppColors.backgroundWhite],
+          ),
 
           const SizedBox(height: 12),
 
@@ -750,6 +775,7 @@ class _ComponentTestScreenState extends State<ComponentTestScreen> {
                 label: 'Primary',
                 onPressed: () {},
                 variant: DsButtonVariant.primary,
+                size: DsButtonSize.sm,
               ),
               DsButton(
                 label: 'Primary (disabled)',
