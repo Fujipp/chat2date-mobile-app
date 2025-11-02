@@ -568,7 +568,7 @@ class _ComponentTestScreenState extends State<ComponentTestScreen> {
           const SizedBox(height: 24),
 
           const Text(
-            "Input Chat",
+            "Card chat",
             style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
           ),
 
