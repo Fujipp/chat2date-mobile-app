@@ -21,8 +21,17 @@ class MyApp extends StatelessWidget {
       initialRoute:
           '/test', //เวลาโค้ดเปลี่ยนเป็น path ตัวเองเอาไว้แสดงหน้าของตัวเองเด้อ
       routes: {
+        //Test
         '/test': (context) => const ComponentTestScreen(),
-        '/profile': (context) => const ProfileSetupScreen(),
+
+        //Amp
+        '/profileSetup': (context) => const ProfileSetupScreen(),
+        '/lifestylesSelection': (context) => const LifestylesSelectionScreen(),
+        '/interestsSelection': (context) => const LifestylesSelectionScreen(),
+
+        //Hutch
+
+        //Fuji
       },
       //ปุ่มไว้สำหรับดู comp
       builder: (context, child) {
