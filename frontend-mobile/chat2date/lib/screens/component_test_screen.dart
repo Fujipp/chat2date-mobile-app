@@ -772,7 +772,7 @@ class _ComponentTestScreenState extends State<ComponentTestScreen> {
             runSpacing: 12,
             children: [
               DsButton(
-                label: 'Primary',
+                label: 'เข้าสู่ระบบ',
                 onPressed: () {},
                 variant: DsButtonVariant.primary,
                 size: DsButtonSize.sm,
@@ -783,7 +783,7 @@ class _ComponentTestScreenState extends State<ComponentTestScreen> {
                 variant: DsButtonVariant.primary,
               ),
               DsButton(
-                label: 'Error',
+                label: 'ลงทะเบียน',
                 onPressed: () {},
                 variant: DsButtonVariant.error,
               ),
