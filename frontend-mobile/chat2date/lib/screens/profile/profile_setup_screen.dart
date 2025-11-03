@@ -129,6 +129,7 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
               required: false,
               controller: _tagsCtrl,
               suffixIcon: Icons.add,
+              hintText: 'เพิ่มแท็กที่นี่',
 
               onSuffixTap: () async {
                 final result = await Navigator.pushNamed(
