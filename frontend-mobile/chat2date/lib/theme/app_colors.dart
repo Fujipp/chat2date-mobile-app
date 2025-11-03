@@ -10,6 +10,7 @@ class AppColors {
   static const Color brandOnPrimary = Color(0xFF0F172A);
 
   // === Brand Secondary ===
+  static const Color lightBrandSecondary = Color(0xFFD6FFD6);
   static const Color brandSecondary = Color(0xFF98FB98);
   static const Color brandSecondary500 = Color(0xFF7BEF7B);
   static const Color brandSecondary700 = Color(0xFF61E461);
