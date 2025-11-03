@@ -1,41 +1,43 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 
-/// สไตล์ปุ่มไอคอน
 enum DsIconButtonStyle { filled, outline }
 
-/// ปุ่มไอคอน (ค่าเริ่มต้นเป็น "วงกลม")
-/// - ใช้ไฟล์ SVG เดียว เปลี่ยนสีด้วย colorFilter
-/// - มีสถานะ: base / hover / pressed / disabled
+/// บังคับสถานะภาพ (สำหรับโชว์ตัวอย่าง)
+enum DsIconVisualState { base, hover, pressed, disabled }
+
 class DsIconButton extends StatefulWidget {
   final String svgAsset;
   final VoidCallback? onPressed;
   final DsIconButtonStyle style;
 
-  /// รูปทรง/ขนาด
+  // รูปทรง/ขนาด
   final double size; // กล่องปุ่ม (เช่น 60)
-  final double radius; // มุมโค้ง (999 => วงกลม)
-  final double iconSize; // ขนาดไอคอน (เช่น 24)
-  final String? tooltip; // แสดงทูลทิป (web/desktop)
+  final double radius; // 999 => วงกลม
+  final double iconSize; // ขนาดไอคอน
+  final String? tooltip;
 
-  /// สี base
+  // สี base
   final Color baseBg;
   final Color baseIcon;
   final Color? baseBorder;
 
-  /// สี hover (web/desktop)
+  // สี hover
   final Color hoverBg;
   final Color hoverIcon;
   final List<BoxShadow> hoverGlow;
 
-  /// สี pressed (ทุกแพลตฟอร์ม)
+  // สี pressed
   final Color pressedBg;
   final Color pressedIcon;
 
-  /// สี disabled (onPressed == null)
+  // สี disabled
   final Color disabledBg;
   final Color disabledIcon;
   final Color? disabledBorder;
+
+  /// ถ้ากำหนด จะเรนเดอร์สถานะนี้ทันที (ใช้โชว์ mock: base/hover/pressed/disabled)
+  final DsIconVisualState? visualOverride;
 
   const DsIconButton.filled({
     super.key,
@@ -43,7 +45,7 @@ class DsIconButton extends StatefulWidget {
     required this.onPressed,
     this.style = DsIconButtonStyle.filled,
     this.size = 60,
-    this.radius = 999, // วงกลมตามที่ Dev ต้องการ
+    this.radius = 999,
     this.iconSize = 24,
     this.tooltip,
 
@@ -67,6 +69,9 @@ class DsIconButton extends StatefulWidget {
     this.disabledBg = const Color(0xFFE5E7EB),
     this.disabledIcon = const Color(0xFF9AA5B1),
     this.disabledBorder,
+
+    // showcase
+    this.visualOverride,
   });
 
   const DsIconButton.outline({
@@ -99,6 +104,9 @@ class DsIconButton extends StatefulWidget {
     this.disabledBg = Colors.transparent,
     this.disabledIcon = const Color(0xFF9AA5B1),
     this.disabledBorder = const Color(0xFFCBD5E1),
+
+    // showcase
+    this.visualOverride,
   });
 
   @override
@@ -123,25 +131,33 @@ class _DsIconButtonState extends State<DsIconButton> {
   Widget build(BuildContext context) {
     final disabled = widget.onPressed == null;
 
+    // --- Resolve visual state (auto หรือ override) ---
+    bool isHover = _hovered, isPressed = _pressed, isDisabled = disabled;
+    if (widget.visualOverride != null) {
+      isHover = widget.visualOverride == DsIconVisualState.hover;
+      isPressed = widget.visualOverride == DsIconVisualState.pressed;
+      isDisabled = widget.visualOverride == DsIconVisualState.disabled;
+    }
+
     // เลือกสีตามสถานะ
-    final Color bg = disabled
+    final Color bg = isDisabled
         ? widget.disabledBg
-        : _pressed
+        : isPressed
         ? widget.pressedBg
-        : (_hovered ? widget.hoverBg : widget.baseBg);
+        : (isHover ? widget.hoverBg : widget.baseBg);
 
-    final Color iconColor = disabled
+    final Color iconColor = isDisabled
         ? widget.disabledIcon
-        : _pressed
+        : isPressed
         ? widget.pressedIcon
-        : (_hovered ? widget.hoverIcon : widget.baseIcon);
+        : (isHover ? widget.hoverIcon : widget.baseIcon);
 
-    final List<BoxShadow> glow = (!disabled && _hovered)
+    final List<BoxShadow> glow = (!isDisabled && isHover)
         ? widget.hoverGlow
         : const <BoxShadow>[];
 
     final BorderSide? borderSide = () {
-      if (disabled) {
+      if (isDisabled) {
         final c = widget.disabledBorder;
         return c == null ? null : BorderSide(color: c, width: 1.5);
       }
@@ -184,7 +200,6 @@ class _DsIconButtonState extends State<DsIconButton> {
       ),
     );
 
-    // ทูลทิป (optional)
     return widget.tooltip == null
         ? withGesture
         : Tooltip(message: widget.tooltip!, child: withGesture);

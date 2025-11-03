@@ -1,5 +1,4 @@
-import 'package:chat2date/components/buttons/ds_button.dart';
-import 'package:chat2date/components/buttons/ds_icon_button.dart';
+import 'package:chat2date/components/buttons/index.dart';
 import 'package:chat2date/components/calendar/index.dart';
 import 'package:chat2date/components/card/card_chat_component.dart';
 import 'package:chat2date/components/card/generic_card.dart';
@@ -38,11 +37,38 @@ class _ComponentTestScreenState extends State<ComponentTestScreen> {
 
   final int _counter = 0;
 
+  String _otp = '';
+  bool _submitting = false;
+
   final _nameCtrl = TextEditingController();
   final _phoneCtrl = TextEditingController();
   final _nextCtrl = TextEditingController();
   final _addCtrl = TextEditingController();
   final _selectCtrl = TextEditingController();
+  final _levelCtrl = TextEditingController(text: '1'); // 0..3
+  final _percentCtrl = TextEditingController(text: '60'); // 0..100
+
+  // ถ้าหน้าเป็น Stateless ให้แปลงเป็น Stateful ก่อนนะครับ
+
+  Future<void> _verifyCode(String code) async {
+    if (code.length != 6) return; // กันเคสเผลอกดก่อนครบ
+    setState(() => _submitting = true);
+    try {
+      // TODO: เรียก API ตรวจสอบ OTP ของ Dev ตรงนี้
+      // ตัวอย่างชั่วคราว:
+      // await Future.delayed(const Duration(milliseconds: 600));
+      debugPrint('Submit OTP: $code');
+      // success handling...
+    } catch (e, st) {
+      debugPrint('Verify OTP error: $e\n$st');
+      if (!mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Verify failed')));
+    } finally {
+      if (mounted) setState(() => _submitting = false);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -618,6 +644,13 @@ class _ComponentTestScreenState extends State<ComponentTestScreen> {
             colors: [AppColors.backgroundWhite],
           ),
 
+          const SizedBox(height: 24),
+
+          const Text(
+            "Inputs",
+            style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+          ),
+
           const SizedBox(height: 12),
 
           //Fuji
@@ -668,10 +701,30 @@ class _ComponentTestScreenState extends State<ComponentTestScreen> {
           ),
           const SizedBox(height: 16),
 
-          const DsOtpField(
+          DsOtpField(
             label: 'Verification code',
             required: true,
             supportText: 'We’ve sent a 6-digit code to your phone.',
+            autoFocus: true, // ให้โฟกัสช่องแรก
+            // length: 6,                 // ไม่ใส่ก็ได้ (ค่าเริ่มต้น 6)
+            // obscure: true,             // ถ้าอยากซ่อนตัวเลข
+            onChanged: (v) => setState(() => _otp = v),
+            onCompleted: (v) => _verifyCode(v), // กรอกครบ 6 หลักจะยิงทันที
+          ),
+
+          const SizedBox(height: 12),
+          FilledButton(
+            onPressed: (_otp.length == 6 && !_submitting)
+                ? () => _verifyCode(_otp)
+                : null,
+            child: Text(_submitting ? 'Verifying…' : 'Verify'),
+          ),
+
+          const SizedBox(height: 24),
+
+          const Text(
+            "Calendar Card",
+            style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
           ),
 
           const SizedBox(height: 24),
@@ -691,9 +744,33 @@ class _ComponentTestScreenState extends State<ComponentTestScreen> {
             },
           ),
 
+          CalendarCard(
+            initialMonth: DateTime(2026, 1, 1),
+            initialTime: const TimeOfDay(hour: 12, minute: 0),
+            accentColor: const Color(0xFFFF6B81),
+            onClose: () => Navigator.of(context).maybePop(),
+            onTrash: () {
+              // TODO: เคลียร์ค่าที่ Dev อยากลบ เช่น วันที่/เวลา/สถานที่
+              ScaffoldMessenger.of(
+                context,
+              ).showSnackBar(const SnackBar(content: Text('Cleared')));
+            },
+            onSave: (date, time) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text('Saved: $date (${time.format(context)})'),
+                ),
+              );
+            },
+          ),
+
           // === Status Bars ===
           const SizedBox(height: 24),
-          Text('Status Bars', style: Theme.of(context).textTheme.titleMedium),
+
+          const Text(
+            "Status Bars",
+            style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+          ),
           const SizedBox(height: 12),
           Container(
             width: 362,
@@ -704,60 +781,114 @@ class _ComponentTestScreenState extends State<ComponentTestScreen> {
                 borderRadius: BorderRadius.circular(5),
               ),
             ),
-            child: const Column(
+            child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                ScoreRow(
-                  heartAsset: 'assets/icons/icon_heart_status.svg',
-                  segments: [
-                    ProgressSegment(percent: 0.27, color: Color(0xFFFF8FB3)),
-                    ProgressSegment(percent: 0.34, color: Color(0xFFFFD166)),
-                  ],
-                ),
-                SizedBox(height: 12),
-                ScoreRow(
-                  heartAsset: 'assets/icons/icon_heart_status.svg',
-                  segments: [
-                    ProgressSegment(percent: 0.35, color: Color(0xFFFF8FB3)),
-                  ],
-                ),
-                SizedBox(height: 12),
-                ScoreRow(
-                  leading: ScoreLeading.number,
-                  numberText: '1',
-                  segments: [
-                    ProgressSegment(percent: 0.50, color: Color(0xFFFF8FB3)),
-                  ],
-                ),
-                SizedBox(height: 12),
-                ScoreRow(
-                  leading: ScoreLeading.number,
-                  numberText: '2',
-                  segments: [
-                    ProgressSegment(percent: 0.74, color: Color(0xFFFF8FB3)),
-                  ],
-                ),
-                SizedBox(height: 12),
-                ScoreRow(
-                  leading: ScoreLeading.none,
-                  segments: [
-                    ProgressSegment(
-                      percent: 0.60,
-                      gradient: LinearGradient(
-                        begin: Alignment.centerLeft,
-                        end: Alignment.centerRight,
-                        colors: [
-                          Color(0xFFC8A2E7),
-                          Color(0xFF9FBBFF),
-                          Color(0xFFA7EAF2),
-                          Color(0xFFB7E4C7),
-                          Color(0xFFFFF1A8),
-                          Color(0xFFFFD1A6),
-                          Color(0xFFFFB3B3),
-                        ],
+                // แถวกรอกค่า LEVEL และ %
+                Row(
+                  children: [
+                    // LEVEL 0..3
+                    Expanded(
+                      child: DsTextField(
+                        label: 'Level (0–3)',
+                        required: true,
+                        controller: _levelCtrl,
+                        keyboardType: TextInputType.number,
+                        onChanged: (_) => setState(() {}),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    // % 0..100
+                    Expanded(
+                      child: DsTextField(
+                        label: 'Percent (0–100)',
+                        required: true,
+                        controller: _percentCtrl,
+                        keyboardType: TextInputType.number,
+                        onChanged: (_) => setState(() {}),
                       ),
                     ),
                   ],
+                ),
+
+                const SizedBox(height: 12),
+
+                // พรีวิวแบบไลฟ์ ตาม LEVEL และ %
+                Builder(
+                  builder: (context) {
+                    // parse + clamp
+                    int level = int.tryParse(_levelCtrl.text.trim()) ?? 0;
+                    level = level.clamp(0, 3);
+
+                    double pct = double.tryParse(_percentCtrl.text.trim()) ?? 0;
+                    pct = (pct.clamp(0, 100)) / 100.0;
+
+                    return Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        // บรรทัด preview หลัก (ควบคุมด้วยช่องกรอก)
+                        ScoreRow(
+                          number: level, // 0 = ไม่โชว์เลขบนหัวใจ
+                          basePercent: pct, // 0..1 ความยาวแถบ
+                          overlayPercent:
+                              0, // ถ้าอยากเด้งเพิ่ม/ลด ค่อยใส่ทีหลัง
+                          overlayDirection: ChangeDirection.none,
+                          heartSvg: 'assets/icons/HEART_STATUS_BAR.svg',
+                          rightSvg: 'assets/icons/INFO_STATUS_BAR.svg',
+                          barWidth: 255,
+                          barHeight: 10,
+                          leadingWidth: 25,
+                          leadingHeight: 22,
+                          rightIconSize: 20,
+                        ),
+
+                        const SizedBox(height: 12),
+
+                        // ตัวอย่าง: เพิ่ม (เหลือง)
+                        const ScoreRow(
+                          number: 1,
+                          basePercent: 0.27,
+                          overlayPercent: 0.34,
+                          overlayDirection: ChangeDirection.up,
+                          heartSvg: 'assets/icons/HEART_STATUS_BAR.svg',
+                          rightSvg: 'assets/icons/INFO_STATUS_BAR.svg',
+                        ),
+                        const SizedBox(height: 12),
+
+                        // ตัวอย่าง: ลด (แดง) และซ่อนเลข (number=0)
+                        const ScoreRow(
+                          number: 0,
+                          basePercent: 0.50,
+                          overlayPercent: 0.20,
+                          overlayDirection: ChangeDirection.down,
+                          heartSvg: 'assets/icons/HEART_STATUS_BAR.svg',
+                          rightSvg: 'assets/icons/INFO_STATUS_BAR.svg',
+                        ),
+                        const SizedBox(height: 12),
+
+                        // ตัวอย่าง: เพิ่มเล็กน้อย
+                        const ScoreRow(
+                          number: 2,
+                          basePercent: 0.74,
+                          overlayPercent: 0.10,
+                          overlayDirection: ChangeDirection.up,
+                          heartSvg: 'assets/icons/HEART_STATUS_BAR.svg',
+                          rightSvg: 'assets/icons/INFO_STATUS_BAR.svg',
+                        ),
+                        const SizedBox(height: 12),
+
+                        // level = 3 → สีรุ้งอัตโนมัติ
+                        const ScoreRow(
+                          number: 3,
+                          basePercent: 0.60,
+                          overlayPercent: 0.0,
+                          overlayDirection: ChangeDirection.none,
+                          heartSvg: 'assets/icons/HEART_STATUS_BAR.svg',
+                          rightSvg: 'assets/icons/INFO_STATUS_BAR.svg',
+                        ),
+                      ],
+                    );
+                  },
                 ),
               ],
             ),
@@ -765,7 +896,11 @@ class _ComponentTestScreenState extends State<ComponentTestScreen> {
 
           // === Buttons ===
           const SizedBox(height: 24),
-          Text('Buttons', style: Theme.of(context).textTheme.titleMedium),
+
+          const Text(
+            "Buttons",
+            style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+          ),
           const SizedBox(height: 12),
 
           Wrap(
@@ -896,10 +1031,11 @@ class _ComponentTestScreenState extends State<ComponentTestScreen> {
           ),
           const SizedBox(height: 8),
 
-          // กล่องเดโม 171x100: หัวใจ (filled) + กากบาท (outline)
+          // --- กล่อง HEART (171x100) ---
           Container(
             width: 171,
             height: 100,
+            clipBehavior: Clip.antiAlias,
             decoration: ShapeDecoration(
               shape: RoundedRectangleBorder(
                 side: const BorderSide(width: 1, color: Color(0xFF8A38F5)),
@@ -911,96 +1047,76 @@ class _ComponentTestScreenState extends State<ComponentTestScreen> {
                 Positioned(
                   left: 20,
                   top: 20,
-                  child: SizedBox(
-                    width: 60,
-                    height: 60,
-                    child: DsIconButton.filled(
-                      svgAsset: 'assets/icons/icon_heart_status.svg',
-                      onPressed: () {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text('Heart tapped')),
-                        );
-                      },
-                      size: 60,
-                      radius: 999,
-                      baseBg: const Color(0xFFFF6B81),
-                      baseIcon: Colors.white,
-                      hoverBg: const Color(0x14FF6B81),
-                      hoverIcon: Colors.white,
-                      hoverGlow: const [
-                        BoxShadow(blurRadius: 16, color: Color(0x33FF6B81)),
-                      ],
-                      pressedBg: const Color(0x1FFF6B81),
-                      pressedIcon: Colors.white,
-                    ),
+                  child: DsSvgSwapButton(
+                    assetA: 'assets/icons/ic_heart.svg',
+                    assetB: 'assets/icons/ic_heart_hover.svg',
+                    iconSize: 60,
+                    padding: 0,
+                    glowColor: const Color(0x33FF6B81),
+                    glowBlur: 20,
+                    onPressed: () {},
                   ),
                 ),
                 Positioned(
                   left: 91,
                   top: 20,
-                  child: SizedBox(
-                    width: 60,
-                    height: 60,
-                    child: DsIconButton.outline(
-                      svgAsset: 'assets/icons/close.svg',
-                      onPressed: () {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text('Close tapped')),
-                        );
-                      },
-                      size: 60,
-                      radius: 999,
-                      baseIcon: const Color(0xFF5CE1E6),
-                      baseBorder: const Color(0xFF5CE1E6),
-                      hoverBg: const Color(0x145CE1E6),
-                      hoverIcon: const Color(0xFF5CE1E6),
-                      hoverGlow: const [
-                        BoxShadow(blurRadius: 16, color: Color(0x335CE1E6)),
-                      ],
-                      pressedBg: const Color(0x1F5CE1E6),
-                      pressedIcon: Colors.white,
-                    ),
+                  child: DsSvgSwapButton(
+                    assetA: 'assets/icons/ic_heart.svg',
+                    assetB: 'assets/icons/ic_heart_hover.svg',
+                    iconSize: 60,
+                    padding: 0,
+                    glowColor: const Color(0x33FF6B81),
+                    glowBlur: 20,
+                    previewHoverLook: true,
+                    onPressed: () {},
                   ),
                 ),
               ],
             ),
           ),
 
-          const SizedBox(height: 12),
-          Row(
-            children: [
-              DsIconButton.filled(
-                svgAsset: 'assets/icons/icon_heart_status.svg',
-                onPressed: () {},
-                size: 60,
-                radius: 999,
-                baseBg: const Color(0xFFFF6B81),
-                baseIcon: Colors.white,
-                hoverBg: const Color(0x14FF6B81),
-                hoverIcon: Colors.white,
-                hoverGlow: const [
-                  BoxShadow(blurRadius: 16, color: Color(0x33FF6B81)),
-                ],
-                pressedBg: const Color(0x1FFF6B81),
-                pressedIcon: Colors.white,
+          // --- กล่อง CLOSE (171x100) ---
+          Container(
+            width: 171,
+            height: 100,
+            clipBehavior: Clip.antiAlias,
+            decoration: ShapeDecoration(
+              shape: RoundedRectangleBorder(
+                side: const BorderSide(width: 1, color: Color(0xFF8A38F5)),
+                borderRadius: BorderRadius.circular(5),
               ),
-              const SizedBox(width: 12),
-              DsIconButton.outline(
-                svgAsset: 'assets/icons/close.svg',
-                onPressed: () {},
-                size: 60,
-                radius: 999,
-                baseIcon: const Color(0xFF5CE1E6),
-                baseBorder: const Color(0xFF5CE1E6),
-                hoverBg: const Color(0x145CE1E6),
-                hoverIcon: const Color(0xFF5CE1E6),
-                hoverGlow: const [
-                  BoxShadow(blurRadius: 16, color: Color(0x335CE1E6)),
-                ],
-                pressedBg: const Color(0x1F5CE1E6),
-                pressedIcon: Colors.white,
-              ),
-            ],
+            ),
+            child: Stack(
+              children: [
+                Positioned(
+                  left: 20,
+                  top: 20,
+                  child: DsSvgSwapButton(
+                    assetA: 'assets/icons/ic_close.svg',
+                    assetB: 'assets/icons/ic_close_hover.svg',
+                    iconSize: 60,
+                    padding: 0,
+                    glowColor: const Color(0x33FF6B6B),
+                    glowBlur: 20,
+                    onPressed: () {},
+                  ),
+                ),
+                Positioned(
+                  left: 91,
+                  top: 20,
+                  child: DsSvgSwapButton(
+                    assetA: 'assets/icons/ic_close.svg',
+                    assetB: 'assets/icons/ic_close_hover.svg',
+                    iconSize: 60,
+                    padding: 0,
+                    glowColor: const Color(0x33FF6B6B),
+                    glowBlur: 20,
+                    previewHoverLook: true,
+                    onPressed: () {},
+                  ),
+                ),
+              ],
+            ),
           ),
 
           const SizedBox(height: 24),
@@ -1019,5 +1135,17 @@ class _ComponentTestScreenState extends State<ComponentTestScreen> {
       ),
       bottomNavigationBar: CustomBottomNavBar(),
     );
+  }
+
+  @override
+  void dispose() {
+    _nameCtrl.dispose();
+    _phoneCtrl.dispose();
+    _nextCtrl.dispose();
+    _addCtrl.dispose();
+    _selectCtrl.dispose();
+    _levelCtrl.dispose();
+    _percentCtrl.dispose();
+    super.dispose();
   }
 }

@@ -4,7 +4,7 @@ const _cellW = 42.0;
 const _cellH = 34.0;
 
 class CalendarDayCell extends StatelessWidget {
-  final DateTime? date; // << เปลี่ยนเป็น nullable
+  final DateTime date;
   final DateTime currentMonth;
   final DateTime? selected;
   final ValueChanged<DateTime>? onSelect;
@@ -12,75 +12,106 @@ class CalendarDayCell extends StatelessWidget {
 
   const CalendarDayCell({
     super.key,
-    required this.date, // ตอนเรียกใช้: date: d (จะรับ null ได้)
+    required this.date,
     required this.currentMonth,
     this.selected,
     this.onSelect,
     this.size,
   });
 
-  bool get _hasDate => date != null;
-
   bool get _isCurrentMonth =>
-      _hasDate &&
-      date!.year == currentMonth.year &&
-      date!.month == currentMonth.month;
+      date.year == currentMonth.year && date.month == currentMonth.month;
 
   bool get _isSelected =>
-      _hasDate &&
       selected != null &&
-      date!.year == selected!.year &&
-      date!.month == selected!.month &&
-      date!.day == selected!.day;
+      date.year == selected!.year &&
+      date.month == selected!.month &&
+      date.day == selected!.day;
 
   @override
   Widget build(BuildContext context) {
-    final s = size ?? const Size(_cellW, _cellH);
+    final w = size?.width ?? _cellW;
+    final h = size?.height ?? _cellH;
+    final dayStr = date.day.toString();
 
-    // ถ้า cell นี้เป็นช่องว่าง (padding ของตาราง) ให้แสดง empty/กดไม่ได้
-    if (!_hasDate) {
-      return SizedBox(
-        width: s.width,
-        height: s.height,
-        // ใส่ Container เปล่าเพื่อให้ grid คง layout เท่ากัน
-        child: const SizedBox.shrink(),
-      );
-    }
-
-    final dayStr = '${date!.day}';
-
-    const base = TextStyle(
+    // ฟอนต์หลัก Inter ทั้งหมด
+    const textBase = TextStyle(
       fontFamily: 'Inter',
       fontSize: 13.95,
       fontWeight: FontWeight.w500,
-      height: 1,
+      height: 1, // คุม baseline ให้แน่น
     );
 
-    final Color textColor = _isSelected
-        ? Colors.white
-        : (_isCurrentMonth ? const Color(0xFF1F1F1F) : const Color(0x26001753));
+    final textNormal = textBase.copyWith(color: const Color(0xFF1F1F1F));
+    final textMuted = textBase.copyWith(
+      color: const Color(0x26001753),
+    ); // โปร่ง
 
-    return SizedBox(
-      width: s.width,
-      height: s.height,
-      child: InkWell(
+    // ============ เลือกแล้ว ============
+    if (_isSelected) {
+      return InkWell(
         borderRadius: BorderRadius.circular(4.65),
-        onTap: _hasDate ? () => onSelect?.call(date!) : null,
+        onTap: _isCurrentMonth ? () => onSelect?.call(date) : null,
         child: Container(
-          alignment: Alignment.center,
+          width: w,
+          height: h,
           decoration: ShapeDecoration(
-            color: _isSelected ? const Color(0xFF5CE1E6) : Colors.transparent,
+            color: const Color(0xFF5CE1E6), // btn-bg-Primary
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(4.65),
             ),
           ),
+          alignment: Alignment.bottomCenter, // ชิดล่าง
+          padding: const EdgeInsets.only(bottom: 6),
           child: Text(
-            dayStr, // แสดงเลขวันเสมอ (รวมกรณี 2 หลัก)
-            textAlign: TextAlign.center,
-            style: base.copyWith(color: textColor),
+            dayStr,
+            style: const TextStyle(
+              fontFamily: 'Inter',
+              color: Colors.white,
+              fontSize: 13.95,
+              fontWeight: FontWeight.w700,
+              height: 1,
+            ),
           ),
         ),
-      ),
+      );
+    }
+
+    // ============ วันในเดือนปัจจุบัน (กดได้ + พื้นหลังขาวเงา) ============
+    if (_isCurrentMonth) {
+      return InkWell(
+        borderRadius: BorderRadius.circular(4.65),
+        onTap: () => onSelect?.call(date),
+        child: Container(
+          width: w,
+          height: h,
+          decoration: ShapeDecoration(
+            color: Colors.white,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(4.65),
+            ),
+            shadows: const [
+              BoxShadow(
+                color: Color(0x0C000E33),
+                blurRadius: 0.78,
+                offset: Offset(0, 0.78),
+              ),
+            ],
+          ),
+          alignment: Alignment.bottomCenter, // ชิดล่าง
+          padding: const EdgeInsets.only(bottom: 6),
+          child: Text(dayStr, style: textNormal, textAlign: TextAlign.center),
+        ),
+      );
+    }
+
+    // ============ วันนอกเดือน (กดไม่ได้ + ไม่มีพื้นหลัง) ============
+    return Container(
+      width: w,
+      height: h,
+      alignment: Alignment.bottomCenter, // ชิดล่าง
+      padding: const EdgeInsets.only(bottom: 6),
+      child: Text(dayStr, style: textMuted, textAlign: TextAlign.center),
     );
   }
 }

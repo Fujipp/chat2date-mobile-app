@@ -10,6 +10,7 @@ class CalendarCard extends StatefulWidget {
   final TimeOfDay? initialTime;
   final void Function(DateTime date, TimeOfDay time)? onSave;
   final VoidCallback? onClose;
+  final VoidCallback? onTrash;
   final Color accentColor; // สีเน้น (เช่น ใช้กับชื่อเดือน)
 
   const CalendarCard({
@@ -18,6 +19,7 @@ class CalendarCard extends StatefulWidget {
     this.initialTime,
     this.onSave,
     this.onClose,
+    this.onTrash,
     this.accentColor = const Color(0xFFFF6B81),
   });
 
@@ -136,25 +138,49 @@ class _CalendarCardState extends State<CalendarCard> {
           ),
           child: Column(
             children: [
-              // —— Header Title + X (SVG) ——
               SizedBox(
                 height: 40,
                 width: double.infinity,
                 child: Stack(
                   children: [
+                    if (widget.onTrash != null)
+                      Positioned(
+                        left: 0,
+                        top: 0,
+                        bottom: 0,
+                        child: InkWell(
+                          onTap: widget.onTrash, // << แก้จุดนี้
+                          borderRadius: BorderRadius.circular(16),
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 6,
+                              vertical: 7,
+                            ),
+                            child: SvgPicture.asset(
+                              'assets/icons/ic-trash-20x26.svg',
+                              width: 20,
+                              height: 26,
+                            ),
+                          ),
+                        ),
+                      ),
+
+                    // กลาง: ชื่อ CALENDAR (Inter)
                     const Center(
                       child: Text(
                         'CALENDAR',
                         textAlign: TextAlign.center,
                         style: TextStyle(
                           fontFamily: 'Inter',
-                          color: Color(0xFF0F172A),
+                          color: Color(0xFF0F172A), // Light-Text-Primary
                           fontSize: 16,
                           fontWeight: FontWeight.w700,
                           height: 1.25,
                         ),
                       ),
                     ),
+
+                    // ขวา: Close X 21x21 (ลอยมุม)
                     if (widget.onClose != null)
                       Positioned(
                         right: 0,
@@ -165,13 +191,8 @@ class _CalendarCardState extends State<CalendarCard> {
                           borderRadius: BorderRadius.circular(16),
                           child: Padding(
                             padding: const EdgeInsets.all(6),
-                            child: _maybeSvg(
-                              path: 'assets/icons/close_x.svg',
-                              fallback: const Icon(
-                                Icons.close_rounded,
-                                size: 21,
-                                color: Color(0xFFE56B6F),
-                              ),
+                            child: SvgPicture.asset(
+                              'assets/icons/ic-close-21.svg',
                               width: 21,
                               height: 21,
                             ),
@@ -192,26 +213,28 @@ class _CalendarCardState extends State<CalendarCard> {
                   children: [
                     _circleIconButton(Icons.chevron_left, onTap: _prevMonth),
 
-                    // กลาง: เดือน/ปี ยืด-ยุบได้ ป้องกัน overflow
+                    // กลาง: เดือน/ปี อยู่ในกรอบจำกัดความกว้าง กันล้น
                     Expanded(
                       child: Center(
                         child: ConstrainedBox(
-                          constraints: const BoxConstraints(
-                            maxWidth: 240,
-                          ), // กันล้นจอเล็ก
-                          child: Wrap(
-                            alignment: WrapAlignment.center,
-                            crossAxisAlignment: WrapCrossAlignment.center,
-                            spacing: 8,
+                          constraints: const BoxConstraints(maxWidth: 260),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
                             children: [
                               _pillDropdown<String>(
                                 displayText: _monthName,
-                                textColor: widget.accentColor,
+                                textColor: const Color(0xFF141414),
                                 items: _months,
                                 toLabel: (m) => m,
                                 onSelected: (m) => _setMonthByName(m),
                                 fixedWidth: 128,
+                                trailingSvg:
+                                    'assets/icons/ic-chevron-down-6x19.svg',
+                                trailingSvgSize: const Size(3.6, 10.8),
+                                iconColor: const Color(0xFFFF6B81),
+                                trailingSvgDy: 3.0, // << ลงล่างแกน Y
                               ),
+
                               _pillDropdown<int>(
                                 displayText: '${_cursorMonth.year}',
                                 textColor: const Color(0xFF141414),
@@ -219,6 +242,11 @@ class _CalendarCardState extends State<CalendarCard> {
                                 toLabel: (y) => y.toString(),
                                 onSelected: (y) => _setYear(y),
                                 fixedWidth: 88,
+                                trailingSvg:
+                                    'assets/icons/ic-chevron-down-6x19.svg',
+                                trailingSvgSize: const Size(3.6, 10.8),
+                                iconColor: const Color(0xFFFF6B81),
+                                trailingSvgDy: 3.0, // << ลงล่างแกน Y
                               ),
                             ],
                           ),
@@ -264,6 +292,12 @@ class _CalendarCardState extends State<CalendarCard> {
                         child: Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: row.map((d) {
+                            if (d == null) {
+                              return SizedBox(
+                                width: cellW,
+                                height: 34,
+                              ); // ช่องว่าง
+                            }
                             return SizedBox(
                               width: cellW,
                               child: CalendarDayCell(
@@ -427,43 +461,6 @@ class _CalendarCardState extends State<CalendarCard> {
             ],
           ),
         ),
-
-        // —— ปุ่มปิด (ลอยมุมขวาบน) ——
-        // หมายเหตุ: ถ้าอยากซ่อนปุ่มนี้ไว้ใน header แล้วไม่โชว์ลอยซ้ำ สามารถลบบล็อกนี้ได้
-        // ตอนนี้ผมคงไว้เพื่อให้กดปิดได้ง่ายทั้ง 2 จุด
-        // Positioned(
-        //   right: 6,
-        //   top: 6,
-        //   child: InkWell(
-        //     onTap: widget.onClose,
-        //     customBorder: const CircleBorder(),
-        //     child: Container(
-        //       width: 28,
-        //       height: 28,
-        //       decoration: const BoxDecoration(
-        //         color: Colors.white,
-        //         shape: BoxShape.circle,
-        //         boxShadow: [
-        //           BoxShadow(
-        //             color: Color(0x14000000),
-        //             blurRadius: 6,
-        //             offset: Offset(0, 2),
-        //           ),
-        //         ],
-        //       ),
-        //       child: _maybeSvg(
-        //         path: 'assets/icons/close_x.svg',
-        //         fallback: const Icon(
-        //           Icons.close_rounded,
-        //           size: 18,
-        //           color: Color(0xFFE56B6F),
-        //         ),
-        //         width: 18,
-        //         height: 18,
-        //       ),
-        // ),
-        // ),
-        // ),
       ],
     );
   }
@@ -500,10 +497,25 @@ class _CalendarCardState extends State<CalendarCard> {
     required List<T> items,
     required String Function(T) toLabel,
     required ValueChanged<T> onSelected,
-    double? fixedWidth, // << เพิ่ม
+    double fixedWidth = 128,
+    String? trailingSvg,
+    Size trailingSvgSize = const Size(3.6, 10.8),
+    Color iconColor = const Color(0xFFFF6B81),
+
+    // เพิ่มตัวเลื่อนแกน Y ของไอคอน (ค่าบวก = ลงล่าง)
+    double trailingSvgDy = 2.0, // << ปรับได้ตามใจ
   }) {
-    final pill = Container(
-      padding: const EdgeInsets.symmetric(horizontal: 9.30, vertical: 7.75),
+    const double padX = 9.3;
+    const double padY = 7.75;
+    const double gap = 4.0;
+
+    final double iconW = trailingSvg != null ? trailingSvgSize.width : 0;
+    final double rightReserve = trailingSvg != null
+        ? (iconW + gap + padX)
+        : padX;
+
+    final pillSurface = Container(
+      padding: const EdgeInsets.symmetric(horizontal: padX, vertical: padY),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(4.65),
@@ -515,66 +527,74 @@ class _CalendarCardState extends State<CalendarCard> {
           ),
         ],
       ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          // ล็อกความกว้างข้อความให้คงที่ + ตัดด้วย ellipsis ถ้ายาว
-          SizedBox(
-            width: fixedWidth != null
-                ? (fixedWidth - 24)
-                : null, // เหลือที่ให้ไอคอน 16 +ช่องว่าง
-            child: Text(
-              displayText,
-              textAlign: TextAlign.center,
-              overflow: TextOverflow.ellipsis,
-              style: TextStyle(
-                fontFamily: 'Inter',
-                color: textColor,
-                fontSize: 18.6,
-                fontWeight: FontWeight.w700,
-                height: 1,
-                letterSpacing: -0.19,
+      child: SizedBox(
+        width: fixedWidth - (padX * 2),
+        child: Stack(
+          alignment: Alignment.center,
+          children: [
+            // ข้อความกึ่งกลาง + กันพื้นที่ด้านขวาไว้สำหรับไอคอน
+            Padding(
+              padding: EdgeInsets.only(right: rightReserve),
+              child: Text(
+                displayText,
+                textAlign: TextAlign.center,
+                overflow: TextOverflow.ellipsis,
+                softWrap: false,
+                style: TextStyle(
+                  fontFamily: 'Inter',
+                  color: textColor,
+                  fontSize: 18.6,
+                  fontWeight: FontWeight.w700,
+                  height: 1,
+                  letterSpacing: -0.19,
+                ),
               ),
             ),
-          ),
-          const SizedBox(width: 4),
-          // ใช้ SVG แทน Icon
-          SvgPicture.asset(
-            'assets/icons/chevron_down.svg',
-            width: 16,
-            height: 16,
-            colorFilter: ColorFilter.mode(textColor, BlendMode.srcIn),
-          ),
-        ],
+
+            if (trailingSvg != null)
+              // ชิดขวา และ "ลงล่างแกน Y"
+              Positioned(
+                right: 0,
+                bottom: -trailingSvgDy, // << เลื่อนลง (เพิ่มเลขเพื่อให้ต่ำลง)
+                child: SizedBox(
+                  width: trailingSvgSize.width,
+                  height: trailingSvgSize.height,
+                  child: SvgPicture.asset(
+                    trailingSvg!,
+                    width: trailingSvgSize.width,
+                    height: trailingSvgSize.height,
+                    colorFilter: ColorFilter.mode(iconColor, BlendMode.srcIn),
+                  ),
+                ),
+              ),
+          ],
+        ),
       ),
     );
 
     return ConstrainedBox(
-      constraints: fixedWidth != null
-          ? BoxConstraints.tightFor(width: fixedWidth)
-          : const BoxConstraints(),
+      constraints: BoxConstraints.tightFor(width: fixedWidth),
       child: PopupMenuButton<T>(
         padding: EdgeInsets.zero,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
         onSelected: onSelected,
-        itemBuilder: (context) {
-          return items.map((v) {
-            final label = toLabel(v);
-            return PopupMenuItem<T>(
-              value: v,
-              child: Text(
-                label,
-                style: const TextStyle(
-                  fontFamily: 'Inter', // ไทยก็ Inter
-                  fontSize: 16,
-                  fontWeight: FontWeight.w500,
-                  height: 1.2,
+        itemBuilder: (context) => items
+            .map(
+              (v) => PopupMenuItem<T>(
+                value: v,
+                child: Text(
+                  toLabel(v),
+                  style: const TextStyle(
+                    fontFamily: 'Inter',
+                    fontSize: 16,
+                    fontWeight: FontWeight.w500,
+                    height: 1.2,
+                  ),
                 ),
               ),
-            );
-          }).toList();
-        },
-        child: pill,
+            )
+            .toList(),
+        child: pillSurface,
       ),
     );
   }

@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
-import '../../../theme/app_colors.dart'; // ใช้สีจาก Figma (ถ้าไม่มี ให้เปลี่ยนเป็นสีในธีมหรือ Colors.grey)
+import '../../../theme/app_colors.dart';
 
-// ✅ TextField แบบ Design System: รองรับ label, required, enabled, hint, prefix/suffix, supportText
 class DsTextField extends StatelessWidget {
   const DsTextField({
     super.key,
@@ -16,6 +15,8 @@ class DsTextField extends StatelessWidget {
     this.onSuffixTap,
     this.labelFontSize,
     this.inputFontSize,
+    this.keyboardType, // ✅ เพิ่ม
+    this.onChanged, // ✅ เพิ่ม
   });
 
   final String? label;
@@ -27,15 +28,18 @@ class DsTextField extends StatelessWidget {
   final String? supportText;
   final TextEditingController? controller;
   final VoidCallback? onSuffixTap;
+  final TextInputType? keyboardType; // ✅ เพิ่ม
+  final ValueChanged<String>? onChanged; // ✅ เพิ่ม
 
   final double? labelFontSize;
   final double? inputFontSize;
+
   @override
   Widget build(BuildContext context) {
-    // ✅ คืนค่า Widget เสมอ
     final hasLabel = label != null && label!.isNotEmpty;
     final labelSize = labelFontSize ?? 14.0;
     final inputSize = inputFontSize ?? 14.0;
+
     return Padding(
       padding: const EdgeInsets.only(bottom: 20),
       child: Column(
@@ -62,10 +66,11 @@ class DsTextField extends StatelessWidget {
             ),
           if (hasLabel) const SizedBox(height: 6),
 
-          // ตัว TextField
           TextField(
             enabled: enabled,
             controller: controller,
+            keyboardType: keyboardType, // ✅ ใช้งานจริง
+            onChanged: onChanged, // ✅ ใช้งานจริง
             style: TextStyle(
               color: enabled ? AppColors.textPrimary : AppColors.textMuted,
               fontSize: inputSize,

@@ -14,12 +14,14 @@ class StackedProgressBar extends StatelessWidget {
     super.key,
     required this.segments,
     this.height = 10,
-    this.backgroundColor = const Color(0xFFE0E0E0),
+    this.backgroundColor = const Color(0xFFE0E0E0), // Light-Divider
     this.borderRadius = const BorderRadius.all(Radius.circular(100)),
+    this.width = 255, // <— ขนาดคงที่ตามสเปก
   });
 
   final List<ProgressSegment> segments;
   final double height;
+  final double width;
   final Color backgroundColor;
   final BorderRadius borderRadius;
 
@@ -28,10 +30,12 @@ class StackedProgressBar extends StatelessWidget {
     return ClipRRect(
       borderRadius: borderRadius,
       child: SizedBox(
+        width: width,
         height: height,
         child: Stack(
           children: [
             Positioned.fill(child: Container(color: backgroundColor)),
+            // วาด segment ซ้อนจากซ้าย -> ขวา (ตัวท้ายจะซ้อนทับตัวก่อนหน้า)
             for (final seg in segments)
               Align(
                 alignment: Alignment.centerLeft,
