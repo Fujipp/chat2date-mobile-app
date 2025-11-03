@@ -29,6 +29,7 @@ class MyApp extends StatelessWidget {
         '/lifestylesSelection': (context) => LifestylesSelectionScreen(),
         '/interestsSelection': (context) => InterestsSelectionScreen(),
         '/tagsSelection': (context) => TagsSelectionScreen(),
+        '/matchPreference': (context) => MatchPreferenceScreen(),
         //Hutch
         '/discovery': (context) => DiscoveryScreen(),
 

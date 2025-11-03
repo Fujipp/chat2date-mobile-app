@@ -17,6 +17,7 @@ dependencies:
   # === เพิ่มสำหรับ Calendar ===
   flutter_svg: ^2.0.10 # ใช้แสดงไอคอน X (SVG)
   intl: ^0.19.0 # (เผื่อใช้ format ชื่อเดือน/เวลาในอนาคต)
+  flutter_xlider: ^3.5.0
 
 dev_dependencies:
   flutter_test:

@@ -175,7 +175,7 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
                 // TODO: บันทึกข้อมูลหรือไปหน้าถัดไป
               },
               variant: DsButtonVariant.primary,
-              size: DsButtonSize.sm,
+              size: DsButtonSize.md,
             ),
           ],
         ),
