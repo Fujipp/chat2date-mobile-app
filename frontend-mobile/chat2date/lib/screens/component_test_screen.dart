@@ -3,6 +3,7 @@ import 'package:chat2date/components/buttons/ds_icon_button.dart';
 import 'package:chat2date/components/calendar/index.dart';
 import 'package:chat2date/components/card/card_chat_component.dart';
 import 'package:chat2date/components/card/generic_card.dart';
+import 'package:chat2date/components/card/preference_card.dart';
 import 'package:chat2date/components/chat/chat_text_component.dart';
 import 'package:chat2date/components/chat/content_switcher.dart';
 import 'package:chat2date/components/chat/input_chat_component.dart';
@@ -1005,6 +1006,15 @@ class _ComponentTestScreenState extends State<ComponentTestScreen> {
           const SizedBox(height: 24),
           const Divider(),
           const SizedBox(height: 12),
+
+          const Text('Card Preference'),
+
+          PreferenceCard(
+            title: 'สไตล์การท่องเที่ยว',
+            backgroundColor: const Color(0xFFD6FFD6),
+          ),
+
+          const SizedBox(height: 16),
         ],
       ),
       bottomNavigationBar: CustomBottomNavBar(),
