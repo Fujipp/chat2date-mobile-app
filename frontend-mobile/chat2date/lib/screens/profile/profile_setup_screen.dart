@@ -150,29 +150,30 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
             DsButton(
               label: 'ไปหน้าถัดไป',
               onPressed: () {
-                // ตรวจสอบข้อมูลก่อนส่ง
-                if (_nicknameCtrl.text.isEmpty) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('กรุณากรอกชื่อเล่น')),
-                  );
-                  return;
-                }
+                // // ตรวจสอบข้อมูลก่อนส่ง
+                // if (_nicknameCtrl.text.isEmpty) {
+                //   ScaffoldMessenger.of(context).showSnackBar(
+                //     const SnackBar(content: Text('กรุณากรอกชื่อเล่น')),
+                //   );
+                //   return;
+                // }
 
-                if (_selectedLifestyles.isEmpty) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('กรุณาเลือกไลฟ์สไตล์')),
-                  );
-                  return;
-                }
+                // if (_selectedLifestyles.isEmpty) {
+                //   ScaffoldMessenger.of(context).showSnackBar(
+                //     const SnackBar(content: Text('กรุณาเลือกไลฟ์สไตล์')),
+                //   );
+                //   return;
+                // }
 
-                // ส่งข้อมูลไปหน้าถัดไป
-                print('===== ข้อมูล Profile =====');
-                print('ชื่อเล่น: ${_nicknameCtrl.text}');
-                print('ไลฟ์สไตล์: $_selectedLifestyles');
-                print('ความสนใจ: $_selectedInterests');
-                print('Tags: $_selectedTags');
+                // // ส่งข้อมูลไปหน้าถัดไป
+                // print('===== ข้อมูล Profile =====');
+                // print('ชื่อเล่น: ${_nicknameCtrl.text}');
+                // print('ไลฟ์สไตล์: $_selectedLifestyles');
+                // print('ความสนใจ: $_selectedInterests');
+                // print('Tags: $_selectedTags');
 
-                // TODO: บันทึกข้อมูลหรือไปหน้าถัดไป
+                // // TODO: บันทึกข้อมูลหรือไปหน้าถัดไป
+                Navigator.pushNamed(context, '/matchPreference');
               },
               variant: DsButtonVariant.primary,
               size: DsButtonSize.md,

@@ -28,6 +28,16 @@ class _PreferenceCardState extends State<PreferenceCard> {
   }
 
   @override
+  void didUpdateWidget(covariant PreferenceCard oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.selectedValue != oldWidget.selectedValue) {
+      setState(() {
+        _selectedValue = widget.selectedValue;
+      });
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
     return Container(
       width: double.infinity,
@@ -67,28 +77,14 @@ class _PreferenceCardState extends State<PreferenceCard> {
 
           const SizedBox(height: 10),
 
-          Column(
-            mainAxisSize: MainAxisSize.min,
+          Wrap(
+            spacing: 8.0,
+            runSpacing: 6.0,
             children: [
-              // แถวที่ 1
-              Row(
-                children: [
-                  Expanded(child: _buildRadioOption('เหมือนกัน', 'same')),
-                  Expanded(child: _buildRadioOption('คล้ายกัน', 'similar')),
-                ],
-              ),
-              const SizedBox(height: 6),
-              // แถวที่ 2
-              Row(
-                children: [
-                  Expanded(
-                    child: _buildRadioOption('ไม่จำเป็น', 'not_necessary'),
-                  ),
-                  Expanded(
-                    child: _buildRadioOption('ไม่เกี่ยวข้องกัน', 'not_related'),
-                  ),
-                ],
-              ),
+              _buildRadioOption('เหมือนกัน', 'same'),
+              _buildRadioOption('คล้ายกัน', 'similar'),
+              _buildRadioOption('ไม่จำเป็น', 'not_necessary'),
+              _buildRadioOption('ไม่เกี่ยวข้องกัน', 'not_related'),
             ],
           ),
         ],
@@ -147,14 +143,16 @@ class _PreferenceCardState extends State<PreferenceCard> {
 
             const SizedBox(width: 12),
 
-            Text(
-              label,
-              textAlign: TextAlign.center,
-              style: const TextStyle(
-                color: Color(0xFF0F172A),
-                fontSize: 16,
-                fontFamily: 'Inter',
-                fontWeight: FontWeight.w400,
+            Flexible(
+              child: Text(
+                label,
+                textAlign: TextAlign.start,
+                style: const TextStyle(
+                  color: Color(0xFF0F172A),
+                  fontSize: 16,
+                  fontFamily: 'Inter',
+                  fontWeight: FontWeight.w400,
+                ),
               ),
             ),
           ],
