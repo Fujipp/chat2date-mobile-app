@@ -39,6 +39,7 @@ class MyApp extends StatelessWidget {
         //Fuji
         '/splash': (context) => const SplashPage(),
         '/home': (context) => const HomeLoginPage(),
+        '/policy': (context) => const PolicyPage(),
       },
       //ปุ่มไว้สำหรับดู comp
       builder: (context, child) {

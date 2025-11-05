@@ -95,7 +95,7 @@ class HomeLoginPage extends StatelessWidget {
                             variant: DsButtonVariant
                                 .secondary, // ให้ map เป็นเขียว #C1FF72 ใน schemes
                             onPressed: () =>
-                                Navigator.pushNamed(context, '/consent'),
+                                Navigator.pushNamed(context, '/policy'),
                           ),
                         ),
                       ],
