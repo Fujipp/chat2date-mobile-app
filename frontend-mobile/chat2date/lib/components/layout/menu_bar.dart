@@ -2,14 +2,17 @@ import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 
 class CustomBottomNavBar extends StatefulWidget {
-  const CustomBottomNavBar({super.key});
+  final int selectedIndex;
+  final Function(int)? onTap;
+
+  const CustomBottomNavBar({super.key, this.selectedIndex = 0, this.onTap});
 
   @override
   State<CustomBottomNavBar> createState() => _CustomBottomNavBarState();
 }
 
 class _CustomBottomNavBarState extends State<CustomBottomNavBar> {
-  int _selectedIndex = 0;
+  late int _selectedIndex;
 
   final List<String> _iconPaths = [
     'assets/icons/icon_home.svg',
@@ -36,6 +39,21 @@ class _CustomBottomNavBarState extends State<CustomBottomNavBar> {
   final double _notchWidth = 100; // ความกว้างรวมของรอยเว้า
   final double _notchDepth = 24; // ความลึกของรอยเว้า (ครึ่งหนึ่งของ notchWidth)
   final double _cornerRadius = 6.0;
+
+  @override
+  void initState() {
+    super.initState();
+    _selectedIndex = widget.selectedIndex;
+  }
+
+  void _handleTap(int index) {
+    setState(() {
+      _selectedIndex = index;
+    });
+    if (widget.onTap != null) {
+      widget.onTap!(index);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -108,11 +126,7 @@ class _CustomBottomNavBarState extends State<CustomBottomNavBar> {
               width: _textContainerWidth,
               child: GestureDetector(
                 behavior: HitTestBehavior.translucent,
-                onTap: () {
-                  setState(() {
-                    _selectedIndex = index;
-                  });
-                },
+                onTap: () => _handleTap(index),
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
@@ -125,7 +139,7 @@ class _CustomBottomNavBarState extends State<CustomBottomNavBar> {
                         BlendMode.srcIn,
                       ),
                     ),
-                    SizedBox(height: 2),
+                    const SizedBox(height: 2),
                     Text(
                       _labels[index],
                       textAlign: TextAlign.center,
@@ -241,7 +255,5 @@ class FigmaTeardropNotchedClipper extends CustomClipper<Path> {
   }
 
   @override
-  bool shouldReclip(CustomClipper<Path> oldClipper) {
-    return true;
-  }
+  bool shouldReclip(CustomClipper<Path> oldClipper) => true;
 }

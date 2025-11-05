@@ -46,7 +46,24 @@ class _ComponentTestScreenState extends State<ComponentTestScreen> {
   final _addCtrl = TextEditingController();
   final _selectCtrl = TextEditingController();
   final _levelCtrl = TextEditingController(text: '1'); // 0..3
-  final _percentCtrl = TextEditingController(text: '60'); // 0..100
+  final _percentCtrl = TextEditingController(text: '60');
+
+  void _onItemTapped(int index) {
+    switch (index) {
+      case 0:
+        Navigator.pushNamed(context, '/discovery');
+        break;
+      case 1:
+        Navigator.pushNamed(context, '/chat');
+        break;
+      case 2:
+        Navigator.pushNamed(context, '/profile');
+        break;
+      case 3:
+        Navigator.pushNamed(context, '/settings');
+        break;
+    }
+  }
 
   // ถ้าหน้าเป็น Stateless ให้แปลงเป็น Stateful ก่อนนะครับ
 
@@ -1141,7 +1158,10 @@ class _ComponentTestScreenState extends State<ComponentTestScreen> {
           ),
         ],
       ),
-      bottomNavigationBar: CustomBottomNavBar(),
+      bottomNavigationBar: CustomBottomNavBar(
+        selectedIndex: 1,
+        onTap: _onItemTapped,
+      ),
     );
   }
 
