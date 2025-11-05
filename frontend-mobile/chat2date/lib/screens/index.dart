@@ -3,3 +3,4 @@ export 'date/discovery_screen.dart';
 export 'profile/all_selection_screen.dart';
 export 'profile/match_preference_screen.dart';
 export 'profile/profile_setup_screen.dart';
+export 'profile/user_picture_screen.dart';

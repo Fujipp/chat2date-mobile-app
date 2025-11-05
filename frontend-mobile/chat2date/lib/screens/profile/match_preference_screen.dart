@@ -105,11 +105,11 @@ class _MatchPreferenceScreenState extends State<MatchPreferenceScreen> {
               backgroundColor: AppColors.lightBrandSecondary,
             ),
             PreferenceCard(
-              title: 'สไตล์การท่องเที่ยว',
+              title: 'ไลฟ์สไตล์',
               backgroundColor: AppColors.brandPrimary200,
             ),
             PreferenceCard(
-              title: 'สไตล์การท่องเที่ยว',
+              title: 'ความสนใจ',
               backgroundColor: AppColors.surfaceLight,
             ),
 
