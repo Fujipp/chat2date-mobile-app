@@ -2,7 +2,7 @@ import 'package:chat2date/theme/app_colors.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 
-class ModalComponent extends StatelessWidget {
+class ModalComponent extends StatefulWidget {
   //รูป
   final String? svgPath;
   final String? imagePath;
@@ -11,6 +11,7 @@ class ModalComponent extends StatelessWidget {
   final double? heightSvg;
   final Color? colorIcon;
   final double? widthSvg;
+  final bool onRange;
 
   //โหมด text เท่านั้น
   final bool textOnly;
@@ -56,6 +57,7 @@ class ModalComponent extends StatelessWidget {
     this.imageName,
     this.icon,
     this.colorIcon,
+    this.onRange = false,
 
     //โหมดใส่ text เท่านั้น
     this.textOnly = false,
@@ -96,6 +98,13 @@ class ModalComponent extends StatelessWidget {
        );
 
   @override
+  State<ModalComponent> createState() => _ModalComponentState();
+}
+
+class _ModalComponentState extends State<ModalComponent> {
+  RangeValues selectedRange = const RangeValues(1, 1900);
+
+  @override
   Widget build(BuildContext context) {
     return Align(
       alignment: Alignment.center,
@@ -127,12 +136,12 @@ class ModalComponent extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.center,
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            if (spaceTop != 0) SizedBox(height: spaceTop),
-            if (topicTop != false)
+            if (widget.spaceTop != 0) SizedBox(height: widget.spaceTop),
+            if (widget.topicTop != false)
               SizedBox(
                 width: 310,
                 child: Text(
-                  topic,
+                  widget.topic,
                   textAlign: TextAlign.center,
                   style: TextStyle(
                     color: AppColors.textPrimary /* Light-Text-Primary */,
@@ -143,42 +152,50 @@ class ModalComponent extends StatelessWidget {
                   ),
                 ),
               ),
-            if (icon != null && textOnly == false)
+            if (widget.icon != null && widget.textOnly == false)
               Container(
-                width: widthSvg,
-                height: heightSvg,
+                width: widget.widthSvg,
+                height: widget.heightSvg,
                 alignment: Alignment.center,
                 child: FittedBox(
                   fit: BoxFit.contain,
-                  child: Icon(icon, color: colorIcon, size: heightSvg),
+                  child: Icon(
+                    widget.icon,
+                    color: widget.colorIcon,
+                    size: widget.heightSvg,
+                  ),
                 ),
               ),
-            if (svgPath != null && textOnly == false)
-              SvgPicture.asset(svgPath!, width: widthSvg, height: heightSvg),
-            if (imagePath != null && textOnly == false)
+            if (widget.svgPath != null && widget.textOnly == false)
+              SvgPicture.asset(
+                widget.svgPath!,
+                width: widget.widthSvg,
+                height: widget.heightSvg,
+              ),
+            if (widget.imagePath != null && widget.textOnly == false)
               Column(
                 crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
                   ClipRRect(
                     borderRadius: BorderRadius.circular(50),
-                    child: imagePath!.startsWith('http')
+                    child: widget.imagePath!.startsWith('http')
                         ? Image.network(
-                            imagePath!,
-                            width: widthSvg,
-                            height: heightSvg,
+                            widget.imagePath!,
+                            width: widget.widthSvg,
+                            height: widget.heightSvg,
                             fit: BoxFit.cover,
                           )
                         : Image.asset(
-                            imagePath!,
-                            width: widthSvg,
-                            height: heightSvg,
+                            widget.imagePath!,
+                            width: widget.widthSvg,
+                            height: widget.heightSvg,
                             fit: BoxFit.cover,
                           ),
                   ),
                   SizedBox(
                     width: 100,
                     child: Text(
-                      imageName!,
+                      widget.imageName!,
                       textAlign: TextAlign.center,
                       style: TextStyle(
                         color: AppColors.textPrimary /* Light-Text-Primary */,
@@ -190,11 +207,11 @@ class ModalComponent extends StatelessWidget {
                   ),
                 ],
               ),
-            if (topicTop != true)
+            if (widget.topicTop != true)
               SizedBox(
                 width: 310,
                 child: Text(
-                  topic,
+                  widget.topic,
                   textAlign: TextAlign.center,
                   style: TextStyle(
                     color: AppColors.textPrimary /* Light-Text-Primary */,
@@ -205,11 +222,11 @@ class ModalComponent extends StatelessWidget {
                   ),
                 ),
               ),
-            if (description != null)
+            if (widget.description != null)
               SizedBox(
                 width: 310,
                 child: Text(
-                  description!,
+                  widget.description!,
                   textAlign: TextAlign.center,
                   style: TextStyle(
                     color: AppColors.textMuted /* text-muted */,
@@ -220,23 +237,23 @@ class ModalComponent extends StatelessWidget {
                   ),
                 ),
               ),
-            if (subDescription != false)
+            if (widget.subDescription != false)
               Text.rich(
                 TextSpan(
                   children: [
                     TextSpan(
-                      text: headingSubDescriptionText,
+                      text: widget.headingSubDescriptionText,
                       style: TextStyle(
-                        color: headingSubDescriptionColor,
+                        color: widget.headingSubDescriptionColor,
                         fontSize: 12,
                         fontFamily: 'Inter',
-                        fontWeight: headingSubDescriptionWeight,
+                        fontWeight: widget.headingSubDescriptionWeight,
                         height: 1.67,
                       ),
                     ),
-                    if (placeholder == false)
+                    if (widget.placeholder == false)
                       TextSpan(
-                        text: subDescriptionText,
+                        text: widget.subDescriptionText,
                         style: TextStyle(
                           color: AppColors.textMuted /* text-muted */,
                           fontSize: 12,
@@ -245,7 +262,7 @@ class ModalComponent extends StatelessWidget {
                           height: 1.67,
                         ),
                       ),
-                    if (placeholder == true)
+                    if (widget.placeholder == true)
                       WidgetSpan(
                         alignment: PlaceholderAlignment.middle,
                         child: Container(
@@ -271,7 +288,7 @@ class ModalComponent extends StatelessWidget {
                             mainAxisAlignment: MainAxisAlignment.start,
                             children: [
                               Text(
-                                placeholderText!,
+                                widget.placeholderText!,
                                 style: TextStyle(
                                   color: Color(0xFF8F9098),
                                   fontSize: 14,
@@ -287,14 +304,14 @@ class ModalComponent extends StatelessWidget {
                   ],
                 ),
               ),
-            if (choice != false)
+            if (widget.choice != false)
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 crossAxisAlignment: CrossAxisAlignment.center,
                 spacing: 15,
                 children: [
                   GestureDetector(
-                    onTap: onFirstChoice,
+                    onTap: widget.onFirstChoice,
                     child: Container(
                       width: 105,
                       padding: const EdgeInsets.symmetric(
@@ -315,7 +332,7 @@ class ModalComponent extends StatelessWidget {
                         spacing: 8,
                         children: [
                           Text(
-                            firstChoiceText!,
+                            widget.firstChoiceText!,
                             style: TextStyle(
                               color: Colors.white /* Light-Text-Secondary */,
                               fontSize: 14,
@@ -328,7 +345,7 @@ class ModalComponent extends StatelessWidget {
                     ),
                   ),
                   GestureDetector(
-                    onTap: onSecondChoice,
+                    onTap: widget.onSecondChoice,
                     child: Container(
                       width: 105,
                       padding: const EdgeInsets.symmetric(
@@ -349,7 +366,7 @@ class ModalComponent extends StatelessWidget {
                         spacing: 8,
                         children: [
                           Text(
-                            secondChoiceText!,
+                            widget.secondChoiceText!,
                             style: TextStyle(
                               color: Colors.white /* Light-Text-Secondary */,
                               fontSize: 14,
@@ -363,7 +380,56 @@ class ModalComponent extends StatelessWidget {
                   ),
                 ],
               ),
-            if (spaceBottom != 0) SizedBox(height: spaceBottom),
+            // if (widget.onRange == true)
+            //   Row(
+            //     mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            //     children: [
+            //       Text(
+            //         '${selectedRange.start.round()}',
+            //         style: const TextStyle(
+            //           fontSize: 16,
+            //           fontWeight: FontWeight.w500,
+            //         ),
+            //       ),
+            //       Text(
+            //         '${selectedRange.end.round()}',
+            //         style: const TextStyle(
+            //           fontSize: 16,
+            //           fontWeight: FontWeight.w500,
+            //         ),
+            //       ),
+            //     ],
+            //   ),
+            // if (widget.onRange == true) const SizedBox(height: 10),
+            // if (widget.onRange == true)
+            //   SliderTheme(
+            //     data: SliderThemeData(
+            //       trackHeight: 8,
+            //       activeTrackColor: const Color(0xFF6B7280),
+            //       inactiveTrackColor: const Color(0xFFE0E0E0),
+            //       thumbColor: const Color(0xFF6B7280),
+            //       thumbShape: const RoundSliderThumbShape(
+            //         enabledThumbRadius: 8,
+            //       ),
+            //       overlayColor: const Color(0xFF6B7280).withOpacity(0.2),
+            //       overlayShape: const RoundSliderOverlayShape(
+            //         overlayRadius: 16,
+            //       ),
+            //       trackShape: const RoundedRectSliderTrackShape(),
+            //     ),
+            //     child: RangeSlider(
+            //       values: selectedRange,
+            //       min: 1,
+            //       max: 1900,
+            //       divisions: 82,
+            //       onChanged: (RangeValues values) {
+            //         setState(() {
+            //           selectedRange = values;
+            //         });
+            //       },
+            //     ),
+            //   ),
+            if (widget.spaceBottom != 0) SizedBox(height: widget.spaceBottom),
           ],
         ),
       ),

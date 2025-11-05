@@ -1065,8 +1065,8 @@ class _ComponentTestScreenState extends State<ComponentTestScreen> {
                   left: 20,
                   top: 20,
                   child: DsSvgSwapButton(
-                    assetA: 'assets/icons/ic_heart.svg',
-                    assetB: 'assets/icons/ic_heart_hover.svg',
+                    assetA: 'assets/icons/icon_heart.svg',
+                    assetB: 'assets/icons/icon_heart_hover.svg',
                     iconSize: 60,
                     padding: 0,
                     glowColor: const Color(0x33FF6B81),
@@ -1078,8 +1078,8 @@ class _ComponentTestScreenState extends State<ComponentTestScreen> {
                   left: 91,
                   top: 20,
                   child: DsSvgSwapButton(
-                    assetA: 'assets/icons/ic_heart.svg',
-                    assetB: 'assets/icons/ic_heart_hover.svg',
+                    assetA: 'assets/icons/icon_heart.svg',
+                    assetB: 'assets/icons/icon_heart_hover.svg',
                     iconSize: 60,
                     padding: 0,
                     glowColor: const Color(0x33FF6B81),
@@ -1122,8 +1122,8 @@ class _ComponentTestScreenState extends State<ComponentTestScreen> {
                   left: 91,
                   top: 20,
                   child: DsSvgSwapButton(
-                    assetA: 'assets/icons/ic_close.svg',
-                    assetB: 'assets/icons/ic_close_hover.svg',
+                    assetA: 'assets/icons/icon_close.svg',
+                    assetB: 'assets/icons/icon_close_hover.svg',
                     iconSize: 60,
                     padding: 0,
                     glowColor: const Color(0x33FF6B6B),

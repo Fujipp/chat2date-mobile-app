@@ -52,6 +52,7 @@ class AppColors {
   static const Color btnActivePrimary = Color(0xFF75EDF2);
   static const Color btnDisabledPrimary = Color(0xFFB9F2F4);
   static const Color btnTextPrimary = Color(0xFF0F172A);
+  static const Color lightPrimary = Color(0xFF78CEFF);
 
   static const Color btnSecondary = Color(0xFFC1F772);
   static const Color btnHoverSecondary = Color(0xFFAFE867);

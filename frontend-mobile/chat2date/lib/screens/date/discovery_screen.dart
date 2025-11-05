@@ -1,6 +1,8 @@
 import 'dart:math';
 import 'dart:ui';
 import 'package:chat2date/components/buttons/ds_svg_swap_button.dart';
+import 'package:chat2date/components/common/modal_component.dart';
+import 'package:chat2date/components/common/style_component.dart';
 import 'package:chat2date/components/layout/header.dart';
 import 'package:chat2date/components/layout/menu_bar.dart';
 import 'package:flutter/widgets.dart';
@@ -12,6 +14,40 @@ import 'package:flutter/scheduler.dart';
 import 'package:chat2date/components/inputs/index.dart';
 
 class DiscoveryScreen extends StatefulWidget {
+  final String? username;
+  final List<String>? tags;
+  final List<Map<String, dynamic>>? headerTop;
+  final List<Map<String, dynamic>>? headerBottom;
+  final List<String>? images;
+
+  const DiscoveryScreen({
+    super.key,
+    this.username = "กีกี้",
+    this.tags = const ['Tag A', 'Tag B', 'Tag CCCCCC', 'Tag D', 'Tag E'],
+    this.headerTop = const [
+      {
+        'title': 'กีฬา',
+        'style': ['Tag A', 'Tag B'],
+      },
+      {'title': 'ระยะห่าง', 'range': 50.0},
+    ],
+    this.headerBottom = const [
+      {
+        'title': 'ไลฟ์สไตล์',
+        'style': ['Tag 1', 'Tag 2', 'Tag 3', 'Tag 5', 'Tag 4'],
+      },
+      {
+        'title': 'กีฬา',
+        'style': ['Tag A', 'Tag B'],
+      },
+    ],
+    this.images = const [
+      'https://media.printler.com/media/photo/193484-2.jpg?rmode=crop&width=638&height=900',
+      'https://m.media-amazon.com/images/I/71dAIiXhTQL._AC_UF1000,1000_QL80_.jpg',
+      'https://www.ubuy.co.th/productimg/?image=aHR0cHM6Ly9tLm1lZGlhLWFtYXpvbi5jb20vaW1hZ2VzL0kvNjFVR1dxQzNTRUwuX1NMMTM2MF8uanBn.jpg',
+    ],
+  });
+
   @override
   State<DiscoveryScreen> createState() => _DiscoveryScreenState();
 }
@@ -35,11 +71,28 @@ class _DiscoveryScreenState extends State<DiscoveryScreen>
   late Animation<double> _animX;
   late Animation<double> _animY;
   late Animation<double> _animRotation;
+  int currentIndex = 0;
 
-  //ส่วนการแสดงผล หน้า slidingdown + up
+  void nextImage() {
+    setState(() {
+      currentIndex = (currentIndex + 1) % widget.images!.length;
+    });
+  }
+
+  void previousImage() {
+    setState(() {
+      currentIndex =
+          (currentIndex - 1 + widget.images!.length) % widget.images!.length;
+    });
+  }
+
   void _onDragUpdate(DragUpdateDetails details) {
     setState(() {
-      _panelHeight += details.delta.dy;
+      if (_panelHeight == 40 && _panelHeight != _maxHeight) {
+        _panelHeight = _maxHeight;
+      } else {
+        _panelHeight = _minHeight;
+      }
       _panelHeight = _panelHeight.clamp(_minHeight, _maxHeight);
     });
   }
@@ -47,7 +100,11 @@ class _DiscoveryScreenState extends State<DiscoveryScreen>
   void _onDragEnd(DragEndDetails details) {
     final midpoint = (_minHeight + _maxHeight) / 2;
     setState(() {
-      _panelHeight = _panelHeight > midpoint ? _maxHeight : _minHeight;
+      if (_panelHeight > midpoint) {
+        _panelHeight = _maxHeight; // เปิดเต็ม
+      } else {
+        _panelHeight = _minHeight; // ปิด
+      }
     });
   }
 
@@ -60,12 +117,12 @@ class _DiscoveryScreenState extends State<DiscoveryScreen>
   Color _getPanelColor() {
     if (_panelPosition < 0.1) {
       // ถ้าเปิดน้อยกว่า 10% → ยังโปร่งใส
-      return Colors.transparent;
+      return Colors.black.withOpacity(0.01);
     } else {
       // ถ้าเปิดเกิน 10% → ค่อย ๆ ขาวขึ้น
       double opacity =
           (_panelPosition - 0.1) / 0.9; // ทำให้เริ่มค่อยๆ จางหลัง 10%
-      opacity = opacity.clamp(0.0, 0.2); // จำกัดค่าสูงสุด 0.85
+      opacity = opacity.clamp(0.0, 0.5); // จำกัดค่าสูงสุด 0.85
       return Colors.white.withOpacity(opacity);
     }
   }
@@ -141,7 +198,13 @@ class _DiscoveryScreenState extends State<DiscoveryScreen>
               rightIconPath: 'assets/icons/icon_menu.svg',
               iconColor: Color(0xFF5ce1e6),
               onBack: () {},
-              onSettings: () {},
+              onSettings: () {
+                showDialog(
+                  context: context,
+                  barrierDismissible: true, // กดนอกเพื่อปิดได้
+                  builder: (context) => ModalComponent(topic: 'hello', textOnly: true, onRange: true,),
+                );
+              },
             ),
             SizedBox(
               width: double.infinity,
@@ -157,8 +220,8 @@ class _DiscoveryScreenState extends State<DiscoveryScreen>
                       child: Transform.rotate(
                         angle: _cardRotation,
                         child: ClipRRect(
-                          child: Image.asset(
-                            'assets/images/image_majiko.jpg', 
+                          child: Image.network(
+                            widget.images![currentIndex],
                             width: double.infinity,
                             height: 585,
                             fit: BoxFit.cover,
@@ -167,293 +230,302 @@ class _DiscoveryScreenState extends State<DiscoveryScreen>
                       ),
                     ),
                   ),
-                  if(_panelHeight == 40)
-                  SlidingUpPanel(
-                    maxHeight: 436,
-                    minHeight: 40,
-                    color: _getPanelColor(),
-                    collapsed: const Center(
-                      child: Icon(
-                        Icons.keyboard_double_arrow_up,
-                        color: Colors.white,
-                      ),
-                    ),
-                    onPanelSlide: (pos) {
-                      setState(() => _panelPosition = pos);
-                    },
-                    panel: ClipRRect(
-                      child: BackdropFilter(
-                        filter: ImageFilter.blur(
-                          sigmaX: 5,
-                          sigmaY: 5,
-                        ), // ทำให้พื้นหลังเบลอเล็กน้อย
-                        child: Container(
-                          color: Colors.white.withOpacity(
-                            0.2 * _panelPosition,
-                          ), // สีขาวจางๆ
-                          child: const Center(
-                            child: Text(
-                              'แท็บล่าง (SlidingUpPanel)',
-                              style: TextStyle(
-                                fontSize: 18,
-                                color: Colors.white,
-                              ),
-                            ),
-                          ),
+                  if (_panelHeight == 40)
+                    SlidingUpPanel(
+                      maxHeight: 436,
+                      minHeight: 40,
+                      color: _getPanelColor(),
+                      collapsed: const Center(
+                        child: Icon(
+                          Icons.keyboard_double_arrow_up,
+                          color: Colors.white,
                         ),
                       ),
-                    ),
-                  ),
-                  if(_panelPosition < 0.1)
-                  Positioned(
-                    top: 0,
-                    left: 0,
-                    right: 0,
-                    height: _panelHeight,
-                    child: GestureDetector(
-                      onVerticalDragUpdate: _onDragUpdate,
-                      onVerticalDragEnd: _onDragEnd,
-                      child: ClipRRect(
+                      onPanelSlide: (pos) {
+                        setState(() => _panelPosition = pos);
+                      },
+                      panel: ClipRRect(
                         borderRadius: const BorderRadius.vertical(
                           bottom: Radius.circular(20),
                         ),
                         child: BackdropFilter(
-                          filter: ImageFilter.blur(
-                            sigmaX:
-                                10 *
-                                ((_panelHeight - _minHeight) /
-                                    (_maxHeight - _minHeight)),
-                            sigmaY:
-                                10 *
-                                ((_panelHeight - _minHeight) /
-                                    (_maxHeight - _minHeight)),
-                          ),
-                          child: AnimatedContainer(
-                            duration: const Duration(milliseconds: 150),
-                            color: (_panelHeight == _minHeight)
-                                ? Colors.transparent
-                                : Colors.white.withOpacity(
-                                    0.15 +
-                                        0.35 *
-                                            ((_panelHeight - _minHeight) /
-                                                (_maxHeight - _minHeight)),
-                                  ),
-                            child: Column(
-                              children: [
-                                // แถบจับเลื่อน
-                                GestureDetector(
-                                  onTap: _togglePanel,
-                                  child: Container(
-                                    height: 40,
-                                    alignment: Alignment.center,
-                                    child: Icon(
-                                      Icons.keyboard_double_arrow_down,
-                                      color: Colors.white,
-                                    ),
-                                  ),
-                                ),
-
-                                // เนื้อหาภายใน panel
-                                Expanded(
-                                  child: Opacity(
-                                    opacity:
-                                        (_panelHeight - _minHeight) /
-                                        (_maxHeight - _minHeight),
-                                    child: SingleChildScrollView(
-                                      physics:
-                                          (_panelHeight - _minHeight) /
-                                                  (_maxHeight - _minHeight) >
-                                              0.9
-                                          ? const BouncingScrollPhysics()
-                                          : const NeverScrollableScrollPhysics(),
-                                      child: Padding(
-                                        padding: const EdgeInsets.symmetric(
-                                          horizontal: 16,
-                                        ),
-                                        child: Column(
-                                          crossAxisAlignment:
-                                              CrossAxisAlignment.start,
-                                          children: [
-                                            const Text(
-                                              "รายละเอียด",
-                                              style: TextStyle(
-                                                fontSize: 18,
-                                                color: Colors.white,
-                                                fontWeight: FontWeight.bold,
-                                              ),
-                                            ),
-                                            const SizedBox(height: 8),
-                                            Text(
-                                              "นี่คือตัวอย่างเนื้อหาที่จะปรากฏเมื่อ panel ขยายเต็ม",
-                                              style: TextStyle(
-                                                color: Colors.white.withOpacity(
-                                                  0.9,
-                                                ),
-                                              ),
-                                            ),
-                                            const SizedBox(height: 12),
-                                            for (int i = 0; i < 5; i++)
-                                              Padding(
-                                                padding:
-                                                    const EdgeInsets.symmetric(
-                                                      vertical: 6,
-                                                    ),
-                                                child: Text(
-                                                  "รายการ ${i + 1}",
-                                                  style: TextStyle(
-                                                    color: Colors.white
-                                                        .withOpacity(0.95),
-                                                  ),
-                                                ),
-                                              ),
-                                          ],
-                                        ),
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                              ],
+                          filter: ImageFilter.blur(sigmaX: 0, sigmaY: 0),
+                          child: Container(
+                            color: Colors.white.withOpacity(
+                              0.2 * _panelPosition,
+                            ), // สีขาวจางๆ
+                            child: Padding(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 32,
+                                vertical: 60,
+                              ),
+                              child: Column(
+                                children: [
+                                  HeadersWithStyles(headers: widget.headerTop!),
+                                ],
+                              ),
                             ),
                           ),
                         ),
                       ),
                     ),
-                  ),
-                  if(_panelPosition < 0.1 && _panelHeight == 40)
-                  Positioned(
-                    left: 75,
-                    bottom: -30,
-                    child: DsSvgSwapButton(
-                      assetA: 'assets/icons/icon_unlike.svg',
-                      assetB: 'assets/icons/icon_unlike_hover.svg',
-                      iconSize: 60,
-                      glowColor: const Color(0x33FF6B6B),
-                      glowBlur: 20,
-                      onPressed: () {
-                        _throwLeft();
-                      },
-                      previewHoverLook: true,
-                    ),
-                  ),
-                  if(_panelPosition < 0.1 && _panelHeight == 40)
-                  Positioned(
-                    right: 75,
-                    bottom: -30,
-                    child: DsSvgSwapButton(
-                      assetA: 'assets/icons/icon_like.svg',
-                      assetB: 'assets/icons/icon_like_hover.svg',
-                      iconSize: 60,
-                      glowColor: const Color(0x33FF6B6B),
-                      glowBlur: 20,
-                      onPressed: () {
-                        _saveRight();
-                      },
-                      previewHoverLook: true,
-                    ),
-                  ),
-                  Padding(
-                    padding: const EdgeInsets.symmetric(
-                      vertical: 50,
-                      horizontal: 16,
-                    ), // กำหนด padding ที่ต้องการ
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Spacer(),
-                        Row(
-                          children: [
-                            SizedBox(
-                              width: 30,
-                              height: 36,
-                              child: FittedBox(
-                                fit: BoxFit.fill,
-                                child: Icon(
-                                  Icons.chevron_left,
-                                  color: Colors.white,
-                                ),
-                              ),
-                            ),
-                            Spacer(),
-                            SizedBox(
-                              width: 30,
-                              height: 36,
-                              child: FittedBox(
-                                fit: BoxFit.fill,
-                                child: Icon(
-                                  Icons.chevron_right,
-                                  color: Colors.white,
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                        SizedBox(height: 117.38),
-                        Padding(
-                          padding: EdgeInsets.symmetric(horizontal: 20),
-                          child: SizedBox(
-                            width: 311,
-                            child: Text(
-                              'เมจิโกะ',
-                              style: TextStyle(
-                                fontSize: 32,
-                                color: Colors.white,
-                                fontFamily: 'Inter',
-                              ),
-                            ),
+                  if (_panelPosition < 0.1)
+                    Positioned(
+                      top: 0,
+                      left: 0,
+                      right: 0,
+                      height: _panelHeight,
+                      child: GestureDetector(
+                        onVerticalDragUpdate: _onDragUpdate,
+                        onVerticalDragEnd: _onDragEnd,
+                        child: ClipRRect(
+                          borderRadius: const BorderRadius.vertical(
+                            bottom: Radius.circular(20),
                           ),
-                        ),
-                        Padding(
-                          padding: EdgeInsets.symmetric(horizontal: 10),
-                          child: Wrap(
-                            spacing: 5, // ระยะห่างแนวนอนระหว่าง tags
-                            runSpacing: 7,
-                            children: List.generate(5, (index) {
-                              return SizedBox(
-                                child: Column(
-                                  children: [
-                                    Container(
-                                      padding: const EdgeInsets.symmetric(
-                                        horizontal: 10,
-                                        vertical: 4,
-                                      ),
-                                      decoration: BoxDecoration(
-                                        color: AppColors.btnPrimary,
-                                        borderRadius: BorderRadius.circular(30),
-                                      ),
-                                      constraints: BoxConstraints(
-                                        minWidth: 60, // กำหนด width ขั้นต่ำ
-                                      ),
-                                      height: 27,
-                                      child: Row(
-                                        mainAxisSize: MainAxisSize.min,
-                                        children: [
-                                          SvgPicture.asset(
-                                            'assets/icons/icon_tag.svg',
-                                            width: 24,
-                                            height: 24,
-                                          ),
-                                          Text(
-                                            'Tag ${index + 1}',
-                                            style: TextStyle(
-                                              fontSize: 14,
-                                              color: Colors.white,
-                                              fontFamily: 'Inter',
-                                              fontWeight: FontWeight.w400,
-                                            ),
-                                          ),
-                                          SizedBox(width: 20),
-                                        ],
+                          child: BackdropFilter(
+                            filter: ImageFilter.blur(
+                              sigmaX:
+                                  10 *
+                                  ((_panelHeight - _minHeight) /
+                                      (_maxHeight - _minHeight)),
+                              sigmaY:
+                                  10 *
+                                  ((_panelHeight - _minHeight) /
+                                      (_maxHeight - _minHeight)),
+                            ),
+                            child: AnimatedContainer(
+                              duration: const Duration(milliseconds: 150),
+                              color: (_panelHeight == _minHeight)
+                                  ? Colors.transparent
+                                  : Colors.white.withOpacity(
+                                      ((((_panelHeight - _minHeight) /
+                                                      (_maxHeight -
+                                                          _minHeight)) -
+                                                  0.1) /
+                                              0.9 *
+                                              0.2)
+                                          .clamp(0.0, 1.0),
+                                    ),
+                              child: Column(
+                                children: [
+                                  // แถบจับเลื่อน
+                                  if (_panelHeight == 40)
+                                    GestureDetector(
+                                      onTap: _togglePanel,
+                                      child: Container(
+                                        height: 40,
+                                        alignment: Alignment.center,
+                                        child: Icon(
+                                          Icons.keyboard_double_arrow_down,
+                                          color: Colors.white,
+                                        ),
                                       ),
                                     ),
-                                  ],
-                                ),
-                              );
-                            }),
+                                  if (_panelHeight != 40) SizedBox(height: 40),
+
+                                  Expanded(
+                                    child: Opacity(
+                                      opacity:
+                                          (_panelHeight - _minHeight) /
+                                          (_maxHeight - _minHeight),
+                                      child: AbsorbPointer(
+                                        absorbing:
+                                            _panelHeight <=
+                                            _minHeight +
+                                                10, // panel ใกล้ปิด → absorb scroll
+                                        child: SingleChildScrollView(
+                                          physics:
+                                              (_panelHeight - _minHeight) /
+                                                      (_maxHeight -
+                                                          _minHeight) >
+                                                  0.9
+                                              ? const BouncingScrollPhysics()
+                                              : const NeverScrollableScrollPhysics(),
+                                          child: Padding(
+                                            padding: const EdgeInsets.symmetric(
+                                              horizontal: 8,
+                                            ),
+                                            child: HeadersWithStyles(
+                                              headers: widget.headerBottom!,
+                                            ),
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
                           ),
                         ),
-                      ],
+                      ),
                     ),
-                  ),
+                  if (_panelPosition < 0.1 && _panelHeight == 40)
+                    Positioned(
+                      left: 75,
+                      bottom: -30,
+                      child: DsSvgSwapButton(
+                        assetA: 'assets/icons/icon_unlike.svg',
+                        assetB: 'assets/icons/icon_unlike_hover.svg',
+                        iconSize: 60,
+                        glowColor: const Color(0x33FF6B6B),
+                        glowBlur: 20,
+                        onPressed: () {
+                          _throwLeft();
+                        },
+                      ),
+                    ),
+                  if (_panelPosition < 0.1 && _panelHeight == 40)
+                    Positioned(
+                      right: 75,
+                      bottom: -30,
+                      child: DsSvgSwapButton(
+                        assetA: 'assets/icons/icon_like.svg',
+                        assetB: 'assets/icons/icon_like_hover.svg',
+                        iconSize: 60,
+                        glowColor: const Color(0x33FF6B6B),
+                        glowBlur: 20,
+                        onPressed: () {
+                          _saveRight();
+                        },
+                      ),
+                    ),
+                  if (_panelPosition < 0.1 && _panelHeight == 40)
+                    Padding(
+                      padding: const EdgeInsets.symmetric(
+                        vertical: 50,
+                        horizontal: 16,
+                      ), // กำหนด padding ที่ต้องการ
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Spacer(),
+                          Row(
+                            children: [
+                              SizedBox(
+                                width: 25,
+                                height: 22,
+                                child: FittedBox(
+                                  fit: BoxFit.fill,
+                                  child: Container(
+                                    decoration: BoxDecoration(
+                                      color: Colors.black.withOpacity(
+                                        0.1,
+                                      ), // สีพื้นหลังดำเข้ม พร้อมความโปร่งแสง
+                                      borderRadius: BorderRadius.circular(
+                                        30,
+                                      ), // ปรับให้กลมมุม
+                                    ),
+                                    child: IconButton(
+                                      icon: const Icon(
+                                        Icons.chevron_left,
+                                        color: Colors.white,
+                                        size: 50,
+                                      ),
+                                      onPressed:
+                                          previousImage, // ฟังก์ชันเลื่อนไปภาพก่อนหน้า
+                                    ),
+                                  ),
+                                ),
+                              ),
+                              Spacer(),
+                              SizedBox(
+                                width: 25,
+                                height: 22,
+                                child: FittedBox(
+                                  fit: BoxFit.fill,
+                                  child: Container(
+                                    decoration: BoxDecoration(
+                                      color: Colors.black.withOpacity(
+                                        0.1,
+                                      ), // สีพื้นหลังดำเข้ม พร้อมความโปร่งแสง
+                                      borderRadius: BorderRadius.circular(
+                                        30,
+                                      ), // ปรับให้กลมมุม
+                                    ),
+                                    child: IconButton(
+                                      icon: const Icon(
+                                        Icons.chevron_right,
+                                        color: Colors.white,
+                                        size: 50,
+                                      ),
+                                      onPressed:
+                                          nextImage, // ฟังก์ชันเลื่อนไปภาพก่อนหน้า
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                          SizedBox(height: 117.38),
+                          Padding(
+                            padding: EdgeInsets.symmetric(horizontal: 20),
+                            child: SizedBox(
+                              width: 311,
+                              child: Text(
+                                widget.username!,
+                                style: TextStyle(
+                                  fontSize: 32,
+                                  color: Colors.white,
+                                  fontFamily: 'Inter',
+                                ),
+                              ),
+                            ),
+                          ),
+                          Padding(
+                            padding: EdgeInsets.symmetric(horizontal: 10),
+                            child: Wrap(
+                              spacing: 5, // ระยะห่างแนวนอนระหว่าง tags
+                              runSpacing: 7,
+                              children: widget.tags!.map((tag) {
+                                return SizedBox(
+                                  child: Column(
+                                    children: [
+                                      Container(
+                                        padding: const EdgeInsets.symmetric(
+                                          horizontal: 10,
+                                          vertical: 4,
+                                        ),
+                                        decoration: BoxDecoration(
+                                          color: AppColors.btnPrimary,
+                                          borderRadius: BorderRadius.circular(
+                                            30,
+                                          ),
+                                        ),
+                                        constraints: const BoxConstraints(
+                                          minWidth: 60,
+                                        ),
+                                        height: 27,
+                                        child: Row(
+                                          mainAxisSize: MainAxisSize.min,
+                                          children: [
+                                            SvgPicture.asset(
+                                              'assets/icons/icon_tag.svg',
+                                              width: 24,
+                                              height: 24,
+                                            ),
+                                            Text(
+                                              tag, // ใช้ชื่อจาก list
+                                              style: const TextStyle(
+                                                fontSize: 14,
+                                                color: Colors.white,
+                                                fontFamily: 'Inter',
+                                                fontWeight: FontWeight.w400,
+                                              ),
+                                            ),
+                                            const SizedBox(width: 20),
+                                          ],
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                );
+                              }).toList(),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
                 ],
               ),
             ),
