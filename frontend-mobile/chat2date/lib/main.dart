@@ -31,6 +31,7 @@ class MyApp extends StatelessWidget {
         '/tagsSelection': (context) => TagsSelectionScreen(),
         '/matchPreference': (context) => MatchPreferenceScreen(),
         '/userPicture': (context) => const UserPictureScreen(),
+        '/profile': (context) => const ProfileScreen(),
 
         //Hutch
         '/discovery': (context) => DiscoveryScreen(),

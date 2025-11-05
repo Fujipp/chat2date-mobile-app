@@ -1,5 +1,6 @@
 export 'component_test_screen.dart';
 export 'date/discovery_screen.dart';
+export 'menu/profile_screen.dart';
 export 'profile/all_selection_screen.dart';
 export 'profile/match_preference_screen.dart';
 export 'profile/profile_setup_screen.dart';
