@@ -7,6 +7,7 @@ import 'package:chat2date/components/chat/chat_text_component.dart';
 import 'package:chat2date/components/chat/content_switcher.dart';
 import 'package:chat2date/components/chat/input_chat_component.dart';
 import 'package:chat2date/components/chat/spin_date_component.dart';
+import 'package:chat2date/components/common/image_upload_grid.dart';
 import 'package:chat2date/components/common/loading_component.dart';
 import 'package:chat2date/components/common/modal_component.dart';
 import 'package:chat2date/components/inputs/index.dart';
@@ -16,7 +17,6 @@ import 'package:chat2date/components/layout/responsive_container.dart';
 import 'package:chat2date/components/status_bar/gps_alert.dart';
 // Status Bar components
 import 'package:chat2date/components/status_bar/score_row.dart';
-import 'package:chat2date/components/status_bar/stacked_progress_bar.dart';
 import 'package:chat2date/theme/app_colors.dart';
 import 'package:flutter/material.dart';
 
@@ -1131,6 +1131,14 @@ class _ComponentTestScreenState extends State<ComponentTestScreen> {
           ),
 
           const SizedBox(height: 16),
+
+          const Text('Image Upload Grid'),
+
+          ImageUploadGrid(
+            onImagesChanged: (images) {
+              print('จำนวนรูปที่เลือก: ${images.length}');
+            },
+          ),
         ],
       ),
       bottomNavigationBar: CustomBottomNavBar(),
