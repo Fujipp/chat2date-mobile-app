@@ -21,7 +21,6 @@ class _UserPictureScreenState extends State<UserPictureScreen> {
         children: [
           const SizedBox(height: 30),
           Center(child: DsLabel(label: 'เพิ่มรูปภาพของคุณ', labelFontSize: 32)),
-          const SizedBox(height: 10),
 
           ImageUploadGrid(
             onImagesChanged: (images) {
@@ -29,13 +28,13 @@ class _UserPictureScreenState extends State<UserPictureScreen> {
             },
           ),
 
-          const SizedBox(height: 20),
-          Text(
-            'เราจะทำการตรวจสอบรูปใบหน้าของคุณ กรุณาอัปโหลดรูปใบหน้าของคุณอย่างน้อย 1 รูป',
-            style: TextStyle(color: AppColors.warning, fontSize: 16),
+          Center(
+            child: Text(
+              'เราจะทำการตรวจสอบรูปใบหน้าของคุณ กรุณาอัปโหลดรูปใบหน้าของคุณอย่างน้อย 1 รูป',
+              style: TextStyle(color: AppColors.warning, fontSize: 12),
+              textAlign: TextAlign.center,
+            ),
           ),
-
-          const SizedBox(height: 10),
 
           DsButton(
             label: 'พร้อมแล้ว',
