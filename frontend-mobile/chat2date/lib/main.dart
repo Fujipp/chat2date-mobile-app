@@ -19,10 +19,10 @@ class MyApp extends StatelessWidget {
       theme: buildLightTheme(),
       navigatorKey: navigatorKey,
       initialRoute:
-          '/test', //เวลาโค้ดเปลี่ยนเป็น path ตัวเองเอาไว้แสดงหน้าของตัวเองเด้อ
+          '/splash', //เวลาโค้ดเปลี่ยนเป็น path ตัวเองเอาไว้แสดงหน้าของตัวเองเด้อ
       routes: {
         //Test
-        '/test': (context) => const ComponentTestScreen(),
+        // '/test': (context) => const ComponentTestScreen(),
 
         //Amp
         '/profileSetup': (context) => const ProfileSetupScreen(),
@@ -37,6 +37,8 @@ class MyApp extends StatelessWidget {
         '/discovery': (context) => DiscoveryScreen(),
 
         //Fuji
+        '/splash': (context) => const SplashPage(),
+        '/home': (context) => const HomeLoginPage(),
       },
       //ปุ่มไว้สำหรับดู comp
       builder: (context, child) {
