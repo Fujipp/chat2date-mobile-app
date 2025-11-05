@@ -214,7 +214,7 @@ class InterestsSelectionScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return TagSelectionScreen(
-      title: 'ความสนใจ',
+      title: 'สิ่งที่สนใจ',
       items: [
         'ดนตรี',
         'กีฬา',
