@@ -22,7 +22,7 @@ class MyApp extends StatelessWidget {
           '/test', //เวลาโค้ดเปลี่ยนเป็น path ตัวเองเอาไว้แสดงหน้าของตัวเองเด้อ
       routes: {
         //Test
-        '/test': (context) => const ComponentTestScreen(),
+        '/splash': (context) => const ComponentTestScreen(),
 
         //Amp
         '/profileSetup': (context) => const ProfileSetupScreen(),
@@ -40,6 +40,8 @@ class MyApp extends StatelessWidget {
         '/splash': (context) => const SplashPage(),
         '/home': (context) => const HomeLoginPage(),
         '/policy': (context) => const PolicyPage(),
+        '/phone': (context) => const PhonePage(),
+        '/otp': (context) => const OtpPage(),
       },
       //ปุ่มไว้สำหรับดู comp
       builder: (context, child) {

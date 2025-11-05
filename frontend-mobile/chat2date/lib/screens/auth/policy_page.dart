@@ -9,7 +9,31 @@ class PolicyPage extends StatefulWidget {
 }
 
 class _PolicyPageState extends State<PolicyPage> {
-  bool _accepted = false;
+  bool _accepted = false; // ผู้ใช้ติ๊กยอมรับแล้วหรือยัง
+  bool _unlocked =
+      false; // ปลดล็อกช่องติ๊กหรือยัง (เลื่อนถึงท้ายอย่างน้อย 1 ครั้ง)
+  late final ScrollController _scrollCtrl;
+
+  @override
+  void initState() {
+    super.initState();
+    _scrollCtrl = ScrollController()
+      ..addListener(() {
+        if (!_scrollCtrl.hasClients || _unlocked) return;
+        final pos = _scrollCtrl.position;
+        // ถือว่า “ถึงล่างสุด” เมื่อเลย maxScrollExtent เล็กน้อย (กัน jitter)
+        final atBottom = pos.pixels >= (pos.maxScrollExtent - 8.0);
+        if (atBottom) {
+          setState(() => _unlocked = true); // ปลดล็อกช่องติ๊กครั้งเดียวพอ
+        }
+      });
+  }
+
+  @override
+  void dispose() {
+    _scrollCtrl.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -67,6 +91,7 @@ class _PolicyPageState extends State<PolicyPage> {
                         const SizedBox(height: 16),
                         Expanded(
                           child: SingleChildScrollView(
+                            controller: _scrollCtrl, // <<— ใช้ controller
                             padding: const EdgeInsets.only(right: 8),
                             child: const Text(
                               // ——— เนื้อหาตามที่ให้ ———
@@ -94,6 +119,24 @@ class _PolicyPageState extends State<PolicyPage> {
                             ),
                           ),
                         ),
+                        // แถบช่วยบอกสถานะการเลื่อน (optional)
+                        SizedBox(
+                          height: 6,
+                          child: LayoutBuilder(
+                            builder: (context, c) {
+                              // แถบสถานะ: ยังไม่ได้ปลดล็อก = เส้นเทา, ปลดล็อกแล้ว = เส้นเข้ม
+                              return Container(
+                                width: c.maxWidth,
+                                decoration: BoxDecoration(
+                                  color: _unlocked
+                                      ? const Color(0xFF7987AC)
+                                      : const Color(0xFFE5E7EB),
+                                  borderRadius: BorderRadius.circular(3),
+                                ),
+                              );
+                            },
+                          ),
+                        ),
                       ],
                     ),
                   ),
@@ -112,8 +155,9 @@ class _PolicyPageState extends State<PolicyPage> {
                           height: 23,
                           child: Checkbox(
                             value: _accepted,
-                            onChanged: (v) =>
-                                setState(() => _accepted = v ?? false),
+                            onChanged: _unlocked
+                                ? (v) => setState(() => _accepted = v ?? false)
+                                : null, // <<— ปิดจนกว่าจะปลดล็อก
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(2),
                             ),
@@ -123,10 +167,12 @@ class _PolicyPageState extends State<PolicyPage> {
                           ),
                         ),
                         const SizedBox(width: 11),
-                        const Expanded(
+                        Expanded(
                           child: Text(
-                            'ยินยอมนโยบายทั้งหมด',
-                            style: TextStyle(
+                            _unlocked
+                                ? 'ยินยอมนโยบายทั้งหมด'
+                                : 'เลื่อนอ่านให้ถึงท้ายสุดก่อนจึงจะยอมรับได้',
+                            style: const TextStyle(
                               color: Color(0xFF060606),
                               fontSize: 16,
                               fontFamily: 'Inter',
