@@ -1,24 +1,24 @@
 import 'dart:math';
 import 'dart:ui';
-import 'package:chat2date/components/buttons/ds_svg_swap_button.dart';
-import 'package:chat2date/components/common/modal_component.dart';
-import 'package:chat2date/components/common/style_component.dart';
-import 'package:chat2date/components/layout/header.dart';
-import 'package:chat2date/components/layout/menu_bar.dart';
-import 'package:flutter/widgets.dart';
-import 'package:chat2date/theme/app_colors.dart';
+import 'package:chat2date/components/buttons/ds_button.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:sliding_up_panel/sliding_up_panel.dart';
-import 'package:flutter/scheduler.dart';
+
+import 'package:chat2date/components/buttons/ds_svg_swap_button.dart';
+import 'package:chat2date/components/common/modal_component.dart';
+import 'package:chat2date/components/common/style_component.dart';
 import 'package:chat2date/components/inputs/index.dart';
+import 'package:chat2date/components/layout/header.dart';
+import 'package:chat2date/components/layout/menu_bar.dart';
+import 'package:chat2date/theme/app_colors.dart';
 
 class DiscoveryScreen extends StatefulWidget {
-  final String? username;
-  final List<String>? tags;
-  final List<Map<String, dynamic>>? headerTop;
-  final List<Map<String, dynamic>>? headerBottom;
-  final List<String>? images;
+  final String username;
+  final List<String> tags;
+  final List<Map<String, dynamic>> headerTop;
+  final List<Map<String, dynamic>> headerBottom;
+  final List<String> images;
 
   const DiscoveryScreen({
     super.key,
@@ -52,316 +52,306 @@ class DiscoveryScreen extends StatefulWidget {
   State<DiscoveryScreen> createState() => _DiscoveryScreenState();
 }
 
+enum ActivePanel { none, top, bottom }
+
 class _DiscoveryScreenState extends State<DiscoveryScreen>
-    with TickerProviderStateMixin {
-  double _panelPosition = 0.0;
-  double _panelHeight = 40;
-  final double _minHeight = 40;
-  final double _maxHeight = 436;
-  double _cardX = 0;
-  double _cardY = 0;
-  double _cardRotation = 0;
-  double _cardOpacity = 1;
-  bool _isAnimating = false;
-  late Ticker _ticker;
-  bool _isPressingLeft = false;
-  bool _isPressingRight = false;
+    with SingleTickerProviderStateMixin {
+  // --- Panel state ---
+  final _topCtrl = PanelController(); // slideDirection: DOWN
+  final _bottomCtrl = PanelController(); // slideDirection: UP
+  double _posTop = 0.0; // 0..1 ของแผงบน
+  double _posBottom = 0.0; // 0..1 ของแผงล่าง
+  final ValueNotifier<ActivePanel> activePanel = ValueNotifier(
+    ActivePanel.none,
+  );
 
-  late AnimationController _controller;
-  late Animation<double> _animX;
-  late Animation<double> _animY;
-  late Animation<double> _animRotation;
-  int currentIndex = 0;
+  // --- Card animation (like/unlike) ---
+  late final AnimationController _cardCtrl;
+  // target values จะปรับทุกครั้งกดปุ่ม
+  Offset _startPos = Offset.zero;
+  Offset _targetPos = Offset.zero;
+  double _startRot = 0;
+  double _targetRot = 0;
+  double _opacity = 1.0;
 
-  void nextImage() {
-    setState(() {
-      currentIndex = (currentIndex + 1) % widget.images!.length;
-    });
+  int _index = 0;
+
+  // ---------- Utils ----------
+
+  Color _blurredWhite(double t) {
+    if (t < 0.1) return Colors.black.withOpacity(0.01);
+    final k = ((t - 0.1) / 0.9).clamp(0.0, 0.5);
+    return Colors.white.withOpacity(k);
   }
 
-  void previousImage() {
-    setState(() {
-      currentIndex =
-          (currentIndex - 1 + widget.images!.length) % widget.images!.length;
-    });
+  void _nextImage() {
+    setState(() => _index = (_index + 1) % widget.images.length);
   }
 
-  void _onDragUpdate(DragUpdateDetails details) {
-    setState(() {
-      if (_panelHeight == 40 && _panelHeight != _maxHeight) {
-        _panelHeight = _maxHeight;
-      } else {
-        _panelHeight = _minHeight;
-      }
-      _panelHeight = _panelHeight.clamp(_minHeight, _maxHeight);
-    });
+  void _prevImage() {
+    setState(
+      () => _index = (_index - 1 + widget.images.length) % widget.images.length,
+    );
   }
 
-  void _onDragEnd(DragEndDetails details) {
-    final midpoint = (_minHeight + _maxHeight) / 2;
-    setState(() {
-      if (_panelHeight > midpoint) {
-        _panelHeight = _maxHeight; // เปิดเต็ม
-      } else {
-        _panelHeight = _minHeight; // ปิด
-      }
-    });
+  // --- Card animation: safe & simple ---
+  void _animateCard({required Offset to, required double rot}) {
+    // reset tween endpoints
+    _startPos = Offset.zero;
+    _startRot = 0;
+    _targetPos = to;
+    _targetRot = rot;
+
+    _cardCtrl
+      ..stop()
+      ..reset();
+    _cardCtrl.forward();
   }
 
-  void _togglePanel() {
-    setState(() {
-      _panelHeight = _panelHeight == _minHeight ? _maxHeight : _minHeight;
-    });
-  }
+  void _onUnlike() => _animateCard(to: const Offset(-500, 0), rot: -pi / 10);
+  void _onLike() => _animateCard(to: const Offset(0, 400), rot: 0);
 
-  Color _getPanelColor() {
-    if (_panelPosition < 0.1) {
-      // ถ้าเปิดน้อยกว่า 10% → ยังโปร่งใส
-      return Colors.black.withOpacity(0.01);
-    } else {
-      // ถ้าเปิดเกิน 10% → ค่อย ๆ ขาวขึ้น
-      double opacity =
-          (_panelPosition - 0.1) / 0.9; // ทำให้เริ่มค่อยๆ จางหลัง 10%
-      opacity = opacity.clamp(0.0, 0.5); // จำกัดค่าสูงสุด 0.85
-      return Colors.white.withOpacity(opacity);
-    }
-  }
-
-  void _throwLeft() {
-    if (_isAnimating) return;
-    setState(() => _isAnimating = true);
-    _animateCard(targetX: -500, targetY: 0, rotation: -pi / 10);
-  }
-
-  void _saveRight() {
-    if (_isAnimating) return;
-    setState(() => _isAnimating = true);
-    _animateCard(targetX: 0, targetY: 400, rotation: 0);
-  }
-
-  void _animateCard({
-    required double targetX,
-    required double targetY,
-    required double rotation,
-  }) {
-    const duration = Duration(milliseconds: 400);
-    final startX = _cardX;
-    final startY = _cardY;
-    final startRot = _cardRotation;
-
-    _ticker = createTicker((elapsed) {
-      final t = (elapsed.inMilliseconds / duration.inMilliseconds).clamp(
-        0.0,
-        1.0,
-      );
-      setState(() {
-        _cardX = startX + (targetX - startX) * t;
-        _cardY = startY + (targetY - startY) * t;
-        _cardRotation = startRot + (rotation - startRot) * t;
-        _cardOpacity = 1 - t;
-      });
-
-      if (t >= 1) {
-        _ticker.stop();
-        Future.delayed(const Duration(milliseconds: 200), _resetCard);
-      }
-    });
-
-    _ticker.start();
+  @override
+  void initState() {
+    super.initState();
+    _cardCtrl =
+        AnimationController(
+            vsync: this,
+            duration: const Duration(milliseconds: 380),
+          )
+          ..addListener(() {
+            setState(() {
+              // linear 0..1
+              final t = _cardCtrl.value;
+              // ease opacity out
+              _opacity = 1 - t;
+            });
+          })
+          ..addStatusListener((st) async {
+            if (st == AnimationStatus.completed) {
+              // reset card & go next image
+              await Future.delayed(const Duration(milliseconds: 150));
+              if (!mounted) return;
+              setState(() {
+                _index = (_index + 1) % widget.images.length;
+                _startPos = Offset.zero;
+                _targetPos = Offset.zero;
+                _startRot = 0;
+                _targetRot = 0;
+                _opacity = 1.0;
+              });
+            }
+          });
   }
 
   @override
   void dispose() {
-    _ticker.dispose();
+    _cardCtrl.dispose();
     super.dispose();
-  }
-
-  void _resetCard() {
-    setState(() {
-      _cardX = 0;
-      _cardY = 0;
-      _cardRotation = 0;
-      _cardOpacity = 1;
-      _isAnimating = false;
-    });
   }
 
   @override
   Widget build(BuildContext context) {
+    // card transforms derive from controller value
+    final t = Curves.easeOutCubic.transform(_cardCtrl.value);
+    final dx = _startPos.dx + (_targetPos.dx - _startPos.dx) * t;
+    final dy = _startPos.dy + (_targetPos.dy - _startPos.dy) * t;
+    final rot = _startRot + (_targetRot - _startRot) * t;
+
     return Scaffold(
-      body: SizedBox(
-        child: Column(
-          children: [
-            SizedBox(height: 25),
-            ChatToDateHeaderWhite(
-              leftIconPath: 'assets/icons/icon_chat2date_full.svg',
-              rightIconPath: 'assets/icons/icon_menu.svg',
-              iconColor: Color(0xFF5ce1e6),
-              onBack: () {},
-              onSettings: () {
-                showDialog(
-                  context: context,
-                  barrierDismissible: true, // กดนอกเพื่อปิดได้
-                  builder: (context) => ModalComponent(topic: 'hello', textOnly: true, onRange: true,),
-                );
-              },
-            ),
-            SizedBox(
-              width: double.infinity,
-              height: 585,
-              child: Stack(
-                clipBehavior: Clip.none,
-                children: [
-                  AnimatedOpacity(
-                    opacity: _cardOpacity,
-                    duration: const Duration(milliseconds: 100),
-                    child: Transform.translate(
-                      offset: Offset(_cardX, _cardY),
-                      child: Transform.rotate(
-                        angle: _cardRotation,
-                        child: ClipRRect(
-                          child: Image.network(
-                            widget.images![currentIndex],
-                            width: double.infinity,
-                            height: 585,
-                            fit: BoxFit.cover,
-                          ),
-                        ),
+      body: Column(
+        children: [
+          const SizedBox(height: 25),
+          ChatToDateHeaderWhite(
+            leftIconPath: 'assets/icons/icon_chat2date_full.svg',
+            rightIconPath: 'assets/icons/icon_menu.svg',
+            iconColor: const Color(0xFF5ce1e6),
+            onBack: () {},
+            onSettings: () {
+              showDialog(
+                context: context,
+                barrierDismissible: true,
+                builder: (_) => const ModalComponent(
+                  topic: 'hello',
+                  textOnly: true,
+                  onRange: true,
+                ),
+              );
+            },
+          ),
+
+          // ===== Canvas (ภาพ + Panels + Overlay) =====
+          SizedBox(
+            width: double.infinity,
+            height: 585,
+            child: Stack(
+              clipBehavior: Clip.none,
+              children: [
+                // --- Profile image (with animation) ---
+                Opacity(
+                  opacity: _opacity,
+                  child: Transform.translate(
+                    offset: Offset(dx, dy),
+                    child: Transform.rotate(
+                      angle: rot,
+                      child: Image.network(
+                        widget.images[_index],
+                        width: double.infinity,
+                        height: 585,
+                        fit: BoxFit.cover,
                       ),
                     ),
                   ),
-                  if (_panelHeight == 40)
-                    SlidingUpPanel(
-                      maxHeight: 436,
-                      minHeight: 40,
-                      color: _getPanelColor(),
-                      collapsed: const Center(
-                        child: Icon(
-                          Icons.keyboard_double_arrow_up,
-                          color: Colors.white,
-                        ),
-                      ),
-                      onPanelSlide: (pos) {
-                        setState(() => _panelPosition = pos);
-                      },
-                      panel: ClipRRect(
-                        borderRadius: const BorderRadius.vertical(
-                          bottom: Radius.circular(20),
-                        ),
-                        child: BackdropFilter(
-                          filter: ImageFilter.blur(sigmaX: 0, sigmaY: 0),
-                          child: Container(
-                            color: Colors.white.withOpacity(
-                              0.2 * _panelPosition,
-                            ), // สีขาวจางๆ
-                            child: Padding(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 32,
-                                vertical: 60,
-                              ),
-                              child: Column(
-                                children: [
-                                  HeadersWithStyles(headers: widget.headerTop!),
-                                ],
-                              ),
-                            ),
-                          ),
-                        ),
-                      ),
-                    ),
-                  if (_panelPosition < 0.1)
-                    Positioned(
-                      top: 0,
-                      left: 0,
-                      right: 0,
-                      height: _panelHeight,
-                      child: GestureDetector(
-                        onVerticalDragUpdate: _onDragUpdate,
-                        onVerticalDragEnd: _onDragEnd,
-                        child: ClipRRect(
-                          borderRadius: const BorderRadius.vertical(
-                            bottom: Radius.circular(20),
-                          ),
-                          child: BackdropFilter(
-                            filter: ImageFilter.blur(
-                              sigmaX:
-                                  10 *
-                                  ((_panelHeight - _minHeight) /
-                                      (_maxHeight - _minHeight)),
-                              sigmaY:
-                                  10 *
-                                  ((_panelHeight - _minHeight) /
-                                      (_maxHeight - _minHeight)),
-                            ),
-                            child: AnimatedContainer(
-                              duration: const Duration(milliseconds: 150),
-                              color: (_panelHeight == _minHeight)
-                                  ? Colors.transparent
-                                  : Colors.white.withOpacity(
-                                      ((((_panelHeight - _minHeight) /
-                                                      (_maxHeight -
-                                                          _minHeight)) -
-                                                  0.1) /
-                                              0.9 *
-                                              0.2)
-                                          .clamp(0.0, 1.0),
-                                    ),
-                              child: Column(
-                                children: [
-                                  // แถบจับเลื่อน
-                                  if (_panelHeight == 40)
-                                    GestureDetector(
-                                      onTap: _togglePanel,
-                                      child: Container(
-                                        height: 40,
-                                        alignment: Alignment.center,
-                                        child: Icon(
-                                          Icons.keyboard_double_arrow_down,
-                                          color: Colors.white,
-                                        ),
-                                      ),
-                                    ),
-                                  if (_panelHeight != 40) SizedBox(height: 40),
+                ),
 
-                                  Expanded(
-                                    child: Opacity(
-                                      opacity:
-                                          (_panelHeight - _minHeight) /
-                                          (_maxHeight - _minHeight),
-                                      child: AbsorbPointer(
-                                        absorbing:
-                                            _panelHeight <=
-                                            _minHeight +
-                                                10, // panel ใกล้ปิด → absorb scroll
-                                        child: SingleChildScrollView(
-                                          physics:
-                                              (_panelHeight - _minHeight) /
-                                                      (_maxHeight -
-                                                          _minHeight) >
-                                                  0.9
-                                              ? const BouncingScrollPhysics()
-                                              : const NeverScrollableScrollPhysics(),
-                                          child: Padding(
-                                            padding: const EdgeInsets.symmetric(
-                                              horizontal: 8,
-                                            ),
-                                            child: HeadersWithStyles(
-                                              headers: widget.headerBottom!,
-                                            ),
-                                          ),
-                                        ),
-                                      ),
+                // --- Bottom Panel (Slide UP) ---
+                if (activePanel.value != ActivePanel.top)
+                  ValueListenableBuilder(
+                    valueListenable: activePanel,
+                    builder: (context, value, _) {
+                      if (value == ActivePanel.top)
+                        return const SizedBox.shrink();
+                      return IgnorePointer(
+                        ignoring: activePanel.value == ActivePanel.top,
+                        child: SlidingUpPanel(
+                          controller: _bottomCtrl,
+                          maxHeight: 436,
+                          minHeight: 40,
+                          color: _blurredWhite(_posBottom),
+                          backdropEnabled: value == ActivePanel.bottom,
+                          isDraggable: value != ActivePanel.top,
+                          panelSnapping: true,
+                          collapsed: const Center(
+                            child: Icon(
+                              Icons.keyboard_double_arrow_up,
+                              color: Colors.white,
+                            ),
+                          ),
+                          onPanelSlide: (p) {
+                            setState(() {
+                              _posBottom = p;
+                              if (p > 0) activePanel.value = ActivePanel.bottom;
+                            });
+                          },
+                          onPanelClosed: () {
+                            setState(() {
+                              _posBottom = 0;
+                              if (activePanel.value == ActivePanel.bottom) {
+                                activePanel.value = ActivePanel.none;
+                              }
+                            });
+                          },
+                          panel: ClipRRect(
+                            borderRadius: const BorderRadius.vertical(
+                              bottom: Radius.circular(20),
+                            ),
+                            child: BackdropFilter(
+                              filter: ImageFilter.blur(
+                                sigmaX: 5 * _posBottom,
+                                sigmaY: 5 * _posBottom,
+                              ),
+                              child: Container(
+                                color: Colors.white.withOpacity(
+                                  0.2 * _posBottom,
+                                ),
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 32,
+                                  vertical: 60,
+                                ),
+                                child: Column(
+                                  children: [
+                                    HeadersWithStyles(
+                                      headers: widget.headerTop,
                                     ),
-                                  ),
-                                ],
+                                  ],
+                                ),
                               ),
                             ),
                           ),
                         ),
-                      ),
+                      );
+                    },
+                  ),
+
+                // --- Top Panel (Slide DOWN) ---
+                if (activePanel.value != ActivePanel.bottom)
+                  IgnorePointer(
+                    ignoring: activePanel.value == ActivePanel.bottom,
+                    child: ValueListenableBuilder(
+                      valueListenable: activePanel,
+                      builder: (context, value, _) {
+                        return SlidingUpPanel(
+                          controller: _topCtrl,
+                          slideDirection: SlideDirection.DOWN,
+                          maxHeight: 436,
+                          minHeight: 40,
+                          color: _blurredWhite(_posTop),
+                          backdropEnabled: value == ActivePanel.top,
+                          isDraggable: value != ActivePanel.bottom,
+                          panelSnapping: true,
+                          collapsed: const Center(
+                            child: Icon(
+                              Icons.keyboard_double_arrow_down,
+                              color: Colors.white,
+                            ),
+                          ),
+                          onPanelSlide: (p) {
+                            setState(() {
+                              _posTop = p;
+                              if (p > 0) activePanel.value = ActivePanel.top;
+                            });
+                          },
+                          onPanelClosed: () {
+                            setState(() {
+                              _posTop = 0;
+                              if (activePanel.value == ActivePanel.top) {
+                                activePanel.value = ActivePanel.none;
+                              }
+                            });
+                          },
+                          panel: ClipRRect(
+                            borderRadius: const BorderRadius.vertical(
+                              bottom: Radius.circular(20),
+                            ),
+                            child: BackdropFilter(
+                              filter: ImageFilter.blur(
+                                sigmaX: 5 * _posTop,
+                                sigmaY: 5 * _posTop,
+                              ),
+                              child: Container(
+                                color: Colors.white.withOpacity(0.2 * _posTop),
+                                padding: const EdgeInsets.symmetric(
+                                  vertical: 32,
+                                ),
+                                child: Column(
+                                  children: [
+                                    Padding(
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 24,
+                                      ),
+                                      child: HeadersWithStyles(
+                                        headers: widget.headerBottom,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ),
+                        );
+                      },
                     ),
-                  if (_panelPosition < 0.1 && _panelHeight == 40)
-                    Positioned(
+                  ),
+
+                // --- Action buttons & overlays (เฉพาะตอน panel ปิด) ---
+                ValueListenableBuilder<ActivePanel>(
+                  valueListenable: activePanel,
+                  builder: (context, value, _) {
+                    final panelsClosed = value == ActivePanel.none;
+
+                    if (!panelsClosed) return const SizedBox.shrink();
+
+                    return Positioned(
                       left: 75,
                       bottom: -30,
                       child: DsSvgSwapButton(
@@ -370,13 +360,19 @@ class _DiscoveryScreenState extends State<DiscoveryScreen>
                         iconSize: 60,
                         glowColor: const Color(0x33FF6B6B),
                         glowBlur: 20,
-                        onPressed: () {
-                          _throwLeft();
-                        },
+                        onPressed: _onUnlike,
                       ),
-                    ),
-                  if (_panelPosition < 0.1 && _panelHeight == 40)
-                    Positioned(
+                    );
+                  },
+                ),
+                ValueListenableBuilder<ActivePanel>(
+                  valueListenable: activePanel,
+                  builder: (context, value, _) {
+                    final panelsClosed = value == ActivePanel.none;
+
+                    if (!panelsClosed) return const SizedBox.shrink();
+
+                    return Positioned(
                       right: 75,
                       bottom: -30,
                       child: DsSvgSwapButton(
@@ -385,106 +381,77 @@ class _DiscoveryScreenState extends State<DiscoveryScreen>
                         iconSize: 60,
                         glowColor: const Color(0x33FF6B6B),
                         glowBlur: 20,
-                        onPressed: () {
-                          _saveRight();
-                        },
+                        onPressed: _onLike,
                       ),
-                    ),
-                  if (_panelPosition < 0.1 && _panelHeight == 40)
-                    Padding(
-                      padding: const EdgeInsets.symmetric(
-                        vertical: 50,
-                        horizontal: 16,
-                      ), // กำหนด padding ที่ต้องการ
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Spacer(),
-                          Row(
-                            children: [
-                              SizedBox(
-                                width: 25,
-                                height: 22,
-                                child: FittedBox(
-                                  fit: BoxFit.fill,
-                                  child: Container(
-                                    decoration: BoxDecoration(
-                                      color: Colors.black.withOpacity(
-                                        0.1,
-                                      ), // สีพื้นหลังดำเข้ม พร้อมความโปร่งแสง
-                                      borderRadius: BorderRadius.circular(
-                                        30,
-                                      ), // ปรับให้กลมมุม
-                                    ),
-                                    child: IconButton(
-                                      icon: const Icon(
-                                        Icons.chevron_left,
-                                        color: Colors.white,
-                                        size: 50,
-                                      ),
-                                      onPressed:
-                                          previousImage, // ฟังก์ชันเลื่อนไปภาพก่อนหน้า
-                                    ),
-                                  ),
-                                ),
-                              ),
-                              Spacer(),
-                              SizedBox(
-                                width: 25,
-                                height: 22,
-                                child: FittedBox(
-                                  fit: BoxFit.fill,
-                                  child: Container(
-                                    decoration: BoxDecoration(
-                                      color: Colors.black.withOpacity(
-                                        0.1,
-                                      ), // สีพื้นหลังดำเข้ม พร้อมความโปร่งแสง
-                                      borderRadius: BorderRadius.circular(
-                                        30,
-                                      ), // ปรับให้กลมมุม
-                                    ),
-                                    child: IconButton(
-                                      icon: const Icon(
-                                        Icons.chevron_right,
-                                        color: Colors.white,
-                                        size: 50,
-                                      ),
-                                      onPressed:
-                                          nextImage, // ฟังก์ชันเลื่อนไปภาพก่อนหน้า
-                                    ),
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                          SizedBox(height: 117.38),
+                    );
+                  },
+                ),
+
+                // arrows + name + tags
+                ValueListenableBuilder<ActivePanel>(
+                  valueListenable: activePanel,
+                  builder: (context, value, _) {
+                    final panelsClosed = value == ActivePanel.none;
+
+                    return Stack(
+                      children: [
+                        // Panels...
+                        if (panelsClosed) ...[
                           Padding(
-                            padding: EdgeInsets.symmetric(horizontal: 20),
-                            child: SizedBox(
-                              width: 311,
-                              child: Text(
-                                widget.username!,
-                                style: TextStyle(
-                                  fontSize: 32,
-                                  color: Colors.white,
-                                  fontFamily: 'Inter',
-                                ),
-                              ),
+                            padding: const EdgeInsets.symmetric(
+                              vertical: 50,
+                              horizontal: 16,
                             ),
-                          ),
-                          Padding(
-                            padding: EdgeInsets.symmetric(horizontal: 10),
-                            child: Wrap(
-                              spacing: 5, // ระยะห่างแนวนอนระหว่าง tags
-                              runSpacing: 7,
-                              children: widget.tags!.map((tag) {
-                                return SizedBox(
-                                  child: Column(
-                                    children: [
-                                      Container(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                const Spacer(),
+                                Row(
+                                  children: [
+                                    _ArrowButton(
+                                      icon: Icons.chevron_left,
+                                      onTap: _prevImage,
+                                    ),
+                                    const Spacer(),
+                                    _ArrowButton(
+                                      icon: Icons.chevron_right,
+                                      onTap: _nextImage,
+                                    ),
+                                  ],
+                                ),
+                                const SizedBox(height: 118),
+                                Padding(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 20,
+                                  ),
+                                  child: SizedBox(
+                                    width: 311,
+                                    child: Text(
+                                      widget.username,
+                                      style: const TextStyle(
+                                        fontSize: 32,
+                                        color: Colors.white,
+                                        fontFamily: 'Inter',
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                                Padding(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 10,
+                                  ),
+                                  child: Wrap(
+                                    spacing: 5,
+                                    runSpacing: 7,
+                                    children: widget.tags.map((tag) {
+                                      return Container(
                                         padding: const EdgeInsets.symmetric(
                                           horizontal: 10,
                                           vertical: 4,
+                                        ),
+                                        height: 27,
+                                        constraints: const BoxConstraints(
+                                          minWidth: 60,
                                         ),
                                         decoration: BoxDecoration(
                                           color: AppColors.btnPrimary,
@@ -492,10 +459,6 @@ class _DiscoveryScreenState extends State<DiscoveryScreen>
                                             30,
                                           ),
                                         ),
-                                        constraints: const BoxConstraints(
-                                          minWidth: 60,
-                                        ),
-                                        height: 27,
                                         child: Row(
                                           mainAxisSize: MainAxisSize.min,
                                           children: [
@@ -505,7 +468,7 @@ class _DiscoveryScreenState extends State<DiscoveryScreen>
                                               height: 24,
                                             ),
                                             Text(
-                                              tag, // ใช้ชื่อจาก list
+                                              tag,
                                               style: const TextStyle(
                                                 fontSize: 14,
                                                 color: Colors.white,
@@ -516,26 +479,77 @@ class _DiscoveryScreenState extends State<DiscoveryScreen>
                                             const SizedBox(width: 20),
                                           ],
                                         ),
-                                      ),
-                                    ],
+                                      );
+                                    }).toList(),
                                   ),
-                                );
-                              }).toList(),
+                                ),
+                              ],
                             ),
                           ),
                         ],
-                      ),
-                    ),
-                ],
-              ),
+                      ],
+                    );
+                  },
+                ),
+              ],
             ),
-          ],
-        ),
+          ),
+        ],
       ),
-      bottomNavigationBar: CustomBottomNavBar(),
+      bottomNavigationBar: const CustomBottomNavBar(),
     );
   }
 }
-//Padding(
-                //padding: EdgeInsets.symmetric(horizontal: 10, vertical: 40),
-                //child:
+
+// ===== Small helpers =====
+class _ArrowButton extends StatelessWidget {
+  final IconData icon;
+  final VoidCallback onTap;
+  const _ArrowButton({required this.icon, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: 25,
+      height: 22,
+      child: FittedBox(
+        fit: BoxFit.fill,
+        child: Container(
+          decoration: BoxDecoration(
+            color: Colors.black.withOpacity(0.12),
+            borderRadius: BorderRadius.circular(30),
+          ),
+          child: IconButton(
+            icon: Icon(icon, color: Colors.white, size: 50),
+            onPressed: onTap,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _ChipBtn extends StatelessWidget {
+  final String label;
+  final VoidCallback onTap;
+  const _ChipBtn({required this.label, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: Colors.black.withOpacity(0.28),
+      borderRadius: BorderRadius.circular(999),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(999),
+        onTap: onTap,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+          child: Text(
+            label,
+            style: const TextStyle(color: Colors.white, fontSize: 12),
+          ),
+        ),
+      ),
+    );
+  }
+}
