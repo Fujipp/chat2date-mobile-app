@@ -8,3 +8,5 @@ export 'profile/user_picture_screen.dart';
 export 'splash/splash_page.dart';
 export 'home/home_login_page.dart';
 export 'auth/policy_page.dart';
+export 'auth/otp_page.dart';
+export 'auth/phone_page.dart';

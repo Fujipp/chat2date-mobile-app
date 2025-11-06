@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 
 import 'screens/index.dart';
 
+final GlobalKey<NavigatorState> rootNavigatorKey = GlobalKey<NavigatorState>();
+
 void main() {
   runApp(MyApp());
 }
@@ -19,10 +21,10 @@ class MyApp extends StatelessWidget {
       theme: buildLightTheme(),
       navigatorKey: navigatorKey,
       initialRoute:
-          '/test', //เวลาโค้ดเปลี่ยนเป็น path ตัวเองเอาไว้แสดงหน้าของตัวเองเด้อ
+          '/otp', //เวลาโค้ดเปลี่ยนเป็น path ตัวเองเอาไว้แสดงหน้าของตัวเองเด้อ
       routes: {
         //Test
-        '/splash': (context) => const ComponentTestScreen(),
+        '/test': (context) => const ComponentTestScreen(),
 
         //Amp
         '/profileSetup': (context) => const ProfileSetupScreen(),

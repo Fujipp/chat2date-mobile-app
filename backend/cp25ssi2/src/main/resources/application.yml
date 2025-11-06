@@ -1,0 +1,17 @@
+smsmkt:
+  apiKey: "3a02c76fe65d2bd637c136bdd999fc5b"
+  secretKey: "iyGb6hxrlCcrl6Hn"
+  projectKey: "df0361c97a"
+
+server:
+  port: 8080
+  address: 0.0.0.0
+
+spring:
+  mvc:
+    cors:
+      mappings:
+        "[/api/**]":
+          allowed-origins: "*"
+          allowed-methods: "GET,POST,OPTIONS"
+          allowed-headers: "*"
