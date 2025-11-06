@@ -1,5 +1,6 @@
 import 'package:chat2date/components/buttons/ds_button.dart';
 import 'package:chat2date/components/card/preference_card.dart';
+import 'package:chat2date/components/common/custom_range_slider.dart';
 import 'package:chat2date/components/inputs/ds_label.dart';
 import 'package:chat2date/components/inputs/ds_text_field/ds_text_field.dart';
 import 'package:chat2date/components/layout/responsive_container.dart';
@@ -14,7 +15,7 @@ class MatchPreferenceScreen extends StatefulWidget {
 }
 
 class _MatchPreferenceScreenState extends State<MatchPreferenceScreen> {
-  RangeValues selectedRange = const RangeValues(18, 100);
+  RangeValues _selectedRange = const RangeValues(18, 100);
   bool _isGenderAgeSpecific = false;
 
   @override
@@ -51,14 +52,14 @@ class _MatchPreferenceScreenState extends State<MatchPreferenceScreen> {
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     Text(
-                      '${selectedRange.start.round()} ปี',
+                      '${_selectedRange.start.round()} ปี',
                       style: const TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.w500,
                       ),
                     ),
                     Text(
-                      '${selectedRange.end.round()} ปี',
+                      '${_selectedRange.end.round()} ปี',
                       style: const TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.w500,
@@ -69,32 +70,16 @@ class _MatchPreferenceScreenState extends State<MatchPreferenceScreen> {
 
                 const SizedBox(height: 10),
 
-                SliderTheme(
-                  data: SliderThemeData(
-                    trackHeight: 8,
-                    activeTrackColor: const Color(0xFF6B7280),
-                    inactiveTrackColor: const Color(0xFFE0E0E0),
-                    thumbColor: const Color(0xFF6B7280),
-                    thumbShape: const RoundSliderThumbShape(
-                      enabledThumbRadius: 8,
-                    ),
-                    overlayColor: const Color(0xFF6B7280).withOpacity(0.2),
-                    overlayShape: const RoundSliderOverlayShape(
-                      overlayRadius: 16,
-                    ),
-                    trackShape: const RoundedRectSliderTrackShape(),
-                  ),
-                  child: RangeSlider(
-                    values: selectedRange,
-                    min: 18,
-                    max: 100,
-                    divisions: 82,
-                    onChanged: (RangeValues values) {
-                      setState(() {
-                        selectedRange = values;
-                      });
-                    },
-                  ),
+                CustomRangeSlider(
+                  values: _selectedRange,
+                  min: 18,
+                  max: 100,
+                  divisions: 82,
+                  onChanged: (RangeValues values) {
+                    setState(() {
+                      _selectedRange = values;
+                    });
+                  },
                 ),
               ],
             ),

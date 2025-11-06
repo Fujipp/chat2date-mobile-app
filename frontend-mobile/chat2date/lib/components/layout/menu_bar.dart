@@ -121,7 +121,7 @@ class _CustomBottomNavBarState extends State<CustomBottomNavBar> {
               duration: const Duration(milliseconds: 300),
               curve: Curves.easeInOutCubic,
               left: dynamicTextLeft[index],
-              top: isSelected ? _circleTopOffset + 5 : _bottomNavBarTopPadding,
+              top: isSelected ? _circleTopOffset + 2 : _bottomNavBarTopPadding,
               height: isSelected ? _circleSize : _bottomNavBarHeight,
               width: _textContainerWidth,
               child: GestureDetector(

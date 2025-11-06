@@ -58,8 +58,8 @@ class _PreferenceCardState extends State<PreferenceCard> {
                   text: widget.title,
                   style: const TextStyle(
                     color: Color(0xFF0F172A),
-                    fontSize: 24,
-                    fontWeight: FontWeight.w400,
+                    fontSize: 16,
+                    fontWeight: FontWeight.w300,
                   ),
                 ),
                 const TextSpan(
@@ -74,19 +74,46 @@ class _PreferenceCardState extends State<PreferenceCard> {
               ],
             ),
           ),
-
           const SizedBox(height: 10),
 
-          Wrap(
-            spacing: 8.0,
-            runSpacing: 6.0,
+          // 💡💡💡 --- START: แก้ไขตรงนี้ --- 💡💡💡
+          Column(
             children: [
-              _buildRadioOption('เหมือนกัน', 'same'),
-              _buildRadioOption('คล้ายกัน', 'similar'),
-              _buildRadioOption('ไม่จำเป็น', 'not_necessary'),
-              _buildRadioOption('ไม่เกี่ยวข้องกัน', 'not_related'),
+              Row(
+                children: [
+                  // 💡 แก้ไข: คอลัมน์ซ้าย (flex: 1)
+                  Expanded(
+                    flex: 1,
+                    child: _buildRadioOption('เหมือนกัน', 'same'),
+                  ),
+
+                  Expanded(
+                    flex: 1,
+                    child: _buildRadioOption('คล้ายกัน', 'similar'),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 6.0), // ระยะห่างระหว่างแถว
+              Row(
+                children: [
+                  // 💡 แก้ไข: คอลัมน์ซ้าย (flex: 1)
+                  Expanded(
+                    flex: 1,
+                    child: _buildRadioOption('ไม่จำเป็น', 'not_necessary'),
+                  ),
+
+                  // 💡 เพิ่ม: ช่องว่างตรงกลาง
+
+                  // 💡 แก้ไข: คอลัมน์ขวา (flex: 1)
+                  Expanded(
+                    flex: 1,
+                    child: _buildRadioOption('ไม่เกี่ยวข้องกัน', 'not_related'),
+                  ),
+                ],
+              ),
             ],
           ),
+          // 💡💡💡 --- END: แก้ไขตรงนี้ --- 💡💡💡
         ],
       ),
     );
@@ -108,6 +135,7 @@ class _PreferenceCardState extends State<PreferenceCard> {
         child: Row(
           mainAxisSize: MainAxisSize.min,
           mainAxisAlignment: MainAxisAlignment.start,
+          // ใช้ .center เพราะตอนนี้พื้นที่พอแล้ว
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
             Container(
@@ -140,9 +168,7 @@ class _PreferenceCardState extends State<PreferenceCard> {
                     )
                   : null,
             ),
-
             const SizedBox(width: 12),
-
             Flexible(
               child: Text(
                 label,
@@ -153,6 +179,9 @@ class _PreferenceCardState extends State<PreferenceCard> {
                   fontFamily: 'Inter',
                   fontWeight: FontWeight.w400,
                 ),
+                // ป้องกันการตัดคำ (เผื่อไว้)
+                softWrap: false,
+                overflow: TextOverflow.visible,
               ),
             ),
           ],
