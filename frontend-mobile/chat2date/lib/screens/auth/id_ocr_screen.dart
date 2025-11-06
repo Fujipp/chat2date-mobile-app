@@ -1,4 +1,6 @@
+// lib/screens/auth/id_ocr_screen.dart
 import 'dart:io';
+import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:image_picker/image_picker.dart';
@@ -7,7 +9,7 @@ import 'package:permission_handler/permission_handler.dart';
 
 import 'package:chat2date/components/index.dart'; // DsButton / inputs
 import 'package:chat2date/services/ocr_thaiid_service.dart';
-import 'package:chat2date/services/kyc_api.dart';
+import 'package:chat2date/models/face_scan_args.dart'; // ✅ ใช้ส่ง args ไปหน้า face-scan
 
 class IdOcrScreen extends StatefulWidget {
   const IdOcrScreen({super.key});
@@ -22,12 +24,12 @@ class _IdOcrScreenState extends State<IdOcrScreen> {
     endpoint: 'https://api.iapp.co.th/thai-national-id-card/v3.5/front',
     apiKey: 'Z0XVt18RSoFlZAkRnhGy9U3u5J8MlrZA', // <- ใส่ key จริง (อย่า commit)
   );
-  final _api = const KycApi('http://127.0.0.1:8080');
 
   static const _backIcon = 'assets/icons/icon_arrow-back-circle.svg';
   static const _maxFileBytes = 10 * 1024 * 1024; // 10MB
 
   File? _image;
+  Uint8List? _cardFace; // ✅ รูปหน้าจากบัตร (ถ้ามี)
   bool _busy = false;
 
   // ค่าที่จะโชว์ (disable fields)
@@ -82,7 +84,6 @@ class _IdOcrScreenState extends State<IdOcrScreen> {
         return;
       }
     } else {
-      // คลังรูป (iOS/Android 13+)
       final ph = await Permission.photos.request();
       if (!ph.isGranted) {
         if (!mounted) return;
@@ -129,11 +130,17 @@ class _IdOcrScreenState extends State<IdOcrScreen> {
         cfg: _ocrCfg,
         imageFile: _image!,
       );
+
+      // ถ้า OCR ไม่คืนรูปใบหน้ามา ให้ fallback เป็น bytes ของรูปทั้งใบ
+      final fallbackBytes = await _image!.readAsBytes();
+
       setState(() {
         _fullName = result.fullName;
-        _dob = result.birthDate;
+        _dob = result.birthDate; // มาจาก th_dob -> ค.ศ. แล้ว
         _gender = result.gender; // ชาย/หญิง/อื่นๆ
+        _cardFace = result.cardFaceBytes ?? fallbackBytes; // ✅ fallback
       });
+
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('สแกนสำเร็จ เติมข้อมูลอัตโนมัติแล้ว')),
@@ -149,43 +156,37 @@ class _IdOcrScreenState extends State<IdOcrScreen> {
   }
 
   Future<void> _submit() async {
-    if (_fullName == null || _dob == null || _gender == null) {
+    if (_fullName == null ||
+        _dob == null ||
+        _gender == null ||
+        _image == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('กรุณาแนบ/ถ่ายรูปบัตรและสแกนก่อน')),
       );
       return;
     }
-    final age = _calcAgeForDisplay(_dob!);
 
-    setState(() => _busy = true);
-    try {
-      await _api.submitIdentity(
+    // เผื่อ _cardFace ยังว่าง ให้ดึง bytes จากไฟล์รูปบัตร
+    final faceBytes = _cardFace ?? await _image!.readAsBytes();
+
+    if (!mounted) return;
+    Navigator.pushNamed(
+      context,
+      '/face-scan',
+      arguments: FaceScanArgs(
+        cardFaceBytes: faceBytes,
         fullName: _fullName!,
-        birthDate: _dob!,
-        age: age,
+        dob: _dob!,
         gender: _gender!,
-      );
-      if (!mounted) return;
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('บันทึกข้อมูลสำเร็จ')));
-      Navigator.pushNamed(context, '/next');
-    } catch (e) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('ส่งข้อมูลไม่สำเร็จ: $e')));
-    } finally {
-      if (mounted) setState(() => _busy = false);
-    }
+      ),
+    );
   }
 
   int _calcAgeForDisplay(DateTime dob) {
     final now = DateTime.now();
-    // ถ้าวันเกิด "อนาคต" ให้ลองแปลงจากปี พ.ศ. -> ค.ศ.
     DateTime d = dob;
     if (d.isAfter(now)) {
-      d = DateTime(d.year - 543, d.month, d.day);
+      d = DateTime(d.year - 543, d.month, d.day); // กันกรณีอินพุตเป็น พ.ศ.
     }
     var age = now.year - d.year;
     if (DateTime(now.year, d.month, d.day).isAfter(now)) age--;
@@ -194,7 +195,7 @@ class _IdOcrScreenState extends State<IdOcrScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final borderColor = const Color(0x599CABC2);
+    const borderColor = Color(0x599CABC2);
 
     return Scaffold(
       backgroundColor: Colors.white,
@@ -212,11 +213,11 @@ class _IdOcrScreenState extends State<IdOcrScreen> {
               ),
             ),
 
-            // ---------- เปลี่ยนจาก Stack/Positioned เป็น Column + Scroll ----------
+            // ---------- Column + Scroll (เรียง 3 คอมโพเนนต์ต่อกัน) ----------
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // ปุ่มกลับมุมซ้ายบน
+                // ปุ่มกลับไป /home มุมซ้ายบน
                 IconButton(
                   onPressed: _busy
                       ? null
@@ -237,13 +238,14 @@ class _IdOcrScreenState extends State<IdOcrScreen> {
 
                 const SizedBox(height: 12),
 
-                // เนื้อหาเลื่อนสกอร์ลได้ (เรียง: กรอบรูป -> ฟิลด์ -> ปุ่ม)
+                // เนื้อหา: กรอบรูป -> ฟิลด์ -> ปุ่มยืนยัน
                 Expanded(
                   child: SingleChildScrollView(
                     padding: const EdgeInsets.only(bottom: 12),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.center,
                       children: [
+                        // ===== กรอบแสดงภาพ =====
                         Center(
                           child: SizedBox(
                             width: 322,
@@ -251,7 +253,6 @@ class _IdOcrScreenState extends State<IdOcrScreen> {
                             child: ClipRRect(
                               borderRadius: BorderRadius.circular(40),
                               child: Material(
-                                // ใส่ไว้ให้ InkWell มี ripple (optional)
                                 color: Colors.transparent,
                                 child: InkWell(
                                   onTap: _busy ? null : _chooseSource,
@@ -335,7 +336,7 @@ class _IdOcrScreenState extends State<IdOcrScreen> {
 
                         const SizedBox(height: 24),
 
-                        // ===== ปุ่มยืนยัน (ต่อท้ายฟิลด์เลย) =====
+                        // ===== ปุ่มยืนยัน =====
                         SizedBox(
                           width: 231,
                           height: 40,

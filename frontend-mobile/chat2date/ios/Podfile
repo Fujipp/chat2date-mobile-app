@@ -1,17 +1,11 @@
-platform :ios, '13.0'
+platform :ios, '15.5'
 ENV['COCOAPODS_DISABLE_STATS'] = 'true'
 
-project 'Runner', {
-  'Debug' => :debug,
-  'Profile' => :release,
-  'Release' => :release,
-}
+project 'Runner', { 'Debug' => :debug, 'Profile' => :release, 'Release' => :release }
 
 def flutter_root
   generated_xcode_build_settings_path = File.expand_path(File.join('..', 'Flutter', 'Generated.xcconfig'), __FILE__)
-  unless File.exist?(generated_xcode_build_settings_path)
-    raise "Generated.xcconfig must exist. Run 'flutter pub get' first."
-  end
+  raise "Run 'flutter pub get' first." unless File.exist?(generated_xcode_build_settings_path)
   File.foreach(generated_xcode_build_settings_path) do |line|
     matches = line.match(/FLUTTER_ROOT\=(.*)/)
     return matches[1].strip if matches
@@ -24,27 +18,28 @@ require File.expand_path(File.join('packages', 'flutter_tools', 'bin', 'podhelpe
 flutter_ios_podfile_setup
 
 target 'Runner' do
-  use_frameworks!
+  # ใช้ static frameworks จะนิ่งกับปลั๊กอินมากกว่า
+  use_frameworks! :linkage => :static
   use_modular_headers!
 
   flutter_install_all_ios_pods File.dirname(File.realpath(__FILE__))
 end
 
-# 👉 รวมทุกอย่างไว้ใน post_install เดียว
 post_install do |installer|
+  # บังคับระดับ "project" ของ Pods ด้วย (กันบางเคส override)
+  installer.pods_project.build_configurations.each do |config|
+    config.build_settings['IPHONEOS_DEPLOYMENT_TARGET'] = '15.5'
+  end
+
   installer.pods_project.targets.each do |target|
-    # ค่าจำเป็นของ Flutter
     flutter_additional_ios_build_settings(target)
 
-    # บังคับ deployment target ให้ตรงกัน (13.0)
     target.build_configurations.each do |config|
-      config.build_settings['IPHONEOS_DEPLOYMENT_TARGET'] = '13.0'
-      # เปิดสิทธิ์ที่ plugin permission_handler ใช้
+      config.build_settings['IPHONEOS_DEPLOYMENT_TARGET'] = '15.5'
       config.build_settings['GCC_PREPROCESSOR_DEFINITIONS'] ||= [
         '$(inherited)',
         'PERMISSION_CAMERA=1',
         'PERMISSION_PHOTOS=1',
-        # ถ้าจะขอ gallery แบบ add-only (ไม่จำเป็นตอนนี้) => 'PERMISSION_PHOTOS_ADD_ONLY=1',
       ]
     end
   end

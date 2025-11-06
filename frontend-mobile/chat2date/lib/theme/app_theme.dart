@@ -4,7 +4,7 @@ import 'app_colors.dart';
 
 ThemeData buildLightTheme() {
   const baseFont = 'Inter';
-  const fontFallback = ['Itim']; // เมื่อเจออักษรไทยจะตกไปใช้ Itim
+  const fontFallback = ['Inter']; // เมื่อเจออักษรไทยจะตกไปใช้ Itim
 
   final base = ThemeData(
     useMaterial3: true,

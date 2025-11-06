@@ -1,6 +1,5 @@
 import 'package:chat2date/theme/app_theme.dart';
 import 'package:flutter/material.dart';
-
 import 'screens/index.dart';
 
 final GlobalKey<NavigatorState> rootNavigatorKey = GlobalKey<NavigatorState>();
@@ -21,7 +20,7 @@ class MyApp extends StatelessWidget {
       theme: buildLightTheme(),
       navigatorKey: navigatorKey,
       initialRoute:
-          '/kyc-id-ocr', //เวลาโค้ดเปลี่ยนเป็น path ตัวเองเอาไว้แสดงหน้าของตัวเองเด้อ
+          '/splash', //เวลาโค้ดเปลี่ยนเป็น path ตัวเองเอาไว้แสดงหน้าของตัวเองเด้อ
       routes: {
         //Test
         '/test': (context) => const ComponentTestScreen(),
@@ -45,6 +44,10 @@ class MyApp extends StatelessWidget {
         '/phone': (context) => const PhonePage(),
         '/otp': (context) => const OtpPage(),
         '/kyc-id-ocr': (context) => const IdOcrScreen(),
+        '/face-scan': (context) => const FaceVerifyScreen(),
+        '/kyc-loading': (context) => const KycLoadingScreen(),
+        '/kyc-result-success': (context) => const KycResultSuccessScreen(),
+        '/kyc-result-fail': (context) => const KycResultFailScreen(),
       },
       //ปุ่มไว้สำหรับดู comp
       builder: (context, child) {

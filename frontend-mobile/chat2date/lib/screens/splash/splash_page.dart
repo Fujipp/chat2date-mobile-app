@@ -10,7 +10,7 @@ class SplashPage extends StatefulWidget {
 }
 
 class _SplashPageState extends State<SplashPage> {
-  static const _svgPath = 'assets/images/logo_chat2date.svg';
+  static const _svgPath = 'assets/icons/logo_chat2date.svg';
 
   late final Future<bool> _logoExists;
 

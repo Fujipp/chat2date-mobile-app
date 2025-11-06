@@ -1,6 +1,7 @@
 // lib/services/ocr_thaiid_service.dart
 import 'dart:convert';
 import 'dart:io';
+import 'dart:typed_data'; // ✅ เพิ่ม
 import 'package:http/http.dart' as http;
 import 'package:intl/intl.dart';
 
@@ -17,12 +18,15 @@ class ThaiIdOcrConfig {
 
 class ThaiIdOcrResult {
   final String fullName; // ชื่อ-นามสกุล (ไทยถ้ามี)
-  final DateTime birthDate;
+  final DateTime birthDate; // วันเกิด (ค.ศ.)
   final String gender; // ชาย | หญิง | อื่นๆ
+  final Uint8List? cardFaceBytes; // ✅ รูปหน้า (มาจาก field face ของ iApp)
+
   ThaiIdOcrResult({
     required this.fullName,
     required this.birthDate,
     required this.gender,
+    this.cardFaceBytes,
   });
 
   int get age {
@@ -80,7 +84,6 @@ class ThaiIdOcrService {
     // ===== DOB: ใช้ th_dob เป็นหลัก, สำรอง en_dob =====
     final thDobRaw = (json['th_dob'] ?? '') as String;
     final enDobRaw = (json['en_dob'] ?? '') as String;
-
     final dob = _parseThaiOrEnglishDob(thDobRaw, enDobRaw);
 
     // ===== เพศ -> ไทย =====
@@ -91,7 +94,23 @@ class ThaiIdOcrService {
       _ => 'อื่นๆ',
     };
 
-    return ThaiIdOcrResult(fullName: fullName, birthDate: dob, gender: gender);
+    // ===== รูปหน้า (Base64) จาก iApp =====
+    Uint8List? faceBytes;
+    final faceB64 = (json['face'] ?? '') as String;
+    if (faceB64.isNotEmpty) {
+      try {
+        faceBytes = base64Decode(faceB64);
+      } catch (_) {
+        // ไม่ให้แครช ถ้าถอด base64 ไม่ได้ ก็ปล่อยให้เป็น null
+      }
+    }
+
+    return ThaiIdOcrResult(
+      fullName: fullName,
+      birthDate: dob,
+      gender: gender,
+      cardFaceBytes: faceBytes, // ✅ คืนออกไปด้วย
+    );
   }
 
   /// พยายาม parse วันเกิดจาก th_dob ก่อน แล้วค่อย fallback ไป en_dob
@@ -152,19 +171,18 @@ class ThaiIdOcrService {
       'ธันวาคม': 12,
     };
 
-    // ตัดจุดออก (เช่น พ.ย. -> พ.ย)
+    // ตัดจุดออก (เช่น พ.ย. -> พย)
     final cleaned = s.replaceAll('.', '');
     final parts = cleaned.split(' ');
     if (parts.length >= 3) {
       final day = int.tryParse(parts[0]) ?? 1;
-      final mo =
-          months[parts[1]] ??
-          months.entries
-              .firstWhere(
-                (e) => e.key.replaceAll('.', '') == parts[1],
-                orElse: () => const MapEntry('?', 0),
-              )
-              .value;
+      final mo = months.entries
+          .firstWhere(
+            // เทียบแบบลบจุดออกทั้งสองฝั่ง
+            (e) => e.key.replaceAll('.', '') == parts[1],
+            orElse: () => const MapEntry('?', 0),
+          )
+          .value;
       final be = int.tryParse(parts[2]) ?? 2540;
       if (mo >= 1 && mo <= 12) {
         return DateTime(be - 543, mo, day);
@@ -174,8 +192,9 @@ class ThaiIdOcrService {
     // ลอง ISO เผื่ออนาคต provider เปลี่ยนรูปแบบ
     try {
       final dt = DateTime.parse(s);
-      // ถ้าเป็น BE เผลอใส่มาเป็นเลขใหญ่ (เช่น 2546-11-26) ให้ลองลด 543
-      if (dt.year > DateTime.now().year + 1) {
+      // ถ้าเป็น BE เผลอใส่มาเป็นปีใหญ่เกิน ให้ลด 543
+      final nowYear = DateTime.now().year;
+      if (dt.year > nowYear + 1) {
         return DateTime(dt.year - 543, dt.month, dt.day);
       }
       return dt;
