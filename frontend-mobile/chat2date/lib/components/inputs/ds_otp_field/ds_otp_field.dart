@@ -64,14 +64,12 @@ class _DsOtpFieldState extends State<DsOtpField> {
   void _notify() {
     final v = _value;
     widget.onChanged?.call(v);
-    // ✅ เช็คว่าครบทุกช่องจริง ๆ (ไม่มีช่องว่าง)
     if (v.length == widget.length && _ctls.every((c) => c.text.isNotEmpty)) {
       widget.onCompleted?.call(v);
     }
   }
 
   void _handlePaste(String pasted, int startIndex) {
-    // เก็บเฉพาะตัวเลข และตัดยาวเกิน
     final digits = pasted.replaceAll(RegExp(r'[^0-9]'), '');
     if (digits.isEmpty) return;
     final chars = digits.split('');
@@ -129,25 +127,19 @@ class _DsOtpFieldState extends State<DsOtpField> {
                 focusNode: _nodes[index],
                 obscure: widget.obscure,
                 onChanged: (val) {
-                  // รองรับกรณีวาง (val ความยาว > 1)
                   if (val.length > 1) {
                     _handlePaste(val, index);
                     return;
                   }
-
-                  // ถ้ากรอก 1 ตัว ออโต้ไปช่องถัดไป
                   if (val.isNotEmpty && index < widget.length - 1) {
                     _nodes[index + 1].requestFocus();
                   }
-
-                  // ถ้าครบทุกตัว ให้ unfocus ช่องสุดท้าย
                   if (_ctls.every((c) => c.text.isNotEmpty)) {
                     _nodes.last.unfocus();
                   }
                   _notify();
                 },
                 onBackspaceOnEmpty: () {
-                  // ลบแล้วถอยไปช่องก่อนหน้า (ตอนช่องนี้ว่างอยู่แล้ว)
                   if (index > 0) {
                     _ctls[index - 1].clear();
                     _nodes[index - 1].requestFocus();
@@ -211,50 +203,74 @@ class _OtpBox extends StatelessWidget {
             },
           ),
         },
-        child: TextField(
-          controller: controller,
-          focusNode: focusNode,
-          textAlign: TextAlign.center,
-          style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-          keyboardType: TextInputType.number,
-          textInputAction: TextInputAction.next,
-          maxLength: 1,
-          showCursor: true,
-          obscureText: obscure,
-          // ✅ formatter พิเศษ: จับ backspace ตอนช่อง "ว่างอยู่แล้ว"
-          inputFormatters: [
-            FilteringTextInputFormatter.digitsOnly,
-            LengthLimitingTextInputFormatter(1),
-            _BackspaceFormatter(onBackspaceEmpty: onBackspaceOnEmpty),
-          ],
-          decoration: InputDecoration(
-            counterText: '',
-            filled: true,
-            fillColor: AppColors.inputBg,
-            contentPadding: const EdgeInsets.only(
-              top: 12,
-            ), // center-ish baseline
-            enabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide: const BorderSide(color: AppColors.inputBorder),
-            ),
-            focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide: BorderSide(
-                color: Theme.of(context).colorScheme.primary,
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            // คำนวณฟอนต์ให้ “พอดีช่อง” โดยดูด้านสั้นสุดของกล่อง
+            final shortest = constraints.biggest.shortestSide;
+            // ค่า 0.58 กำลังดีสำหรับตัวเลข/น้ำหนัก bold ในช่องมีขอบ/ระยะหายใจ
+            final fontSize = shortest * 0.58;
+
+            return TextField(
+              controller: controller,
+              focusNode: focusNode,
+              textAlign: TextAlign.center,
+              textAlignVertical: TextAlignVertical.center, // กลางแกน Y
+              style: TextStyle(
+                fontSize: fontSize,
+                fontWeight: FontWeight.w700,
+                height: 1.0, // line-height กระชับ ไม่ดันออกนอก
               ),
-            ),
-          ),
-          onChanged: onChanged,
-          onTap: () {
-            // select ทั้งช่องเพื่อพิมพ์ทับง่าย ๆ
-            controller.selection = TextSelection(
-              baseOffset: 0,
-              extentOffset: controller.text.length,
+
+              // === คีย์บอร์ดตัวเลขล้วน + ปิดลูกเล่นที่ไม่จำเป็น ===
+              keyboardType: TextInputType.number,
+              textInputAction: TextInputAction.next,
+              maxLength: 1,
+              showCursor: true,
+              obscureText: obscure,
+              enableSuggestions: false,
+              autocorrect: false,
+              smartDashesType: SmartDashesType.disabled,
+              smartQuotesType: SmartQuotesType.disabled,
+              autofillHints: const [AutofillHints.oneTimeCode],
+
+              // formatter: เฉพาะตัวเลข + จำกัด 1 ตัว + จับ backspace ตอนว่าง
+              inputFormatters: [
+                FilteringTextInputFormatter.digitsOnly,
+                LengthLimitingTextInputFormatter(1),
+              ],
+              // ใช้ RawKey handler แทน formatter สำหรับ backspace-ตอนว่าง
+              onChanged: onChanged,
+
+              decoration: InputDecoration(
+                isDense: true,
+                counterText: '',
+                filled: true,
+                fillColor: AppColors.inputBg,
+                contentPadding:
+                    EdgeInsets.zero, // ไม่มี padding เพื่อให้พอดีช่องจริง
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: const BorderSide(color: AppColors.inputBorder),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide(
+                    color: Theme.of(context).colorScheme.primary,
+                  ),
+                ),
+              ),
+
+              // เลือกทั้งหมดเมื่อแตะ เพื่อพิมพ์ทับง่าย
+              onTap: () {
+                controller.selection = TextSelection(
+                  baseOffset: 0,
+                  extentOffset: controller.text.length,
+                );
+              },
+              onEditingComplete: () {}, // กันปิดคีย์บอร์ดเวลา “Done”
+              onSubmitted: (_) {},
             );
           },
-          onEditingComplete: () {}, // กัน keyboard ยิง done แล้วปิด
-          onSubmitted: (_) {},
         ),
       ),
     );
@@ -264,22 +280,4 @@ class _OtpBox extends StatelessWidget {
 /// Intent สำหรับจับ Paste (ใช้กับ Shortcuts/Actions)
 class PasteTextIntent extends Intent {
   const PasteTextIntent();
-}
-
-/// Formatter เฝ้าดู "การกด backspace ตอนช่องว่าง"
-class _BackspaceFormatter extends TextInputFormatter {
-  _BackspaceFormatter({required this.onBackspaceEmpty});
-  final VoidCallback onBackspaceEmpty;
-
-  @override
-  TextEditingValue formatEditUpdate(
-    TextEditingValue oldValue,
-    TextEditingValue newValue,
-  ) {
-    // ทั้งเก่าและใหม่ว่าง -> ผู้ใช้กด backspace ตอนช่องว่าง
-    if (oldValue.text.isEmpty && newValue.text.isEmpty) {
-      onBackspaceEmpty();
-    }
-    return newValue;
-  }
 }

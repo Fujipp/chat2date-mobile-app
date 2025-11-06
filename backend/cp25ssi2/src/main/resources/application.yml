@@ -3,9 +3,21 @@ smsmkt:
   secretKey: "iyGb6hxrlCcrl6Hn"
   projectKey: "df0361c97a"
 
+azure:
+  faceEndpoint: https://chat2date.cognitiveservices.azure.com/"
+  # ตรวจในพอร์ทัล Azure ของ Dev เองว่า path เวอร์ชันอะไร (v1.0/v1.1/v1.2)
+  # โค้ดด้านล่างจะประกอบ path เองจาก base นี้
+  faceApiKey: "5PGF0Yc9tG1UJ1Ii5XILQe1q3F4vv5m1TsqFuXnTapXigJHaAVBxJQQJ99BKACqBBLyXJ3w3AAAKACOGZWBg"   # แนะนำส่งผ่าน ENV
+
+thaiid:
+  endpoint: "https://api.iapp.co.th/thai-national-id-card/v3.5/front"
+  apiKey: "Z0XVt18RSoFlZAkRnhGy9U3u5J8MlrZA"      # ส่งผ่าน ENV
+
 server:
-  port: 8080
   address: 0.0.0.0
+  port: 8080
+  tomcat:
+    connection-timeout: 10s
 
 spring:
   mvc:
@@ -15,3 +27,6 @@ spring:
           allowed-origins: "*"
           allowed-methods: "GET,POST,OPTIONS"
           allowed-headers: "*"
+  jackson:
+    serialization:
+      WRITE_DATES_AS_TIMESTAMPS: false

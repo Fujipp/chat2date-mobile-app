@@ -2,15 +2,18 @@
 import 'dart:typed_data';
 
 class FaceScanArgs {
-  final Uint8List cardFaceBytes;
-  final String fullName;
-  final DateTime dob;
-  final String gender;
+  /// ใบหน้าที่ตัดมาจากบัตร (เป็น bytes)
+  final Uint8List? cardFaceBytes;
+
+  /// ข้อมูลประกอบ (จาก OCR) — ใช้โชว์/เก็บ Log ภายหลังได้
+  final String? fullName;
+  final DateTime? dob;
+  final String? gender;
 
   const FaceScanArgs({
-    required this.cardFaceBytes,
-    required this.fullName,
-    required this.dob,
-    required this.gender,
+    this.cardFaceBytes,
+    this.fullName,
+    this.dob,
+    this.gender,
   });
 }
