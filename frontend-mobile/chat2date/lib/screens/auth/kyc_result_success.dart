@@ -14,7 +14,7 @@ class _KycResultSuccessScreenState extends State<KycResultSuccessScreen> {
   void initState() {
     super.initState();
     // auto ไปหน้า /home หลัง 100 วินาที (ตามเดิม)
-    Future.delayed(const Duration(seconds: 5), () {
+    Future.delayed(const Duration(seconds: 100), () {
       if (!mounted) return;
       Navigator.pop(context); // ปิด success
       Navigator.pushNamed(context, '/home');

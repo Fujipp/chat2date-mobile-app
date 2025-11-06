@@ -4,7 +4,7 @@ import 'package:chat2date/components/index.dart'; // มี DsButton / Variant /
 
 class HomeLoginPage extends StatelessWidget {
   const HomeLoginPage({super.key});
-  static const _logoPath = 'assets/icons/logo_chat2date.svg';
+  static const _logoPath = 'assets/icons/icon_logo_app_text.svg';
 
   @override
   Widget build(BuildContext context) {

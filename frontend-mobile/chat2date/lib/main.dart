@@ -20,7 +20,7 @@ class MyApp extends StatelessWidget {
       theme: buildLightTheme(),
       navigatorKey: navigatorKey,
       initialRoute:
-          '/kyc-id-ocr', //เวลาโค้ดเปลี่ยนเป็น path ตัวเองเอาไว้แสดงหน้าของตัวเองเด้อ
+          '/kyc-result-fail', //เวลาโค้ดเปลี่ยนเป็น path ตัวเองเอาไว้แสดงหน้าของตัวเองเด้อ
       routes: {
         //Test
         '/test': (context) => const ComponentTestScreen(),
