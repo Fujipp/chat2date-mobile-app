@@ -35,7 +35,7 @@ class _ComponentTestScreenState extends State<ComponentTestScreen> {
 
   int bottomNavIndex = 0;
 
-  final int _counter = 0;
+  // final int _counter = 0;
 
   String _otp = '';
   bool _submitting = false;

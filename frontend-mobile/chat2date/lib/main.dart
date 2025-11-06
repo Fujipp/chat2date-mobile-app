@@ -21,7 +21,7 @@ class MyApp extends StatelessWidget {
       theme: buildLightTheme(),
       navigatorKey: navigatorKey,
       initialRoute:
-          '/otp', //เวลาโค้ดเปลี่ยนเป็น path ตัวเองเอาไว้แสดงหน้าของตัวเองเด้อ
+          '/kyc-id-ocr', //เวลาโค้ดเปลี่ยนเป็น path ตัวเองเอาไว้แสดงหน้าของตัวเองเด้อ
       routes: {
         //Test
         '/test': (context) => const ComponentTestScreen(),
@@ -44,6 +44,7 @@ class MyApp extends StatelessWidget {
         '/policy': (context) => const PolicyPage(),
         '/phone': (context) => const PhonePage(),
         '/otp': (context) => const OtpPage(),
+        '/kyc-id-ocr': (context) => const IdOcrScreen(),
       },
       //ปุ่มไว้สำหรับดู comp
       builder: (context, child) {

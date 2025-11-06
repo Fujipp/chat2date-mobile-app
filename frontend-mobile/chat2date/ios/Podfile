@@ -30,12 +30,22 @@ target 'Runner' do
   flutter_install_all_ios_pods File.dirname(File.realpath(__FILE__))
 end
 
+# 👉 รวมทุกอย่างไว้ใน post_install เดียว
 post_install do |installer|
   installer.pods_project.targets.each do |target|
+    # ค่าจำเป็นของ Flutter
     flutter_additional_ios_build_settings(target)
-    # บังคับ deployment target ให้ตรงกัน (ไม่ใช่การ set platform ซ้ำ)
+
+    # บังคับ deployment target ให้ตรงกัน (13.0)
     target.build_configurations.each do |config|
       config.build_settings['IPHONEOS_DEPLOYMENT_TARGET'] = '13.0'
+      # เปิดสิทธิ์ที่ plugin permission_handler ใช้
+      config.build_settings['GCC_PREPROCESSOR_DEFINITIONS'] ||= [
+        '$(inherited)',
+        'PERMISSION_CAMERA=1',
+        'PERMISSION_PHOTOS=1',
+        # ถ้าจะขอ gallery แบบ add-only (ไม่จำเป็นตอนนี้) => 'PERMISSION_PHOTOS_ADD_ONLY=1',
+      ]
     end
   end
 end
