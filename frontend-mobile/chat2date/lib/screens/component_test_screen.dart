@@ -7,6 +7,7 @@ import 'package:chat2date/components/chat/chat_text_component.dart';
 import 'package:chat2date/components/chat/content_switcher.dart';
 import 'package:chat2date/components/chat/input_chat_component.dart';
 import 'package:chat2date/components/chat/spin_date_component.dart';
+import 'package:chat2date/components/common/custom_range_slider.dart';
 import 'package:chat2date/components/common/image_upload_grid.dart';
 import 'package:chat2date/components/common/loading_component.dart';
 import 'package:chat2date/components/common/modal_component.dart';
@@ -39,7 +40,7 @@ class _ComponentTestScreenState extends State<ComponentTestScreen> {
 
   String _otp = '';
   bool _submitting = false;
-
+  RangeValues _selectedRange = const RangeValues(18, 100);
   final _nameCtrl = TextEditingController();
   final _phoneCtrl = TextEditingController();
   final _nextCtrl = TextEditingController();
@@ -1154,6 +1155,17 @@ class _ComponentTestScreenState extends State<ComponentTestScreen> {
           ImageUploadGrid(
             onImagesChanged: (images) {
               print('จำนวนรูปที่เลือก: ${images.length}');
+            },
+          ),
+          CustomRangeSlider(
+            values: _selectedRange,
+            min: 18,
+            max: 100,
+            divisions: 82,
+            onChanged: (RangeValues values) {
+              setState(() {
+                _selectedRange = values;
+              });
             },
           ),
         ],
