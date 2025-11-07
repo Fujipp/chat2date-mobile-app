@@ -1,6 +1,8 @@
 import 'dart:math';
 import 'dart:ui';
 import 'package:chat2date/components/buttons/ds_button.dart';
+import 'package:chat2date/components/common/custom_range_slider.dart';
+import 'package:chat2date/components/inputs/ds_label.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:sliding_up_panel/sliding_up_panel.dart';
@@ -150,6 +152,136 @@ class _DiscoveryScreenState extends State<DiscoveryScreen>
     super.dispose();
   }
 
+  // -------------Part Settings Panel------------------
+
+  OverlayEntry? _settingsOverlay;
+  bool _isSettingsOpen = false;
+  RangeValues _selectedRange = const RangeValues(1, 1900);
+
+  void _togglePanel(BuildContext context) {
+    if (_isSettingsOpen) {
+      _settingsOverlay?.remove();
+      _settingsOverlay = null;
+      _isSettingsOpen = false;
+      return;
+    }
+
+    final overlay = Overlay.of(context);
+    final renderBox = context.findRenderObject() as RenderBox?;
+    if (renderBox == null) return;
+
+    final offset = renderBox.localToGlobal(Offset.zero);
+
+    _settingsOverlay = OverlayEntry(
+      builder: (context) => StatefulBuilder(
+        builder: (context, setStateOverlay) {
+          return Positioned(
+            top: offset.dy + 80, // ตำแหน่งต่อจาก header
+            left: 16,
+            right: 16,
+            child: Material(
+              color: Colors.transparent,
+              child: Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(12),
+                  boxShadow: const [
+                    BoxShadow(
+                      color: Colors.black26,
+                      blurRadius: 10,
+                      offset: Offset(0, 4),
+                    ),
+                  ],
+                ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      "ตั้งค่าการค้นหา",
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        DsLabel(
+                          label: 'ช่วงระยะห่างที่คุณอยากเจอ',
+                          required: true,
+                          labelFontSize: 20,
+                        ),
+                        const SizedBox(height: 10),
+
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text(
+                              '${_selectedRange.start.round()} Km.',
+                              style: const TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                            Text(
+                              '${_selectedRange.end.round()} Km.',
+                              style: const TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ],
+                        ),
+
+                        const SizedBox(height: 10),
+
+                        CustomRangeSlider(
+                          values: _selectedRange,
+                          min: 1,
+                          max: 1900,
+                          divisions: 82,
+                          onChanged: (RangeValues values) {
+                            setStateOverlay(() {
+                              _selectedRange = values;
+                            });
+                          },
+                        ),
+
+                        const SizedBox(height: 10),
+
+                        //เผื่อใช้ ถ้าไม่ใช้ลบไปได้
+                        Center(
+                          child: DsButton(
+                            label: 'ยืนยัน',
+                            onPressed: () => {
+                              setStateOverlay(() {
+                                _isSettingsOpen = false;
+                              }),
+                              _settingsOverlay?.remove(),
+                              _settingsOverlay = null,
+                            },
+                            fontWeight: FontWeight.w700,
+                            size: DsButtonSize.md,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          );
+        },
+      ),
+    );
+
+    overlay.insert(_settingsOverlay!);
+    _isSettingsOpen = true;
+  }
+
   @override
   Widget build(BuildContext context) {
     // card transforms derive from controller value
@@ -167,17 +299,7 @@ class _DiscoveryScreenState extends State<DiscoveryScreen>
             rightIconPath: 'assets/icons/icon_menu.svg',
             iconColor: const Color(0xFF5ce1e6),
             onBack: () {},
-            onSettings: () {
-              showDialog(
-                context: context,
-                barrierDismissible: true,
-                builder: (_) => const ModalComponent(
-                  topic: 'hello',
-                  textOnly: true,
-                  onRange: true,
-                ),
-              );
-            },
+            onSettings: () => _togglePanel(context),
           ),
 
           // ===== Canvas (ภาพ + Panels + Overlay) =====

@@ -38,6 +38,7 @@ class AppColors {
   static const Color infoIcon = Color(0xFF075985);
   static const Color textNeutral = Color(0xFF71727A);
   static const Color backgroundWhite = Color(0xFFF7F8FD);
+  static const Color nonSelected = Color(0xFFE2E8F0);
 
   // === Status ===
   static const Color success = Color(0xFF9FE2BF);

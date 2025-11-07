@@ -24,19 +24,18 @@ class HeadersWithStyles extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 16,
-                  vertical: 12,
-                ),
+                height: 30,
+                width: 94,
+                alignment: Alignment.center,
                 clipBehavior: Clip.antiAlias,
                 decoration: ShapeDecoration(
                   color: Colors.white,
                   shape: RoundedRectangleBorder(
                     side: BorderSide(
-                      width: 2,
+                      width: 3,
                       color: AppColors.brandPrimary200,
                     ),
-                    borderRadius: BorderRadius.circular(12),
+                    borderRadius: BorderRadius.circular(10),
                   ),
                 ),
                 constraints: const BoxConstraints(minWidth: 90, maxHeight: 48),
@@ -44,7 +43,7 @@ class HeadersWithStyles extends StatelessWidget {
                   title,
                   style: const TextStyle(
                     color: AppColors.lightPrimary,
-                    fontSize: 20,
+                    fontSize: 18,
                     fontFamily: 'Inter',
                     fontWeight: FontWeight.w700,
                   ),
@@ -74,7 +73,7 @@ class HeadersWithStyles extends StatelessWidget {
                           shape: RoundedRectangleBorder(
                             side: BorderSide(
                               width: 2,
-                              color: AppColors.inputPlaceholder,
+                              color: AppColors.nonSelected,
                             ),
                             borderRadius: BorderRadius.circular(12),
                           ),
