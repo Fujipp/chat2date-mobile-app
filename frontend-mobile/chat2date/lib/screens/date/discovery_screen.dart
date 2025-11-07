@@ -135,7 +135,7 @@ class _DiscoveryScreenState extends State<DiscoveryScreen>
               await Future.delayed(const Duration(milliseconds: 150));
               if (!mounted) return;
               setState(() {
-                _index = (_index + 1) % widget.images.length;
+                _index = 0;
                 _startPos = Offset.zero;
                 _targetPos = Offset.zero;
                 _startRot = 0;
