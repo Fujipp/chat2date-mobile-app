@@ -57,18 +57,17 @@ public class User {
     @Column(name = "faceVerify", nullable = false)
     private Boolean faceVerify = false;
 
-    @ColumnDefault("0")
+    @ColumnDefault("100")
     @Column(name = "behaviorScore", nullable = false)
-    private Integer behaviorScore;
+    private Integer behaviorScore = 100;
 
     @ColumnDefault("0")
     @Column(name = "isBlacklist", nullable = false)
     private Boolean isBlacklist = false;
 
     @ColumnDefault("'PENDING'")
-    @Lob
     @Column(name = "accountStatus", nullable = false)
-    private String accountStatus;
+    private String accountStatus = "PENDING";
 
     @Column(name = "version", nullable = false)
     private Integer version;
