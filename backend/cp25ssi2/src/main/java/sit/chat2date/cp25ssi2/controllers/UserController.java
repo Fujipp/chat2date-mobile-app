@@ -1,8 +1,10 @@
 package sit.chat2date.cp25ssi2.controllers;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.server.ResponseStatusException;
 import sit.chat2date.cp25ssi2.entities.User;
 import sit.chat2date.cp25ssi2.repositories.UserRepository;
 import sit.chat2date.cp25ssi2.services.UserService;
@@ -25,10 +27,10 @@ public class UserController {
     }
 
     @GetMapping("/users/{id}")
-    public Optional<User> getUserById(@PathVariable int id) { return userRepository.findById(id); }
+    public User getUserById(@PathVariable int id) { return userRepository.findById(id).orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND)); }
 
     @PutMapping("/users/{id}")
-    public User updateUserById(@PathVariable int id,@RequestBody User user) {return userService.updateUserById(id, user);}
+    public ResponseEntity<User> updateUserById(@PathVariable int id, @RequestBody User user) {return userService.updateUserById(id, user);}
 
     @PostMapping("/users")
     public User createUser(@RequestBody User user) {

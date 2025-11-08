@@ -10,6 +10,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.server.ResponseStatusException;
 import sit.chat2date.cp25ssi2.entities.User;
+import sit.chat2date.cp25ssi2.exceiptions.PreconditionFailedException;
 import sit.chat2date.cp25ssi2.repositories.UserRepository;
 
 import java.util.HashSet;
@@ -21,8 +22,11 @@ public class UserService {
     @Autowired
     private UserRepository userRepository;
 
-    public User updateUserById(Integer id, @RequestBody User user) {
+    public ResponseEntity<User> updateUserById(Integer id, @RequestBody User user) {
         User userById = userRepository.findById(id).orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
+        if (!user.getVersion().equals(userById.getVersion())) {
+            throw new PreconditionFailedException("version", "mismatch");
+        }
         BeanUtils.copyProperties(user, userById, getNullPropertyNames(user));
         if (user.getFaceVerify() != null) {
             userById.setFaceVerify(user.getFaceVerify());
@@ -30,11 +34,14 @@ public class UserService {
         if (user.getIsBlacklist() != null) {
             userById.setIsBlacklist(user.getIsBlacklist());
         }
-        if (user.getIsVerify() != null){
+        if (user.getIsVerify() != null) {
             userById.setIsVerify(user.getIsVerify());
         }
         userById.setVersion(userById.getVersion() + 1);
-        return userRepository.save(userById);
+
+        User updatedUser = userRepository.save(userById);
+
+        return ResponseEntity.ok(updatedUser);
     }
 
     public ResponseEntity<Void> deleteUser(Integer id) {
