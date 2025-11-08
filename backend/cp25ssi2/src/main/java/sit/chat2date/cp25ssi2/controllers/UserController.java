@@ -8,6 +8,7 @@ import sit.chat2date.cp25ssi2.repositories.UserRepository;
 import sit.chat2date.cp25ssi2.services.UserService;
 
 import java.util.List;
+import java.util.Optional;
 
 @RestController
 public class UserController {
@@ -22,6 +23,12 @@ public class UserController {
     public List<User> getAllUsers() {
         return userRepository.findAll();
     }
+
+    @GetMapping("/users/{id}")
+    public Optional<User> getUserById(@PathVariable int id) { return userRepository.findById(id); }
+
+    @PutMapping("/users/{id}")
+    public User updateUserById(@PathVariable int id,@RequestBody User user) {return userService.updateUserById(id, user);}
 
     @PostMapping("/users")
     public User createUser(@RequestBody User user) {
