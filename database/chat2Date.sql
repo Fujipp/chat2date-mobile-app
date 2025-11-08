@@ -40,7 +40,7 @@ USE `chat2date` ;
 -- Table `chat2date`.`user`
 -- -----------------------------------------------------
 CREATE TABLE IF NOT EXISTS `chat2date`.`user` (
-  `userId` INT NOT NULL,
+  `userId` INT NOT NULL AUTO_INCREMENT,
   `email` VARCHAR(100) NULL DEFAULT NULL,
   `phoneNumber` VARCHAR(10) NULL DEFAULT NULL,
   `isVerify` TINYINT NOT NULL DEFAULT false,
