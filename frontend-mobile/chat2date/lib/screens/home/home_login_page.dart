@@ -1,6 +1,7 @@
+import 'package:chat2date/components/index.dart'; // มี DsButton / Variant / Size
+import 'package:chat2date/services/auth_service.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
-import 'package:chat2date/components/index.dart'; // มี DsButton / Variant / Size
 
 class HomeLoginPage extends StatelessWidget {
   const HomeLoginPage({super.key});
@@ -65,12 +66,33 @@ class HomeLoginPage extends StatelessWidget {
                             size: DsButtonSize.md,
                             variant: DsButtonVariant
                                 .primary, // ฟ้าชุดเดียวกัน/โทนรอง
-                            onPressed: () {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(
-                                  content: Text('Google Sign-In: TODO'),
-                                ),
-                              );
+                            onPressed: () async {
+                              try {
+                                final authService = AuthService();
+                                final userId = await authService
+                                    .signInWithGoogle();
+
+                                if (userId != null) {
+                                  // login สำเร็จ → ไปหน้า home
+                                  Navigator.pushReplacementNamed(
+                                    context,
+                                    '/home',
+                                  );
+                                } else {
+                                  // ผู้ใช้ยกเลิก login
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(
+                                      content: Text('Login ถูกยกเลิก'),
+                                    ),
+                                  );
+                                }
+                              } catch (e) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(
+                                    content: Text('Google Sign-In Error: $e'),
+                                  ),
+                                );
+                              }
                             },
                           ),
                         ),
