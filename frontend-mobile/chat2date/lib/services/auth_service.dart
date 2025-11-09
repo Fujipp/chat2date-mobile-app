@@ -23,7 +23,7 @@ class AuthService {
     _isInitialized = true;
   }
 
-  Future<String?> signInWithGoogle() async {
+  Future<Map<String, dynamic>> signInWithGoogle() async {
     try {
       await _initializeGoogleSignIn();
 
@@ -40,16 +40,43 @@ class AuthService {
       final response = await http.post(
         Uri.parse('${ApiBase.baseUrl}/auth/google'),
         headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({'id_token': idToken}),
+        body: jsonEncode({'idToken': idToken}),
       );
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
 
-        await _storage.write(key: 'accessToken', value: data['accessToken']);
-        await _storage.write(key: 'refreshToken', value: data['refreshToken']);
+        final userId = data['user']?['id'];
+        final email = data['user']?['email'];
+        final name = data['user']?['name'];
+        final accountStatus = data['user']?['accountStatus'] ?? 'PENDING';
 
-        return data['user']['id'];
+        if (email != null) {
+          await _storage.write(key: 'email', value: email);
+        }
+
+        if (accountStatus != null) {
+          await _storage.write(key: 'accountStatus', value: accountStatus);
+        }
+        developer.log('DATA: $data', name: 'AuthService');
+
+        // if (data['accessToken'] != null) {
+        //   await _storage.write(key: 'accessToken', value: data['accessToken']);
+        // }
+
+        // if (data['refreshToken'] != null) {
+        //   await _storage.write(
+        //     key: 'refreshToken',
+        //     value: data['refreshToken'],
+        //   );
+        // }
+
+        return {
+          'userId': userId,
+          'email': email ?? '',
+          'name': name ?? 'User',
+          'accountStatus': accountStatus,
+        };
       } else {
         final error = jsonDecode(response.body);
         throw Exception(
