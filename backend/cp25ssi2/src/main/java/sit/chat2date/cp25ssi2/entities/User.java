@@ -1,15 +1,18 @@
 package sit.chat2date.cp25ssi2.entities;
 
 import jakarta.persistence.*;
-import lombok.Getter;
-import lombok.Setter;
+import lombok.*;
 import org.hibernate.annotations.ColumnDefault;
+import sit.chat2date.cp25ssi2.enums.Provider;
 
 import java.time.LocalDate;
 
 @Getter
 @Setter
 @Entity
+@Builder
+@NoArgsConstructor
+@AllArgsConstructor
 @Table(name = "user")
 public class User {
     @Id
@@ -27,9 +30,9 @@ public class User {
     @Column(name = "isVerify", nullable = false)
     private Boolean isVerify = false;
 
-    @Lob
+    @Enumerated(EnumType.STRING)
     @Column(name = "provider", nullable = false)
-    private String provider;
+    private Provider provider;
 
     @Column(name = "firstname", nullable = false, length = 50)
     private String firstname;
