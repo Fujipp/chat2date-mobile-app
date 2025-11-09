@@ -1,19 +1,22 @@
 package sit.chat2date.cp25ssi2.clients;
 
+import java.util.HashMap;
 import java.util.Map;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.*;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestTemplate;
+import sit.chat2date.cp25ssi2.services.JwtTokenUtil;
 
 @Component
 @RequiredArgsConstructor
 public class SmsmktClient {
 
   private final RestTemplate restTemplate;
+    private final JwtTokenUtil jwtTokenUtil;
 
-  @Value("${smsmkt.apiKey}")    String apiKey;
+    @Value("${smsmkt.apiKey}")    String apiKey;
   @Value("${smsmkt.secretKey}") String secretKey;
   @Value("${smsmkt.projectKey}") String projectKey;
 
@@ -52,22 +55,42 @@ public class SmsmktClient {
   }
 
   /** ตรวจ OTP -> true/false */
-  public boolean validate(String token, String otpCode, String refCode) {
-    var url = "https://portal-otp.smsmkt.com/api/otp-validate";
-    var payload = new java.util.HashMap<String, Object>();
-    payload.put("token", token);
-    payload.put("otp_code", otpCode);
-    if (refCode != null && !refCode.isBlank()) payload.put("ref_code", refCode);
+  public Map<String, Object> validate(String token, String otpCode, String refCode, String phoneNumber) {
+      // URL ของ OTP validate API
+      String url = "https://portal-otp.smsmkt.com/api/otp-validate";
 
-    var req = new HttpEntity<>(payload, headersJson());
-    ResponseEntity<Map> res = restTemplate.postForEntity(url, req, Map.class);
+      // สร้าง payload
+      Map<String, Object> payload = new HashMap<>();
+      payload.put("token", token);
+      payload.put("otp_code", otpCode);
+      if (refCode != null && !refCode.isBlank()) {
+          payload.put("ref_code", refCode);
+      }
 
-    if (res.getStatusCode() != HttpStatus.OK) return false;
-    Map<?,?> m = res.getBody();
-    if (m == null || !"000".equals(m.get("code"))) return false;
+      // ส่ง request ไปยัง OTP API
+      HttpEntity<Map<String, Object>> req = new HttpEntity<>(payload, headersJson());
+      ResponseEntity<Map> res = restTemplate.postForEntity(url, req, Map.class);
 
-    Object status = ((Map<?,?>) m.get("result")).get("status");
-    return (status instanceof Boolean) ? (Boolean) status : true; // กันกรณี API ไม่ส่ง status
+      // ตรวจสอบ response
+      boolean valid = false;
+      if (res.getStatusCode() == HttpStatus.OK && res.getBody() != null) {
+          Map<?, ?> body = res.getBody();
+          if ("000".equals(body.get("code"))) {
+              Map<?, ?> result = (Map<?, ?>) body.get("result");
+              Object status = (result != null) ? result.get("status") : null;
+              valid = (status instanceof Boolean) ? (Boolean) status : true;
+          }
+      }
+
+      // สร้าง JWT token
+      String jwtToken = jwtTokenUtil.generateToken(phoneNumber);
+
+      // return ทั้ง valid และ token
+      Map<String, Object> response = new HashMap<>();
+      response.put("valid", valid);
+      response.put("jwt_token", jwtToken);
+
+      return response;
   }
 
   private String normalizePhone(String phone) {
