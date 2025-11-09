@@ -4,6 +4,7 @@ import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.ColumnDefault;
 import sit.chat2date.cp25ssi2.enums.Provider;
+import sit.chat2date.cp25ssi2.enums.Sex;
 
 import java.time.LocalDate;
 
@@ -52,9 +53,9 @@ public class User {
     @Column(name = "age", nullable = false)
     private Integer age;
 
-    @Lob
+    @Enumerated(EnumType.STRING)
     @Column(name = "sex", nullable = false)
-    private String sex;
+    private Sex sex;
 
     @ColumnDefault("0")
     @Column(name = "faceVerify", nullable = false)
