@@ -1,4 +1,4 @@
-package sit.chat2date.cp25ssi2.exceiptions;
+package sit.chat2date.cp25ssi2.exceptions;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 import lombok.Data;

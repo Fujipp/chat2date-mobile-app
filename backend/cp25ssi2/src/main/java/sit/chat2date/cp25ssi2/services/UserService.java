@@ -10,7 +10,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.server.ResponseStatusException;
 import sit.chat2date.cp25ssi2.entities.User;
-import sit.chat2date.cp25ssi2.exceiptions.PreconditionFailedException;
+import sit.chat2date.cp25ssi2.exceptions.PreconditionFailedException;
 import sit.chat2date.cp25ssi2.repositories.UserRepository;
 
 import java.util.HashSet;

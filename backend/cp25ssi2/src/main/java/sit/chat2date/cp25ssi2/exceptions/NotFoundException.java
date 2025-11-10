@@ -1,4 +1,4 @@
-package sit.chat2date.cp25ssi2.exceiptions;
+package sit.chat2date.cp25ssi2.exceptions;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.ResponseStatus;
