@@ -5,6 +5,7 @@ import lombok.*;
 import org.hibernate.annotations.ColumnDefault;
 import org.hibernate.annotations.GenericGenerator;
 import sit.chat2date.cp25ssi2.enums.Provider;
+import sit.chat2date.cp25ssi2.enums.Role;
 import sit.chat2date.cp25ssi2.enums.Sex;
 
 import java.time.LocalDate;
@@ -79,8 +80,8 @@ public class User {
     @Column(name = "version", nullable = false)
     private Integer version;
 
-    @Lob
+    @Enumerated(EnumType.STRING)
     @Column(name = "role", nullable = false)
-    private String role;
+    private Role role;
 
 }

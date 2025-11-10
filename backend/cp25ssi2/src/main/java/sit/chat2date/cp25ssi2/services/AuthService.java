@@ -8,6 +8,7 @@ import sit.chat2date.cp25ssi2.dto.AuthenticationResponse;
 import sit.chat2date.cp25ssi2.dto.UserDto;
 import sit.chat2date.cp25ssi2.entities.User;
 import sit.chat2date.cp25ssi2.enums.Provider;
+import sit.chat2date.cp25ssi2.enums.Role;
 import sit.chat2date.cp25ssi2.enums.Sex;
 import sit.chat2date.cp25ssi2.repositories.UserRepository;
 
@@ -61,7 +62,7 @@ public class AuthService {
                     .email(email)
                     .provider(Provider.GOOGLE)
                     .version(1)
-                    .role("USER")
+                    .role(Role.USER)
                     .accountStatus("PENDING")
                     .isVerify(false)           
                     .faceVerify(false)         
