@@ -54,21 +54,4 @@ public class AuthController {
         Map<String, Object> ok = client.validate(body.getToken(), body.getOtp_code(), body.getRefCode(), body.getPhoneNumber());
         return Map.of("valid", ok);
     }
-
-    @PostMapping("/request-token/{sub}")
-    public Map<String, Object> token(@PathVariable String sub) {
-        String phoneNumber = null;
-        String email = null;
-        if (sub.length() == 10) {
-            phoneNumber = sub;
-        } else {
-            email = sub;
-        }
-
-        String jwtToken = jwtTokenUtil.generateToken(phoneNumber, email);
-
-        Map<String, Object> response = new HashMap<>();
-        response.put("jwt_token", jwtToken);
-        return response;
-    }
 }

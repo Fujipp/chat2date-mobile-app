@@ -23,6 +23,7 @@ public class AuthService {
     private final UserRepository userRepository;
 //    private final JwtTokenUtil jwtService;
     private final GoogleTokenVerifier googleTokenVerifier;
+    private final JwtTokenUtil jwtTokenUtil;
 
     public AuthenticationResponse verifyGoogleToken(String idToken) {
 
@@ -81,7 +82,7 @@ public class AuthService {
             user = userRepository.save(user);
         }
 
-//        String accessToken = jwtService.generateToken(user.getUserId());
+        String accessToken = jwtTokenUtil.generateToken(null, email);
 //        String refreshToken = jwtService.generateRefreshToken(user.getUserId());
 
         UserDto userDto = UserDto.builder()
@@ -91,7 +92,7 @@ public class AuthService {
 
         return AuthenticationResponse.builder()
                 .user(userDto)
-//                .accessToken(accessToken)
+                .accessToken(accessToken)
 //                .refreshToken(refreshToken)
                 .build();
     }
