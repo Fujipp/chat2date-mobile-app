@@ -1,13 +1,18 @@
 package sit.chat2date.cp25ssi2.exceptions;
 
+import com.fasterxml.jackson.databind.exc.InvalidFormatException;
 import jakarta.servlet.http.HttpServletRequest;
+import org.apache.tomcat.websocket.AuthenticationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.context.request.WebRequest;
+
+import java.util.Map;
 
 @ControllerAdvice
 public class GlobalExceptionHandler {
@@ -53,4 +58,32 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ErrorResponse> handleOthers(Exception ex, HttpServletRequest req) {
         return build(HttpStatus.INTERNAL_SERVER_ERROR, "Unexpected error", req.getRequestURI());
     }
+
+    @ExceptionHandler(UnauthorizedAccessException.class)
+    public ResponseEntity<Object> handleUserAuthenException(UnauthorizedAccessException ex, WebRequest request) {
+        ErrorResponse errorResponse = new ErrorResponse(HttpStatus.UNAUTHORIZED.value(),
+                "UnAuthen", request.getDescription(false));
+        return new ResponseEntity<>(errorResponse, HttpStatus.UNAUTHORIZED);
+    }
+
+    @ExceptionHandler(HttpMessageNotReadableException.class)
+    public ResponseEntity<ErrorResponse> handleEnumParsingError(HttpMessageNotReadableException ex, HttpServletRequest request) {
+        String message = "Malformed JSON request or invalid value";
+
+        if (ex.getCause() instanceof InvalidFormatException cause &&
+                cause.getTargetType().isEnum()) {
+            message = "Invalid enum value '" + cause.getValue() + "' for field '"
+                    + cause.getPath().get(0).getFieldName() + "'";
+        }
+
+        ErrorResponse errorResponse = new ErrorResponse(
+                HttpStatus.BAD_REQUEST.value(),
+                message,
+                request.getRequestURI()
+        );
+        errorResponse.setTitle(HttpStatus.BAD_REQUEST.getReasonPhrase());
+
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errorResponse);
+    }
+
 }

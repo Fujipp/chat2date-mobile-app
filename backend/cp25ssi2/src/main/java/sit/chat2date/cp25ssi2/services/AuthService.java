@@ -7,6 +7,7 @@ import org.springframework.web.server.ResponseStatusException;
 import sit.chat2date.cp25ssi2.dto.AuthenticationResponse;
 import sit.chat2date.cp25ssi2.dto.UserDto;
 import sit.chat2date.cp25ssi2.entities.User;
+import sit.chat2date.cp25ssi2.enums.AccountStatus;
 import sit.chat2date.cp25ssi2.enums.Provider;
 import sit.chat2date.cp25ssi2.enums.Role;
 import sit.chat2date.cp25ssi2.enums.Sex;
@@ -64,7 +65,7 @@ public class AuthService {
                     .provider(Provider.GOOGLE)
                     .version(1)
                     .role(Role.USER)
-                    .accountStatus("PENDING")
+                    .accountStatus(AccountStatus.PENDING)
                     .isVerify(false)           
                     .faceVerify(false)         
                     .behaviorScore(100)        

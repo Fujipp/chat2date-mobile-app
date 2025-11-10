@@ -10,6 +10,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.server.ResponseStatusException;
 import sit.chat2date.cp25ssi2.entities.User;
+import sit.chat2date.cp25ssi2.exceptions.NotFoundException;
 import sit.chat2date.cp25ssi2.exceptions.PreconditionFailedException;
 import sit.chat2date.cp25ssi2.repositories.UserRepository;
 
@@ -23,7 +24,7 @@ public class UserService {
     private UserRepository userRepository;
 
     public ResponseEntity<User> updateUserById(Integer id, @RequestBody User user) {
-        User userById = userRepository.findById(id).orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
+        User userById = userRepository.findById(id).orElseThrow(() -> new NotFoundException("User id: "+ id +" not found"));
         if (!user.getVersion().equals(userById.getVersion())) {
             throw new PreconditionFailedException("version", "mismatch");
         }
