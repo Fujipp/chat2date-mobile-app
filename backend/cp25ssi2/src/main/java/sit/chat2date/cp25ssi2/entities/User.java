@@ -3,10 +3,12 @@ package sit.chat2date.cp25ssi2.entities;
 import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.ColumnDefault;
+import org.hibernate.annotations.GenericGenerator;
 import sit.chat2date.cp25ssi2.enums.Provider;
 import sit.chat2date.cp25ssi2.enums.Sex;
 
 import java.time.LocalDate;
+import java.util.UUID;
 
 @Getter
 @Setter
@@ -17,9 +19,10 @@ import java.time.LocalDate;
 @Table(name = "user")
 public class User {
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @GeneratedValue(generator = "uuid2")
+    @GenericGenerator(name = "uuid2", strategy = "uuid2")
     @Column(name = "userId", nullable = false)
-    private Integer userId;
+    private String userId;
 
     @Column(name = "email", length = 100)
     private String email;
