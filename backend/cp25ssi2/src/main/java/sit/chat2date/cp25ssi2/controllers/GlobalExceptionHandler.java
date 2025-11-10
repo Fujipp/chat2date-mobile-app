@@ -6,8 +6,8 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.context.request.WebRequest;
-import sit.chat2date.cp25ssi2.exceiptions.ErrorResponse;
-import sit.chat2date.cp25ssi2.exceiptions.PreconditionFailedException;
+import sit.chat2date.cp25ssi2.exceptions.ErrorResponse;
+import sit.chat2date.cp25ssi2.exceptions.PreconditionFailedException;
 
 @RestController
 public class GlobalExceptionHandler {

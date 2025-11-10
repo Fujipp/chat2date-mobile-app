@@ -3,9 +3,9 @@ package sit.chat2date.cp25ssi2.services;
 import org.springframework.stereotype.Service;
 import sit.chat2date.cp25ssi2.dto.UserSummaryDto;
 import sit.chat2date.cp25ssi2.enums.ActionType;
-import sit.chat2date.cp25ssi2.exceiptions.BadRequestException;
-import sit.chat2date.cp25ssi2.exceiptions.NotFoundException;
-import sit.chat2date.cp25ssi2.exceiptions.ServiceException;
+import sit.chat2date.cp25ssi2.exceptions.BadRequestException;
+import sit.chat2date.cp25ssi2.exceptions.NotFoundException;
+import sit.chat2date.cp25ssi2.exceptions.ServiceException;
 
 import java.util.HashMap;
 import java.util.Map;
