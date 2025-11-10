@@ -18,7 +18,7 @@ USE `chat2date` ;
 -- Table `chat2date`.`user`
 -- -----------------------------------------------------
 CREATE TABLE IF NOT EXISTS `chat2date`.`user` (
-  `userId` INT NOT NULL AUTO_INCREMENT,
+  `userId` VARCHAR(36) NOT NULL,
   `email` VARCHAR(100) NULL DEFAULT NULL,
   `phoneNumber` VARCHAR(10) NULL DEFAULT NULL,
   `isVerify` TINYINT NOT NULL DEFAULT false,
@@ -50,7 +50,7 @@ COLLATE = utf8mb4_0900_ai_ci;
 -- -----------------------------------------------------
 CREATE TABLE IF NOT EXISTS `chat2date`.`action` (
   `actionId` INT NOT NULL AUTO_INCREMENT,
-  `userId` INT NOT NULL,
+  `userId` VARCHAR(36) NOT NULL,
   `actionType` ENUM('LIKE', 'DISLIKE') NOT NULL,
   `targetUserId` INT NOT NULL,
   PRIMARY KEY (`actionId`),
@@ -76,7 +76,7 @@ COLLATE = utf8mb4_0900_ai_ci;
 CREATE TABLE IF NOT EXISTS `chat2date`.`emergencycontact` (
   `emergencyId` INT NOT NULL AUTO_INCREMENT,
   `telephoneNumber` VARCHAR(10) NOT NULL,
-  `userId` INT NOT NULL,
+  `userId` VARCHAR(36) NOT NULL,
   PRIMARY KEY (`emergencyId`),
   INDEX `userId` (`userId` ASC) VISIBLE,
   CONSTRAINT `emergencycontact_ibfk_1`
@@ -121,8 +121,8 @@ COLLATE = utf8mb4_0900_ai_ci;
 -- -----------------------------------------------------
 CREATE TABLE IF NOT EXISTS `chat2date`.`match` (
   `matchId` INT NOT NULL AUTO_INCREMENT,
-  `userId1` INT NOT NULL,
-  `userId2` INT NOT NULL,
+  `userId1` VARCHAR(36) NOT NULL,
+  `userId2` VARCHAR(36) NOT NULL,
   PRIMARY KEY (`matchId`),
   INDEX `userId1` (`userId1` ASC) VISIBLE,
   INDEX `userId2` (`userId2` ASC) VISIBLE,
@@ -153,7 +153,7 @@ CREATE TABLE IF NOT EXISTS `chat2date`.`preferencematch` (
   `interestedAgeMax` INT NOT NULL,
   `interestedDistanceMin` INT NOT NULL,
   `interestedDistanceMax` INT NOT NULL,
-  `userId` INT NOT NULL,
+  `userId` VARCHAR(36) NOT NULL,
   PRIMARY KEY (`preferenceId`),
   INDEX `userId` (`userId` ASC) VISIBLE,
   UNIQUE INDEX `userId_UNIQUE` (`userId` ASC) VISIBLE,
@@ -189,7 +189,7 @@ CREATE TABLE IF NOT EXISTS `chat2date`.`tempuserlocation` (
   `longtitude` DECIMAL(10,8) NOT NULL,
   `accuracy` DECIMAL(6,2) NOT NULL,
   `timestamp` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  `userId` INT NOT NULL,
+  `userId` VARCHAR(36) NOT NULL,
   PRIMARY KEY (`locationId`),
   INDEX `userId` (`userId` ASC) VISIBLE,
   UNIQUE INDEX `userId_UNIQUE` (`userId` ASC) VISIBLE,
@@ -221,7 +221,7 @@ COLLATE = utf8mb4_0900_ai_ci;
 -- -----------------------------------------------------
 CREATE TABLE IF NOT EXISTS `chat2date`.`userphoto` (
   `photoId` INT NOT NULL AUTO_INCREMENT,
-  `userId` INT NOT NULL,
+  `userId` VARCHAR(36) NOT NULL,
   `attributes` JSON NOT NULL,
   PRIMARY KEY (`photoId`),
   INDEX `userId` (`userId` ASC) VISIBLE,
@@ -238,7 +238,7 @@ COLLATE = utf8mb4_0900_ai_ci;
 -- Table `chat2date`.`user_has_travelstyle`
 -- -----------------------------------------------------
 CREATE TABLE IF NOT EXISTS `chat2date`.`user_has_travelstyle` (
-  `user_userId` INT NOT NULL,
+  `user_userId` VARCHAR(36) NOT NULL,
   `travelstyle_travelId` INT NOT NULL,
   PRIMARY KEY (`user_userId`, `travelstyle_travelId`),
   INDEX `fk_user_has_travelstyle_travelstyle1_idx` (`travelstyle_travelId` ASC) VISIBLE,
@@ -262,7 +262,7 @@ COLLATE = utf8mb4_0900_ai_ci;
 -- Table `chat2date`.`user_has_interest`
 -- -----------------------------------------------------
 CREATE TABLE IF NOT EXISTS `chat2date`.`user_has_interest` (
-  `user_userId` INT NOT NULL,
+  `user_userId` VARCHAR(36) NOT NULL,
   `interest_interestId` INT NOT NULL,
   PRIMARY KEY (`user_userId`, `interest_interestId`),
   INDEX `fk_user_has_interest_interest1_idx` (`interest_interestId` ASC) VISIBLE,
@@ -286,7 +286,7 @@ COLLATE = utf8mb4_0900_ai_ci;
 -- Table `chat2date`.`user_has_tag`
 -- -----------------------------------------------------
 CREATE TABLE IF NOT EXISTS `chat2date`.`user_has_tag` (
-  `user_userId` INT NOT NULL,
+  `user_userId` VARCHAR(36) NOT NULL,
   `tag_tagId` INT NOT NULL,
   PRIMARY KEY (`user_userId`, `tag_tagId`),
   INDEX `fk_user_has_tag_tag1_idx` (`tag_tagId` ASC) VISIBLE,
@@ -310,7 +310,7 @@ COLLATE = utf8mb4_0900_ai_ci;
 -- Table `chat2date`.`user_has_lifestyle`
 -- -----------------------------------------------------
 CREATE TABLE IF NOT EXISTS `chat2date`.`user_has_lifestyle` (
-  `user_userId` INT NOT NULL,
+  `user_userId` VARCHAR(36) NOT NULL,
   `lifestyle_lifestyleId` INT NOT NULL,
   PRIMARY KEY (`user_userId`, `lifestyle_lifestyleId`),
   INDEX `fk_user_has_lifestyle_lifestyle1_idx` (`lifestyle_lifestyleId` ASC) VISIBLE,
