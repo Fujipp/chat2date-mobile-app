@@ -19,6 +19,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Optional;
 import java.util.function.Function;
 
 @Component
@@ -37,7 +38,7 @@ public class JwtTokenUtil implements Serializable {
 
     @PostConstruct
     public void init() {
-        this.key  = Keys.hmacShaKeyFor(secret_key.getBytes(StandardCharsets.UTF_8));
+        this.key = Keys.hmacShaKeyFor(secret_key.getBytes(StandardCharsets.UTF_8));
     }
 
     public String getSubjectFromToken(String token) {
@@ -62,15 +63,36 @@ public class JwtTokenUtil implements Serializable {
         return expiration.before(new Date());
     }
 
-    public String generateToken(String phoneNumber) {
-        User userById = userRepository.findByPhoneNumber(phoneNumber);
+    public String generateToken(String phoneNumber, String email) {
+        Optional<User> userById = Optional.empty();
+        String sub = null;
+
+        if (email != null) {
+            userById = userRepository.findByEmail(email);
+            sub = email;
+        }
+        if (phoneNumber != null) {
+            userById = userRepository.findByPhoneNumber(phoneNumber);
+            sub = phoneNumber;
+        }
+
+        // ตรวจสอบว่ามี user จริง ๆ หรือไม่
+        User user = userById.orElseThrow();
+
         Map<String, Object> claims = new HashMap<>();
         claims.put("iss", "https://cp25ssi2.sit.kmutt.ac.th/");
-        claims.put("role", userById.getRole());
-        claims.put("cid", userById.getCardId());
-        claims.put("phone", userById.getPhoneNumber());
-        claims.put("name", userById.getFirstname() + " " + userById.getLastname());
-        return doGenerateToken(claims, userById.getPhoneNumber());
+        claims.put("role", user.getRole());
+        claims.put("cid", user.getCardId());
+
+        if (phoneNumber != null) {
+            claims.put("sub", user.getPhoneNumber());
+        } else {
+            claims.put("sub", user.getEmail());
+        }
+
+        claims.put("name", user.getFirstname() + " " + user.getLastname());
+
+        return doGenerateToken(claims, sub);
     }
 
     private String doGenerateToken(Map<String, Object> claims, String subject) {
@@ -78,7 +100,7 @@ public class JwtTokenUtil implements Serializable {
                 .setClaims(claims).setSubject(subject)
                 .setIssuedAt(new Date(System.currentTimeMillis()))
                 .setExpiration(new Date(System.currentTimeMillis() + jwt_token_time))
-                .signWith(key ,signatureAlgorithm).compact();
+                .signWith(key, signatureAlgorithm).compact();
     }
 
     public Boolean validateToken(String token, String subject) {

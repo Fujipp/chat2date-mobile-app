@@ -1,7 +1,10 @@
 package sit.chat2date.cp25ssi2.controllers;
 
 
+import java.time.LocalDate;
+import java.util.HashMap;
 import java.util.Map;
+
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
@@ -12,7 +15,12 @@ import sit.chat2date.cp25ssi2.dto.AuthenticationResponse;
 import sit.chat2date.cp25ssi2.dto.GoogleLoginRequest;
 import sit.chat2date.cp25ssi2.dto.OtpSendRequest;
 import sit.chat2date.cp25ssi2.dto.OtpValidateRequest;
+import sit.chat2date.cp25ssi2.entities.User;
+import sit.chat2date.cp25ssi2.enums.Provider;
+import sit.chat2date.cp25ssi2.enums.Sex;
+import sit.chat2date.cp25ssi2.repositories.UserRepository;
 import sit.chat2date.cp25ssi2.services.AuthService;
+import sit.chat2date.cp25ssi2.services.JwtTokenUtil;
 
 @RestController
 @RequestMapping("/auth")
@@ -21,6 +29,11 @@ public class AuthController {
 
     @Autowired
     private final AuthService authService;
+    private final SmsmktClient client;
+    @Autowired
+    private UserRepository userRepository;
+    @Autowired
+    private JwtTokenUtil jwtTokenUtil;
 
     @PostMapping("/google")
     public ResponseEntity<AuthenticationResponse> authenticateWithGoogle(
@@ -30,4 +43,32 @@ public class AuthController {
         return ResponseEntity.ok(response);
     }
 
+    @PostMapping("/request-otp")
+    public Map<String, Object> send(@RequestBody OtpSendRequest body) {
+        String token = client.send(body.getPhone(), body.getRefCode());
+        return Map.of("token", token);
+    }
+
+    @PostMapping("/verify-otp")
+    public Map<String, Object> validate(@RequestBody OtpValidateRequest body) {
+        Map<String, Object> ok = client.validate(body.getToken(), body.getOtp_code(), body.getRefCode(), body.getPhoneNumber());
+        return Map.of("valid", ok);
+    }
+
+    @PostMapping("/request-token/{sub}")
+    public Map<String, Object> token(@PathVariable String sub) {
+        String phoneNumber = null;
+        String email = null;
+        if (sub.length() == 10) {
+            phoneNumber = sub;
+        } else {
+            email = sub;
+        }
+
+        String jwtToken = jwtTokenUtil.generateToken(phoneNumber, email);
+
+        Map<String, Object> response = new HashMap<>();
+        response.put("jwt_token", jwtToken);
+        return response;
+    }
 }

@@ -1,12 +1,15 @@
 package sit.chat2date.cp25ssi2.filter;
 
 import com.auth0.jwt.JWT;
+import io.jsonwebtoken.ExpiredJwtException;
 import io.jsonwebtoken.io.IOException;
+import io.jsonwebtoken.security.SignatureException;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -19,6 +22,7 @@ import sit.chat2date.cp25ssi2.services.UserService;
 import com.auth0.jwt.interfaces.DecodedJWT;
 
 import java.util.List;
+import java.util.Optional;
 
 @Component
 public class JwtAuthFilter extends OncePerRequestFilter {
@@ -37,8 +41,9 @@ public class JwtAuthFilter extends OncePerRequestFilter {
         final String requestTokenHeader = request.getHeader("Authorization");
         String subject = null;
         String jwtToken = null;
+        Optional<User> user = null;
 
-        if (request.getRequestURI().startsWith("/api/otp/")) {
+        if (request.getRequestURI().startsWith("/auth")) {
             filterChain.doFilter(request, response);
             return;
         }
@@ -48,8 +53,12 @@ public class JwtAuthFilter extends OncePerRequestFilter {
             try {
                 DecodedJWT jwt = JWT.decode(jwtToken);
                 String issuer = jwt.getIssuer();
-                String userPhone = jwt.getClaim("phone").asString();
-                User user = userRepository.findByPhoneNumber(userPhone);
+                String sub = jwt.getClaim("sub").asString();
+                if (sub.length() == 10) {
+                    user = userRepository.findByPhoneNumber(sub);
+                } else {
+                    user = userRepository.findByEmail(sub);
+                }
 
                 if (issuer.equals("https://intproj23.sit.kmutt.ac.th/ssa2/")) {
                     jwtTokenUtil.validateTokenExceptions(jwtToken);
@@ -58,11 +67,24 @@ public class JwtAuthFilter extends OncePerRequestFilter {
                 subject = jwt.getSubject();
                 if (jwtTokenUtil.validateToken(jwtToken, subject) && user != null) {
                     UsernamePasswordAuthenticationToken authToken =
-                            new UsernamePasswordAuthenticationToken(user, null, List.of(new SimpleGrantedAuthority("role" + user.getRole())));
+                            new UsernamePasswordAuthenticationToken(user, null, List.of(new SimpleGrantedAuthority("ROLE_" + user.get().getRole())));
                     SecurityContextHolder.getContext().setAuthentication(authToken);
                 }
-            } catch (Exception e) {
-                // ไม่โยน exception → Spring Security จะ return 401
+            } catch (SignatureException | IllegalArgumentException | ExpiredJwtException e) {
+                if (request.getMethod().matches("POST|PUT|DELETE|PATCH")) {
+                    String errorMessage;
+                    if (e instanceof SignatureException) {
+                        errorMessage = "Invalid credential please try again.";
+                    } else if (e instanceof IllegalArgumentException) {
+                        errorMessage = "Invalid token format. Please ensure the token is correctly formatted and try again.";
+                    } else {
+                        errorMessage = "Your session has expired. Please log in again to continue.";
+                    }
+                    //sendErrorResponse(response, errorMessage, request, HttpStatus.UNAUTHORIZED);
+                    return;
+                }
+                //sendErrorResponse(response, e.getMessage(), request, HttpStatus.UNAUTHORIZED);
+                return;
             }
         }
 
