@@ -6,6 +6,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
+import org.springframework.web.bind.annotation.ResponseStatus;
+import org.springframework.web.context.request.WebRequest;
 
 @ControllerAdvice
 public class GlobalExceptionHandler {
@@ -27,11 +29,10 @@ public class GlobalExceptionHandler {
     }
 
     @ExceptionHandler(PreconditionFailedException.class)
-    public ResponseEntity<ErrorResponse> handlePrecondition(PreconditionFailedException ex, HttpServletRequest req) {
-        ErrorResponse body = new ErrorResponse(HttpStatus.PRECONDITION_FAILED.value(), ex.getMessage(), req.getRequestURI());
-        body.setTitle(HttpStatus.PRECONDITION_FAILED.getReasonPhrase());
-        body.addValidationError(ex.getField(), ex.getMessage());
-        return ResponseEntity.status(HttpStatus.PRECONDITION_FAILED).body(body);
+    @ResponseStatus(HttpStatus.PRECONDITION_FAILED)
+    public ResponseEntity<ErrorResponse> handlePreconditionFailed(Exception e, WebRequest request) {
+        ErrorResponse error = new ErrorResponse(HttpStatus.PRECONDITION_FAILED.value(), "Version data mismatch", request.getDescription(false));
+        return ResponseEntity.status(HttpStatus.PRECONDITION_FAILED).body(error);
     }
 
     // validation จาก @Valid/@Min เป็นต้น
