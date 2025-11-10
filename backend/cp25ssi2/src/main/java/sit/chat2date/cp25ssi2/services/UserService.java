@@ -23,8 +23,8 @@ public class UserService {
     @Autowired
     private UserRepository userRepository;
 
-    public ResponseEntity<User> updateUserById(Integer id, @RequestBody User user) {
-        User userById = userRepository.findById(id).orElseThrow(() -> new NotFoundException("User id: "+ id +" not found"));
+    public ResponseEntity<User> updateUserById(String id, @RequestBody User user) {
+        User userById = userRepository.findByUserId(id).orElseThrow(() -> new NotFoundException("User id: "+ id +" not found"));
         if (!user.getVersion().equals(userById.getVersion())) {
             throw new PreconditionFailedException("version", "mismatch");
         }
@@ -38,6 +38,19 @@ public class UserService {
         if (user.getIsVerify() != null) {
             userById.setIsVerify(user.getIsVerify());
         }
+        if (user.getRole() != null) {
+            userById.setRole(user.getRole());
+        }
+        if (user.getEmail() != null) {
+            userById.setProvider(user.getProvider());
+        }
+        if (user.getSex() != null) {
+            userById.setSex(user.getSex());
+        }
+        if (user.getAccountStatus() != null) {
+            userById.setAccountStatus(user.getAccountStatus());
+        }
+
         userById.setVersion(userById.getVersion() + 1);
 
         User updatedUser = userRepository.save(userById);

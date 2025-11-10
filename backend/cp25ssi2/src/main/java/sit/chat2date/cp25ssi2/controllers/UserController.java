@@ -29,10 +29,14 @@ public class UserController {
     }
 
     @GetMapping("/users/{id}")
-    public User getUserById(@PathVariable int id) { return userRepository.findById(id).orElseThrow(() -> new NotFoundException("User id: "+ id +" not found")); }
+    public User getUserById(@PathVariable String id) {
+        return userRepository.findByUserId(id).orElseThrow(() -> new NotFoundException("User not found"));
+    }
 
     @PutMapping("/users/{id}")
-    public ResponseEntity<User> updateUserById(@PathVariable int id, @Valid @RequestBody User user) {return userService.updateUserById(id, user);}
+    public ResponseEntity<User> updateUserById(@PathVariable String id, @Valid @RequestBody User user) {
+        return userService.updateUserById(id, user);
+    }
 
     @PostMapping("/users")
     public User createUser(@RequestBody User user) {
@@ -43,7 +47,6 @@ public class UserController {
     public ResponseEntity<Void> deleteUser(@PathVariable Integer id) {
         return userService.deleteUser(id);
     }
-
 
 
 }
