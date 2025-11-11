@@ -32,11 +32,7 @@ public class SecurityConfig {
                         .anyRequest().authenticated()
                 )
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS));
-                //.authorizeHttpRequests(auth -> auth.anyRequest().permitAll())
-                //.httpBasic(Customizer.withDefaults());
         http.addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);
-
-        //ที่comment เป็นส่วนของ token
 
         return http.build();
     }

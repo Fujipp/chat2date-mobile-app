@@ -30,7 +30,6 @@ public class DiscoveryController {
         return ResponseEntity.ok(new DiscoveryGetResponse(user));
     }
 
-    @PreAuthorize("hasRole('USER')") // ใช้ทดสอบ 403 ได้
     @PostMapping("/feedback")
     public ResponseEntity<FeedbackResponse> feedback(
             @RequestHeader("accessToken") String accessToken,

@@ -1,7 +1,7 @@
 smsmkt:
-  apiKey: "3a02c76fe65d2bd637c136bdd999fc5b"
-  secretKey: "iyGb6hxrlCcrl6Hn"
-  projectKey: "df0361c97a"
+  apiKey: "f6fa786eabdb337cb324c56b091c2788"
+  secretKey: "gp8dxiYyvqEkd3rg"
+  projectKey: "6a1937bbc1"
 
 azure:
   faceEndpoint: https://chat2date.cognitiveservices.azure.com/"

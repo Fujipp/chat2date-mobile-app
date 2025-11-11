@@ -7,6 +7,7 @@ import io.jsonwebtoken.SignatureAlgorithm;
 import io.jsonwebtoken.security.Keys;
 import io.jsonwebtoken.security.SignatureException;
 import jakarta.annotation.PostConstruct;
+import org.hibernate.boot.model.naming.Identifier;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
@@ -63,17 +64,16 @@ public class JwtTokenUtil implements Serializable {
         return expiration.before(new Date());
     }
 
-    public String generateToken(String phoneNumber, String email) {
+    public String generateToken(String identifier) {
         Optional<User> userById = Optional.empty();
         String sub = null;
 
-        if (email != null) {
-            userById = userRepository.findByEmail(email);
-            sub = email;
-        }
-        if (phoneNumber != null) {
-            userById = userRepository.findByPhoneNumber(phoneNumber);
-            sub = phoneNumber;
+        if (isEmail(identifier)) {
+            userById = userRepository.findByEmail(identifier);
+            sub = identifier;
+        } else {
+            userById = userRepository.findByPhoneNumber(identifier);
+            sub = identifier;
         }
 
         // ตรวจสอบว่ามี user จริง ๆ หรือไม่
@@ -84,7 +84,7 @@ public class JwtTokenUtil implements Serializable {
         claims.put("role", user.getRole());
         claims.put("cid", user.getCardId());
 
-        if (phoneNumber != null) {
+        if (userById.get().getPhoneNumber() != null) {
             claims.put("sub", user.getPhoneNumber());
         } else {
             claims.put("sub", user.getEmail());
@@ -123,5 +123,10 @@ public class JwtTokenUtil implements Serializable {
         } catch (IllegalArgumentException e) {
             throw new IllegalArgumentException("Invalid token");
         }
+    }
+
+    public boolean isEmail(String identifier) {
+        if (identifier == null) return false;
+        return identifier.matches("^[A-Za-z0-9+_.-]+@[A-Za-z0-9.-]+$");
     }
 }

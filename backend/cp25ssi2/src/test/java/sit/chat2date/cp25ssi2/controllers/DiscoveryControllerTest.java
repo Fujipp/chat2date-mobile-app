@@ -10,7 +10,7 @@ import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.web.servlet.MockMvc;
 import sit.chat2date.cp25ssi2.dto.FeedbackRequest;
 import sit.chat2date.cp25ssi2.enums.ActionType;
-import sit.chat2date.cp25ssi2.exceiptions.GlobalExceptionHandler;
+import sit.chat2date.cp25ssi2.exceptions.GlobalExceptionHandler;
 import sit.chat2date.cp25ssi2.services.DiscoveryService;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;

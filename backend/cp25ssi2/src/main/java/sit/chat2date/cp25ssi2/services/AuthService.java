@@ -83,7 +83,7 @@ public class AuthService {
             user = userRepository.save(user);
         }
 
-        String accessToken = jwtTokenUtil.generateToken(null, email);
+        String accessToken = jwtTokenUtil.generateToken(email);
 //        String refreshToken = jwtService.generateRefreshToken(user.getUserId());
 
         UserDto userDto = UserDto.builder()

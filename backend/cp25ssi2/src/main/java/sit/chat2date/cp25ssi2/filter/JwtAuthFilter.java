@@ -17,6 +17,7 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 import sit.chat2date.cp25ssi2.entities.User;
+import sit.chat2date.cp25ssi2.enums.Role;
 import sit.chat2date.cp25ssi2.exceptions.ErrorResponse;
 import sit.chat2date.cp25ssi2.exceptions.UnauthorizedAccessException;
 import sit.chat2date.cp25ssi2.repositories.UserRepository;
@@ -45,8 +46,9 @@ public class JwtAuthFilter extends OncePerRequestFilter {
         String subject = null;
         String jwtToken = null;
         Optional<User> user = null;
+        String path = request.getRequestURI();
 
-        if (request.getRequestURI().startsWith("/auth")) {
+        if (path.startsWith("/api/v1/auth")) {
             filterChain.doFilter(request, response);
             return;
         }
@@ -72,6 +74,34 @@ public class JwtAuthFilter extends OncePerRequestFilter {
                     UsernamePasswordAuthenticationToken authToken =
                             new UsernamePasswordAuthenticationToken(user, null, List.of(new SimpleGrantedAuthority("ROLE_" + user.get().getRole())));
                     SecurityContextHolder.getContext().setAuthentication(authToken);
+                }
+
+                if (request.getMethod().matches("GET|PUT|DELETE") && path.startsWith("/api/v1/users") && user.get().getRole() == Role.USER) {
+
+                    String[] segments = path.split("/");
+                    String targetId = segments[segments.length - 1];
+
+                    if (!targetId.equals(user.get().getUserId())){
+                        sendErrorResponse(response, "Forbidden: cannot access another user's data", request, HttpStatus.FORBIDDEN);
+                        return;
+                    }
+                }
+
+                if (request.getMethod().matches("GET|POST") && path.startsWith("/api/v1/discovery") && user.get().getRole() == Role.USER) {
+                    boolean isDiscoveryPath = path.contains("/auth/v1/discovery/feedback");
+
+                    if (isDiscoveryPath) {
+                        sendErrorResponse(response, "Forbidden: cannot access another user's data", request, HttpStatus.FORBIDDEN);
+                        return;
+                    }
+
+                    String requestParamId = request.getParameter("id");
+
+                    if (requestParamId != null && !requestParamId.equals(user.get().getUserId())) {
+                        sendErrorResponse(response, "Forbidden: cannot access another user's discovery data", request, HttpStatus.FORBIDDEN);
+                        return;
+                    }
+
                 }
             } catch (SignatureException | IllegalArgumentException | ExpiredJwtException e) {
                 if (request.getMethod().matches("POST|PUT|DELETE|PATCH")) {
@@ -103,6 +133,7 @@ public class JwtAuthFilter extends OncePerRequestFilter {
                 request.getRequestURI()
         );
         response.setStatus(status.value());
+        response.setCharacterEncoding("UTF-8");
         response.setContentType("application/json");
         response.getWriter().write(new ObjectMapper().writeValueAsString(errorResponse));
     }
