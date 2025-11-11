@@ -21,7 +21,6 @@ public class DiscoveryController {
 
     @GetMapping("/")
     public ResponseEntity<DiscoveryGetResponse> getDiscovery(
-            @RequestHeader("accessToken") String accessToken,
             @RequestParam @Min(0) int minDistance,
             @RequestParam @Min(0) int maxDistance,
             @RequestParam @NotBlank String userId
@@ -32,10 +31,10 @@ public class DiscoveryController {
 
     @PostMapping("/feedback")
     public ResponseEntity<FeedbackResponse> feedback(
-            @RequestHeader("accessToken") String accessToken,
+            @RequestHeader("Authorization") String accessToken,
             @RequestBody FeedbackRequest body
     ) {
-        String result = discoveryService.submitFeedback(body.getActorUserId(), body.getTargetUserId(), body.getAction());
+        String result = discoveryService.submitFeedback(body.getTargetUserId(), body.getAction(), accessToken);
         return ResponseEntity.status(HttpStatus.CREATED).body(new FeedbackResponse(result));
     }
 }
