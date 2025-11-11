@@ -1,15 +1,20 @@
 package sit.chat2date.cp25ssi2.services;
 
+import com.auth0.jwt.JWT;
+import com.auth0.jwt.interfaces.DecodedJWT;
 import org.springframework.stereotype.Service;
 import sit.chat2date.cp25ssi2.dto.UserSummaryDto;
+import sit.chat2date.cp25ssi2.entities.User;
 import sit.chat2date.cp25ssi2.enums.ActionType;
 import sit.chat2date.cp25ssi2.exceptions.BadRequestException;
 import sit.chat2date.cp25ssi2.exceptions.NotFoundException;
 import sit.chat2date.cp25ssi2.exceptions.ServiceException;
+import sit.chat2date.cp25ssi2.repositories.UserRepository;
 
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 
 @Service
 public class DiscoveryService {
@@ -21,6 +26,12 @@ public class DiscoveryService {
         USERS.put("u_1", new UserSummaryDto("u_1", "08xxxxxxx"));
         USERS.put("u_2", new UserSummaryDto("u_2", "09xxxxxxx"));
         USERS.put("u_3", new UserSummaryDto("u_3", "06xxxxxxx"));
+    }
+
+    private final UserRepository userRepository;
+
+    public DiscoveryService(UserRepository userRepository) {
+        this.userRepository = userRepository;
     }
 
     public UserSummaryDto getCandidate(String userId, int minDistance, int maxDistance) {
@@ -36,21 +47,35 @@ public class DiscoveryService {
         throw new ServiceException("no candidate available");
     }
 
-    /** @return "match" | "notmatch" */
-    public String submitFeedback(String actorUserId, String targetUserId, ActionType action) {
-        if (actorUserId == null || targetUserId == null || action == null) {
-            throw new BadRequestException("actorUserId/targetUserId/action is required");
+    /**
+     * @return "match" | "notmatch"
+     */
+    public String submitFeedback(String targetUserId, ActionType action, String accessToken) {
+        if (targetUserId == null || action == null) {
+            throw new BadRequestException("targetUserId/action is required");
         }
-        if (!USERS.containsKey(actorUserId)) throw new NotFoundException("actor user not found: " + actorUserId);
-        if (!USERS.containsKey(targetUserId)) throw new NotFoundException("target user not found: " + targetUserId);
-        if (actorUserId.equals(targetUserId)) throw new BadRequestException("cannot feedback to self");
+        Optional<User> targetUser = userRepository.findByUserId(targetUserId);
+        String jwtToken;
+        jwtToken = accessToken.substring(7);
+        Optional<User> user;
+
+        DecodedJWT jwt = JWT.decode(jwtToken);
+        String sub = jwt.getClaim("sub").asString();
+        if (sub.length() == 10) {
+            user = userRepository.findByPhoneNumber(sub);
+        } else {
+            user = userRepository.findByEmail(sub);
+        }
+
+        if (targetUser.isEmpty()) throw new NotFoundException("target user not found: " + targetUserId);
+        if (user.get().getUserId().equals(targetUserId)) throw new BadRequestException("cannot feedback to self");
 
         try {
             switch (action) {
                 case LIKE -> {
                     String likedByTarget = LIKES.get(targetUserId);
-                    if (actorUserId.equals(likedByTarget)) return "match";
-                    LIKES.put(actorUserId, targetUserId);
+                    if (user.get().getUserId().equals(likedByTarget)) return "match";
+                    LIKES.put(user.get().getUserId(), targetUserId);
                     return "notmatch";
                 }
                 case DISLIKE -> {
