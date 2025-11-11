@@ -70,43 +70,23 @@ public class JwtAuthFilter extends OncePerRequestFilter {
                 }
 
                 subject = jwt.getSubject();
+
                 if (jwtTokenUtil.validateToken(jwtToken, subject) && user != null) {
                     UsernamePasswordAuthenticationToken authToken =
                             new UsernamePasswordAuthenticationToken(user, null, List.of(new SimpleGrantedAuthority("ROLE_" + user.get().getRole())));
                     SecurityContextHolder.getContext().setAuthentication(authToken);
                 }
 
-                if (request.getMethod().matches("GET|PUT|DELETE") && path.startsWith("/api/v1/users") && user.get().getRole() == Role.USER) {
-
-                    String[] segments = path.split("/");
-                    String targetId = segments[segments.length - 1];
-
-                    if (!targetId.equals(user.get().getUserId())){
-                        sendErrorResponse(response, "Forbidden: cannot access another user's data", request, HttpStatus.FORBIDDEN);
-                        return;
+                if (user.get().getRole() == Role.USER) {
+                    AccessChecker checker = new AccessChecker(request, response, user.get());
+                    if (!checker.checkUserAccess()) {
+                        return; // ถ้า check ไม่ผ่าน
                     }
-                }
-
-                if (request.getMethod().matches("GET|POST") && path.startsWith("/api/v1/discovery") && user.get().getRole() == Role.USER) {
-                    boolean isDiscoveryPath = path.contains("/auth/v1/discovery/feedback");
-
-                    if (isDiscoveryPath) {
-                        sendErrorResponse(response, "Forbidden: cannot access another user's data", request, HttpStatus.FORBIDDEN);
-                        return;
-                    }
-
-                    String requestParamId = request.getParameter("id");
-
-                    if (requestParamId != null && !requestParamId.equals(user.get().getUserId())) {
-                        sendErrorResponse(response, "Forbidden: cannot access another user's discovery data", request, HttpStatus.FORBIDDEN);
-                        return;
-                    }
-
                 }
             } catch (SignatureException | IllegalArgumentException | ExpiredJwtException e) {
                 if (request.getMethod().matches("POST|PUT|DELETE|PATCH")) {
                     String errorMessage;
-                    if (e instanceof SignatureException ) {
+                    if (e instanceof SignatureException) {
                         errorMessage = "Invalid credential please try again.";
                     } else if (e instanceof IllegalArgumentException) {
                         errorMessage = "Invalid token format. Please ensure the token is correctly formatted and try again.";

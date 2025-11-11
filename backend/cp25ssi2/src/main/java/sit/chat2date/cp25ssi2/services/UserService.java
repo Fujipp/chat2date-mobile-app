@@ -94,8 +94,8 @@ public class UserService {
         return ResponseEntity.ok(updatedUser);
     }
 
-    public ResponseEntity<Void> deleteUser(Integer id) {
-        User user = userRepository.findById(id)
+    public ResponseEntity<Void> deleteUser(String id) {
+        User user = userRepository.findByUserId(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User with id " + id + " not found"));
         userRepository.delete(user);
         return ResponseEntity.noContent().build();
