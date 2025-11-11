@@ -10,10 +10,15 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.server.ResponseStatusException;
 import sit.chat2date.cp25ssi2.entities.User;
+import sit.chat2date.cp25ssi2.enums.AccountStatus;
+import sit.chat2date.cp25ssi2.enums.Provider;
+import sit.chat2date.cp25ssi2.enums.Role;
+import sit.chat2date.cp25ssi2.enums.Sex;
 import sit.chat2date.cp25ssi2.exceptions.NotFoundException;
 import sit.chat2date.cp25ssi2.exceptions.PreconditionFailedException;
 import sit.chat2date.cp25ssi2.repositories.UserRepository;
 
+import java.time.LocalDate;
 import java.util.HashSet;
 import java.util.Set;
 
@@ -22,6 +27,37 @@ public class UserService {
 
     @Autowired
     private UserRepository userRepository;
+
+    @Autowired
+    private AuthService authService;
+
+    public User createUser(User user) {
+        String generatedCardId = authService.generateTempCardId();
+
+        User newUser = User.builder()
+                .phoneNumber(user.getPhoneNumber())
+                .email(user.getEmail())
+                .provider(Provider.GOOGLE)
+                .version(1)
+                .role(Role.USER)
+                .accountStatus(AccountStatus.PENDING)
+                .isVerify(false)
+                .faceVerify(false)
+                .behaviorScore(100)
+                .isBlacklist(false)
+                .firstname("Unknown")
+                .lastname("Unknown")
+                .nickname("User")
+                .cardId(generatedCardId)
+                .birthday(LocalDate.of(2000, 1, 1))
+                .age(0)
+                .sex(Sex.MALE)
+                .build();
+
+
+        return userRepository.save(newUser);
+    }
+
 
     public ResponseEntity<User> updateUserById(String id, @RequestBody User user) {
         User userById = userRepository.findByUserId(id).orElseThrow(() -> new NotFoundException("User id: "+ id +" not found"));

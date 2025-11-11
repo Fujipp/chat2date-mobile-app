@@ -22,7 +22,7 @@ import java.util.Optional;
 public class AuthService {
 
     private final UserRepository userRepository;
-//    private final JwtTokenUtil jwtService;
+    private final JwtTokenUtil jwtService;
     private final GoogleTokenVerifier googleTokenVerifier;
     private final JwtTokenUtil jwtTokenUtil;
 
@@ -98,7 +98,7 @@ public class AuthService {
                 .build();
     }
 
-    private String generateTempCardId() {
+    public String generateTempCardId() {
         // Format: 000 + timestamp (9 หลัก) + random (1 หลัก) = 13 หลัก
         long timestamp = System.currentTimeMillis();
         String timestampStr = String.valueOf(timestamp);
