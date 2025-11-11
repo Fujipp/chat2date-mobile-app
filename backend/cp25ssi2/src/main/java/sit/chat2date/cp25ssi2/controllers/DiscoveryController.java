@@ -12,7 +12,7 @@ import sit.chat2date.cp25ssi2.services.DiscoveryService; // <<== ใช้ servi
 // (ไม่ต้อง import jakarta.Validation หรือ jakarta.validation แบบทั่วไป)
 
 @RestController
-@RequestMapping("/api/v1/discovery")
+@RequestMapping("/discovery")
 @Validated
 public class DiscoveryController {
 
