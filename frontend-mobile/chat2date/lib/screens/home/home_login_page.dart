@@ -1,46 +1,45 @@
-import 'package:chat2date/components/index.dart'; // มี DsButton / Variant / Size
+import 'package:chat2date/components/index.dart'; // DsButton / Variant / Size
 import 'package:chat2date/services/auth_service.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_svg/flutter_svg.dart';
 
 class HomeLoginPage extends StatelessWidget {
   const HomeLoginPage({super.key});
-  static const _logoPath = 'assets/icons/icon_logo_app_text.svg';
+
+  // ใช้ PNG แทน SVG
+  static const _logoPath = 'assets/images/logo_chat2date_text.png';
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.white,
-      body: Center(
-        child: AspectRatio(
-          aspectRatio: 375 / 812,
-          child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 50, vertical: 100),
-            clipBehavior: Clip.antiAlias,
-            decoration: ShapeDecoration(
-              color: Colors.white,
-              shape: RoundedRectangleBorder(
-                side: const BorderSide(width: 2, color: Color(0xFFE5E7EB)),
-                borderRadius: BorderRadius.circular(50),
-              ),
-            ),
-            child: Stack(
-              children: [
-                // โลโก้ด้านบน
-                Align(
-                  alignment: Alignment.topCenter,
-                  child: SvgPicture.asset(
-                    _logoPath,
-                    width: 250,
-                    height: 250,
-                    fit: BoxFit.contain,
+      body: SafeArea(
+        // เอากรอบมือถือออก: ไม่ใช้ AspectRatio + Container + ShapeDecoration แล้ว
+        child: Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(
+              maxWidth: 420,
+            ), // กันหน้ากว้างเกิน
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
+              child: Column(
+                children: [
+                  // โลโก้ด้านบน
+                  Padding(
+                    padding: const EdgeInsets.only(top: 24, bottom: 16),
+                    child: Image.asset(
+                      _logoPath,
+                      width: 250,
+                      height: 250,
+                      fit: BoxFit.contain,
+                      errorBuilder: (_, __, ___) =>
+                          const FlutterLogo(size: 120),
+                    ),
                   ),
-                ),
 
-                // กลุ่มปุ่ม (กว้าง 231 สูง 40 ตามดีไซน์)
-                Align(
-                  alignment: Alignment.bottomCenter,
-                  child: ConstrainedBox(
+                  const Spacer(),
+
+                  // กลุ่มปุ่ม (กว้างไม่เกิน 231 ตามดีไซน์)
+                  ConstrainedBox(
                     constraints: const BoxConstraints(maxWidth: 231),
                     child: Column(
                       mainAxisSize: MainAxisSize.min,
@@ -51,8 +50,7 @@ class HomeLoginPage extends StatelessWidget {
                           child: DsButton(
                             label: 'เข้าสู่ระบบด้วยเบอร์โทร',
                             size: DsButtonSize.md, // 231×40, font 16
-                            variant: DsButtonVariant
-                                .primary, // ฟ้า #5CE1E6 (ตาม scheme ของ Dev)
+                            variant: DsButtonVariant.primary,
                             onPressed: () =>
                                 Navigator.pushNamed(context, '/phone'),
                           ),
@@ -64,8 +62,7 @@ class HomeLoginPage extends StatelessWidget {
                           child: DsButton(
                             label: 'ดำเนินการต่อด้วย Google',
                             size: DsButtonSize.md,
-                            variant: DsButtonVariant
-                                .primary, // ฟ้าชุดเดียวกัน/โทนรอง
+                            variant: DsButtonVariant.primary,
                             onPressed: () async {
                               try {
                                 final authService = AuthService();
@@ -73,13 +70,11 @@ class HomeLoginPage extends StatelessWidget {
                                     .signInWithGoogle();
 
                                 if (userId != null) {
-                                  // login สำเร็จ → ไปหน้า home
                                   Navigator.pushReplacementNamed(
                                     context,
                                     '/home',
                                   );
                                 } else {
-                                  // ผู้ใช้ยกเลิก login
                                   ScaffoldMessenger.of(context).showSnackBar(
                                     const SnackBar(
                                       content: Text('Login ถูกยกเลิก'),
@@ -96,17 +91,20 @@ class HomeLoginPage extends StatelessWidget {
                             },
                           ),
                         ),
+
                         const SizedBox(height: 20),
+                        // เส้นคั่น
                         Center(
                           child: Container(
-                            width: 160, // ความยาวเส้น (ปรับได้ 140–180)
-                            height: 2, // ความหนาเส้น
+                            width: 160,
+                            height: 2,
                             decoration: BoxDecoration(
-                              color: Color(0xFFEDEDED), // เทาอ่อน
+                              color: const Color(0xFFEDEDED),
                               borderRadius: BorderRadius.circular(2),
                             ),
                           ),
                         ),
+
                         const SizedBox(height: 25),
                         SizedBox(
                           width: double.infinity,
@@ -114,8 +112,7 @@ class HomeLoginPage extends StatelessWidget {
                           child: DsButton(
                             label: 'ลงทะเบียน',
                             size: DsButtonSize.md,
-                            variant: DsButtonVariant
-                                .secondary, // ให้ map เป็นเขียว #C1FF72 ใน schemes
+                            variant: DsButtonVariant.secondary, // map เป็นเขียว
                             onPressed: () =>
                                 Navigator.pushNamed(context, '/policy'),
                           ),
@@ -123,8 +120,10 @@ class HomeLoginPage extends StatelessWidget {
                       ],
                     ),
                   ),
-                ),
-              ],
+
+                  const SizedBox(height: 12),
+                ],
+              ),
             ),
           ),
         ),

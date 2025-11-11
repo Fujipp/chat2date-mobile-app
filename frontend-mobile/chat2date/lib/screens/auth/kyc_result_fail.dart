@@ -1,4 +1,3 @@
-// lib/screens/auth/kyc_result_fail.dart
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 
@@ -12,101 +11,108 @@ class KycResultFailScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: Center(
-        child: Container(
-          width: 375,
-          height: 812,
-          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 200),
-          clipBehavior: Clip.antiAlias,
-          decoration: ShapeDecoration(
-            color: Colors.white,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(50), // ไม่มีเส้นกรอบ
-            ),
-          ),
-          // ทำให้เว้นระยะแกน Y เยอะขึ้นด้วย Spacer
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.start,
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
-              // ===== Text =====
-              SizedBox(
-                width: 370,
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: const [
-                    // หัวข้อ (ยังคงสูงพอด้วยตัวเอง ไม่ต้อง fix height)
-                    Padding(
-                      padding: EdgeInsets.only(bottom: 8),
-                      child: Text(
+      backgroundColor: Colors.white,
+      body: SafeArea(
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            // รองรับหน้าจอเตี้ย: ใส่สกอลล์ได้
+            return Center(
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 420),
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 20,
+                    vertical: 24,
+                  ),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      // ===== ข้อความหัว-รอง =====
+                      const Text(
                         'ยืนยันตัวตนไม่สำเร็จ',
                         textAlign: TextAlign.center,
                         style: TextStyle(
-                          color: Color(0xFF0F172A), // text-primary
+                          color: Color(0xFF0F172A),
                           fontSize: 32,
                           fontFamily: 'Inter',
                           fontWeight: FontWeight.w400,
-                          height:
-                              1.15, // line-height ~115% กันโดนตัดหางตัวหนังสือ
+                          height: 1.15,
+                          letterSpacing: -0.2,
                         ),
                       ),
-                    ),
-                    Padding(
-                      padding: EdgeInsets.symmetric(horizontal: 4),
-                      child: Text(
-                        'กรุณาตรวจสอบว่าบัตรประชาชนของคุณชัดเจนและรูปเซลฟี่ชัดเจน',
-                        textAlign: TextAlign.center,
-                        softWrap: true,
-                        maxLines: 3, // กันยาวเกิน เผื่อ textScaleFactor ใหญ่
-                        overflow: TextOverflow.visible,
-                        style: TextStyle(
-                          color: Color(0xFF334155), // text-secondary
-                          fontSize: 20,
-                          fontFamily: 'Inter',
-                          fontWeight: FontWeight.w400,
-                          letterSpacing: -0.32,
-                          height: 1.3, // line-height ~130% อ่านสบายและไม่โดนตัด
+                      const SizedBox(height: 8),
+                      const Padding(
+                        padding: EdgeInsets.symmetric(horizontal: 4),
+                        child: Text(
+                          'กรุณาตรวจสอบว่าบัตรประชาชนของคุณชัดเจนและรูปเซลฟี่ชัดเจน',
+                          textAlign: TextAlign.center,
+                          softWrap: true,
+                          style: TextStyle(
+                            color: Color(0xFF334155),
+                            fontSize: 18, // ลดนิดให้พอดีกับจอเล็ก
+                            fontFamily: 'Inter',
+                            fontWeight: FontWeight.w400,
+                            height: 1.35,
+                            letterSpacing: -0.2,
+                          ),
                         ),
                       ),
-                    ),
-                  ],
+
+                      // ===== ระยะหายใจ =====
+                      SizedBox(height: constraints.maxHeight * 0.06),
+
+                      // ===== ไอคอนผลล้มเหลว =====
+                      SizedBox(
+                        width: 211,
+                        height: 213,
+                        child: SvgPicture.asset(
+                          'assets/icons/icon_fail_ring.svg',
+                          fit: BoxFit.contain,
+                        ),
+                      ),
+
+                      // ===== ระยะหายใจก่อนปุ่ม =====
+                      SizedBox(height: constraints.maxHeight * 0.10),
+
+                      // ===== ปุ่มลองใหม่ =====
+                      SizedBox(
+                        width: 231,
+                        height: 40,
+                        child: DsButton(
+                          label: 'ลองสแกนอีกครั้ง',
+                          size: DsButtonSize.md,
+                          variant: DsButtonVariant.primary,
+                          onPressed: () {
+                            // กลับไปเริ่มที่หน้าสแกนบัตรใหม่
+                            // เคลียร์สแตกจนเหลือหน้าแรก แล้ว push ไป /kyc-id-ocr
+                            Navigator.popUntil(context, (r) => r.isFirst);
+                            Navigator.pushNamed(context, '/kyc-id-ocr');
+                          },
+                        ),
+                      ),
+
+                      const SizedBox(height: 12),
+                      // ลิงก์ตัวช่วย (ถ้าต้องการเสริม UX)
+                      TextButton(
+                        onPressed: () {
+                          // ตัวอย่าง: เปิดหน้าคู่มือ/ทิป (ถ้ามี route)
+                          // Navigator.pushNamed(context, '/kyc-help');
+                          Navigator.maybePop(context);
+                        },
+                        child: const Text(
+                          'ย้อนกลับ',
+                          style: TextStyle(
+                            color: Color(0xFF64748B),
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ),
-
-              // เว้นเยอะ (ดัน Icon ลงไป)
-              const Spacer(flex: 3),
-
-              // ===== Icon (SVG) =====
-              SizedBox(
-                width: 211,
-                height: 213,
-                child: SvgPicture.asset(
-                  'assets/icons/icon_fail_ring.svg',
-                  fit: BoxFit.contain,
-                ),
-              ),
-
-              // เว้นเยอะมาก (ดันปุ่มลงไปล่าง ๆ)
-              const Spacer(flex: 5),
-
-              // ===== Button (DS ของเรา) =====
-              SizedBox(
-                width: 231,
-                height: 40,
-                child: DsButton(
-                  label: 'ลองสแกนอีกครั้ง',
-                  size: DsButtonSize.md,
-                  variant: DsButtonVariant.primary, // พื้นสีฟ้าเขียวของ Dev
-                  onPressed: () {
-                    // กลับไปสแกนใหม่
-                    Navigator.pop(context); // ปิด fail
-                    Navigator.popUntil(context, (r) => r.isFirst);
-                    Navigator.pushNamed(context, '/kyc-id-ocr');
-                  },
-                ),
-              ),
-            ],
-          ),
+            );
+          },
         ),
       ),
     );

@@ -30,7 +30,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
         children: [
           SafeArea(
             child: ChatToDateHeaderWhite(
-              leftIconPath: 'assets/icons/icon_chat2date_full.svg',
+              leftIconPath: 'assets/images/logo_chat2date_text.png',
               rightIconPath: 'assets/icons/icon_menu.svg',
               iconColor: const Color(0xFF5ce1e6),
               onBack: () {},

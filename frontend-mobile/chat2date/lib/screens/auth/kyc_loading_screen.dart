@@ -1,7 +1,4 @@
-// lib/screens/auth/kyc_loading_screen.dart
-import 'dart:async';
 import 'package:flutter/material.dart';
-import 'package:chat2date/models/face_scan_args.dart';
 
 class KycLoadingScreen extends StatefulWidget {
   const KycLoadingScreen({super.key});
@@ -10,76 +7,79 @@ class KycLoadingScreen extends StatefulWidget {
   State<KycLoadingScreen> createState() => _KycLoadingScreenState();
 }
 
-class _KycLoadingScreenState extends State<KycLoadingScreen> {
-  double _percent = 0; // 0..1
-  Timer? _timer;
+class _KycLoadingScreenState extends State<KycLoadingScreen>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _ctrl;
+  bool _demoAutoClose = false; // ใช้เฉพาะโหมดเดโม
+  Duration _demoDelay = const Duration(seconds: 3);
 
   @override
   void initState() {
     super.initState();
-    // เดโม่: ไหล 0→100 ใน ~2.5s แล้ว “จำลองยิง API” ที่ปลายทาง
-    _timer = Timer.periodic(const Duration(milliseconds: 25), (t) async {
-      if (!mounted) return;
-      setState(() {
-        _percent = (_percent + 0.01).clamp(0.0, 1.0);
-      });
-      if (_percent >= 1.0) {
-        t.cancel();
-        // ปรับตรงนี้เป็นเรียก API จริง แล้ว return true/false
-        final ok = await _fakeServerDecision();
-        if (!mounted) return;
-        Navigator.pop<bool>(context, ok); // ส่งผลกลับหน้าเดิม
+    _ctrl = AnimationController(
+      vsync: this,
+      duration: const Duration(seconds: 2),
+      lowerBound: 0,
+      upperBound: 1,
+    )..repeat();
+
+    // อ่าน arguments (ถ้ามี) เพื่อเปิดโหมดเดโม auto-close
+    // ตัวอย่าง: Navigator.pushNamed(context, '/kyc-loading', arguments: {'demo': true, 'ms': 2500})
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final args = ModalRoute.of(context)?.settings.arguments;
+      if (args is Map) {
+        _demoAutoClose = (args['demo'] == true);
+        if (args['ms'] is int && (args['ms'] as int) > 0) {
+          _demoDelay = Duration(milliseconds: args['ms'] as int);
+        }
+        if (_demoAutoClose) {
+          Future.delayed(_demoDelay, () {
+            if (!mounted) return;
+            Navigator.pop<bool>(context, true);
+          });
+        }
       }
     });
   }
 
-  Future<bool> _fakeServerDecision() async {
-    // TODO: เรียก API จริง (ใช้ FaceScanArgs จาก arguments ได้)
-    await Future.delayed(const Duration(milliseconds: 300));
-    return true; // demo: ผ่าน
-  }
-
   @override
   void dispose() {
-    _timer?.cancel();
+    _ctrl.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    final pct = (_percent * 100).toInt();
-    // โครง UI เรียบง่าย: วงกลม + % ตรงกลาง
     return Scaffold(
       backgroundColor: Colors.white,
-      body: Center(
-        child: Container(
-          width: 375,
-          height: 812,
-          decoration: ShapeDecoration(
-            color: Colors.white,
-            shape: RoundedRectangleBorder(
-              side: const BorderSide(width: 2, color: Color(0x599CABC2)),
-              borderRadius: BorderRadius.circular(50),
-            ),
-          ),
-          clipBehavior: Clip.antiAlias,
-          child: Center(
-            child: SizedBox(
-              width: 211,
-              height: 211,
-              child: CustomPaint(
-                painter: _CircleLoadingPainter(progress: _percent),
-                child: Center(
-                  child: Text(
-                    '$pct%',
-                    style: const TextStyle(
-                      fontSize: 32,
-                      fontWeight: FontWeight.w600,
+      body: SafeArea(
+        child: Center(
+          child: AnimatedBuilder(
+            animation: _ctrl,
+            builder: (_, __) {
+              // ให้ progress วิ่งวนไปเรื่อย ๆ (0..1)
+              final progress = _ctrl.value;
+              return SizedBox(
+                width: 211,
+                height: 211,
+                child: CustomPaint(
+                  painter: _CircleLoadingPainterIndeterminate(
+                    progress: progress,
+                  ),
+                  child: Center(
+                    child: Text(
+                      // โชว์ตัวเลขแบบ aesthetic (แค่เดโม)
+                      '${(progress * 100).toInt()}%',
+                      style: const TextStyle(
+                        fontSize: 32,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.black,
+                      ),
                     ),
                   ),
                 ),
-              ),
-            ),
+              );
+            },
           ),
         ),
       ),
@@ -87,9 +87,10 @@ class _KycLoadingScreenState extends State<KycLoadingScreen> {
   }
 }
 
-class _CircleLoadingPainter extends CustomPainter {
-  final double progress;
-  _CircleLoadingPainter({required this.progress});
+/// วงกลมโหลดแบบ indeterminate: วาดฐานเทาเต็มวง + ส่วนเขียววิ่งโค้งเป็นสไลซ์
+class _CircleLoadingPainterIndeterminate extends CustomPainter {
+  final double progress; // 0..1
+  _CircleLoadingPainterIndeterminate({required this.progress});
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -108,17 +109,19 @@ class _CircleLoadingPainter extends CustomPainter {
       ..color = const Color(0xFF22C55E);
 
     final rect = Rect.fromCircle(center: center, radius: r);
-    canvas.drawArc(rect, -90 * (3.1415926 / 180), 2 * 3.1415926, false, base);
-    canvas.drawArc(
-      rect,
-      -90 * (3.1415926 / 180),
-      (2 * 3.1415926) * progress,
-      false,
-      prog,
-    );
+
+    // วาดวงฐานสีเทาเต็มวง
+    canvas.drawArc(rect, _deg(-90), _deg(360), false, base);
+
+    // วาดสไลซ์เขียววิ่ง: ความยาวโค้ง ~ 90–140 องศา (ปรับเล็กน้อยให้ดูมีชีวิต)
+    final sweep = _deg(90 + 50 * (0.5 - (progress - 0.5).abs()) * 2);
+    final start = _deg(-90) + _deg(360) * progress;
+    canvas.drawArc(rect, start, sweep, false, prog);
   }
 
+  double _deg(double d) => d * 3.141592653589793 / 180.0;
+
   @override
-  bool shouldRepaint(covariant _CircleLoadingPainter old) =>
+  bool shouldRepaint(covariant _CircleLoadingPainterIndeterminate old) =>
       old.progress != progress;
 }

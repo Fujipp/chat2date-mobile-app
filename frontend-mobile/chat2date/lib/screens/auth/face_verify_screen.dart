@@ -56,7 +56,6 @@ class _FaceVerifyScreenState extends State<FaceVerifyScreen>
   String _hint = 'แตะปุ่มเพื่อเริ่มสแกน';
 
   Timer? _tick; // ตัวจับเวลาให้ progress ลื่นขึ้น
-  DateTime? _lastTick;
 
   // จับเวลาเฟรมจริง เพื่อกันเครื่องที่ fps ตก/พุ่ง
   DateTime? _lastFrameAt;
@@ -161,10 +160,8 @@ class _FaceVerifyScreenState extends State<FaceVerifyScreen>
   }
 
   void _startTick() {
-    _lastTick = DateTime.now();
     _tick = Timer.periodic(const Duration(milliseconds: 16), (_) {
       final now = DateTime.now();
-      _lastTick = now;
 
       // progress = (stepIndexFinished + stepAccum/secondsPerStep) / 5
       final finished = _finishedCount();
@@ -186,32 +183,24 @@ class _FaceVerifyScreenState extends State<FaceVerifyScreen>
           ? 0.0
           : now.difference(_startedAt!).inMilliseconds / 1000.0;
 
-      // เวลาที่ค้างอยู่ใน "สเต็ปปัจจุบัน"
       final stay = _stepEnteredAt == null
           ? 0.0
           : now.difference(_stepEnteredAt!).inMilliseconds / 1000.0;
 
-      // ===== เงื่อนไขจบแบบ “ไม่ใจร้อน” =====
       final onLastStep = (_step == PoseStep.up);
-
-      // ใช้ progress สูงเฉพาะตอนอยู่สเต็ปสุดท้าย
       final progressHighOnLast = onLastStep && (_progress >= 0.92);
-
-      // ผ่อนเพดาน “ค้างบนสุดท้าย” ให้สูงขึ้นหน่อย
       final upTooLong = onLastStep && stay > 4.5;
 
       if (upTooLong || progressHighOnLast) {
-        _goLoading(); // ไปหน้าโหลด + call backend
+        _goLoading();
         return;
       }
 
-      // จบแบบปกติ: “กำลังจะจบสเต็ปสุดท้ายจริง ๆ”
       final aboutToFinishLast =
           (finished == 4 &&
           _step != PoseStep.done &&
           _stepAccumSeconds >= secondsPerStep * 0.75);
 
-      // กัน edge case: ถ้าอยู่สเต็ปสุดท้ายและนิ่งนานมาก ๆ
       final stuckOnLast =
           (finished == 4 && !_navigating) &&
           (_progress >= 0.95 || elapsed > 18.0);
@@ -661,139 +650,142 @@ class _FaceVerifyScreenState extends State<FaceVerifyScreen>
   }
 
   // ---------- UI ----------
+  Widget _buildFullScreenPreview() {
+    if (!_cameraActive || _cam == null || !_cam!.value.isInitialized) {
+      return const SizedBox.shrink();
+    }
+
+    final screenSize = MediaQuery.of(context).size;
+    final deviceRatio = screenSize.width / screenSize.height;
+    final previewAspect = _cam!.value.aspectRatio; // อัตราส่วนภาพจากกล้อง
+
+    return Container(
+      color: Colors.black, // กันขอบ/ช่วง init
+      child: Center(
+        child: Transform.scale(
+          scale: previewAspect / deviceRatio,
+          child: AspectRatio(
+            aspectRatio: previewAspect,
+            child: CameraPreview(_cam!),
+          ),
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.white,
-      body: Center(
-        child: Container(
-          width: 375,
-          height: 812,
-          decoration: ShapeDecoration(
-            color: Colors.white,
-            shape: RoundedRectangleBorder(
-              side: const BorderSide(width: 2, color: Color(0x599CABC2)),
-              borderRadius: BorderRadius.circular(40),
-            ),
-          ),
-          clipBehavior: Clip.antiAlias,
-          child: Stack(
-            children: [
-              if (_cameraActive && _cam != null && _cam!.value.isInitialized)
-                Positioned.fill(
-                  child: FittedBox(
-                    fit: BoxFit.cover,
-                    child: SizedBox(
-                      width: _cam!.value.previewSize!.height,
-                      height: _cam!.value.previewSize!.width,
-                      child: CameraPreview(_cam!),
-                    ),
+      body: SafeArea(
+        // ไม่มี Container 375×812 / ไม่มีเส้นขอบแล้ว
+        child: Stack(
+          children: [
+            // === กล้องเต็มจอ ===
+            Positioned.fill(child: _buildFullScreenPreview()),
+
+            // วงแหวนสถานะ
+            Center(
+              child: SizedBox(
+                width: 260,
+                height: 260,
+                child: CustomPaint(
+                  painter: _FaceScanRingPainter(
+                    progress: _progress,
+                    tickCount: 72,
                   ),
                 ),
+              ),
+            ),
 
-              // วงแหวนสถานะ
-              Center(
+            // ไอคอนก่อนเริ่ม
+            if (!_started)
+              const Center(
                 child: SizedBox(
-                  width: 260,
-                  height: 260,
-                  child: CustomPaint(
-                    painter: _FaceScanRingPainter(
-                      progress: _progress,
-                      tickCount: 72,
+                  width: 64,
+                  height: 64,
+                  child: DecoratedBox(
+                    decoration: ShapeDecoration(
+                      shape: CircleBorder(
+                        side: BorderSide(color: Color(0xFFD8DEE6)),
+                      ),
+                    ),
+                    child: Icon(Icons.tag_faces, color: Color(0xFFD8DEE6)),
+                  ),
+                ),
+              ),
+
+            // ปุ่มเริ่ม
+            if (!_started)
+              Positioned(
+                left: 24,
+                right: 24,
+                bottom: 24,
+                child: SizedBox(
+                  height: 48,
+                  child: FilledButton(
+                    onPressed: _startScan,
+                    style: FilledButton.styleFrom(
+                      backgroundColor: const Color(0xFF5CE1E6),
+                    ),
+                    child: const Text(
+                      'เริ่มสแกน',
+                      style: TextStyle(fontWeight: FontWeight.w700),
                     ),
                   ),
                 ),
               ),
 
-              // ไอคอนเริ่ม (ก่อนเริ่มสแกน)
-              if (!_started)
-                Center(
-                  child: Container(
-                    width: 64,
-                    height: 64,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      border: Border.all(color: const Color(0xFFD8DEE6)),
-                    ),
-                    child: const Icon(
-                      Icons.tag_faces,
-                      color: Color(0xFFD8DEE6),
-                    ),
+            // Hint บนสุด
+            if (_started)
+              Positioned(
+                top: 24,
+                left: 24,
+                right: 24,
+                child: Text(
+                  _hint,
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                    shadows: [
+                      Shadow(
+                        blurRadius: 6,
+                        color: Colors.black54,
+                        offset: Offset(0, 1),
+                      ),
+                    ],
                   ),
                 ),
+              ),
 
-              // ปุ่มเริ่ม
-              if (!_started)
-                Positioned(
-                  left: 24,
-                  right: 24,
-                  bottom: 36,
-                  child: SizedBox(
-                    height: 48,
-                    child: FilledButton(
-                      onPressed: _startScan,
-                      style: FilledButton.styleFrom(
-                        backgroundColor: const Color(0xFF5CE1E6),
-                      ),
-                      child: const Text(
-                        'เริ่มสแกน',
-                        style: TextStyle(fontWeight: FontWeight.w700),
-                      ),
-                    ),
+            // Debug (ถ้าต้องการ)
+            if (_started && _showDebug)
+              Positioned(
+                top: 8,
+                left: 8,
+                right: 8,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 6,
                   ),
-                ),
-
-              // Hint บนสุด
-              if (_started)
-                Positioned(
-                  top: 96,
-                  left: 24,
-                  right: 24,
+                  decoration: BoxDecoration(
+                    color: Colors.black54,
+                    borderRadius: BorderRadius.circular(8),
+                  ),
                   child: Text(
-                    _hint,
-                    textAlign: TextAlign.center,
+                    _debugText,
                     style: const TextStyle(
-                      color: Color.fromARGB(255, 255, 255, 255),
-                      fontSize: 16,
-                      fontWeight: FontWeight.w600,
-                      shadows: [
-                        Shadow(
-                          blurRadius: 6,
-                          color: Colors.black54,
-                          offset: Offset(0, 1),
-                        ),
-                      ],
+                      color: Colors.white,
+                      fontSize: 11,
+                      height: 1.2,
                     ),
                   ),
                 ),
-
-              // Debug overlay (เปิดได้ด้วย _showDebug = true)
-              if (_started && _showDebug)
-                Positioned(
-                  top: 16,
-                  left: 12,
-                  right: 12,
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 8,
-                      vertical: 6,
-                    ),
-                    decoration: BoxDecoration(
-                      color: Colors.black54,
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: Text(
-                      _debugText,
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 11,
-                        height: 1.2,
-                      ),
-                    ),
-                  ),
-                ),
-            ],
-          ),
+              ),
+          ],
         ),
       ),
     );

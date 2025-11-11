@@ -23,6 +23,7 @@ class _PhonePageState extends State<PhonePage> {
   }
 
   String _normalizePhone(String raw) {
+    // เอาเฉพาะตัวเลข + แปลง 66xxxxxxxxx -> 0xxxxxxxxx
     var p = raw.replaceAll(RegExp(r'\D'), '');
     if (p.startsWith('66') && p.length >= 11) p = '0${p.substring(2)}';
     return p;
@@ -33,7 +34,9 @@ class _PhonePageState extends State<PhonePage> {
   }
 
   Future<void> _submit() async {
+    if (_loading) return;
     FocusScope.of(context).unfocus();
+
     final phone = _normalizePhone(_phoneCtrl.text);
     if (!_isValidThaiMobile(phone)) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -70,11 +73,9 @@ class _PhonePageState extends State<PhonePage> {
       onTap: () => FocusScope.of(context).unfocus(),
       child: Scaffold(
         backgroundColor: Colors.white,
-        // ปล่อยให้เลย์เอาต์ขยับตามคีย์บอร์ด (ค่า default = true)
         resizeToAvoidBottomInset: true,
         body: SafeArea(
           child: SingleChildScrollView(
-            // ดันเนื้อหาให้พ้นคีย์บอร์ด
             padding: EdgeInsets.only(
               left: 20,
               right: 20,
@@ -95,7 +96,6 @@ class _PhonePageState extends State<PhonePage> {
                     height: 32,
                   ),
                 ),
-
                 const SizedBox(height: 8),
 
                 // หัวข้อ
@@ -122,7 +122,7 @@ class _PhonePageState extends State<PhonePage> {
                 ),
                 const SizedBox(height: 8),
 
-                // ช่องกรอกเบอร์ (เรียบ ๆ ไม่มีกรอบนอกหน้า)
+                // ช่องกรอกเบอร์
                 Container(
                   height: 48,
                   decoration: ShapeDecoration(
@@ -135,10 +135,11 @@ class _PhonePageState extends State<PhonePage> {
                       borderRadius: BorderRadius.circular(12),
                     ),
                   ),
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  padding: const EdgeInsets.symmetric(horizontal: 12),
                   alignment: Alignment.centerLeft,
                   child: Row(
                     children: [
+                      const SizedBox(width: 4),
                       const Text(
                         '+66',
                         style: TextStyle(
@@ -153,17 +154,32 @@ class _PhonePageState extends State<PhonePage> {
                       Expanded(
                         child: TextField(
                           controller: _phoneCtrl,
+                          textInputAction: TextInputAction.done,
+                          onSubmitted: (_) => _submit(),
                           keyboardType: TextInputType.phone,
+                          autofillHints: const [AutofillHints.telephoneNumber],
                           inputFormatters: [
                             FilteringTextInputFormatter.allow(
                               RegExp(r'[0-9+\-\s]'),
                             ),
                           ],
-                          decoration: const InputDecoration(
+                          decoration: InputDecoration(
                             isDense: true,
                             border: InputBorder.none,
                             hintText: '08xxxxxxxx',
+                            suffixIcon: (_phoneCtrl.text.isNotEmpty)
+                                ? IconButton(
+                                    splashRadius: 18,
+                                    iconSize: 18,
+                                    onPressed: () {
+                                      _phoneCtrl.clear();
+                                      setState(() {});
+                                    },
+                                    icon: const Icon(Icons.close_rounded),
+                                  )
+                                : null,
                           ),
+                          onChanged: (_) => setState(() {}),
                         ),
                       ),
                     ],
@@ -181,7 +197,13 @@ class _PhonePageState extends State<PhonePage> {
                       label: _loading ? 'กำลังส่ง...' : 'ถัดไป',
                       size: DsButtonSize.md,
                       variant: DsButtonVariant.primary,
-                      onPressed: _loading ? null : _submit,
+                      onPressed:
+                          (!_loading &&
+                              _isValidThaiMobile(
+                                _normalizePhone(_phoneCtrl.text),
+                              ))
+                          ? _submit
+                          : null,
                     ),
                   ),
                 ),

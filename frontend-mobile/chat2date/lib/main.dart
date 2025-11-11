@@ -20,7 +20,7 @@ class MyApp extends StatelessWidget {
       theme: buildLightTheme(),
       navigatorKey: navigatorKey,
       initialRoute:
-          '/test', //เวลาโค้ดเปลี่ยนเป็น path ตัวเองเอาไว้แสดงหน้าของตัวเองเด้อ
+          '/splash', //เวลาโค้ดเปลี่ยนเป็น path ตัวเองเอาไว้แสดงหน้าของตัวเองเด้อ
       routes: {
         //Test
         '/test': (context) => const ComponentTestScreen(),

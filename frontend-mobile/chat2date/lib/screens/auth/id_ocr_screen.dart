@@ -9,7 +9,7 @@ import 'package:permission_handler/permission_handler.dart';
 
 import 'package:chat2date/components/index.dart'; // DsButton / inputs
 import 'package:chat2date/services/ocr_thaiid_service.dart';
-import 'package:chat2date/models/face_scan_args.dart'; // ✅ ใช้ส่ง args ไปหน้า face-scan
+import 'package:chat2date/models/face_scan_args.dart'; // ใช้ส่ง args ไปหน้า face-scan
 
 class IdOcrScreen extends StatefulWidget {
   const IdOcrScreen({super.key});
@@ -29,7 +29,7 @@ class _IdOcrScreenState extends State<IdOcrScreen> {
   static const _maxFileBytes = 10 * 1024 * 1024; // 10MB
 
   File? _image;
-  Uint8List? _cardFace; // ✅ รูปหน้าจากบัตร (ถ้ามี)
+  Uint8List? _cardFace; // รูปหน้าจากบัตร (ถ้ามี)
   bool _busy = false;
 
   // ค่าที่จะโชว์ (disable fields)
@@ -138,7 +138,7 @@ class _IdOcrScreenState extends State<IdOcrScreen> {
         _fullName = result.fullName;
         _dob = result.birthDate; // มาจาก th_dob -> ค.ศ. แล้ว
         _gender = result.gender; // ชาย/หญิง/อื่นๆ
-        _cardFace = result.cardFaceBytes ?? fallbackBytes; // ✅ fallback
+        _cardFace = result.cardFaceBytes ?? fallbackBytes; // fallback
       });
 
       if (!mounted) return;
@@ -199,167 +199,166 @@ class _IdOcrScreenState extends State<IdOcrScreen> {
 
     return Scaffold(
       backgroundColor: Colors.white,
-      body: Center(
-        child: AspectRatio(
-          aspectRatio: 375 / 812,
-          child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 50),
-            clipBehavior: Clip.antiAlias,
-            decoration: ShapeDecoration(
-              color: Colors.white,
-              shape: RoundedRectangleBorder(
-                side: const BorderSide(width: 2),
-                borderRadius: BorderRadius.circular(50),
-              ),
-            ),
-
-            // ---------- Column + Scroll (เรียง 3 คอมโพเนนต์ต่อกัน) ----------
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // ปุ่มกลับไป /home มุมซ้ายบน
-                IconButton(
-                  onPressed: _busy
-                      ? null
-                      : () => Navigator.pushNamedAndRemoveUntil(
-                          context,
-                          '/home',
-                          (route) => false,
-                        ),
-                  icon: SvgPicture.asset(
-                    _backIcon,
-                    width: 45,
-                    height: 45,
-                    fit: BoxFit.contain,
+      // เอากรอบมือถือออก: ใช้ SafeArea + Center + ConstrainedBox + Padding
+      body: SafeArea(
+        child: Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 420),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
+              // ---------- Column + Scroll (เรียง 3 คอมโพเนนต์ต่อกัน) ----------
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // ปุ่มกลับไป /home มุมซ้ายบน
+                  IconButton(
+                    onPressed: _busy
+                        ? null
+                        : () => Navigator.pushNamedAndRemoveUntil(
+                            context,
+                            '/home',
+                            (route) => false,
+                          ),
+                    icon: SvgPicture.asset(
+                      _backIcon,
+                      width: 45,
+                      height: 45,
+                      fit: BoxFit.contain,
+                    ),
+                    padding: EdgeInsets.zero,
+                    visualDensity: VisualDensity.compact,
                   ),
-                  padding: EdgeInsets.zero,
-                  visualDensity: VisualDensity.compact,
-                ),
 
-                const SizedBox(height: 12),
+                  const SizedBox(height: 12),
 
-                // เนื้อหา: กรอบรูป -> ฟิลด์ -> ปุ่มยืนยัน
-                Expanded(
-                  child: SingleChildScrollView(
-                    padding: const EdgeInsets.only(bottom: 12),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.center,
-                      children: [
-                        // ===== กรอบแสดงภาพ =====
-                        Center(
-                          child: SizedBox(
-                            width: 322,
-                            height: 220,
-                            child: ClipRRect(
-                              borderRadius: BorderRadius.circular(40),
-                              child: Material(
-                                color: Colors.transparent,
-                                child: InkWell(
-                                  onTap: _busy ? null : _chooseSource,
-                                  child: Container(
-                                    decoration: BoxDecoration(
-                                      border: Border.all(
-                                        width: 2,
-                                        color: borderColor,
+                  // เนื้อหา: กรอบรูป -> ฟิลด์ -> ปุ่มยืนยัน
+                  Expanded(
+                    child: SingleChildScrollView(
+                      padding: const EdgeInsets.only(bottom: 12),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.center,
+                        children: [
+                          // ===== กรอบแสดงภาพ =====
+                          Center(
+                            child: SizedBox(
+                              width: 322,
+                              height: 220,
+                              child: ClipRRect(
+                                borderRadius: BorderRadius.circular(40),
+                                child: Material(
+                                  color: Colors.transparent,
+                                  child: InkWell(
+                                    onTap: _busy ? null : _chooseSource,
+                                    child: Container(
+                                      decoration: BoxDecoration(
+                                        border: Border.all(
+                                          width: 2,
+                                          color: borderColor,
+                                        ),
+                                        color: Colors.white,
+                                        borderRadius: BorderRadius.circular(40),
                                       ),
-                                      color: Colors.white,
-                                      borderRadius: BorderRadius.circular(40),
-                                    ),
-                                    child: Stack(
-                                      fit: StackFit.expand,
-                                      children: [
-                                        if (_image != null)
-                                          Image.file(_image!, fit: BoxFit.cover)
-                                        else
-                                          const Center(
-                                            child: Text(
-                                              'แตะเพื่อแนบรูป/ถ่ายบัตรประชาชน',
+                                      child: Stack(
+                                        fit: StackFit.expand,
+                                        children: [
+                                          if (_image != null)
+                                            Image.file(
+                                              _image!,
+                                              fit: BoxFit.cover,
+                                            )
+                                          else
+                                            const Center(
+                                              child: Text(
+                                                'แตะเพื่อแนบรูป/ถ่ายบัตรประชาชน',
+                                              ),
                                             ),
-                                          ),
-                                        const Positioned(
-                                          bottom: 8,
-                                          left: 0,
-                                          right: 0,
-                                          child: Opacity(
-                                            opacity: 0.75,
-                                            child: Text(
-                                              'แตะเพื่อเลือก: คลังรูป หรือ กล้อง',
-                                              textAlign: TextAlign.center,
-                                              style: TextStyle(
-                                                fontSize: 12,
-                                                color: Color(0xFF64748B),
+                                          const Positioned(
+                                            bottom: 8,
+                                            left: 0,
+                                            right: 0,
+                                            child: Opacity(
+                                              opacity: 0.75,
+                                              child: Text(
+                                                'แตะเพื่อเลือก: คลังรูป หรือ กล้อง',
+                                                textAlign: TextAlign.center,
+                                                style: TextStyle(
+                                                  fontSize: 12,
+                                                  color: Color(0xFF64748B),
+                                                ),
                                               ),
                                             ),
                                           ),
-                                        ),
-                                      ],
+                                        ],
+                                      ),
                                     ),
                                   ),
                                 ),
                               ),
                             ),
                           ),
-                        ),
 
-                        const SizedBox(height: 24),
+                          const SizedBox(height: 24),
 
-                        // ===== กลุ่มฟิลด์ (กว้าง 295) =====
-                        SizedBox(
-                          width: 295,
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              _DisabledField(
-                                label: 'ชื่อ-นามสกุล',
-                                value: _fullName ?? '',
-                              ),
-                              const SizedBox(height: 10),
-                              _DisabledField(
-                                label: 'วันเกิด',
-                                value: _dob == null ? '' : _fmt.format(_dob!),
-                              ),
-                              const SizedBox(height: 10),
-                              _DisabledField(
-                                label: 'อายุ',
-                                value: _dob == null
-                                    ? ''
-                                    : _calcAgeForDisplay(_dob!).toString(),
-                              ),
-                              const SizedBox(height: 10),
-                              _DisabledField(
-                                label: 'เพศ',
-                                value: _gender ?? '',
-                              ),
-                            ],
+                          // ===== กลุ่มฟิลด์ (กว้าง 295) =====
+                          SizedBox(
+                            width: 295,
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                _DisabledField(
+                                  label: 'ชื่อ-นามสกุล',
+                                  value: _fullName ?? '',
+                                ),
+                                const SizedBox(height: 10),
+                                _DisabledField(
+                                  label: 'วันเกิด',
+                                  value: _dob == null ? '' : _fmt.format(_dob!),
+                                ),
+                                const SizedBox(height: 10),
+                                _DisabledField(
+                                  label: 'อายุ',
+                                  value: _dob == null
+                                      ? ''
+                                      : _calcAgeForDisplay(_dob!).toString(),
+                                ),
+                                const SizedBox(height: 10),
+                                _DisabledField(
+                                  label: 'เพศ',
+                                  value: _gender ?? '',
+                                ),
+                              ],
+                            ),
                           ),
-                        ),
 
-                        const SizedBox(height: 24),
+                          const SizedBox(height: 24),
 
-                        // ===== ปุ่มยืนยัน =====
-                        SizedBox(
-                          width: 231,
-                          height: 40,
-                          child: DsButton(
-                            label: 'ยืนยันข้อมูล',
-                            size: DsButtonSize.md,
-                            onPressed: _busy ? null : _submit,
+                          // ===== ปุ่มยืนยัน =====
+                          SizedBox(
+                            width: 231,
+                            height: 40,
+                            child: DsButton(
+                              label: 'ยืนยันข้อมูล',
+                              size: DsButtonSize.md,
+                              onPressed: _busy ? null : _submit,
+                            ),
                           ),
-                        ),
 
-                        if (_busy) ...[
-                          const SizedBox(height: 12),
-                          const SizedBox(
-                            width: 28,
-                            height: 28,
-                            child: CircularProgressIndicator(strokeWidth: 2.6),
-                          ),
+                          if (_busy) ...[
+                            const SizedBox(height: 12),
+                            const SizedBox(
+                              width: 28,
+                              height: 28,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2.6,
+                              ),
+                            ),
+                          ],
                         ],
-                      ],
+                      ),
                     ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
           ),
         ),

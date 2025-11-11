@@ -10,7 +10,7 @@ class SplashPage extends StatefulWidget {
 }
 
 class _SplashPageState extends State<SplashPage> {
-  static const _svgPath = 'assets/icons/icon_logo_app_text.svg';
+  static const _svgPath = 'assets/images/logo_chat2date_text.png';
 
   late final Future<bool> _logoExists;
 
@@ -43,16 +43,10 @@ class _SplashPageState extends State<SplashPage> {
       body: Center(
         child: AspectRatio(
           aspectRatio: 375 / 812,
-          child: Container(
+          // เดิมใช้ Container + ShapeDecoration (เป็นกรอบมือถือ)
+          // เปลี่ยนเป็น Padding ธรรมดาแทน เพื่อเอากรอบออก
+          child: Padding(
             padding: const EdgeInsets.symmetric(vertical: 50),
-            clipBehavior: Clip.antiAlias,
-            decoration: ShapeDecoration(
-              color: Colors.white,
-              shape: RoundedRectangleBorder(
-                side: const BorderSide(width: 2, color: Color(0xFFE5E7EB)),
-                borderRadius: BorderRadius.circular(50),
-              ),
-            ),
             child: Stack(
               children: [
                 // โลโก้ (มี placeholder และกันกรณีหาไฟล์ไม่เจอ)
