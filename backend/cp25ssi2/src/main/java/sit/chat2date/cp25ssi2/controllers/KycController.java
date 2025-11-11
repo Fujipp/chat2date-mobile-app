@@ -10,7 +10,7 @@ import sit.chat2date.cp25ssi2.dto.*;
 import java.util.Map;
 
 @RestController
-@RequestMapping("/api/kyc")
+@RequestMapping("/kyc")
 @RequiredArgsConstructor
 public class KycController {
 
