@@ -80,7 +80,7 @@ public class JwtTokenUtil implements Serializable {
         User user = userById.orElseThrow();
 
         Map<String, Object> claims = new HashMap<>();
-        claims.put("iss", "https://cp25ssi2.sit.kmutt.ac.th/");
+        claims.put("iss", "chat2date");
         claims.put("role", user.getRole());
         claims.put("cid", user.getCardId());
 

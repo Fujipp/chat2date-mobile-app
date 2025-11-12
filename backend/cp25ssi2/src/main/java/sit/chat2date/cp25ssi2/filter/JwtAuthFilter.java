@@ -65,7 +65,7 @@ public class JwtAuthFilter extends OncePerRequestFilter {
                     user = userRepository.findByEmail(sub);
                 }
 
-                if (issuer.equals("https://intproj23.sit.kmutt.ac.th/ssa2/")) {
+                if (issuer.equals("chat2date")) {
                     jwtTokenUtil.validateTokenExceptions(jwtToken);
                 }
 
