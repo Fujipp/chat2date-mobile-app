@@ -30,10 +30,6 @@ import java.util.Optional;
 
 @Component
 public class JwtAuthFilter extends OncePerRequestFilter {
-
-    @Autowired
-    private UserService userService;
-
     @Autowired
     private UserRepository userRepository;
 
@@ -84,18 +80,7 @@ public class JwtAuthFilter extends OncePerRequestFilter {
                     }
                 }
             } catch (SignatureException | IllegalArgumentException | ExpiredJwtException e) {
-                if (request.getMethod().matches("POST|PUT|DELETE|PATCH")) {
-                    String errorMessage;
-                    if (e instanceof SignatureException) {
-                        errorMessage = "Invalid credential please try again.";
-                    } else if (e instanceof IllegalArgumentException) {
-                        errorMessage = "Invalid token format. Please ensure the token is correctly formatted and try again.";
-                    } else {
-                        errorMessage = "Your session has expired. Please log in again to continue.";
-                    }
-                    sendErrorResponse(response, errorMessage, request, HttpStatus.UNAUTHORIZED);
-                    return;
-                }
+                handleExceptionResponse(response, e, request);
                 return;
             }
         } else {
@@ -104,6 +89,29 @@ public class JwtAuthFilter extends OncePerRequestFilter {
         }
 
         filterChain.doFilter(request, response);
+    }
+
+    private void handleExceptionResponse(HttpServletResponse response, Exception e, HttpServletRequest request) throws IOException, java.io.IOException {
+        String errorMessage;
+
+        if (e instanceof SignatureException) {
+            errorMessage = "Invalid credential please try again.";
+        } else if (e instanceof IllegalArgumentException) {
+            String originalMsg = e.getMessage();
+            if (originalMsg != null && originalMsg.toLowerCase().contains("expired")) {
+                errorMessage = "Your session has expired. Please log in again to continue.";
+            } else if (originalMsg != null && originalMsg.toLowerCase().contains("invalid")) {
+                errorMessage = "Invalid token format. Please log in again.";
+            } else {
+                errorMessage = "Token validation failed. Please log in again.";
+            }
+        } else if (e instanceof ExpiredJwtException) {
+            errorMessage = "Your session has expired. Please log in again to continue.";
+        } else {
+            errorMessage = "Unauthorized access";
+        }
+
+        sendErrorResponse(response, errorMessage, request, HttpStatus.UNAUTHORIZED);
     }
 
     private void sendErrorResponse(HttpServletResponse response, String message, HttpServletRequest request, HttpStatus status) throws IOException, java.io.IOException {
