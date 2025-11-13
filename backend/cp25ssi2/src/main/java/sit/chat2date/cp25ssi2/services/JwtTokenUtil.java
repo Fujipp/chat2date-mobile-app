@@ -73,18 +73,26 @@ public class JwtTokenUtil implements Serializable {
 
     public String generateToken(String identifier) {
         Optional<User> userById = Optional.empty();
-        String sub = null;
+        String sub;
 
         if (isEmail(identifier)) {
             userById = userRepository.findByEmail(identifier);
-            sub = identifier;
-        } else {
+        } else if (identifier.matches("^[0-9]{10,}$")) {  
             userById = userRepository.findByPhoneNumber(identifier);
-            sub = identifier;
+        } else {
+            userById = userRepository.findByUserId(identifier);
         }
 
         // ตรวจสอบว่ามี user จริง ๆ หรือไม่
-        User user = userById.orElseThrow();
+        User user = userById.orElseThrow(() ->
+                new IllegalArgumentException("User not found for identifier: " + identifier)
+        );
+
+        if (user.getPhoneNumber() != null) {
+            sub = user.getPhoneNumber();
+        } else {
+            sub = user.getEmail();
+        }
 
         Map<String, Object> claims = new HashMap<>();
         claims.put("iss", "chat2date");
@@ -154,6 +162,11 @@ public class JwtTokenUtil implements Serializable {
                 .parseClaimsJws(token)
                 .getBody();
         return claimsResolver.apply(claims);
+    }
+
+
+    public String getSubjectFromRefreshToken(String token) {
+        return getClaimFromRefreshToken(token, Claims::getSubject);
     }
 
     public Boolean isRefreshTokenExpired(String token) {
