@@ -25,6 +25,7 @@ public class AuthService {
     private final JwtTokenUtil jwtService;
     private final GoogleTokenVerifier googleTokenVerifier;
     private final JwtTokenUtil jwtTokenUtil;
+    private final UserFactory userFactory;
 
     public AuthenticationResponse verifyGoogleToken(String idToken) {
 
@@ -60,26 +61,7 @@ public class AuthService {
                 );
             }
         } else {
-            user = User.builder()
-                    .email(email)
-                    .provider(Provider.GOOGLE)
-                    .version(1)
-                    .role(Role.USER)
-                    .accountStatus(AccountStatus.PENDING)
-                    .isVerify(false)           
-                    .faceVerify(false)         
-                    .behaviorScore(100)        
-                    .isBlacklist(false)
-
-                    // default ชั่วคราว
-                    .firstname("Unknown")
-                    .lastname("Unknown")
-                    .nickname("User")
-                    .cardId(generateTempCardId())
-                    .birthday(LocalDate.of(2000, 1, 1))
-                    .age(0)
-                    .sex(Sex.MALE)
-                    .build();
+            user = UserFactory.createGoogleUser(email);
             user = userRepository.save(user);
         }
 
