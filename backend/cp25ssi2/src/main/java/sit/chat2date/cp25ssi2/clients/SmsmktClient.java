@@ -108,7 +108,6 @@ public class SmsmktClient {
         if (valid) {
             if (userOptional.isEmpty()) {
                 user = User.builder()
-                        .userId()
                         .phoneNumber(phoneNumber)
                         .provider(Provider.OTP)
                         .version(1)
