@@ -64,4 +64,11 @@ public class AuthController {
         response.put("token", jwtToken);
         return response;
     }
+    //refresh
+    @PostMapping("/refresh-token")
+    public Map<String, Object> validate(@RequestBody String accessToken) {
+        jwtTokenUtil.generateRefreshToken(accessToken);
+        return Map.of("refresh-token", jwtTokenUtil.generateRefreshToken(accessToken));
+    }
+
 }

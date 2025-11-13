@@ -29,17 +29,24 @@ public class JwtTokenUtil implements Serializable {
     @Autowired
     UserRepository userRepository;
 
-    @Value("${jwt.secret}")
+    @Value("${JWT_SECRET}")
     private String secret_key;
     @Value("${jwt.max-token-interval-hour}")
     private int jwt_token_time;
 
+    @Value("${JWT_REFRESH_SECRET}")
+    private String refresh_secret_key;
+    @Value("${jwt.max-refresh-token-interval-hour}")
+    private int jwt_refresh_token_time;
+
     SignatureAlgorithm signatureAlgorithm = SignatureAlgorithm.HS256;
     private SecretKey key;
+    private SecretKey refreshKey;
 
     @PostConstruct
     public void init() {
         this.key = Keys.hmacShaKeyFor(secret_key.getBytes(StandardCharsets.UTF_8));
+        this.refreshKey = Keys.hmacShaKeyFor(refresh_secret_key.getBytes(StandardCharsets.UTF_8));
     }
 
     public String getSubjectFromToken(String token) {
@@ -129,4 +136,38 @@ public class JwtTokenUtil implements Serializable {
         if (identifier == null) return false;
         return identifier.matches("^[A-Za-z0-9+_.-]+@[A-Za-z0-9.-]+$");
     }
+
+    //refresh
+    public String generateRefreshToken(String subject) {
+        return Jwts.builder()
+                .setSubject(subject)
+                .setIssuedAt(new Date(System.currentTimeMillis()))
+                .setExpiration(new Date(System.currentTimeMillis() + jwt_refresh_token_time))
+                .signWith(refreshKey,signatureAlgorithm)
+                .compact();
+    }
+
+    public <T> T getClaimFromRefreshToken(String token, Function<Claims, T> claimsResolver) {
+        final Claims claims = Jwts.parserBuilder()
+                .setSigningKey(refreshKey)
+                .build()
+                .parseClaimsJws(token)
+                .getBody();
+        return claimsResolver.apply(claims);
+    }
+
+    public Boolean isRefreshTokenExpired(String token) {
+        final Date expiration = getClaimFromRefreshToken(token, Claims::getExpiration);
+        return expiration.before(new Date());
+    }
+
+    public Boolean validateRefreshToken(String token) {
+        try {
+            Jwts.parserBuilder().setSigningKey(refreshKey).build().parseClaimsJws(token);
+            return !isRefreshTokenExpired(token);
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
 }
