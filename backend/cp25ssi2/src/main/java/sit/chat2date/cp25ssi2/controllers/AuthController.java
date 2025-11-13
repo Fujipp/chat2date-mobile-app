@@ -1,23 +1,17 @@
 package sit.chat2date.cp25ssi2.controllers;
 
-
-import java.time.LocalDate;
 import java.util.HashMap;
 import java.util.Map;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import sit.chat2date.cp25ssi2.clients.SmsmktClient;
-import sit.chat2date.cp25ssi2.dto.AuthenticationResponse;
-import sit.chat2date.cp25ssi2.dto.GoogleLoginRequest;
-import sit.chat2date.cp25ssi2.dto.OtpSendRequest;
-import sit.chat2date.cp25ssi2.dto.OtpValidateRequest;
-import sit.chat2date.cp25ssi2.entities.User;
-import sit.chat2date.cp25ssi2.enums.Provider;
-import sit.chat2date.cp25ssi2.enums.Sex;
+import sit.chat2date.cp25ssi2.dto.*;
+import sit.chat2date.cp25ssi2.exceptions.RefreshTokenExpiredException;
 import sit.chat2date.cp25ssi2.repositories.UserRepository;
 import sit.chat2date.cp25ssi2.services.AuthService;
 import sit.chat2date.cp25ssi2.services.JwtTokenUtil;
@@ -63,11 +57,16 @@ public class AuthController {
         response.put("token", jwtToken);
         return response;
     }
-    //refresh
-    @PostMapping("/refresh-token")
-    public Map<String, Object> validate(@RequestBody String accessToken) {
-        jwtTokenUtil.generateRefreshToken(accessToken);
-        return Map.of("refresh-token", jwtTokenUtil.generateRefreshToken(accessToken));
-    }
 
+    @PostMapping("/refresh-token")
+    public ResponseEntity<RefreshTokenResponse> refreshToken(@RequestBody RefreshTokenRequest request) {
+        String refreshToken = request.getRefreshToken();
+        jwtTokenUtil.validateRefreshToken(refreshToken);
+
+        String subject = jwtTokenUtil.getSubjectFromRefreshToken(refreshToken);
+        String newAccessToken = jwtTokenUtil.generateToken(subject);
+
+        return ResponseEntity.ok(new RefreshTokenResponse(newAccessToken));
+    }
 }
+

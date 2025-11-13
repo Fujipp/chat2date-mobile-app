@@ -1,6 +1,7 @@
 package sit.chat2date.cp25ssi2.exceptions;
 
 import com.fasterxml.jackson.databind.exc.InvalidFormatException;
+import io.jsonwebtoken.ExpiredJwtException;
 import jakarta.servlet.http.HttpServletRequest;
 import org.apache.tomcat.websocket.AuthenticationException;
 import org.springframework.http.HttpStatus;
@@ -12,7 +13,10 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.context.request.WebRequest;
+import org.springframework.web.server.ResponseStatusException;
 
+import java.security.SignatureException;
+import java.util.HashMap;
 import java.util.Map;
 
 @ControllerAdvice
@@ -96,6 +100,63 @@ public class GlobalExceptionHandler {
                 request.getDescription(false)
         );
         return new ResponseEntity<>(errorResponse, HttpStatus.FORBIDDEN);
+    }
+
+    @ExceptionHandler(RefreshTokenExpiredException.class)
+    public ResponseEntity<Map<String,Object>> handleRefreshExpired(RefreshTokenExpiredException ex, WebRequest request) {
+        Map<String, Object> body = Map.of(
+                "status", HttpStatus.UNAUTHORIZED.value(),
+                "error", "Unauthorized",
+                "message", ex.getMessage(),
+                "path", request.getDescription(false).substring(4)
+        );
+        return new ResponseEntity<>(body, HttpStatus.UNAUTHORIZED);
+    }
+
+
+    @ExceptionHandler(ExpiredJwtException.class)
+    public ResponseEntity<Map<String, Object>> handleExpiredJwtException(ExpiredJwtException ex, WebRequest request) {
+        Map<String, Object> body = Map.of(
+                "status", HttpStatus.UNAUTHORIZED.value(),
+                "error", "Unauthorized",
+                "message", "Access token has expired",
+                "path", request.getDescription(false).substring(4)
+        );
+        return new ResponseEntity<>(body, HttpStatus.UNAUTHORIZED);
+    }
+
+    @ExceptionHandler(SignatureException.class)
+    public ResponseEntity<Map<String, Object>> handleSignatureException(SignatureException ex, WebRequest request) {
+        Map<String, Object> body = Map.of(
+                "status", HttpStatus.UNAUTHORIZED.value(),
+                "error", "Unauthorized",
+                "message", "Invalid token signature",
+                "path", request.getDescription(false).substring(4)
+        );
+        return new ResponseEntity<>(body, HttpStatus.UNAUTHORIZED);
+    }
+
+    @ExceptionHandler(ResponseStatusException.class)
+    public ResponseEntity<Map<String, Object>> handleResponseStatusException(ResponseStatusException ex) {
+        Map<String, Object> body = new HashMap<>();
+        body.put("status", ex.getStatusCode().value());
+        body.put("message", ex.getReason());
+        body.put("instance", "api/v1/auth/google");
+        return new ResponseEntity<>(body, ex.getStatusCode());
+    }
+
+    @ExceptionHandler(IllegalArgumentException.class)
+    public ResponseEntity<Map<String, Object>> handleIllegalArgumentException(
+            IllegalArgumentException ex,
+            WebRequest request
+    ) {
+        Map<String, Object> body = Map.of(
+                "status", HttpStatus.UNAUTHORIZED.value(),
+                "error", "Unauthorized",
+                "message", ex.getMessage(),
+                "path", request.getDescription(false).substring(4)
+        );
+        return new ResponseEntity<>(body, HttpStatus.UNAUTHORIZED);
     }
 
 }

@@ -22,10 +22,8 @@ import java.util.Optional;
 public class AuthService {
 
     private final UserRepository userRepository;
-    private final JwtTokenUtil jwtService;
     private final GoogleTokenVerifier googleTokenVerifier;
     private final JwtTokenUtil jwtTokenUtil;
-    private final UserFactory userFactory;
 
     public AuthenticationResponse verifyGoogleToken(String idToken) {
 
@@ -46,7 +44,6 @@ public class AuthService {
         }
 
         String email = (String) payload.get("email");
-//        System.out.println(payload);
 
         Optional<User> userOptional = userRepository.findByEmail(email);
 
@@ -66,7 +63,7 @@ public class AuthService {
         }
 
         String accessToken = jwtTokenUtil.generateToken(email);
-//        String refreshToken = jwtService.generateRefreshToken(user.getUserId());
+        String refreshToken = jwtTokenUtil.generateRefreshToken(user.getUserId());
 
         UserDto userDto = UserDto.builder()
                 .id(user.getUserId())
@@ -76,7 +73,7 @@ public class AuthService {
         return AuthenticationResponse.builder()
                 .user(userDto)
                 .accessToken(accessToken)
-//                .refreshToken(refreshToken)
+                .refreshToken(refreshToken)
                 .build();
     }
 

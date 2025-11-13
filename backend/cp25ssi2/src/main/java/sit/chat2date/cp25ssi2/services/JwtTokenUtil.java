@@ -11,7 +11,9 @@ import org.hibernate.boot.model.naming.Identifier;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
+import sit.chat2date.cp25ssi2.dto.RefreshTokenResponse;
 import sit.chat2date.cp25ssi2.entities.User;
+import sit.chat2date.cp25ssi2.exceptions.RefreshTokenExpiredException;
 import sit.chat2date.cp25ssi2.repositories.UserRepository;
 
 import javax.crypto.SecretKey;
@@ -38,6 +40,7 @@ public class JwtTokenUtil implements Serializable {
     private String refresh_secret_key;
     @Value("${jwt.max-refresh-token-interval-hour}")
     private int jwt_refresh_token_time;
+    private long jwt_refresh_token_time_millis;
 
     SignatureAlgorithm signatureAlgorithm = SignatureAlgorithm.HS256;
     private SecretKey key;
@@ -47,6 +50,7 @@ public class JwtTokenUtil implements Serializable {
     public void init() {
         this.key = Keys.hmacShaKeyFor(secret_key.getBytes(StandardCharsets.UTF_8));
         this.refreshKey = Keys.hmacShaKeyFor(refresh_secret_key.getBytes(StandardCharsets.UTF_8));
+        this.jwt_refresh_token_time_millis = jwt_refresh_token_time * 60L * 60L * 1000L;
     }
 
     public String getSubjectFromToken(String token) {
@@ -77,7 +81,7 @@ public class JwtTokenUtil implements Serializable {
 
         if (isEmail(identifier)) {
             userById = userRepository.findByEmail(identifier);
-        } else if (identifier.matches("^[0-9]{10,}$")) {  
+        } else if (identifier.matches("^[0-9]{10,}$")) {
             userById = userRepository.findByPhoneNumber(identifier);
         } else {
             userById = userRepository.findByUserId(identifier);
@@ -114,7 +118,7 @@ public class JwtTokenUtil implements Serializable {
         return Jwts.builder().setHeaderParam("typ", "JWT")
                 .setClaims(claims).setSubject(subject)
                 .setIssuedAt(new Date(System.currentTimeMillis()))
-                .setExpiration(new Date(System.currentTimeMillis() + jwt_token_time))
+                .setExpiration(new Date(System.currentTimeMillis() + jwt_refresh_token_time_millis))
                 .signWith(key, signatureAlgorithm).compact();
     }
 
@@ -176,10 +180,27 @@ public class JwtTokenUtil implements Serializable {
 
     public Boolean validateRefreshToken(String token) {
         try {
-            Jwts.parserBuilder().setSigningKey(refreshKey).build().parseClaimsJws(token);
-            return !isRefreshTokenExpired(token);
+            Jwts.parserBuilder()
+                    .setSigningKey(refreshKey)
+                    .build()
+                    .parseClaimsJws(token);
+
+            if (isRefreshTokenExpired(token)) {
+                throw new RefreshTokenExpiredException(
+                        "Refresh token has expired. Please log in again."
+                );
+            }
+
+            return true;
+
+        } catch (ExpiredJwtException e) {
+            throw new RefreshTokenExpiredException(
+                    "Refresh token has expired. Please log in again."
+            );
+        } catch (SignatureException | io.jsonwebtoken.MalformedJwtException e) {
+            throw new IllegalArgumentException("Invalid refresh token signature or format");
         } catch (Exception e) {
-            return false;
+            throw new IllegalArgumentException("Invalid refresh token");
         }
     }
 
