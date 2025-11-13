@@ -50,7 +50,7 @@ public class SmsmktClient {
      */
     public String send(String phone08, String refCode) {
         var url = "https://portal-otp.smsmkt.com/api/otp-send";
-        var payload = new java.util.HashMap<String, Object>();
+        var payload = new HashMap<String, Object>();
         payload.put("project_key", projectKey);
         payload.put("phone", normalizePhone(phone08));  // 08xxxxxxxx
         if (refCode != null && !refCode.isBlank()) payload.put("ref_code", refCode);
@@ -104,12 +104,13 @@ public class SmsmktClient {
         }
 
         Optional<User> userOptional = userRepository.findByPhoneNumber(phoneNumber);
-        User user;
+        User user = new User();
         if (valid) {
             if (userOptional.isEmpty()) {
                 user = User.builder()
+                        .userId()
                         .phoneNumber(phoneNumber)
-                        .provider(Provider.GOOGLE)
+                        .provider(Provider.OTP)
                         .version(1)
                         .role(Role.USER)
                         .accountStatus(AccountStatus.PENDING)
@@ -130,13 +131,17 @@ public class SmsmktClient {
                 user = userRepository.save(user);
             }
         }
-        // สร้าง JWT token
         String jwtToken = jwtTokenUtil.generateToken(phoneNumber);
-        // return ทั้ง valid และ token
+
         Map<String, Object> response = new HashMap<>();
-        response.put("valid", valid);
         if (valid) {
-            response.put("jwt_token", jwtToken);
+            if (userOptional.isEmpty()) {
+                response.put("access_token", jwtToken);
+                response.put("user", user);
+            }  else {
+                response.put("access_token", jwtToken);
+                response.put("user", userOptional.get());
+            }
         }
 
         return response;

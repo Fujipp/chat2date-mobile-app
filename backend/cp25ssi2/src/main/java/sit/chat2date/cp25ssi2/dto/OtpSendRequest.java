@@ -4,6 +4,6 @@ import lombok.Data;
 
 @Data
 public class OtpSendRequest {
-  private String phone;    // 08xxxxxxxx
+  private String phoneNumber;    // 08xxxxxxxx
   private String refCode;  // optional
 }

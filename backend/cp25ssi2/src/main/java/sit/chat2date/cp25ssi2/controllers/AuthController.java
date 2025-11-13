@@ -45,14 +45,13 @@ public class AuthController {
 
     @PostMapping("/request-otp")
     public Map<String, Object> send(@RequestBody OtpSendRequest body) {
-        String token = client.send(body.getPhone(), body.getRefCode());
+        String token = client.send(body.getPhoneNumber(), body.getRefCode());
         return Map.of("token", token);
     }
 
     @PostMapping("/verify-otp")
     public Map<String, Object> validate(@RequestBody OtpValidateRequest body) {
-        Map<String, Object> ok = client.validate(body.getToken(), body.getOtp_code(), body.getRefCode(), body.getPhoneNumber());
-        return Map.of("valid", ok);
+        return client.validate(body.getToken(), body.getOtp_code(), body.getRefCode(), body.getPhoneNumber());
     }
 
     @PostMapping("/request-token")
