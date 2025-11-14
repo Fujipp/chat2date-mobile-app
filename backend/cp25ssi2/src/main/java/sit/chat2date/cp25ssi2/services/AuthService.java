@@ -4,16 +4,13 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
+import sit.chat2date.cp25ssi2.utils.UserFactory;
 import sit.chat2date.cp25ssi2.dto.AuthenticationResponse;
 import sit.chat2date.cp25ssi2.dto.UserDto;
 import sit.chat2date.cp25ssi2.entities.User;
-import sit.chat2date.cp25ssi2.enums.AccountStatus;
 import sit.chat2date.cp25ssi2.enums.Provider;
-import sit.chat2date.cp25ssi2.enums.Role;
-import sit.chat2date.cp25ssi2.enums.Sex;
 import sit.chat2date.cp25ssi2.repositories.UserRepository;
 
-import java.time.LocalDate;
 import java.util.Map;
 import java.util.Optional;
 
@@ -24,6 +21,7 @@ public class AuthService {
     private final UserRepository userRepository;
     private final GoogleTokenVerifier googleTokenVerifier;
     private final JwtTokenUtil jwtTokenUtil;
+    private final UserFactory userFactory;
 
     public AuthenticationResponse verifyGoogleToken(String idToken) {
 
@@ -58,7 +56,7 @@ public class AuthService {
                 );
             }
         } else {
-            user = UserFactory.createGoogleUser(email);
+            user = userFactory.createGoogleUser(email);
             user = userRepository.save(user);
         }
 

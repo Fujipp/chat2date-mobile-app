@@ -1,6 +1,6 @@
-package sit.chat2date.cp25ssi2.services;
+package sit.chat2date.cp25ssi2.utils;
 
-import org.springframework.beans.factory.annotation.Autowired;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 import sit.chat2date.cp25ssi2.entities.User;
 import sit.chat2date.cp25ssi2.enums.AccountStatus;
@@ -11,12 +11,13 @@ import sit.chat2date.cp25ssi2.enums.Sex;
 import java.time.LocalDate;
 
 @Component
+@RequiredArgsConstructor
 public class UserFactory {
-    @Autowired
-    private static AuthService authService;
 
-    public static User createDefaultUser(String email, Provider provider) {
-        String generatedCardId = authService.generateTempCardId();
+    private final CardIdGenerator cardIdGenerator;
+
+    public User createDefaultUser(String email, Provider provider) {
+        String generatedCardId = cardIdGenerator.generateTempCardId();
 
         return User.builder()
                 .email(email)
@@ -38,11 +39,11 @@ public class UserFactory {
                 .build();
     }
 
-    public static User createGoogleUser(String email) {
+    public User createGoogleUser(String email) {
         return createDefaultUser(email, Provider.GOOGLE);
     }
 
-    public static User createPhoneUser(String phoneNumber) {
+    public User createPhoneUser(String phoneNumber) {
         User user = createDefaultUser(null, Provider.OTP);
         user.setPhoneNumber(phoneNumber);
         return user;

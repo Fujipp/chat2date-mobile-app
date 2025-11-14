@@ -11,7 +11,6 @@ import org.springframework.web.bind.annotation.*;
 
 import sit.chat2date.cp25ssi2.clients.SmsmktClient;
 import sit.chat2date.cp25ssi2.dto.*;
-import sit.chat2date.cp25ssi2.exceptions.RefreshTokenExpiredException;
 import sit.chat2date.cp25ssi2.repositories.UserRepository;
 import sit.chat2date.cp25ssi2.services.AuthService;
 import sit.chat2date.cp25ssi2.services.JwtTokenUtil;

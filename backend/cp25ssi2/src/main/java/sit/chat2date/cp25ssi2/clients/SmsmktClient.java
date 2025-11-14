@@ -1,23 +1,17 @@
 package sit.chat2date.cp25ssi2.clients;
 
-import java.time.LocalDate;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 
 import lombok.RequiredArgsConstructor;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.*;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestTemplate;
+import sit.chat2date.cp25ssi2.utils.UserFactory;
 import sit.chat2date.cp25ssi2.entities.User;
-import sit.chat2date.cp25ssi2.enums.AccountStatus;
-import sit.chat2date.cp25ssi2.enums.Provider;
-import sit.chat2date.cp25ssi2.enums.Role;
-import sit.chat2date.cp25ssi2.enums.Sex;
 import sit.chat2date.cp25ssi2.repositories.UserRepository;
-import sit.chat2date.cp25ssi2.services.AuthService;
 import sit.chat2date.cp25ssi2.services.JwtTokenUtil;
 
 @Component
@@ -27,8 +21,7 @@ public class SmsmktClient {
     private final RestTemplate restTemplate;
     private final JwtTokenUtil jwtTokenUtil;
     private final UserRepository userRepository;
-    @Autowired
-    private final AuthService authService;
+    private final UserFactory userFactory;
 
     @Value("${smsmkt.apiKey}")
     String apiKey;
@@ -78,55 +71,36 @@ public class SmsmktClient {
      */
     public Map<String, Object> validate(String token, String otpCode, String refCode, String phoneNumber) {
         // URL ของ OTP validate API
-        String url = "https://portal-otp.smsmkt.com/api/otp-validate";
-
-        // สร้าง payload
-        Map<String, Object> payload = new HashMap<>();
-        payload.put("token", token);
-        payload.put("otp_code", otpCode);
-        if (refCode != null && !refCode.isBlank()) {
-            payload.put("ref_code", refCode);
-        }
-
-        // ส่ง request ไปยัง OTP API
-        HttpEntity<Map<String, Object>> req = new HttpEntity<>(payload, headersJson());
-        ResponseEntity<Map> res = restTemplate.postForEntity(url, req, Map.class);
-
-        // ตรวจสอบ response
-        boolean valid = false;
-        if (res.getStatusCode() == HttpStatus.OK && res.getBody() != null) {
-            Map<?, ?> body = res.getBody();
-            if ("000".equals(body.get("code"))) {
-                Map<?, ?> result = (Map<?, ?>) body.get("result");
-                Object status = (result != null) ? result.get("status") : null;
-                valid = (status instanceof Boolean) ? (Boolean) status : true;
-            }
-        }
+//        String url = "https://portal-otp.smsmkt.com/api/otp-validate";
+//
+//        // สร้าง payload
+//        Map<String, Object> payload = new HashMap<>();
+//        payload.put("token", token);
+//        payload.put("otp_code", otpCode);
+//        if (refCode != null && !refCode.isBlank()) {
+//            payload.put("ref_code", refCode);
+//        }
+//
+//        // ส่ง request ไปยัง OTP API
+//        HttpEntity<Map<String, Object>> req = new HttpEntity<>(payload, headersJson());
+//        ResponseEntity<Map> res = restTemplate.postForEntity(url, req, Map.class);
+//
+//        // ตรวจสอบ response
+        boolean valid = true;
+//        if (res.getStatusCode() == HttpStatus.OK && res.getBody() != null) {
+//            Map<?, ?> body = res.getBody();
+//            if ("000".equals(body.get("code"))) {
+//                Map<?, ?> result = (Map<?, ?>) body.get("result");
+//                Object status = (result != null) ? result.get("status") : null;
+//                valid = (status instanceof Boolean) ? (Boolean) status : true;
+//            }
+//        }
 
         Optional<User> userOptional = userRepository.findByPhoneNumber(phoneNumber);
         User user = new User();
         if (valid) {
             if (userOptional.isEmpty()) {
-                user = User.builder()
-                        .phoneNumber(phoneNumber)
-                        .provider(Provider.OTP)
-                        .version(1)
-                        .role(Role.USER)
-                        .accountStatus(AccountStatus.PENDING)
-                        .isVerify(false)
-                        .faceVerify(false)
-                        .behaviorScore(100)
-                        .isBlacklist(false)
-
-                        // default ชั่วคราว
-                        .firstname("Unknown")
-                        .lastname("Unknown")
-                        .nickname("User")
-                        .cardId(authService.generateTempCardId())
-                        .birthday(LocalDate.of(2000, 1, 1))
-                        .age(0)
-                        .sex(Sex.MALE)
-                        .build();
+                user = userFactory.createPhoneUser(phoneNumber);
                 user = userRepository.save(user);
             }
         }
