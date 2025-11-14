@@ -7,6 +7,6 @@ import sit.chat2date.cp25ssi2.enums.Role;
 public class OtpValidateRequest {
     private String phoneNumber;
     private String token;    // จาก otp-send
-    private String otp_code; // โค้ดที่ผู้ใช้กรอก
+    private String otpCode; // โค้ดที่ผู้ใช้กรอก
     private String refCode;  // optional
 }

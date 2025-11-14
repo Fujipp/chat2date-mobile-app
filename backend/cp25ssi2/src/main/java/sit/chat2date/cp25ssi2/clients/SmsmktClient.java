@@ -109,10 +109,10 @@ public class SmsmktClient {
         Map<String, Object> response = new HashMap<>();
         if (valid) {
             if (userOptional.isEmpty()) {
-                response.put("access_token", jwtToken);
+                response.put("accessToken", jwtToken);
                 response.put("user", user);
             }  else {
-                response.put("access_token", jwtToken);
+                response.put("accessToken", jwtToken);
                 response.put("user", userOptional.get());
             }
         }
