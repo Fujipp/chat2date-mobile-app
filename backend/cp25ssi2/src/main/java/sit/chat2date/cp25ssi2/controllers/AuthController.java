@@ -15,6 +15,8 @@ import sit.chat2date.cp25ssi2.exceptions.RefreshTokenExpiredException;
 import sit.chat2date.cp25ssi2.repositories.UserRepository;
 import sit.chat2date.cp25ssi2.services.AuthService;
 import sit.chat2date.cp25ssi2.services.JwtTokenUtil;
+import sit.chat2date.cp25ssi2.services.TokenBlacklistService;
+import sit.chat2date.cp25ssi2.services.UserService;
 
 @RestController
 @RequestMapping("/auth")
@@ -28,6 +30,10 @@ public class AuthController {
     private UserRepository userRepository;
     @Autowired
     private JwtTokenUtil jwtTokenUtil;
+    @Autowired
+    private TokenBlacklistService tokenBlacklistService;
+    @Autowired
+    private UserService userService;
 
     @PostMapping("/google")
     public ResponseEntity<AuthenticationResponse> authenticateWithGoogle(
@@ -68,5 +74,43 @@ public class AuthController {
 
         return ResponseEntity.ok(new RefreshTokenResponse(newAccessToken));
     }
+
+    @PostMapping("/logout")
+    public ResponseEntity<Map<String, String>> logoutAll(
+            @RequestHeader("Authorization") String authHeader,
+            @RequestBody LogoutRequest request
+    ) {
+        try {
+            String accessToken = null;
+            if (authHeader != null && authHeader.startsWith("Bearer ")) {
+                accessToken = authHeader.substring(7);
+            }
+
+            if (accessToken != null) {
+                tokenBlacklistService.blacklistToken(accessToken);
+            }
+
+            if (request.getRefreshToken() != null) {
+                System.out.println(request.getRefreshToken());
+
+                    tokenBlacklistService.blacklistRefreshToken(request.getRefreshToken());
+
+            }
+
+            return ResponseEntity.ok(Map.of(
+                    "message", "Logged out from all devices successfully",
+                    "status", "success"
+            ));
+
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Map.of(
+                            "message", "Logout all failed: " + e.getMessage(),
+                            "status", "error"
+                    ));
+        }
+    }
+
+
 }
 
