@@ -1,17 +1,20 @@
 import 'dart:async';
+import 'package:chat2date/models/user.dart';
+import 'package:chat2date/stores/user_store.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:chat2date/components/buttons/index.dart'; // DsButton / enums
 import 'package:chat2date/services/backend_otp_service.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-class OtpPage extends StatefulWidget {
+class OtpPage extends ConsumerStatefulWidget {
   const OtpPage({super.key});
   @override
-  State<OtpPage> createState() => _OtpPageState();
+  ConsumerState<OtpPage> createState() => _OtpPageState();
 }
 
-class _OtpPageState extends State<OtpPage> {
+class _OtpPageState extends ConsumerState<OtpPage> {
   final int _length = 6;
   late final List<TextEditingController> _ctls;
   late final List<FocusNode> _nodes;
@@ -114,9 +117,21 @@ class _OtpPageState extends State<OtpPage> {
     }
     setState(() => _verifying = true);
     try {
-      final ok = await BackendOtpService.validateOtp(token: _token, code: code);
+      final data = await BackendOtpService.validateOtp(
+        token: _token,
+        code: code,
+        phone: _phone,
+      );
       if (!mounted) return;
-      if (ok) {
+      if (data['statusCode'] == 200) {
+        final user = User.fromJson(data['body']['user']);
+        final accessToken = data['body']['accessToken'];
+        ref.read(userStoreProvider.notifier).setUser(user, accessToken);
+        //ตัวอย่างการ log ดูข้อมูล---------------------------
+        // final store = ref.watch(userStoreProvider);
+        // print("USER: ${store['user']}");
+        // print("TOKEN: ${store['accessToken']}");
+        //-----------------------------------------------------
         Navigator.pushReplacementNamed(context, '/idcard-scan');
       } else {
         ScaffoldMessenger.of(context).showSnackBar(

@@ -1,11 +1,12 @@
 import 'package:chat2date/theme/app_theme.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'screens/index.dart';
 
 final GlobalKey<NavigatorState> rootNavigatorKey = GlobalKey<NavigatorState>();
 
 void main() {
-  runApp(MyApp());
+  runApp(ProviderScope(child: MyApp()));
 }
 
 class MyApp extends StatelessWidget {
@@ -20,7 +21,7 @@ class MyApp extends StatelessWidget {
       theme: buildLightTheme(),
       navigatorKey: navigatorKey,
       initialRoute:
-          '/splash', //เวลาโค้ดเปลี่ยนเป็น path ตัวเองเอาไว้แสดงหน้าของตัวเองเด้อ
+          '/otp', //เวลาโค้ดเปลี่ยนเป็น path ตัวเองเอาไว้แสดงหน้าของตัวเองเด้อ
       routes: {
         //Test
         '/test': (context) => const ComponentTestScreen(),

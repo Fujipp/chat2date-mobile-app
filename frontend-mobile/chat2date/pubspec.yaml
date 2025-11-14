@@ -21,8 +21,9 @@ dependencies:
   http: ^1.2.2
   google_sign_in: ^7.2.0
   build_runner: ^2.4.11
-  riverpod_annotation: ^2.3.5
-  riverpod_generator: ^2.4.0
+  flutter_riverpod: ^2.6.1
+  riverpod_annotation: ^2.6.1
+  riverpod_generator: ^2.6.1
 
   # === Media / Picker ===
   image_picker: ^1.2.0 # ใช้เวอร์ชันที่มีอยู่ (ใหม่กว่า 1.1.2)
@@ -41,6 +42,7 @@ dev_dependencies:
   flutter_fortune_wheel: ^1.3.0
   percent_indicator: ^4.2.5
   sliding_up_panel: ^2.0.0+1
+  build_runner: ^2.4.11
 
 flutter:
   uses-material-design: true
