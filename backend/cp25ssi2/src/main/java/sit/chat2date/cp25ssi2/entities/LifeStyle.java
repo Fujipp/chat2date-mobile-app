@@ -8,13 +8,13 @@ import lombok.Setter;
 @Setter
 @Entity
 @Table(name = "lifestyle")
-public class Lifestyle {
+public class LifeStyle {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "lifestyleId", nullable = false)
     private Integer id;
 
-    @Column(name = "lifestyle", nullable = false, length = 50)
-    private String lifestyle;
+    @Column(name = "lifeStyle", nullable = false, length = 50)
+    private String lifeStyle;
 
 }

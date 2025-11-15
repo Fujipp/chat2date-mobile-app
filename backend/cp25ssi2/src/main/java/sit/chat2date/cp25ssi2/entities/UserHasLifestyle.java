@@ -20,6 +20,6 @@ public class UserHasLifestyle {
     @MapsId("lifestyleLifestyleid")
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "lifestyle_lifestyleId", nullable = false)
-    private Lifestyle lifestyleLifestyle;
+    private LifeStyle lifestyleLifestyle;
 
 }

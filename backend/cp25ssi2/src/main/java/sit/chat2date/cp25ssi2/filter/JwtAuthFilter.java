@@ -44,7 +44,7 @@ public class JwtAuthFilter extends OncePerRequestFilter {
         Optional<User> user = null;
         String path = request.getRequestURI();
 
-        if (path.startsWith("/api/v1/auth")) {
+        if (path.startsWith("/api/v1/auth") || path.startsWith("/api/v1/preferences")) {
             filterChain.doFilter(request, response);
             return;
         }

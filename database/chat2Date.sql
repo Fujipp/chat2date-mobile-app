@@ -107,7 +107,7 @@ COLLATE = utf8mb4_0900_ai_ci;
 -- -----------------------------------------------------
 CREATE TABLE IF NOT EXISTS `chat2date`.`lifestyle` (
   `lifestyleId` INT NOT NULL AUTO_INCREMENT,
-  `lifestyle` VARCHAR(50) NOT NULL,
+  `lifeStyle` VARCHAR(50) NOT NULL,
   PRIMARY KEY (`lifestyleId`),
   UNIQUE INDEX `lifestyle_UNIQUE` (`lifestyle` ASC) VISIBLE,
   UNIQUE INDEX `lifestyleId_UNIQUE` (`lifestyleId` ASC) VISIBLE)
