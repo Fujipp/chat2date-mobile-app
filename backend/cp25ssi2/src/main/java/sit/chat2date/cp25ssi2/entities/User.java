@@ -65,10 +65,6 @@ public class User {
     @Column(name = "birthday", nullable = false)
     private LocalDate birthday;
 
-
-    @Column(name = "age", nullable = false)
-    private Integer age;
-
     @Enumerated(EnumType.STRING)
     @Column(name = "sex", nullable = false)
     private Sex sex;

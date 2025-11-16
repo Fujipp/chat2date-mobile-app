@@ -34,7 +34,6 @@ public class UserFactory {
                 .nickname("User")
                 .cardId(generatedCardId)
                 .birthday(LocalDate.of(2000, 1, 1))
-                .age(0)
                 .sex(Sex.MALE)
                 .build();
     }
