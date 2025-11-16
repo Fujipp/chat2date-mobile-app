@@ -1,10 +1,10 @@
-enum Provider { google, otp }
+enum Provider { GOOGLE, OTP }
 
-enum Sex { male, female }
+enum Sex { MALE, FEMALE }
 
-enum AccountStatus { active, suspended, pending }
+enum AccountStatus { ACTIVE, SUSPENDED, PENDING }
 
-enum Role { user, admin }
+enum Role { USER, ADMIN }
 
 class User {
   final String userId;
