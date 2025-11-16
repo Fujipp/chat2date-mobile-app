@@ -6,6 +6,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
+import sit.chat2date.cp25ssi2.dto.PreferenceUserDto;
 import sit.chat2date.cp25ssi2.entities.User;
 import sit.chat2date.cp25ssi2.exceptions.NotFoundException;
 import sit.chat2date.cp25ssi2.repositories.UserRepository;
@@ -48,5 +49,14 @@ public class UserController {
         return userService.deleteUser(id);
     }
 
+    @GetMapping("/users/{id}/preference")
+    public ResponseEntity<PreferenceUserDto> UserPreferenceById(@PathVariable String id) {
+        return userService.UserPreferenceById(id);
+    }
+
+    @PostMapping("/users/preference")
+    public ResponseEntity<PreferenceUserDto> createUserPreference(@RequestHeader("Authorization") String accessToken, @RequestBody PreferenceUserDto preferenceUser) {
+        return userService.createUserPreference(accessToken, preferenceUser);
+    }
 
 }
