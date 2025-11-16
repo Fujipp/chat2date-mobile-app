@@ -439,10 +439,10 @@ INSERT INTO `travelstyle` (`travelStyle`) VALUES
 -- INSERT 2 USERS
 -- 
 INSERT INTO `user` 
-(`userId`, `email`, `phoneNumber`, `isVerify`, `provider`, `firstname`, `lastname`, `nickname`, `cardId`, `birthday`, `sex`, `faceVerify`, `behaviorScore`, `isBlacklist`, `accountStatus`, `version`, `role`) 
+(`userId`, `email`, `phoneNumber`, `provider`, `firstname`, `lastname`, `nickname`, `cardId`, `birthday`, `sex`, `behaviorScore`, `isBlacklist`, `accountStatus`, `version`, `role`) 
 VALUES
-(1, 'user1@example.com', '0810000001', 1, 'GOOGLE', 'สมชาย', 'ใจดี', 'ชาย', '1100000000001', '1995-03-15', 'MALE', 1, 0, 0, 'ACTIVE', 1, 'USER'),
-(2, 'user2@example.com', '0820000002', 1, 'OTP', 'สมหญิง', 'รักสงบ', 'หญิง', '1200000000002', '1998-08-20', 'FEMALE', 1, 0, 0, 'ACTIVE', 1, 'USER');
+(1, 'user1@example.com', '0810000001', 'GOOGLE', 'สมชาย', 'ใจดี', 'ชาย', '1100000000001', '1995-03-15', 'MALE', 0, 0, 'ACTIVE', 1, 'USER'),
+(2, 'user2@example.com', '0820000002', 'OTP', 'สมหญิง', 'รักสงบ', 'หญิง', '1200000000002', '1998-08-20', 'FEMALE', 0, 0, 'ACTIVE', 1, 'USER');
 
 -- 
 -- 4.

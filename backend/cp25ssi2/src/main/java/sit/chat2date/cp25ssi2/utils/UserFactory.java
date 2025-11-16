@@ -25,8 +25,6 @@ public class UserFactory {
                 .version(0)
                 .role(Role.USER)
                 .accountStatus(AccountStatus.PENDING)
-                .isVerify(false)
-                .faceVerify(false)
                 .behaviorScore(100)
                 .isBlacklist(false)
                 .firstname("Unknown")

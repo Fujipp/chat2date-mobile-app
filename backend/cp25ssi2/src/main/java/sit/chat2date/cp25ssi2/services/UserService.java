@@ -1,39 +1,57 @@
 package sit.chat2date.cp25ssi2.services;
 
+import com.auth0.jwt.JWT;
+import com.auth0.jwt.interfaces.DecodedJWT;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.BeanWrapper;
 import org.springframework.beans.BeanWrapperImpl;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.server.ResponseStatusException;
-import sit.chat2date.cp25ssi2.entities.User;
-import sit.chat2date.cp25ssi2.enums.AccountStatus;
-import sit.chat2date.cp25ssi2.enums.Provider;
-import sit.chat2date.cp25ssi2.enums.Role;
-import sit.chat2date.cp25ssi2.enums.Sex;
+import sit.chat2date.cp25ssi2.dto.PreferenceUserDto;
+import sit.chat2date.cp25ssi2.entities.*;
 import sit.chat2date.cp25ssi2.exceptions.NotFoundException;
 import sit.chat2date.cp25ssi2.exceptions.PreconditionFailedException;
-import sit.chat2date.cp25ssi2.repositories.UserRepository;
+import sit.chat2date.cp25ssi2.repositories.*;
 
-import java.time.LocalDate;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
+import java.util.function.BiFunction;
+import java.util.function.Consumer;
 
 @Service
 public class UserService {
 
     @Autowired
     private UserRepository userRepository;
+    @Autowired
+    private InterestRepository interestRepository;
+    @Autowired
+    private UserHasInterestRepository userHasInterestRepository;
+    @Autowired
+    private TagRepository tagRepository;
+    @Autowired
+    private UserHasTagRepository userHasTagRepository;
+    @Autowired
+    private LifeStyleRepository lifeStyleRepository;
+    @Autowired
+    private UserHasLifestyleRepository userHasLifestyleRepository;
+    @Autowired
+    private TravelStyleRepository travelStyleRepository;
+    @Autowired
+    private UserHasTravelstyleRepository userHasTravelstyleRepository;
 
     public User createUser(User user) {
         return userRepository.save(user);
     }
 
     public ResponseEntity<User> updateUserById(String id, @RequestBody User user) {
-        User userById = userRepository.findByUserId(id).orElseThrow(() -> new NotFoundException("User id: "+ id +" not found"));
+        User userById = userRepository.findByUserId(id).orElseThrow(() -> new NotFoundException("User id: " + id + " not found"));
         if (!user.getVersion().equals(userById.getVersion())) {
             throw new PreconditionFailedException("version", "mismatch");
         }
@@ -41,14 +59,8 @@ public class UserService {
         if (user.getCardId() != null) {
             userById.setCardId(user.getCardId());
         }
-        if (user.getFaceVerify() != null) {
-            userById.setFaceVerify(user.getFaceVerify());
-        }
         if (user.getIsBlacklist() != null) {
             userById.setIsBlacklist(user.getIsBlacklist());
-        }
-        if (user.getIsVerify() != null) {
-            userById.setIsVerify(user.getIsVerify());
         }
         if (user.getRole() != null) {
             userById.setRole(user.getRole());
@@ -91,5 +103,159 @@ public class UserService {
         String[] result = new String[emptyNames.size()];
         return emptyNames.toArray(result);
     }
+
+    public ResponseEntity<PreferenceUserDto> UserPreferenceById(String id) {
+        // 1. หา user
+        User user = userRepository.findByUserId(id)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found"));
+
+        PreferenceUserDto pref = new PreferenceUserDto();
+
+        // 2. ดึง interests
+        List<Integer> interests = userHasInterestRepository.findByUserUser(user)
+                .stream()
+                .map(uhi -> uhi.getInterestInterest().getId())
+                .toList();
+        pref.setInterests(interests);
+
+        // 3. ดึง tags
+        List<Integer> tags = userHasTagRepository.findByUserUser(user)
+                .stream()
+                .map(uht -> uht.getTagTag().getId())
+                .toList();
+        pref.setTags(tags);
+
+        // 4. ดึง lifestyles
+        List<Integer> lifeStyles = userHasLifestyleRepository.findByUserUser(user)
+                .stream()
+                .map(uhl -> uhl.getLifestyleLifestyle().getId())
+                .toList();
+        pref.setLifeStyles(lifeStyles);
+
+        // 5. ดึง travel styles
+        List<Integer> travelStyles = userHasTravelstyleRepository.findByUserUser(user)
+                .stream()
+                .map(uht -> uht.getTravelstyleTravel().getId())
+                .toList();
+        pref.setTravelStyles(travelStyles);
+
+        return ResponseEntity.ok(pref);
+    }
+
+    public ResponseEntity<PreferenceUserDto> createUserPreference(String accessToken, PreferenceUserDto pref) {
+        String token = accessToken.substring(7);
+        DecodedJWT jwt = JWT.decode(token);
+        String sub = jwt.getClaim("sub").asString();
+
+        User user = (sub.length() == 10)
+                ? userRepository.findByPhoneNumber(sub).orElseThrow()
+                : userRepository.findByEmail(sub).orElseThrow();
+
+        // 2. Save interests
+        saveManyToMany(
+                user,
+                pref.getInterests(),
+                userHasInterestRepository,
+                interestRepository,
+                (u, interest) -> {
+                    UserHasInterestId id = new UserHasInterestId();
+                    id.setUserUserid(Integer.valueOf(u.getUserId()));
+                    id.setInterestInterestid(interest.getId());
+
+                    UserHasInterest join = new UserHasInterest();
+                    join.setId(id);
+                    join.setUserUser(u);
+                    join.setInterestInterest(interest);
+                    return join;
+                },
+                userHasInterestRepository::deleteByUserUser
+        );
+
+        // 3. Save tags
+        saveManyToMany(
+                user,
+                pref.getTags(),
+                userHasTagRepository,
+                tagRepository,
+                (u, tag) -> {
+                    UserHasTagId id = new UserHasTagId();
+                    id.setUserUserid(Integer.valueOf(u.getUserId()));
+                    id.setTagTagid(tag.getId());
+
+                    UserHasTag join = new UserHasTag();
+                    join.setId(id);
+                    join.setUserUser(u);
+                    join.setTagTag(tag);
+                    return join;
+                },
+                userHasTagRepository::deleteByUserUser
+        );
+
+        // 4. Save lifestyles
+        saveManyToMany(
+                user,
+                pref.getLifeStyles(),
+                userHasLifestyleRepository,
+                lifeStyleRepository,
+                (u, lifestyle) -> {
+                    UserHasLifestyleId id = new UserHasLifestyleId();
+                    id.setUserUserid(Integer.valueOf(u.getUserId()));
+                    id.setLifestyleLifestyleid(lifestyle.getId());
+
+                    UserHasLifestyle join = new UserHasLifestyle();
+                    join.setId(id);
+                    join.setUserUser(u);
+                    join.setLifestyleLifestyle(lifestyle);
+                    return join;
+                },
+                userHasLifestyleRepository::deleteByUserUser
+        );
+
+        // 5. Save travel styles
+        saveManyToMany(
+                user,
+                pref.getTravelStyles(),
+                userHasTravelstyleRepository,
+                travelStyleRepository,
+                (u, travel) -> {
+                    UserHasTravelstyleId id = new UserHasTravelstyleId();
+                    id.setUserUserid(Integer.valueOf(u.getUserId()));
+                    id.setTravelstyleTravelid(travel.getId());
+
+                    UserHasTravelstyle join = new UserHasTravelstyle();
+                    join.setId(id);
+                    join.setUserUser(u);
+                    join.setTravelstyleTravel(travel);
+                    return join;
+                },
+                userHasTravelstyleRepository::deleteByUserUser
+        );
+
+        return ResponseEntity.ok(pref);
+    }
+
+    private <E, M> void saveManyToMany(
+            User user,
+            List<Integer> ids,
+            JpaRepository<E, ?> joinRepo,
+            JpaRepository<M, Integer> mainRepo,
+            BiFunction<User, M, E> creator,
+            Consumer<User> deleteOld
+    ) {
+        // ลบของเก่า
+        deleteOld.accept(user);
+
+        // insert ของใหม่
+        for (Integer id : ids) {
+            M mainEntity = mainRepo.findById(id)
+                    .orElseThrow(() -> new ResponseStatusException(
+                            HttpStatus.NOT_FOUND, "ID not found: " + id));
+
+            E joinEntity = creator.apply(user, mainEntity);
+
+            joinRepo.save(joinEntity);
+        }
+    }
+
 
 }

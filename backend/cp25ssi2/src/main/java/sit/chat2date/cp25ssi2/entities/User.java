@@ -37,10 +37,6 @@ public class User {
     @Column(name = "phoneNumber", length = 10)
     private String phoneNumber;
 
-    @ColumnDefault("0")
-    @Column(name = "isVerify", nullable = false)
-    private Boolean isVerify = false;
-
     @Enumerated(EnumType.STRING)
     @Column(name = "provider", nullable = false)
     private Provider provider;
@@ -68,10 +64,6 @@ public class User {
     @Enumerated(EnumType.STRING)
     @Column(name = "sex", nullable = false)
     private Sex sex;
-
-    @ColumnDefault("0")
-    @Column(name = "faceVerify", nullable = false)
-    private Boolean faceVerify = false;
 
     @ColumnDefault("100")
     @Column(name = "behaviorScore", nullable = false)
