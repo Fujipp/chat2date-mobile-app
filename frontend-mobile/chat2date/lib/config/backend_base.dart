@@ -1,12 +1,13 @@
 // lib/config/backend_base.dart
 import 'dart:io' show Platform;
+
 import 'package:flutter/foundation.dart' show kIsWeb;
 
 class ApiBase {
   // อนุญาต override จาก --dart-define=API_BASE=http://...
   static const String _defined = String.fromEnvironment(
     'API_BASE',
-    defaultValue: 'http://localhost:8080',
+    defaultValue: '/api/v1',
   );
 
   static String get baseUrl {
