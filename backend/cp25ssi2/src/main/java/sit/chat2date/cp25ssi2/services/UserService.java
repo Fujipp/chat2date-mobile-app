@@ -38,6 +38,9 @@ public class UserService {
             throw new PreconditionFailedException("version", "mismatch");
         }
         BeanUtils.copyProperties(user, userById, getNullPropertyNames(user));
+        if (user.getCardId() != null) {
+            userById.setCardId(user.getCardId());
+        }
         if (user.getFaceVerify() != null) {
             userById.setFaceVerify(user.getFaceVerify());
         }

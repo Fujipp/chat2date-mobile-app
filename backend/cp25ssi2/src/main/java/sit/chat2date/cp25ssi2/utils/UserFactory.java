@@ -22,7 +22,7 @@ public class UserFactory {
         return User.builder()
                 .email(email)
                 .provider(provider)
-                .version(1)
+                .version(0)
                 .role(Role.USER)
                 .accountStatus(AccountStatus.PENDING)
                 .isVerify(false)
