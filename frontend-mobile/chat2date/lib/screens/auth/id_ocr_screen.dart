@@ -1,15 +1,18 @@
 // lib/screens/auth/id_ocr_screen.dart
 import 'dart:io';
 import 'dart:typed_data';
+
+import 'package:chat2date/components/index.dart'; // DsButton / inputs
+import 'package:chat2date/models/face_scan_args.dart'; // ใช้ส่ง args ไปหน้า face-scan
+import 'package:chat2date/models/user.dart';
+import 'package:chat2date/services/ocr_thaiid_service.dart';
+import 'package:chat2date/services/user_service.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
 import 'package:permission_handler/permission_handler.dart';
-
-import 'package:chat2date/components/index.dart'; // DsButton / inputs
-import 'package:chat2date/services/ocr_thaiid_service.dart';
-import 'package:chat2date/models/face_scan_args.dart'; // ใช้ส่ง args ไปหน้า face-scan
 
 class IdOcrScreen extends StatefulWidget {
   const IdOcrScreen({super.key});
@@ -36,6 +39,11 @@ class _IdOcrScreenState extends State<IdOcrScreen> {
   String? _fullName;
   DateTime? _dob;
   String? _gender;
+
+  String? _thFirstName;
+  String? _thLastName;
+
+  ThaiIdOcrResult? _ocrResult;
 
   // รูปแบบวันที่ไทย
   final _fmt = DateFormat('dd/MM/yyyy');
@@ -135,10 +143,14 @@ class _IdOcrScreenState extends State<IdOcrScreen> {
       final fallbackBytes = await _image!.readAsBytes();
 
       setState(() {
+        _ocrResult = result;
         _fullName = result.fullName;
         _dob = result.birthDate; // มาจาก th_dob -> ค.ศ. แล้ว
         _gender = result.gender; // ชาย/หญิง/อื่นๆ
         _cardFace = result.cardFaceBytes ?? fallbackBytes; // fallback
+
+        _thFirstName = result.thFname;
+        _thLastName = result.thLname;
       });
 
       if (!mounted) return;
@@ -156,30 +168,60 @@ class _IdOcrScreenState extends State<IdOcrScreen> {
   }
 
   Future<void> _submit() async {
-    if (_fullName == null ||
-        _dob == null ||
-        _gender == null ||
-        _image == null) {
+    if (_ocrResult == null || _image == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('กรุณาแนบ/ถ่ายรูปบัตรและสแกนก่อน')),
       );
       return;
     }
 
-    // เผื่อ _cardFace ยังว่าง ให้ดึง bytes จากไฟล์รูปบัตร
-    final faceBytes = _cardFace ?? await _image!.readAsBytes();
+    try {
+      final storage = const FlutterSecureStorage();
+      final userId = await storage.read(key: 'userId');
+      final versionStr = await storage.read(key: 'version') ?? '0';
+      final version = int.tryParse(versionStr) ?? 0;
 
-    if (!mounted) return;
-    Navigator.pushNamed(
-      context,
-      '/face-scan',
-      arguments: FaceScanArgs(
-        cardFaceBytes: faceBytes,
-        fullName: _fullName!,
-        dob: _dob!,
-        gender: _gender!,
-      ),
-    );
+      if (userId == null) throw Exception('Missing userId');
+
+      // แปลง gender เป็น enum หรือค่าที่ backend ต้องการ
+      final sex = (_ocrResult!.gender == 'ชาย')
+          ? Sex.MALE
+          : (_ocrResult!.gender == 'หญิง')
+          ? Sex.FEMALE
+          : null;
+
+      final userToUpdate = User(
+        userId: userId,
+        version: version,
+        firstname: _ocrResult!.thFname,
+        lastname: _ocrResult!.thLname,
+        birthday: _dob,
+        sex: sex,
+        cardId: _ocrResult!.cardId,
+      );
+
+      await UserService.updateUser(userToUpdate);
+
+      // ส่งต่อรูปหน้าไปหน้า face-scan
+      final faceBytes = _cardFace ?? await _image!.readAsBytes();
+
+      if (!mounted) return;
+      Navigator.pushNamed(
+        context,
+        '/face-scan',
+        arguments: FaceScanArgs(
+          cardFaceBytes: faceBytes,
+          fullName: _fullName!,
+          dob: _dob!,
+          gender: _gender!,
+        ),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('อัปเดตผู้ใช้ล้มเหลว: $e')));
+    }
   }
 
   int _calcAgeForDisplay(DateTime dob) {

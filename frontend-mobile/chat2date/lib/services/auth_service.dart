@@ -17,7 +17,7 @@ class AuthService {
 
     await _googleSignIn.initialize(
       serverClientId:
-          '51433966587-h0ni6ia4jj6rvvohd28dr6rmd3bnki9l.apps.googleusercontent.com',
+          '51433966587-33hhoi1ungemr3b6p3nkn7p3tt130jop.apps.googleusercontent.com',
     );
 
     _isInitialized = true;
@@ -48,35 +48,36 @@ class AuthService {
 
         final userId = data['user']?['id'];
         final email = data['user']?['email'];
-        final name = data['user']?['name'];
-        final accountStatus = data['user']?['accountStatus'] ?? 'PENDING';
+        final version = data['user']?['version']?.toString() ?? '0';
+        // final name = data['user']?['name'];
+        // final accountStatus = data['user']?['accountStatus'] ?? 'PENDING';
+
+        if (userId != null) {
+          await _storage.write(key: 'userId', value: userId);
+          await _storage.write(key: 'version', value: version);
+        }
 
         if (email != null) {
           await _storage.write(key: 'email', value: email);
         }
 
-        if (accountStatus != null) {
-          await _storage.write(key: 'accountStatus', value: accountStatus);
-        }
+        // if (accountStatus != null) {
+        //   await _storage.write(key: 'accountStatus', value: accountStatus);
+        // }
         developer.log('DATA: $data', name: 'AuthService');
 
-        // if (data['accessToken'] != null) {
-        //   await _storage.write(key: 'accessToken', value: data['accessToken']);
-        // }
+        if (data['accessToken'] != null) {
+          await _storage.write(key: 'accessToken', value: data['accessToken']);
+        }
 
-        // if (data['refreshToken'] != null) {
-        //   await _storage.write(
-        //     key: 'refreshToken',
-        //     value: data['refreshToken'],
-        //   );
-        // }
+        if (data['refreshToken'] != null) {
+          await _storage.write(
+            key: 'refreshToken',
+            value: data['refreshToken'],
+          );
+        }
 
-        return {
-          'userId': userId,
-          'email': email ?? '',
-          'name': name ?? 'User',
-          'accountStatus': accountStatus,
-        };
+        return {'userId': userId, 'email': email};
       } else {
         final error = jsonDecode(response.body);
         throw Exception(

@@ -69,18 +69,11 @@ class HomeLoginPage extends StatelessWidget {
                                 final userId = await authService
                                     .signInWithGoogle();
 
-                                if (userId != null) {
-                                  Navigator.pushReplacementNamed(
-                                    context,
-                                    '/home',
-                                  );
-                                } else {
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    const SnackBar(
-                                      content: Text('Login ถูกยกเลิก'),
-                                    ),
-                                  );
-                                }
+                                Navigator.pushReplacementNamed(
+                                  context,
+                                  '/kyc-id-ocr',
+                                   arguments: userId,
+                                );
                               } catch (e) {
                                 ScaffoldMessenger.of(context).showSnackBar(
                                   SnackBar(

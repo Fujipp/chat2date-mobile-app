@@ -2,6 +2,7 @@
 import 'dart:convert';
 import 'dart:io';
 import 'dart:typed_data'; // ✅ เพิ่ม
+
 import 'package:http/http.dart' as http;
 import 'package:intl/intl.dart';
 
@@ -18,12 +19,18 @@ class ThaiIdOcrConfig {
 
 class ThaiIdOcrResult {
   final String fullName; // ชื่อ-นามสกุล (ไทยถ้ามี)
+  final String thFname;
+  final String thLname;
+  final String cardId;
   final DateTime birthDate; // วันเกิด (ค.ศ.)
   final String gender; // ชาย | หญิง | อื่นๆ
   final Uint8List? cardFaceBytes; // ✅ รูปหน้า (มาจาก field face ของ iApp)
 
   ThaiIdOcrResult({
     required this.fullName,
+    required this.thFname,
+    required this.thLname,
+    required this.cardId,
     required this.birthDate,
     required this.gender,
     this.cardFaceBytes,
@@ -105,11 +112,16 @@ class ThaiIdOcrService {
       }
     }
 
+    final cardId = (json['id_number'] ?? '') as String;
+
     return ThaiIdOcrResult(
       fullName: fullName,
+      thFname: thF,
+      thLname: thL,
+      cardId: cardId,
       birthDate: dob,
       gender: gender,
-      cardFaceBytes: faceBytes, // ✅ คืนออกไปด้วย
+      cardFaceBytes: faceBytes,
     );
   }
 
