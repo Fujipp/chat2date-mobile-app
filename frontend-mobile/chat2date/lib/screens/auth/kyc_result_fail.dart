@@ -93,20 +93,20 @@ class KycResultFailScreen extends StatelessWidget {
 
                       const SizedBox(height: 12),
                       // ลิงก์ตัวช่วย (ถ้าต้องการเสริม UX)
-                      TextButton(
-                        onPressed: () {
-                          // ตัวอย่าง: เปิดหน้าคู่มือ/ทิป (ถ้ามี route)
-                          // Navigator.pushNamed(context, '/kyc-help');
-                          Navigator.maybePop(context);
-                        },
-                        child: const Text(
-                          'ย้อนกลับ',
-                          style: TextStyle(
-                            color: Color(0xFF64748B),
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                      ),
+                      // TextButton(
+                      //   onPressed: () {
+                      //     // ตัวอย่าง: เปิดหน้าคู่มือ/ทิป (ถ้ามี route)
+                      //     // Navigator.pushNamed(context, '/kyc-help');
+                      //     Navigator.maybePop(context);
+                      //   },
+                      //   child: const Text(
+                      //     'ย้อนกลับ',
+                      //     style: TextStyle(
+                      //       color: Color(0xFF64748B),
+                      //       fontWeight: FontWeight.w600,
+                      //     ),
+                      //   ),
+                      // ),
                     ],
                   ),
                 ),

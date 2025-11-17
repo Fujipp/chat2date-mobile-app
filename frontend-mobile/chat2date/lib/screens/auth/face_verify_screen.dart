@@ -13,8 +13,8 @@ import 'package:chat2date/config/backend_base.dart';
 import 'package:chat2date/models/face_scan_args.dart';
 import 'package:chat2date/services/kyc_remote_service.dart';
 
-/// ขั้นตอนที่ต้องทำให้ครบ เพื่อกัน spoof ให้มีการ “ขยับจริง”
-enum PoseStep { center, left, right, down, up, blink, done }
+/// ท่าที่ใช้ใน liveness
+enum PoseStep { left, right, down, up, blink }
 
 class FaceVerifyScreen extends StatefulWidget {
   const FaceVerifyScreen({super.key});
@@ -27,63 +27,58 @@ class _FaceVerifyScreenState extends State<FaceVerifyScreen>
     with TickerProviderStateMixin {
   CameraController? _cam;
   FaceDetector? _detector;
-  DateTime? _startedAt; // จับเวลาเริ่มสแกนไว้ทำ fallback
 
-  // เปิดดูค่า debug ได้โดยตั้งเป็น true
+  // debug
   bool _showDebug = false;
   String _debugText = '';
 
-  bool _cameraActive = false; // render preview/ประมวลผลเฟรมเฉพาะตอน true
-  bool _started = false; // ยังไม่เริ่ม → แสดงแค่ปุ่ม + วงกลมเปล่า
-  bool _busy = false; // ล็อค per-frame
-  bool _navigating = false; // กันไปหน้า Loading ซ้ำ
-  PoseStep _step = PoseStep.center;
+  bool _cameraActive = false;
+  bool _started = false; // กดปุ่ม "เริ่มสแกน" แล้วหรือยัง
+  bool _navigating = false;
 
-  // ลำดับโพสที่ต้องทำ: CENTER -> (random steps: left/right/down/up/blink) -> DONE
-  List<PoseStep> _sequence = [];
+  // ===== Phase 0: จัดหน้าให้อยู่กลางวง 2 วิ =====
+  static const double _alignSecondsRequired = 2.0;
+  bool _alignPhase = false; // อยู่ช่วง "จัดหน้าให้ตรง"
+  bool _alignmentDone = false;
+  double _alignSeconds = 0;
 
-  // ===== เกณฑ์ท่าทาง (องศา) =====
-  static const double yawCenterMax = 12;
-  static const double yawLeftMin = 14;
-  static const double yawRightMin = 14;
+  // ===== Phase 1: ทำท่าทีละอย่าง (สุ่ม 5 ท่า) =====
+  static const double _stepSecondsRequired = 1.2; // ต้องค้างท่าละ ~1.2 วิ
+  final List<PoseStep> _sequence = [];
+  int _currentIndex = 0; // index ของท่าปัจจุบันใน sequence
+  double _stepHoldSeconds = 0; // เวลาที่อยู่ในท่าปัจจุบันแบบ "ถูกต้อง"
 
-  // ใช้ “delta จาก baseline” แทนการผูกกับทิศของอุปกรณ์
-  static const double pitchDownDeltaMin = 10; // ต้องก้มลงจาก baseline ≥ 10°
-  static const double pitchUpDeltaMin = 10; // ต้องเงยขึ้นจาก baseline ≥ 10°
-
-  static const double eyeOpenMin = 0.25;
-
-  // อยู่ท่าที่ถูกจะค่อย ๆ เติม progress
-  static const double secondsPerStep = 0.8;
-  double _stepAccumSeconds = 0; // เวลาอยู่ถูกท่า (ของ step ปัจจุบัน)
-  double _progress = 0; // 0..1 วงแหวนเขียวรวม
+  // progress วงแหวน (0..1)
+  double _progress = 0.0;
+  double _progressTarget = 0.0; // ให้ Timer ค่อย ๆ ไล่เข้าไปหา
 
   String _hint = 'แตะปุ่มเพื่อเริ่มสแกน';
 
-  Timer? _tick; // ตัวจับเวลาให้ progress ลื่นขึ้น
-
-  // จับเวลาเฟรมจริง เพื่อกันเครื่องที่ fps ตก/พุ่ง
+  Timer? _tick; // ให้ progress ลื่นขึ้นเรื่อย ๆ
   DateTime? _lastFrameAt;
 
-  // ===== กันค้าง / rollback =====
-  static const double stuckThreshold = 3.0; // วินาทีที่ถือว่า “ค้าง” ในสเต็ป
-  double _stuckSeconds = 0;
-  DateTime? _stepEnteredAt;
-  int _rollbackCount = 0;
-  static const int rollbackLimit = 3; // ค้างแล้วถอย 3 ครั้ง → รี flow ใหม่
-
   // ===== Baseline & Smoothing =====
-  double? _pitch0; // baseline pitch ตอนจบ CENTER
-  double? _yaw0; // baseline yaw
+  double? _pitch0; // baseline pitch ตอนจัดหน้าเสร็จ (ใช้สำหรับก้ม/เงย)
+  double? _yaw0; // baseline yaw (เผื่ออยากใช้ภายหลัง)
   double? _smoothYaw;
   double? _smoothPitch;
   static const double _ema = 0.2; // smoothing factor
 
-  int get _poseCount {
-    if (_sequence.isEmpty) return 0;
-    // นับเฉพาะ step ที่ต้องทำจริง (ไม่รวม DONE)
-    return _sequence.where((s) => s != PoseStep.done).length;
-  }
+  // ===== เกณฑ์ท่าทาง =====
+  static const double yawCenterMax = 12; // หน้าตรง
+  static const double yawLeftMin = 15; // หันซ้าย
+  static const double yawRightMin = 15; // หันขวา
+
+  static const double pitchDownDeltaMin = 10; // ก้มจาก baseline ≥ 10°
+  static const double pitchUpDeltaMin = 10; // เงยจาก baseline ≥ 10°
+
+  static const double eyeOpenMin = 0.4; // ตาเปิด (ค่อนข้างชัด)
+  static const double eyeClosedMax = 0.2; // ตาปิดชัด ๆ (สำหรับ blink)
+
+  int get _totalSteps => _sequence.length;
+
+  PoseStep get _currentStep =>
+      _sequence.isEmpty ? PoseStep.left : _sequence[_currentIndex];
 
   // ---------- lifecycle ----------
   @override
@@ -94,7 +89,6 @@ class _FaceVerifyScreenState extends State<FaceVerifyScreen>
     super.dispose();
   }
 
-  // ปิด stream → ปิด detector → dispose controller → เคลียร์ตัวแปร
   Future<void> _teardownCamera() async {
     final ctrl = _cam;
     try {
@@ -115,27 +109,28 @@ class _FaceVerifyScreenState extends State<FaceVerifyScreen>
   }
 
   // ---------- Sequence / Hint ----------
-  void _resetSequence() {
-    // ท่าที่จะสุ่มหลังจาก CENTER
-    final randomSteps = <PoseStep>[
+  void _buildRandomSequence() {
+    // มีครบ 5 ท่า → สุ่มลำดับใหม่ทุกครั้ง
+    final steps = <PoseStep>[
       PoseStep.left,
       PoseStep.right,
       PoseStep.down,
       PoseStep.up,
       PoseStep.blink,
     ];
-    randomSteps.shuffle(math.Random());
+    steps.shuffle(math.Random());
 
-    _sequence = [PoseStep.center, ...randomSteps, PoseStep.done];
-
-    _step = PoseStep.center;
-    _hint = _hintForStep(_step);
+    _sequence
+      ..clear()
+      ..addAll(steps);
+    _currentIndex = 0;
+    _stepHoldSeconds = 0;
+    _progressTarget = 0; // เริ่ม 0 → ท่าละ 20% (1/5)
+    _hint = _hintForStep(_currentStep);
   }
 
   String _hintForStep(PoseStep s) {
     switch (s) {
-      case PoseStep.center:
-        return 'เล็งหน้าให้ตรง (อย่าหลับตา)';
       case PoseStep.left:
         return 'หันหน้าไปทางซ้าย';
       case PoseStep.right:
@@ -146,8 +141,6 @@ class _FaceVerifyScreenState extends State<FaceVerifyScreen>
         return 'เงยหน้าเล็กน้อย';
       case PoseStep.blink:
         return 'กระพริบตา 2 ครั้ง';
-      case PoseStep.done:
-        return 'กำลังตรวจสอบ…';
     }
   }
 
@@ -157,12 +150,11 @@ class _FaceVerifyScreenState extends State<FaceVerifyScreen>
     setState(() {
       _started = true;
       _hint = 'กำลังเปิดกล้อง...';
-      _startedAt = DateTime.now();
     });
 
     _detector = FaceDetector(
       options: FaceDetectorOptions(
-        enableClassification: true, // ตาเปิด/ยิ้ม
+        enableClassification: true,
         performanceMode: FaceDetectorMode.accurate,
         enableContours: false,
         enableLandmarks: false,
@@ -186,21 +178,27 @@ class _FaceVerifyScreenState extends State<FaceVerifyScreen>
     await ctrl.initialize();
 
     if (!mounted) return;
+
     setState(() {
-      _cameraActive = true; // เปิดให้ preview/อ่านเฟรมได้แล้ว
+      _cameraActive = true;
 
-      _resetSequence(); // สุ่มลำดับโพสใหม่ทุกครั้งที่เริ่ม
+      // Phase 0: เริ่มจากให้ user จัดหน้าให้อยู่กลางวงก่อน
+      _alignPhase = true;
+      _alignmentDone = false;
+      _alignSeconds = 0;
 
+      _sequence.clear();
+      _currentIndex = 0;
+      _stepHoldSeconds = 0;
       _progress = 0;
-      _stepAccumSeconds = 0;
-      _stepEnteredAt = DateTime.now();
-      _stuckSeconds = 0;
-      _rollbackCount = 0;
+      _progressTarget = 0;
 
       _pitch0 = null;
       _yaw0 = null;
       _smoothYaw = null;
       _smoothPitch = null;
+
+      _hint = 'เล็งใบหน้าให้อยู่กลางวง (อย่าหลับตา)';
     });
 
     _lastFrameAt = DateTime.now();
@@ -210,59 +208,10 @@ class _FaceVerifyScreenState extends State<FaceVerifyScreen>
 
   void _startTick() {
     _tick = Timer.periodic(const Duration(milliseconds: 16), (_) {
-      final now = DateTime.now();
-
-      final poseCount = _poseCount == 0 ? 1 : _poseCount;
-
-      final finished = _finishedCount();
-      final partial = (_step == PoseStep.done)
-          ? 0.0
-          : (_stepAccumSeconds / secondsPerStep).clamp(0.0, 1.0);
-
-      final total = (finished + partial) / poseCount;
-
-      if (mounted) {
-        setState(() {
-          _progress = _lerp(_progress, total, 0.25); // smooth
-        });
-      }
-
-      if (_navigating) return;
-
-      final elapsed = _startedAt == null
-          ? 0.0
-          : now.difference(_startedAt!).inMilliseconds / 1000.0;
-
-      final stay = _stepEnteredAt == null
-          ? 0.0
-          : now.difference(_stepEnteredAt!).inMilliseconds / 1000.0;
-
-      final onLastStep =
-          (_step != PoseStep.done) && (finished == poseCount - 1);
-      final progressHighOnLast = onLastStep && (_progress >= 0.92);
-      final lastTooLong = onLastStep && stay > 4.5;
-
-      if (lastTooLong || progressHighOnLast) {
-        _goLoading();
-        return;
-      }
-
-      final aboutToFinishLast =
-          onLastStep &&
-          _step != PoseStep.done &&
-          _stepAccumSeconds >= secondsPerStep * 0.75;
-
-      final stuckOnLast =
-          onLastStep && !_navigating && (_progress >= 0.95 || elapsed > 18.0);
-
-      if (_step == PoseStep.done ||
-          finished >= poseCount ||
-          stuckOnLast ||
-          _progress >= 0.985 ||
-          aboutToFinishLast ||
-          elapsed > 30.0) {
-        _goLoading();
-      }
+      if (!mounted) return;
+      setState(() {
+        _progress = _lerp(_progress, _progressTarget, 0.20);
+      });
     });
   }
 
@@ -273,47 +222,37 @@ class _FaceVerifyScreenState extends State<FaceVerifyScreen>
 
   double _lerp(double a, double b, double t) => a + (b - a) * t;
 
-  int _finishedCount() {
-    if (_sequence.isEmpty) return 0;
-
-    // step ที่ต้องทำจริง (ไม่รวม DONE)
-    final steps = _sequence.where((s) => s != PoseStep.done).toList();
-
-    if (_step == PoseStep.done) return steps.length;
-
-    final idx = steps.indexOf(_step);
-    if (idx <= 0) return 0;
-    return idx; // จำนวนสเต็ปที่เสร็จแล้วก่อนสเต็ปปัจจุบัน
-  }
-
   // ---------- per-frame ----------
   Future<void> _onFrame(CameraImage img) async {
     if (!mounted ||
         !_cameraActive ||
-        _busy ||
         !_started ||
         _cam == null ||
         _detector == null) {
       return;
     }
-    _busy = true;
+
+    final dt = _frameDt();
+
     try {
       final input = _toInputImage(img, _cam!.description.sensorOrientation);
       final faces = await _detector!.processImage(input);
 
       if (faces.isEmpty) {
         if (mounted) {
-          setState(() => _hint = 'หาใบหน้าไม่พบ — ขยับเข้ากล้องอีกนิด');
+          setState(() {
+            _hint = 'หาใบหน้าไม่พบ — ขยับเข้ากล้องอีกนิด';
+          });
         }
-        _stepAccumSeconds = 0;
-        _accumulateStuck(false, 1 / 30.0);
+        // alignment / step ถือว่าหลุด
+        if (_alignPhase) _alignSeconds = 0;
+        _stepHoldSeconds = 0;
         return;
       }
 
       final f = faces.first;
 
-      // ML Kit: headEulerAngleY = yaw (ซ้าย/ขวา), headEulerAngleX = pitch (ก้ม/เงย)
-      // กล้องหน้า: yaw ต้องกลับข้างให้ทิศถูกกับผู้ใช้
+      // ML Kit: headEulerAngleY = yaw, headEulerAngleX = pitch
       final rawYaw = f.headEulerAngleY ?? 0.0;
       final rawPitch = f.headEulerAngleX ?? 0.0;
       final isFront =
@@ -321,7 +260,7 @@ class _FaceVerifyScreenState extends State<FaceVerifyScreen>
       final yaw = isFront ? -rawYaw : rawYaw;
       final pitch = rawPitch;
 
-      // ===== Smoothing (EMA) =====
+      // smoothing
       _smoothYaw = (_smoothYaw == null)
           ? yaw
           : _smoothYaw! + _ema * (yaw - _smoothYaw!);
@@ -329,52 +268,91 @@ class _FaceVerifyScreenState extends State<FaceVerifyScreen>
           ? pitch
           : _smoothPitch! + _ema * (pitch - _smoothPitch!);
 
+      final y = _smoothYaw ?? yaw;
+      final p = _smoothPitch ?? pitch;
+
       final leftEye = f.leftEyeOpenProbability;
       final rightEye = f.rightEyeOpenProbability;
+
       final eyesOpen = (leftEye == null || rightEye == null)
           ? true
           : (leftEye >= eyeOpenMin && rightEye >= eyeOpenMin);
 
-      // เช็คว่าท่าปัจจุบัน “ถูกต้อง” ไหม
+      // ===== Phase 0: ให้จัดหน้าให้อยู่กลางวง 2 วิ ก่อนเริ่มสุ่มท่า =====
+      if (_alignPhase && !_alignmentDone) {
+        final centerOk = eyesOpen && y.abs() <= yawCenterMax;
+
+        if (centerOk) {
+          _alignSeconds += dt.clamp(0.0, 0.25);
+        } else {
+          _alignSeconds = 0;
+        }
+
+        final alignRatio = (_alignSeconds / _alignSecondsRequired).clamp(
+          0.0,
+          1.0,
+        );
+
+        _progressTarget = 0.0; // ยังไม่เริ่มคิด 5 ท่า → progress จริง = 0
+
+        if (mounted) {
+          setState(() {
+            _hint = centerOk
+                ? 'ค้างไว้... กำลังจัดตำแหน่งใบหน้า (${_alignSeconds.toStringAsFixed(1)}/${_alignSecondsRequired.toStringAsFixed(1)} วินาที)'
+                : 'เล็งใบหน้าให้อยู่กลางวง (อย่าหลับตา)';
+
+            if (_showDebug) {
+              _debugText =
+                  'ALIGN | yaw=${y.toStringAsFixed(1)} pitch=${p.toStringAsFixed(1)} '
+                  't=${_alignSeconds.toStringAsFixed(2)} ratio=${alignRatio.toStringAsFixed(2)}';
+            }
+          });
+        }
+
+        if (_alignSeconds >= _alignSecondsRequired) {
+          // lock baseline
+          _pitch0 = p;
+          _yaw0 = y;
+          _alignmentDone = true;
+          _alignPhase = false;
+
+          // เริ่ม sequence 5 ท่าที่สุ่ม
+          _buildRandomSequence();
+
+          if (mounted) {
+            setState(() {
+              _hint = _hintForStep(_currentStep);
+            });
+          }
+        }
+
+        return;
+      }
+
+      // ถ้ายังไม่มี sequence (เผื่อเคสแปลก ๆ) ก็ไม่ต้องไปต่อ
+      if (!_alignmentDone || _sequence.isEmpty) {
+        return;
+      }
+
+      // ===== Phase 1: ทำท่าตาม sequence ทีละท่า =====
       bool correct = false;
       String hint = _hint;
 
-      final y = _smoothYaw ?? yaw;
-      final p = _smoothPitch ?? pitch;
-
-      switch (_step) {
-        case PoseStep.center:
-          // เกณฑ์ CENTER: ตาเปิด + yaw ใกล้ศูนย์
-          correct = eyesOpen && y.abs() <= yawCenterMax;
-          hint = correct ? 'ดีมาก… ค้างไว้' : 'เล็งหน้าให้ตรง (อย่าหลับตา)';
-
-          // ตั้ง baseline เมื่อนิ่งพอ
-          if (correct) {
-            _stepAccumSeconds += _frameDt();
-            if (_stepAccumSeconds >= secondsPerStep / 2 && _pitch0 == null) {
-              _pitch0 = p;
-              _yaw0 = y;
-            }
-          } else {
-            _stepAccumSeconds = 0;
-          }
-          break;
-
+      switch (_currentStep) {
         case PoseStep.left:
           correct = eyesOpen && y <= -yawLeftMin;
-          hint = correct ? 'ดีมาก… ค้างไว้' : 'หันหน้าไปทางขวา';
+          hint = correct ? 'ดีมาก… ค้างไว้' : 'หันหน้าไปทางขวาเล็กน้อย';
           break;
 
         case PoseStep.right:
           correct = eyesOpen && y >= yawRightMin;
-          hint = correct ? 'ดีมาก… ค้างไว้' : 'หันหน้าไปทางซ้าย';
+          hint = correct ? 'ดีมาก… ค้างไว้' : 'หันหน้าไปทางซ้ายเล็กน้อย';
           break;
 
         case PoseStep.down:
           {
-            // ใช้ delta จาก baseline เพื่อลดความต่างข้ามรุ่นเครื่อง
             final base = _pitch0 ?? 0.0;
-            final delta = p - base; // ก้ม = ค่าอาจเพิ่ม/ลด ขึ้นกับดีไวซ์
+            final delta = p - base;
             final downOk =
                 delta >= pitchDownDeltaMin || (-delta) >= pitchDownDeltaMin;
             correct = eyesOpen && downOk;
@@ -385,7 +363,7 @@ class _FaceVerifyScreenState extends State<FaceVerifyScreen>
         case PoseStep.up:
           {
             final base = _pitch0 ?? 0.0;
-            final delta = p - base; // เงย = ค่าอาจลด/เพิ่ม ขึ้นกับดีไวซ์
+            final delta = p - base;
             final upOk =
                 (-delta) >= pitchUpDeltaMin || delta >= pitchUpDeltaMin;
             correct = eyesOpen && upOk;
@@ -395,12 +373,12 @@ class _FaceVerifyScreenState extends State<FaceVerifyScreen>
 
         case PoseStep.blink:
           {
-            // ต้อง "หลับตา" ชัดเจน และหน้าตรง
+            // หลับตาชัด ๆ + หน้าเกือบตรง
             final eyesClosed =
                 (leftEye != null &&
                 rightEye != null &&
-                leftEye < 0.2 &&
-                rightEye < 0.2);
+                leftEye < eyeClosedMax &&
+                rightEye < eyeClosedMax);
 
             correct = eyesClosed && y.abs() <= yawCenterMax;
             hint = correct
@@ -408,62 +386,56 @@ class _FaceVerifyScreenState extends State<FaceVerifyScreen>
                 : 'กระพริบตาเร็ว ๆ 2 ครั้ง แล้วมองตรง';
             break;
           }
-
-        case PoseStep.done:
-          correct = true;
-          hint = 'กำลังตรวจสอบ…';
-          break;
       }
 
-      // ===== ตรวจ “ค้าง” / เดินหน้า =====
-      final dt = _frameDt();
-
-      _accumulateStuck(correct, dt);
-      if (_stuckSeconds >= stuckThreshold) {
-        _rollbackStep();
-        if (mounted) {
-          setState(() => _hint = 'ลองใหม่อีกครั้ง — ย้อนสเต็ปก่อนหน้า');
-        }
-        return; // จบเฟรมนี้
-      }
-
-      if (_step == PoseStep.center) {
-        // CENTER ถูก: advance เมื่อครบเวลาที่กำหนด + เก็บ baseline แน่นอน
-        if (correct && _stepAccumSeconds >= secondsPerStep) {
-          _pitch0 ??= p;
-          _yaw0 ??= y;
-          _stepAccumSeconds = 0;
-          _advanceStep();
-        }
+      if (correct) {
+        _stepHoldSeconds += dt.clamp(0.0, 0.25);
       } else {
-        if (correct && _step != PoseStep.done) {
-          _stepAccumSeconds += dt.clamp(0.0, 0.1);
-          if (_stepAccumSeconds >= secondsPerStep) {
-            _stepAccumSeconds = 0;
-            _advanceStep();
-          }
+        _stepHoldSeconds = 0;
+      }
+
+      final stepRatio = (_stepHoldSeconds / _stepSecondsRequired).clamp(
+        0.0,
+        1.0,
+      );
+
+      // ท่าละ 20% → progressTarget = (index + ratio) / 5
+      final total = _totalSteps == 0
+          ? 0.0
+          : (_currentIndex + stepRatio) / _totalSteps.toDouble();
+
+      _progressTarget = total.clamp(0.0, 1.0);
+
+      if (_stepHoldSeconds >= _stepSecondsRequired && !_navigating) {
+        // ท่านี้สำเร็จ → ขยับไปท่าถัดไป หรือครบ 5 ท่าแล้ว
+        if (_currentIndex < _totalSteps - 1) {
+          _currentIndex++;
+          _stepHoldSeconds = 0;
+          hint = _hintForStep(_currentStep);
         } else {
-          if (_step != PoseStep.done) _stepAccumSeconds = 0;
+          // ครบทั้ง 5 ท่าแล้ว → 100% → ไปโหลด/เรียก backend
+          _progressTarget = 1.0;
+          hint = 'กำลังตรวจสอบ...';
+          _goLoading();
         }
       }
 
-      // อัปเดตข้อความ debug
       if (mounted) {
         setState(() {
           _hint = hint;
-          _debugText =
-              'yaw=${y.toStringAsFixed(1)}  pitch=${p.toStringAsFixed(1)}  '
-              'L=${(leftEye ?? -1).toStringAsFixed(2)}  '
-              'R=${(rightEye ?? -1).toStringAsFixed(2)}  '
-              'step=$_step  t=${_stepAccumSeconds.toStringAsFixed(2)}  '
-              'stuck=${_stuckSeconds.toStringAsFixed(2)}  '
-              'p0=${_pitch0?.toStringAsFixed(1) ?? "-"}';
+          if (_showDebug) {
+            _debugText =
+                'STEP=${_currentStep} idx=$_currentIndex/${_totalSteps - 1} '
+                'yaw=${y.toStringAsFixed(1)} pitch=${p.toStringAsFixed(1)} '
+                'L=${(leftEye ?? -1).toStringAsFixed(2)} '
+                'R=${(rightEye ?? -1).toStringAsFixed(2)} '
+                'hold=${_stepHoldSeconds.toStringAsFixed(2)} '
+                'progTarget=${_progressTarget.toStringAsFixed(2)}';
+          }
         });
       }
     } catch (_) {
       // ignore single-frame errors
-    } finally {
-      _busy = false;
     }
   }
 
@@ -476,85 +448,12 @@ class _FaceVerifyScreenState extends State<FaceVerifyScreen>
     return dt;
   }
 
-  // ===== Helper: นับเวลาค้างในสเต็ปปัจจุบัน =====
-  void _accumulateStuck(bool correct, double dt) {
-    if (_step == PoseStep.done) {
-      _stuckSeconds = 0;
-      return;
-    }
-    _stepEnteredAt ??= DateTime.now();
-
-    if (correct) {
-      _stuckSeconds = 0; // เข้าเงื่อนไข ไม่ถือว่าค้าง
-    } else {
-      _stuckSeconds += dt.clamp(0.0, 0.2);
-    }
-  }
-
-  // ===== Helper: หา step ก่อนหน้า และ rollback =====
-  PoseStep _prevStep(PoseStep s) {
-    if (_sequence.isEmpty) return PoseStep.center;
-    final idx = _sequence.indexOf(s);
-    if (idx <= 0) return _sequence.first;
-    return _sequence[idx - 1];
-  }
-
-  void _rollbackStep() {
-    if (!mounted) return;
-    _rollbackCount++;
-
-    // รีใหม่ทั้ง flow ถ้าค้างซ้ำหลายครั้ง
-    if (_rollbackCount >= rollbackLimit) {
-      setState(() {
-        _resetSequence(); // สุ่มลำดับใหม่ด้วย
-        _stepEnteredAt = DateTime.now();
-        _stepAccumSeconds = 0;
-        _stuckSeconds = 0;
-        _progress = 0;
-        _hint = 'เริ่มใหม่อีกครั้ง — เล็งหน้าให้ตรง';
-        _pitch0 = null;
-        _yaw0 = null;
-      });
-      _rollbackCount = 0;
-      return;
-    }
-
-    // ย้อนหนึ่งสเต็ป
-    final back = _prevStep(_step);
-    setState(() {
-      _step = back;
-      _stepEnteredAt = DateTime.now();
-      _stepAccumSeconds = 0;
-      _stuckSeconds = 0;
-      _hint = _hintForStep(_step);
-    });
-  }
-
-  void _advanceStep() {
-    if (!mounted) return;
-
-    setState(() {
-      final idx = _sequence.indexOf(_step);
-      if (idx >= 0 && idx < _sequence.length - 1) {
-        _step = _sequence[idx + 1];
-      }
-      _stepEnteredAt = DateTime.now();
-      _stuckSeconds = 0;
-      _rollbackCount = 0; // เดินหน้าสำเร็จ ล้างตัวนับถอย
-      _hint = _hintForStep(_step);
-    });
-
-    if (_step == PoseStep.done) {
-      _goLoading();
-    }
-  }
-
+  // ---------- ไปหน้าโหลด + เรียก backend ----------
   /// จับภาพนิ่งคุณภาพสูงสำหรับส่ง backend (หยุด stream ชั่วคราว)
   Future<Uint8List?> _captureSelfieBytes() async {
     try {
       if (_cam == null || !_cam!.value.isInitialized) return null;
 
-      // ต้องหยุด stream ก่อนถึงจะถ่ายภาพนิ่งได้
       if (_cam!.value.isStreamingImages) {
         await _cam!.stopImageStream();
       }
@@ -562,7 +461,6 @@ class _FaceVerifyScreenState extends State<FaceVerifyScreen>
       final x = await _cam!.takePicture();
       final file = File(x.path);
       final bytes = await file.readAsBytes();
-
       return bytes;
     } catch (_) {
       return null;
@@ -573,9 +471,19 @@ class _FaceVerifyScreenState extends State<FaceVerifyScreen>
     if (_navigating) return;
     _navigating = true;
 
-    // เปิดหน้าโหลด (push) — รอจนกลับมา
+    _stopTick();
+
+    // ให้เวลาแอนิเมชันโหลด 0-100 อย่างน้อยเท่ากับ loadingMs
+    const int loadingMs = 3000;
+    final DateTime loadingStartedAt = DateTime.now();
+
+    // เปิดหน้าโหลด (ไม่ await) แต่ส่ง ms ไปให้ KycLoading ใช้เป็น duration
     if (mounted) {
-      await Navigator.pushNamed(context, '/kyc-loading');
+      Navigator.pushNamed(
+        context,
+        '/kyc-loading',
+        arguments: {'demo': false, 'ms': loadingMs},
+      );
     } else {
       return;
     }
@@ -584,8 +492,7 @@ class _FaceVerifyScreenState extends State<FaceVerifyScreen>
       // 1) ถ่าย selfie
       final selfieBytes = await _captureSelfieBytes();
 
-      // 2) ปิดกล้อง/หยุด tick
-      _stopTick();
+      // 2) ปิดกล้อง
       if (mounted) {
         setState(() {
           _cameraActive = false;
@@ -600,14 +507,11 @@ class _FaceVerifyScreenState extends State<FaceVerifyScreen>
       final args = ModalRoute.of(context)?.settings.arguments as FaceScanArgs?;
       final Uint8List? idCardFaceBytes = args?.cardFaceBytes;
 
-      // 4) เตรียมเรียก Backend
+      // 4) เรียก Backend
       final kyc = KycRemoteService(ApiBase.baseUrl);
       bool matched = false;
+      const bool livenessPass = true;
 
-      // liveness สำเร็จเพราะเรามาถึงขั้น PoseStep.done แล้ว
-      final bool livenessPass = true;
-
-      // Backend ของ Dev ตอนนี้รับ: bytes (selfie) vs base64 (idFace)
       String? idFaceBase64 = (idCardFaceBytes != null)
           ? base64Encode(idCardFaceBytes)
           : null;
@@ -621,11 +525,21 @@ class _FaceVerifyScreenState extends State<FaceVerifyScreen>
         matched = (vr['match'] == true) && score >= 0.80;
       }
 
-      // 5) ปิดหน้าโหลด แล้วไปผลลัพธ์
       if (!mounted) return;
-      Navigator.pop(context); // ปิด /kyc-loading
 
-      if (!mounted) return;
+      // === รอให้ animation บนหน้าโหลดถึง 100% ก่อนค่อย pop ===
+      final elapsedMs = DateTime.now()
+          .difference(loadingStartedAt)
+          .inMilliseconds;
+      if (elapsedMs < loadingMs) {
+        await Future.delayed(Duration(milliseconds: loadingMs - elapsedMs));
+      }
+
+      // 5) ปิดหน้าโหลด แล้วไปผลลัพธ์
+      if (Navigator.canPop(context)) {
+        Navigator.pop(context); // ปิด /kyc-loading
+      }
+
       if (livenessPass && matched) {
         Navigator.pushReplacementNamed(context, '/kyc-result-success');
       } else {
@@ -633,9 +547,21 @@ class _FaceVerifyScreenState extends State<FaceVerifyScreen>
       }
     } catch (_) {
       if (!mounted) return;
-      // ปิดหน้าโหลด แล้วไป fail
-      Navigator.pop(context);
+
+      // error ก็ยังเคารพ minimum loading time เหมือนกัน
+      final elapsedMs = DateTime.now()
+          .difference(loadingStartedAt)
+          .inMilliseconds;
+      if (elapsedMs < loadingMs) {
+        await Future.delayed(Duration(milliseconds: loadingMs - elapsedMs));
+      }
+
+      if (Navigator.canPop(context)) {
+        Navigator.pop(context);
+      }
       Navigator.pushReplacementNamed(context, '/kyc-result-fail');
+    } finally {
+      _navigating = false;
     }
   }
 
@@ -647,7 +573,6 @@ class _FaceVerifyScreenState extends State<FaceVerifyScreen>
     }
     final bytes = builder.toBytes();
 
-    // iOS มักเป็น 1 plane = BGRA8888 / Android = YUV (หลาย plane)
     final isBgra = img.planes.length == 1;
 
     final metadata = InputImageMetadata(
@@ -673,8 +598,6 @@ class _FaceVerifyScreenState extends State<FaceVerifyScreen>
     final size = MediaQuery.of(context).size;
     final deviceRatio = size.width / size.height;
 
-    // camera.value.aspectRatio ส่วนใหญ่จะเป็นค่าตอน "landscape"
-    // ถ้าเราอยู่โหมด portrait ให้กลับด้าน 1/aspect จะได้ไม่เพี้ยน
     double previewRatio = _cam!.value.aspectRatio;
     if (size.height > size.width) {
       previewRatio = 1 / previewRatio;
@@ -682,7 +605,7 @@ class _FaceVerifyScreenState extends State<FaceVerifyScreen>
 
     return Center(
       child: Transform.scale(
-        // scale ตามอัตราส่วนกล้องเทียบกับจอ เพื่อให้เต็มจอแบบไม่ยืด
+        // scale ให้เต็มจอแบบไม่ยืดหน้า
         scale: previewRatio / deviceRatio,
         child: AspectRatio(
           aspectRatio: previewRatio,
@@ -697,13 +620,12 @@ class _FaceVerifyScreenState extends State<FaceVerifyScreen>
     return Scaffold(
       backgroundColor: Colors.white,
       body: SafeArea(
-        // ไม่มี Container 375×812 / ไม่มีเส้นขอบแล้ว
         child: Stack(
           children: [
-            // === กล้องเต็มจอ ===
+            // กล้องเต็มจอ
             Positioned.fill(child: _buildFullScreenPreview()),
 
-            // วงแหวนสถานะ
+            // วงแหวน progress
             Center(
               child: SizedBox(
                 width: 260,
@@ -779,7 +701,7 @@ class _FaceVerifyScreenState extends State<FaceVerifyScreen>
                 ),
               ),
 
-            // Debug (ถ้าต้องการ)
+            // Debug overlay
             if (_started && _showDebug)
               Positioned(
                 top: 8,
@@ -825,8 +747,8 @@ class _FaceScanRingPainter extends CustomPainter {
     final outerR = radius;
     final innerR = outerR - 16;
 
-    const baseColor = Color(0xFFE2E8F0); // เทาพื้น
-    const fillColor = Color(0xFF22C55E); // เขียว
+    const baseColor = Color(0xFFE2E8F0);
+    const fillColor = Color(0xFF22C55E);
     const tickWidth = 6.0;
     const strokeJoin = StrokeCap.round;
     const tickIn = 10.0;
@@ -843,6 +765,7 @@ class _FaceScanRingPainter extends CustomPainter {
       ..strokeWidth = tickWidth
       ..strokeCap = strokeJoin;
 
+    // เส้นเทาพื้น
     for (int i = 0; i < tickCount; i++) {
       final t = i / tickCount;
       final ang = (t * 360.0 - 90) * math.pi / 180.0;
@@ -861,6 +784,7 @@ class _FaceScanRingPainter extends CustomPainter {
     final fullTicks = filled.floor();
     final frac = filled - fullTicks;
 
+    // เส้นเขียวเต็ม ๆ
     for (int i = 0; i < fullTicks; i++) {
       final t = i / tickCount;
       final ang = (t * 360.0 - 90) * math.pi / 180.0;
@@ -875,6 +799,7 @@ class _FaceScanRingPainter extends CustomPainter {
       canvas.drawLine(p1, p2, fillPaint);
     }
 
+    // เส้นเขียวเสี้ยวสุดท้าย
     if (frac > 0 && fullTicks < tickCount) {
       final i = fullTicks;
       final t = i / tickCount;

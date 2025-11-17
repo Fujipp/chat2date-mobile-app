@@ -1,3 +1,4 @@
+// lib/screens/auth/kyc_loading_screen.dart
 import 'package:flutter/material.dart';
 
 class KycLoadingScreen extends StatefulWidget {
@@ -10,35 +11,39 @@ class KycLoadingScreen extends StatefulWidget {
 class _KycLoadingScreenState extends State<KycLoadingScreen>
     with SingleTickerProviderStateMixin {
   late final AnimationController _ctrl;
-  bool _demoAutoClose = false; // ใช้เฉพาะโหมดเดโม
-  Duration _demoDelay = const Duration(seconds: 3);
+  late Animation<double> _anim;
+
+  // เวลา default (ms) ถ้าไม่ได้ส่ง args มา
+  int _durationMs = 3000;
 
   @override
   void initState() {
     super.initState();
+
     _ctrl = AnimationController(
       vsync: this,
-      duration: const Duration(seconds: 2),
+      duration: Duration(milliseconds: _durationMs),
       lowerBound: 0,
       upperBound: 1,
-    )..repeat();
+    );
 
-    // อ่าน arguments (ถ้ามี) เพื่อเปิดโหมดเดโม auto-close
-    // ตัวอย่าง: Navigator.pushNamed(context, '/kyc-loading', arguments: {'demo': true, 'ms': 2500})
+    // ใช้ curve ให้การวิ่ง 0-100 ดูลื่นขึ้น
+    _anim = CurvedAnimation(parent: _ctrl, curve: Curves.easeInOutCubic);
+
+    // อ่าน args หลัง build frame แรก
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final args = ModalRoute.of(context)?.settings.arguments;
       if (args is Map) {
-        _demoAutoClose = (args['demo'] == true);
         if (args['ms'] is int && (args['ms'] as int) > 0) {
-          _demoDelay = Duration(milliseconds: args['ms'] as int);
-        }
-        if (_demoAutoClose) {
-          Future.delayed(_demoDelay, () {
-            if (!mounted) return;
-            Navigator.pop<bool>(context, true);
-          });
+          _durationMs = args['ms'] as int;
+          _ctrl.duration = Duration(milliseconds: _durationMs);
         }
       }
+
+      // วิ่งจาก 0 → 1 แค่ครั้งเดียว
+      _ctrl
+        ..reset()
+        ..forward();
     });
   }
 
@@ -55,20 +60,16 @@ class _KycLoadingScreenState extends State<KycLoadingScreen>
       body: SafeArea(
         child: Center(
           child: AnimatedBuilder(
-            animation: _ctrl,
+            animation: _anim,
             builder: (_, __) {
-              // ให้ progress วิ่งวนไปเรื่อย ๆ (0..1)
-              final progress = _ctrl.value;
+              final progress = _anim.value.clamp(0.0, 1.0);
               return SizedBox(
                 width: 211,
                 height: 211,
                 child: CustomPaint(
-                  painter: _CircleLoadingPainterIndeterminate(
-                    progress: progress,
-                  ),
+                  painter: _CircleLoadingPainterDeterminate(progress: progress),
                   child: Center(
                     child: Text(
-                      // โชว์ตัวเลขแบบ aesthetic (แค่เดโม)
                       '${(progress * 100).toInt()}%',
                       style: const TextStyle(
                         fontSize: 32,
@@ -87,10 +88,11 @@ class _KycLoadingScreenState extends State<KycLoadingScreen>
   }
 }
 
-/// วงกลมโหลดแบบ indeterminate: วาดฐานเทาเต็มวง + ส่วนเขียววิ่งโค้งเป็นสไลซ์
-class _CircleLoadingPainterIndeterminate extends CustomPainter {
+/// วงกลมโหลดแบบ determinate: ฐานเทาเต็มวง + ส่วนเขียวเติมตาม progress 0–360°
+class _CircleLoadingPainterDeterminate extends CustomPainter {
   final double progress; // 0..1
-  _CircleLoadingPainterIndeterminate({required this.progress});
+
+  _CircleLoadingPainterDeterminate({required this.progress});
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -113,15 +115,16 @@ class _CircleLoadingPainterIndeterminate extends CustomPainter {
     // วาดวงฐานสีเทาเต็มวง
     canvas.drawArc(rect, _deg(-90), _deg(360), false, base);
 
-    // วาดสไลซ์เขียววิ่ง: ความยาวโค้ง ~ 90–140 องศา (ปรับเล็กน้อยให้ดูมีชีวิต)
-    final sweep = _deg(90 + 50 * (0.5 - (progress - 0.5).abs()) * 2);
-    final start = _deg(-90) + _deg(360) * progress;
-    canvas.drawArc(rect, start, sweep, false, prog);
+    // วาดส่วนเขียวเติมตาม progress (0–360°)
+    final sweep = _deg(360 * progress.clamp(0.0, 1.0));
+    if (sweep > 0) {
+      canvas.drawArc(rect, _deg(-90), sweep, false, prog);
+    }
   }
 
   double _deg(double d) => d * 3.141592653589793 / 180.0;
 
   @override
-  bool shouldRepaint(covariant _CircleLoadingPainterIndeterminate old) =>
+  bool shouldRepaint(covariant _CircleLoadingPainterDeterminate old) =>
       old.progress != progress;
 }
