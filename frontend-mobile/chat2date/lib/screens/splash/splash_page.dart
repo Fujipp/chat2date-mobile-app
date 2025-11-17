@@ -1,39 +1,26 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart' show rootBundle; // ใช้เช็กไฟล์
-import 'package:flutter_svg/flutter_svg.dart';
 
 class SplashPage extends StatefulWidget {
   const SplashPage({super.key});
+
   @override
   State<SplashPage> createState() => _SplashPageState();
 }
 
 class _SplashPageState extends State<SplashPage> {
-  static const _svgPath = 'assets/images/logo_chat2date_text.png';
-
-  late final Future<bool> _logoExists;
+  // ใช้ path เดียวกับ HomeLoginPage
+  static const _logoPath = 'assets/images/logo_chat2date_text.png';
 
   @override
   void initState() {
     super.initState();
-    // เช็กว่า SVG อยู่จริง (กันพิมพ์ path ผิด / pubspec ไม่ครอบ)
-    _logoExists = _checkSvg(_svgPath);
 
-    // เด้งไปหน้า Home
+    // ดีเลย์แล้วเด้งไปหน้า HomeLogin
     Future.delayed(const Duration(milliseconds: 1200), () {
       if (!mounted) return;
       Navigator.of(context).pushReplacementNamed('/home');
     });
-  }
-
-  Future<bool> _checkSvg(String path) async {
-    try {
-      await rootBundle.loadString(path);
-      return true;
-    } catch (_) {
-      return false;
-    }
   }
 
   @override
@@ -41,56 +28,24 @@ class _SplashPageState extends State<SplashPage> {
     return Scaffold(
       backgroundColor: Colors.white,
       body: Center(
-        child: AspectRatio(
-          aspectRatio: 375 / 812,
-          // เดิมใช้ Container + ShapeDecoration (เป็นกรอบมือถือ)
-          // เปลี่ยนเป็น Padding ธรรมดาแทน เพื่อเอากรอบออก
-          child: Padding(
-            padding: const EdgeInsets.symmetric(vertical: 50),
-            child: Stack(
-              children: [
-                // โลโก้ (มี placeholder และกันกรณีหาไฟล์ไม่เจอ)
-                Align(
-                  alignment: Alignment.center,
-                  child: SizedBox(
-                    width: 250,
-                    height: 250,
-                    child: FutureBuilder<bool>(
-                      future: _logoExists,
-                      builder: (context, snap) {
-                        if (snap.connectionState != ConnectionState.done) {
-                          return const Center(
-                            child: CircularProgressIndicator(strokeWidth: 2),
-                          );
-                        }
-                        if (snap.data == true) {
-                          return SvgPicture.asset(
-                            _svgPath,
-                            fit: BoxFit.contain,
-                            allowDrawingOutsideViewBox: true,
-                            placeholderBuilder: (_) => const Center(
-                              child: CircularProgressIndicator(strokeWidth: 2),
-                            ),
-                          );
-                        }
-                        // กรณี SVG ไม่พบ/อ่านไม่ได้: โชว์ FlutterLogo ชั่วคราว
-                        return const FlutterLogo(size: 120);
-                      },
-                    ),
-                  ),
-                ),
-
-                const Align(
-                  alignment: Alignment(0, 0.72),
-                  child: SizedBox(
-                    width: 28,
-                    height: 28,
-                    child: CircularProgressIndicator(strokeWidth: 2.6),
-                  ),
-                ),
-              ],
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            // ✅ โหลด PNG ตรง ๆ แบบเดียวกับ HomeLoginPage
+            Image.asset(
+              _logoPath,
+              width: 250,
+              height: 250,
+              fit: BoxFit.contain,
+              errorBuilder: (_, __, ___) => const FlutterLogo(size: 120),
             ),
-          ),
+            const SizedBox(height: 40),
+            const SizedBox(
+              width: 28,
+              height: 28,
+              child: CircularProgressIndicator(strokeWidth: 2.6),
+            ),
+          ],
         ),
       ),
     );
