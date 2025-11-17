@@ -1,14 +1,25 @@
 import 'dart:convert';
 import 'dart:developer' as developer;
-
+import 'package:chat2date/models/user.dart';
+import 'package:chat2date/stores/user_store.dart';
+import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:chat2date/config/backend_base.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:http/http.dart' as http;
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+part 'auth_service.g.dart';
+
+@riverpod
+AuthService authService(Ref ref) {
+  return AuthService(ref);
+}
 
 class AuthService {
+  final Ref ref;
   final GoogleSignIn _googleSignIn = GoogleSignIn.instance;
   final _storage = const FlutterSecureStorage();
+  AuthService(this.ref);
 
   bool _isInitialized = false;
 
@@ -66,8 +77,21 @@ class AuthService {
         // }
         developer.log('DATA: $data', name: 'AuthService');
 
+        final user = User(
+          userId: userId,
+          version: int.parse(version), // แปลง String เป็น int
+        );
+
         if (data['accessToken'] != null) {
-          await _storage.write(key: 'accessToken', value: data['accessToken']);
+          //await _storage.write(key: 'accessToken', value: data['accessToken']);
+          ref
+              .read(userStoreProvider.notifier)
+              .setUser(user, data['accessToken']);
+           final userState = ref.watch(userStoreProvider);
+          // print("                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       ${userState['accessToken']}");
+          // ref
+          //     .read(userStoreProvider.notifier)
+          //     .setUser(user, data['accessToken']);
         }
 
         if (data['refreshToken'] != null) {

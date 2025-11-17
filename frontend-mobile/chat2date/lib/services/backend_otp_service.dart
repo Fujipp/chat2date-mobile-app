@@ -8,7 +8,7 @@ class BackendOtpService {
   static const _timeout = Duration(seconds: 15);
 
   static Future<String> sendOtp(String phone08) async {
-    final uri = Uri.parse('$_base/api/v1/otp/send');
+    final uri = Uri.parse('$_base/otp/send');
     final res = await http
         .post(uri, headers: _headers, body: jsonEncode({'phone': phone08}))
         .timeout(_timeout);
@@ -23,7 +23,7 @@ class BackendOtpService {
     required String code,
     required String phone
   }) async {
-    final uri = Uri.parse('$_base/api/v1/auth/verify-otp');
+    final uri = Uri.parse('$_base/auth/verify-otp');
     final res = await http
         .post(
           uri,

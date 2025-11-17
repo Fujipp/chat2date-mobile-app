@@ -2,7 +2,14 @@ import 'package:chat2date/components/buttons/ds_button.dart';
 import 'package:chat2date/components/inputs/ds_label.dart';
 import 'package:chat2date/components/inputs/ds_text_field/ds_text_field.dart';
 import 'package:chat2date/components/layout/responsive_container.dart';
+import 'package:chat2date/models/interest.dart';
+import 'package:chat2date/models/lifestyle.dart';
+import 'package:chat2date/models/tag.dart';
+import 'package:chat2date/models/travelstyle.dart';
+import 'package:chat2date/services/preference_service.dart';
 import 'package:flutter/material.dart';
+import 'package:chat2date/stores/user_store.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 class ProfileSetupScreen extends StatefulWidget {
   const ProfileSetupScreen({super.key});
@@ -16,15 +23,42 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
   final _lifestyleCtrl = TextEditingController();
   final _interestsCtrl = TextEditingController();
   final _tagsCtrl = TextEditingController();
+  List<Travelstyle> _travelStyles = [];
+  List<Lifestyle> _lifeStyles = [];
+  List<Interest> _interests = [];
+  List<Tag> _tags = [];
 
   List<int> _selectedLifestyles = [];
   List<int> _selectedInterests = [];
   List<int> _selectedTags = [];
+  final List<int> _selectedTravelStyles = [];
+  List<int> get selectedTravelStyleIds =>
+      _selectedTravelStyles.map((i) => _travelStyles[i].id!).toList();
 
   // ข้อมูลสำหรับแสดงใน TextField
   String _getSelectedText(List<int> selected, List<String> allItems) {
     if (selected.isEmpty) return '';
     return selected.map((i) => allItems[i]).join(', ');
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    _loadInitialData();
+  }
+
+  void _loadInitialData() async {
+    final prefs = await PreferenceService.getPreference();
+    print('TravelStyles: ${prefs.travelStyles}');
+    print('LifeStyles: ${prefs.lifeStyles}');
+    print('Interests: ${prefs.interests}');
+    print('Tags: ${prefs.tags}');
+    setState(() {
+      _travelStyles = prefs.travelStyles;
+      _lifeStyles = prefs.lifeStyles;
+      _interests = prefs.interests;
+      _tags = prefs.tags;
+    });
   }
 
   @override
@@ -60,17 +94,8 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
                 ),
                 const SizedBox(height: 0),
                 TagSelection(
-                  items: [
-                    'Style 1',
-                    'Style 2Style',
-                    'Style 3',
-                    'Style 4',
-                    'Style 5Style',
-                    'Style 6',
-                    'Style 7Style',
-                    'Style 8',
-                    'Style 9',
-                  ],
+                  items: _travelStyles.map((t) => t.travelstyle).toList(),
+                  initialSelected: _selectedTravelStyles,
                 ),
               ],
             ),
@@ -86,13 +111,17 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
                 final result = await Navigator.pushNamed(
                   context,
                   '/lifestylesSelection',
+                  arguments: _lifeStyles,
                 );
 
                 if (result != null && result is List<int>) {
                   setState(() {
                     _selectedLifestyles = result;
                     // อัพเดทข้อความใน TextField (ถ้าต้องการแสดง)
-                    // _lifestyleCtrl.text = _getSelectedText(result, lifestyleItems);
+                    _lifestyleCtrl.text = _getSelectedText(
+                      result,
+                      _lifeStyles.map((l) => l.lifestyle).toList(),
+                    );
                   });
                   print('เลือกไลฟ์สไตล์: $_selectedLifestyles');
                 }
@@ -111,11 +140,16 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
                 final result = await Navigator.pushNamed(
                   context,
                   '/interestsSelection',
+                  arguments: _interests,
                 );
 
                 if (result != null && result is List<int>) {
                   setState(() {
                     _selectedInterests = result;
+                    _interestsCtrl.text = _getSelectedText(
+                      result,
+                      _interests.map((l) => l.interest).toList(),
+                    );
                   });
                   print('เลือกความสนใจ: $_selectedInterests');
                 }
@@ -135,11 +169,16 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
                 final result = await Navigator.pushNamed(
                   context,
                   '/tagsSelection',
+                  arguments: _tags,
                 );
 
                 if (result != null && result is List<int>) {
                   setState(() {
                     _selectedTags = result;
+                    _tagsCtrl.text = _getSelectedText(
+                      result,
+                      _tags.map((l) => l.tag).toList(),
+                    );
                   });
                   print('เลือก Tags: $_selectedTags');
                 }
@@ -158,6 +197,15 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
                   return;
                 }
 
+                if (_selectedTravelStyles.isEmpty) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('กรุณาเลือกสไตล์การท่องเที่ยว'),
+                    ),
+                  );
+                  return;
+                }
+
                 if (_selectedLifestyles.isEmpty) {
                   ScaffoldMessenger.of(context).showSnackBar(
                     const SnackBar(content: Text('กรุณาเลือกไลฟ์สไตล์')),
@@ -172,13 +220,20 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
                   return;
                 }
 
+                // try {
+                //   final user = ref.read(userStoreProvider)['user'];
+
+                //   final body =
+                // } catch (e) {
+
+                // }
+
                 // // ส่งข้อมูลไปหน้าถัดไป
                 // print('===== ข้อมูล Profile =====');
                 // print('ชื่อเล่น: ${_nicknameCtrl.text}');
                 // print('ไลฟ์สไตล์: $_selectedLifestyles');
                 // print('ความสนใจ: $_selectedInterests');
                 // print('Tags: $_selectedTags');
-
 
                 // // TODO: บันทึกข้อมูลหรือไปหน้าถัดไป
                 Navigator.pushNamed(context, '/matchPreference');

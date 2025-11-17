@@ -1,15 +1,16 @@
 import 'package:chat2date/components/index.dart'; // DsButton / Variant / Size
 import 'package:chat2date/services/auth_service.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-class HomeLoginPage extends StatelessWidget {
+class HomeLoginPage extends ConsumerWidget {
   const HomeLoginPage({super.key});
 
   // ใช้ PNG แทน SVG
   static const _logoPath = 'assets/images/logo_chat2date_text.png';
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     return Scaffold(
       backgroundColor: Colors.white,
       body: SafeArea(
@@ -65,7 +66,7 @@ class HomeLoginPage extends StatelessWidget {
                             variant: DsButtonVariant.primary,
                             onPressed: () async {
                               try {
-                                final authService = AuthService();
+                                final authService = ref.read(authServiceProvider);;
                                 final userId = await authService
                                     .signInWithGoogle();
 

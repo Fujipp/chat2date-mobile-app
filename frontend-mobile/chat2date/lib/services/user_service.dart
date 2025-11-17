@@ -1,21 +1,31 @@
 import 'dart:convert';
-
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:chat2date/config/backend_base.dart';
 import 'package:chat2date/models/user.dart';
-import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:chat2date/stores/user_store.dart';
 import 'package:http/http.dart' as http;
+import 'package:riverpod_annotation/riverpod_annotation.dart';
+part 'user_service.g.dart';
 
-final _storage = const FlutterSecureStorage();
+@riverpod
+UserService userService(Ref ref) {
+  return UserService(ref);
+}
 
 class UserService {
-  static Future<User> updateUser(User user) async {
-    final token = await _storage.read(key: 'accessToken');
+  final Ref ref;
+  UserService(this.ref);
+
+  Future<User> updateUser(User user) async {
+    final userState = ref.read(userStoreProvider);
+    final accessToken = "${userState['accessToken']}";
 
     final response = await http.put(
       Uri.parse('${ApiBase.baseUrl}/users/${user.userId}'),
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': 'Bearer $token',
+        'Authorization': 'Bearer $accessToken',
+
       },
       body: jsonEncode(user.toJson()),
     );

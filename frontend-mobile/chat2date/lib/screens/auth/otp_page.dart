@@ -131,8 +131,8 @@ class _OtpPageState extends ConsumerState<OtpPage> {
         // final store = ref.watch(userStoreProvider);
         // print("USER: ${store['user']}");
         // print("TOKEN: ${store['accessToken']}");
-        //-----------------------------------------------------
-        Navigator.pushReplacementNamed(context, '/idcard-scan');
+        // -----------------------------------------------------
+        Navigator.pushReplacementNamed(context, '/kyc-id-ocr');
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('รหัสไม่ถูกต้อง กรุณาลองใหม่')),

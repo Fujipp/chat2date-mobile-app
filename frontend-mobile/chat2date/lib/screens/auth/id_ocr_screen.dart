@@ -7,21 +7,23 @@ import 'package:chat2date/models/face_scan_args.dart'; // ใช้ส่ง arg
 import 'package:chat2date/models/user.dart';
 import 'package:chat2date/services/ocr_thaiid_service.dart';
 import 'package:chat2date/services/user_service.dart';
+import 'package:chat2date/stores/user_store.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
 import 'package:permission_handler/permission_handler.dart';
 
-class IdOcrScreen extends StatefulWidget {
+class IdOcrScreen extends ConsumerStatefulWidget {
   const IdOcrScreen({super.key});
 
   @override
-  State<IdOcrScreen> createState() => _IdOcrScreenState();
+  ConsumerState<IdOcrScreen> createState() => _IdOcrScreenState();
 }
 
-class _IdOcrScreenState extends State<IdOcrScreen> {
+class _IdOcrScreenState extends ConsumerState<IdOcrScreen> {
   // === CONFIG (ใส่ค่าจริงก่อนใช้งาน) ===
   final _ocrCfg = const ThaiIdOcrConfig(
     endpoint: 'https://api.iapp.co.th/thai-national-id-card/v3.5/front',
@@ -199,8 +201,8 @@ class _IdOcrScreenState extends State<IdOcrScreen> {
         sex: sex,
         cardId: _ocrResult!.cardId,
       );
-
-      await UserService.updateUser(userToUpdate);
+      final userService = ref.read(userServiceProvider);
+      await userService.updateUser(userToUpdate);
 
       // ส่งต่อรูปหน้าไปหน้า face-scan
       final faceBytes = _cardFace ?? await _image!.readAsBytes();

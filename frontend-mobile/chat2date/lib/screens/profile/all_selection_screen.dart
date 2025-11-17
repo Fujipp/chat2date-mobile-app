@@ -2,6 +2,9 @@ import 'package:chat2date/components/inputs/ds_text_field/ds_text_field.dart';
 import 'package:chat2date/components/layout/responsive_container.dart';
 import 'package:chat2date/theme/app_colors.dart';
 import 'package:flutter/material.dart';
+import 'package:chat2date/models/interest.dart';
+import 'package:chat2date/models/lifestyle.dart';
+import 'package:chat2date/models/tag.dart';
 
 class TagSelectionScreen extends StatefulWidget {
   final String title;
@@ -161,48 +164,13 @@ class LifestylesSelectionScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final items = ModalRoute.of(context)!.settings.arguments as List<Lifestyle>;
     return TagSelectionScreen(
       title: 'ไลฟ์สไตล์',
-      items: [
-        'Style 1',
-        'Style 2',
-        'Style 3',
-        'Style 4',
-        'Style 5',
-        'Style 6',
-        'Style 7',
-        'Style 8',
-        'Style 9',
-        'Style 1',
-        'Style 2',
-        'Style 3',
-        'Style 4',
-        'Style 5',
-        'Style 6',
-        'Style 7',
-        'Style 8',
-        'Style 9',
-        'Style 1',
-        'Style 2',
-        'Style 3',
-        'Style 4',
-        'Style 5',
-        'Style 6',
-        'Style 7',
-        'Style 8',
-        'Style 9',
-        'Style 1',
-        'Style 2',
-        'Style 3',
-        'Style 4',
-        'Style 5',
-        'Style 6',
-        'Style 7',
-        'Style 8',
-        'Style 9',
-      ],
+      items: items.map((l) => l.lifestyle).toList(),
+      initialSelected: [],
       onSelectionChanged: (selected) {
-        print('Selected lifestyles: $selected');
+        Navigator.pop(context, selected);
       },
     );
   }
@@ -213,52 +181,12 @@ class InterestsSelectionScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final List<Interest> items = ModalRoute.of(context)!.settings.arguments as List<Interest>;
     return TagSelectionScreen(
       title: 'สิ่งที่สนใจ',
-      items: [
-        'ดนตรี',
-        'กีฬา',
-        'ท่องเที่ยว',
-        'อาหาร',
-        'เทคโนโลยี',
-        'ศิลปะ',
-        'หนังสือ',
-        'เกม',
-        'ดนตรี',
-        'กีฬา',
-        'ท่องเที่ยว',
-        'อาหาร',
-        'เทคโนโลยี',
-        'ศิลปะ',
-        'หนังสือ',
-        'เกม',
-        'ดนตรี',
-        'กีฬา',
-        'ท่องเที่ยว',
-        'อาหาร',
-        'เทคโนโลยี',
-        'ศิลปะ',
-        'หนังสือ',
-        'เกม',
-        'ดนตรี',
-        'กีฬา',
-        'ท่องเที่ยว',
-        'อาหาร',
-        'เทคโนโลยี',
-        'ศิลปะ',
-        'หนังสือ',
-        'เกม',
-        'ดนตรี',
-        'กีฬา',
-        'ท่องเที่ยว',
-        'อาหาร',
-        'เทคโนโลยี',
-        'ศิลปะ',
-        'หนังสือ',
-        'เกม',
-      ],
+      items: items.map((l) => l.interest).toList(),
       onSelectionChanged: (selected) {
-        print('Selected interests: $selected');
+        Navigator.pop(context, selected);
       },
     );
   }
@@ -269,57 +197,12 @@ class TagsSelectionScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final List<Tag> items = ModalRoute.of(context)!.settings.arguments as List<Tag>;
     return TagSelectionScreen(
       title: 'Tags',
-      items: [
-        'Tag 1',
-        'Tag 2',
-        'Tag 3',
-        'Tag 4',
-        'Tag 5',
-        'Tag 1',
-        'Tag 2',
-        'Tag 3',
-        'Tag 4',
-        'Tag 5',
-        'Tag 1',
-        'Tag 2',
-        'Tag 3',
-        'Tag 4',
-        'Tag 5',
-        'Tag 1',
-        'Tag 2',
-        'Tag 3',
-        'Tag 4',
-        'Tag 5',
-        'Tag 1',
-        'Tag 2',
-        'Tag 3',
-        'Tag 4',
-        'Tag 5',
-        'Tag 1',
-        'Tag 2',
-        'Tag 3',
-        'Tag 4',
-        'Tag 5',
-        'Tag 1',
-        'Tag 2',
-        'Tag 3',
-        'Tag 4',
-        'Tag 5',
-        'Tag 1',
-        'Tag 2',
-        'Tag 3',
-        'Tag 4',
-        'Tag 5',
-        'Tag 1',
-        'Tag 2',
-        'Tag 3',
-        'Tag 4',
-        'Tag 5',
-      ],
+      items: items.map((l) => l.tag).toList(),
       onSelectionChanged: (selected) {
-        print('Selected tags: $selected');
+        Navigator.pop(context, selected);
       },
     );
   }
