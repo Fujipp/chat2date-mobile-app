@@ -4,7 +4,7 @@ smsmkt:
   projectKey: "6a1937bbc1"
 
 azure:
-  faceEndpoint: https://chat2date.cognitiveservices.azure.com/"
+  faceEndpoint: https://chat2date.cognitiveservices.azure.com/
   # ตรวจในพอร์ทัล Azure ของ Dev เองว่า path เวอร์ชันอะไร (v1.0/v1.1/v1.2)
   # โค้ดด้านล่างจะประกอบ path เองจาก base นี้
   faceApiKey: "5PGF0Yc9tG1UJ1Ii5XILQe1q3F4vv5m1TsqFuXnTapXigJHaAVBxJQQJ99BKACqBBLyXJ3w3AAAKACOGZWBg"   # แนะนำส่งผ่าน ENV
