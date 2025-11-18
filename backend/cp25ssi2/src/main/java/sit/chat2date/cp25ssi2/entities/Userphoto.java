@@ -14,7 +14,7 @@ import java.util.Map;
 @Setter
 @Entity
 @Table(name = "userphoto")
-public class Userphoto {
+public class UserPhoto {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "photoId", nullable = false)
