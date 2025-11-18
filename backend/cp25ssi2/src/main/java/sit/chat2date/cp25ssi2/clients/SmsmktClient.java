@@ -71,30 +71,30 @@ public class SmsmktClient {
      */
     public Map<String, Object> validate(String token, String otpCode, String refCode, String phoneNumber) {
         // URL ของ OTP validate API
-//        String url = "https://portal-otp.smsmkt.com/api/otp-validate";
-//
-//        // สร้าง payload
-//        Map<String, Object> payload = new HashMap<>();
-//        payload.put("token", token);
-//        payload.put("otp_code", otpCode);
-//        if (refCode != null && !refCode.isBlank()) {
-//            payload.put("ref_code", refCode);
-//        }
-//
-//        // ส่ง request ไปยัง OTP API
-//        HttpEntity<Map<String, Object>> req = new HttpEntity<>(payload, headersJson());
-//        ResponseEntity<Map> res = restTemplate.postForEntity(url, req, Map.class);
-//
-//        // ตรวจสอบ response
-        boolean valid = true;
-//        if (res.getStatusCode() == HttpStatus.OK && res.getBody() != null) {
-//            Map<?, ?> body = res.getBody();
-//            if ("000".equals(body.get("code"))) {
-//                Map<?, ?> result = (Map<?, ?>) body.get("result");
-//                Object status = (result != null) ? result.get("status") : null;
-//                valid = (status instanceof Boolean) ? (Boolean) status : true;
-//            }
-//        }
+        String url = "https://portal-otp.smsmkt.com/api/otp-validate";
+
+        // สร้าง payload
+        Map<String, Object> payload = new HashMap<>();
+        payload.put("token", token);
+        payload.put("otp_code", otpCode);
+        if (refCode != null && !refCode.isBlank()) {
+            payload.put("ref_code", refCode);
+        }
+
+        // ส่ง request ไปยัง OTP API
+        HttpEntity<Map<String, Object>> req = new HttpEntity<>(payload, headersJson());
+        ResponseEntity<Map> res = restTemplate.postForEntity(url, req, Map.class);
+
+        // ตรวจสอบ response
+        boolean valid = false;
+        if (res.getStatusCode() == HttpStatus.OK && res.getBody() != null) {
+            Map<?, ?> body = res.getBody();
+            if ("000".equals(body.get("code"))) {
+                Map<?, ?> result = (Map<?, ?>) body.get("result");
+                Object status = (result != null) ? result.get("status") : null;
+                valid = (status instanceof Boolean) ? (Boolean) status : true;
+            }
+        }
 
         Optional<User> userOptional = userRepository.findByPhoneNumber(phoneNumber);
         User user = new User();

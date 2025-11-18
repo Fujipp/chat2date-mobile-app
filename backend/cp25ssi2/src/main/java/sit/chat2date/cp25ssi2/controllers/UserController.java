@@ -12,7 +12,9 @@ import sit.chat2date.cp25ssi2.exceptions.NotFoundException;
 import sit.chat2date.cp25ssi2.repositories.UserRepository;
 import sit.chat2date.cp25ssi2.services.UserService;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 @RestController
@@ -59,4 +61,10 @@ public class UserController {
         return userService.createUserPreference(accessToken, preferenceUser);
     }
 
+    @GetMapping("/users/phone")
+    public boolean checkPhone(@RequestBody Map<String, String> requestBody) {
+        String phoneNumber = requestBody.get("phoneNumber");
+        User user = userRepository.findByPhoneNumber(phoneNumber).orElseThrow(() -> new NotFoundException("User not found"));
+        return user != null;
+    }
 }
