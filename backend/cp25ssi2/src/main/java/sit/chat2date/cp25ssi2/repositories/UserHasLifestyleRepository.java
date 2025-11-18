@@ -7,6 +7,6 @@ import sit.chat2date.cp25ssi2.entities.UserHasLifestyle;
 import java.util.List;
 
 public interface UserHasLifestyleRepository extends JpaRepository<UserHasLifestyle, Integer> {
-    List<UserHasLifestyle> findByUserUser(User user);
-    void deleteByUserUser(User user);
+    List<UserHasLifestyle> findAllByUser_UserId(String userId);
+    void deleteAllByUser(User user);
 }

@@ -7,6 +7,7 @@ import sit.chat2date.cp25ssi2.entities.UserHasTravelstyle;
 import java.util.List;
 
 public interface UserHasTravelstyleRepository extends JpaRepository<UserHasTravelstyle, Integer> {
-    List<UserHasTravelstyle> findByUserUser(User user);
-    void deleteByUserUser(User user);
+    List<UserHasTravelstyle> findAllByUser_UserId(String userId);
+
+    void deleteAllByUser(User user);
 }

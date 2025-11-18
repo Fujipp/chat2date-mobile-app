@@ -15,7 +15,7 @@ import java.util.Objects;
 public class UserHasLifestyleId implements Serializable {
     private static final long serialVersionUID = 1666072158564239784L;
     @Column(name = "user_userId", nullable = false)
-    private Integer userUserid;
+    private Integer userId;
 
     @Column(name = "lifestyle_lifestyleId", nullable = false)
     private Integer lifestyleLifestyleid;
@@ -26,12 +26,12 @@ public class UserHasLifestyleId implements Serializable {
         if (o == null || Hibernate.getClass(this) != Hibernate.getClass(o)) return false;
         UserHasLifestyleId entity = (UserHasLifestyleId) o;
         return Objects.equals(this.lifestyleLifestyleid, entity.lifestyleLifestyleid) &&
-                Objects.equals(this.userUserid, entity.userUserid);
+                Objects.equals(this.userId, entity.userId);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(lifestyleLifestyleid, userUserid);
+        return Objects.hash(lifestyleLifestyleid, userId);
     }
 
 }

@@ -112,28 +112,28 @@ public class UserService {
         PreferenceUserDto pref = new PreferenceUserDto();
 
         // 2. ดึง interests
-        List<Integer> interests = userHasInterestRepository.findByUserUser(user)
+        List<Integer> interests = userHasInterestRepository.findAllByUser_UserId(user.getUserId())
                 .stream()
                 .map(uhi -> uhi.getInterestInterest().getId())
                 .toList();
         pref.setInterests(interests);
 
         // 3. ดึง tags
-        List<Integer> tags = userHasTagRepository.findByUserUser(user)
+        List<Integer> tags = userHasTagRepository.findAllByUser_UserId(user.getUserId())
                 .stream()
                 .map(uht -> uht.getTagTag().getId())
                 .toList();
         pref.setTags(tags);
 
         // 4. ดึง lifestyles
-        List<Integer> lifeStyles = userHasLifestyleRepository.findByUserUser(user)
+        List<Integer> lifeStyles = userHasLifestyleRepository.findAllByUser_UserId(user.getUserId())
                 .stream()
                 .map(uhl -> uhl.getLifestyleLifestyle().getId())
                 .toList();
         pref.setLifeStyles(lifeStyles);
 
         // 5. ดึง travel styles
-        List<Integer> travelStyles = userHasTravelstyleRepository.findByUserUser(user)
+        List<Integer> travelStyles = userHasTravelstyleRepository.findAllByUser_UserId(user.getUserId())
                 .stream()
                 .map(uht -> uht.getTravelstyleTravel().getId())
                 .toList();
@@ -159,16 +159,16 @@ public class UserService {
                 interestRepository,
                 (u, interest) -> {
                     UserHasInterestId id = new UserHasInterestId();
-                    id.setUserUserid(Integer.valueOf(u.getUserId()));
+                    id.setUserId(Integer.valueOf(u.getUserId()));
                     id.setInterestInterestid(interest.getId());
 
                     UserHasInterest join = new UserHasInterest();
                     join.setId(id);
-                    join.setUserUser(u);
+                    join.setUser(u);
                     join.setInterestInterest(interest);
                     return join;
                 },
-                userHasInterestRepository::deleteByUserUser
+                userHasInterestRepository::deleteAllByUser
         );
 
         // 3. Save tags
@@ -179,16 +179,16 @@ public class UserService {
                 tagRepository,
                 (u, tag) -> {
                     UserHasTagId id = new UserHasTagId();
-                    id.setUserUserid(Integer.valueOf(u.getUserId()));
+                    id.setUserId(Integer.valueOf(u.getUserId()));
                     id.setTagTagid(tag.getId());
 
                     UserHasTag join = new UserHasTag();
                     join.setId(id);
-                    join.setUserUser(u);
+                    join.setUser(u);
                     join.setTagTag(tag);
                     return join;
                 },
-                userHasTagRepository::deleteByUserUser
+                userHasTagRepository::deleteAllByUser
         );
 
         // 4. Save lifestyles
@@ -199,16 +199,16 @@ public class UserService {
                 lifeStyleRepository,
                 (u, lifestyle) -> {
                     UserHasLifestyleId id = new UserHasLifestyleId();
-                    id.setUserUserid(Integer.valueOf(u.getUserId()));
+                    id.setUserId(Integer.valueOf(u.getUserId()));
                     id.setLifestyleLifestyleid(lifestyle.getId());
 
                     UserHasLifestyle join = new UserHasLifestyle();
                     join.setId(id);
-                    join.setUserUser(u);
+                    join.setUser(u);
                     join.setLifestyleLifestyle(lifestyle);
                     return join;
                 },
-                userHasLifestyleRepository::deleteByUserUser
+                userHasLifestyleRepository::deleteAllByUser
         );
 
         // 5. Save travel styles
@@ -219,16 +219,16 @@ public class UserService {
                 travelStyleRepository,
                 (u, travel) -> {
                     UserHasTravelstyleId id = new UserHasTravelstyleId();
-                    id.setUserUserid(Integer.valueOf(u.getUserId()));
+                    id.setUserId(Integer.valueOf(u.getUserId()));
                     id.setTravelstyleTravelid(travel.getId());
 
                     UserHasTravelstyle join = new UserHasTravelstyle();
                     join.setId(id);
-                    join.setUserUser(u);
+                    join.setUser(u);
                     join.setTravelstyleTravel(travel);
                     return join;
                 },
-                userHasTravelstyleRepository::deleteByUserUser
+                userHasTravelstyleRepository::deleteAllByUser
         );
 
         return ResponseEntity.ok(pref);

@@ -12,10 +12,10 @@ public class UserHasTravelstyle {
     @EmbeddedId
     private UserHasTravelstyleId id;
 
-    @MapsId("userUserid")
+    @MapsId("userId")
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "user_userId", nullable = false)
-    private User userUser;
+    private User user;
 
     @MapsId("travelstyleTravelid")
     @ManyToOne(fetch = FetchType.LAZY, optional = false)

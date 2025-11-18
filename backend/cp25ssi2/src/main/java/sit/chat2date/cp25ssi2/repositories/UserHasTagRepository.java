@@ -8,6 +8,6 @@ import sit.chat2date.cp25ssi2.entities.UserHasTag;
 import java.util.List;
 
 public interface UserHasTagRepository extends JpaRepository<UserHasTag, Integer> {
-    List<UserHasTag> findByUserUser(User user);
-    void deleteByUserUser(User user);
+    List<UserHasTag> findAllByUser_UserId(String userId);
+    void deleteAllByUser(User user);
 }

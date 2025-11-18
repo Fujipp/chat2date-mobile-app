@@ -26,13 +26,9 @@ public class AuthController {
     private final AuthService authService;
     private final SmsmktClient client;
     @Autowired
-    private UserRepository userRepository;
-    @Autowired
     private JwtTokenUtil jwtTokenUtil;
     @Autowired
     private TokenBlacklistService tokenBlacklistService;
-    @Autowired
-    private UserService userService;
 
     @PostMapping("/google")
     public ResponseEntity<AuthenticationResponse> authenticateWithGoogle(

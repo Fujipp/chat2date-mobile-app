@@ -15,7 +15,7 @@ import java.util.Objects;
 public class UserHasTravelstyleId implements Serializable {
     private static final long serialVersionUID = -3263685253042598860L;
     @Column(name = "user_userId", nullable = false)
-    private Integer userUserid;
+    private Integer userId;
 
     @Column(name = "travelstyle_travelId", nullable = false)
     private Integer travelstyleTravelid;
@@ -25,13 +25,13 @@ public class UserHasTravelstyleId implements Serializable {
         if (this == o) return true;
         if (o == null || Hibernate.getClass(this) != Hibernate.getClass(o)) return false;
         UserHasTravelstyleId entity = (UserHasTravelstyleId) o;
-        return Objects.equals(this.userUserid, entity.userUserid) &&
+        return Objects.equals(this.userId, entity.userId) &&
                 Objects.equals(this.travelstyleTravelid, entity.travelstyleTravelid);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(userUserid, travelstyleTravelid);
+        return Objects.hash(userId, travelstyleTravelid);
     }
 
 }
