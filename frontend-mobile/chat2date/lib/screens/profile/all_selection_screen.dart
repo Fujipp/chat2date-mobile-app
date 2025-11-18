@@ -33,6 +33,16 @@ class _TagSelectionScreenState extends State<TagSelectionScreen> {
   void initState() {
     super.initState();
     _selected = List.from(widget.initialSelected ?? []);
+    _searchController.addListener(_onSearchChanged);
+  }
+
+  void _onSearchChanged() {
+    // ต้องตรวจสอบว่าค่าที่เปลี่ยนไปนั้นใหม่จริง ๆ เพื่อหลีกเลี่ยงการเรียก setState ซ้ำซ้อน
+    if (_searchQuery != _searchController.text) {
+      setState(() {
+        _searchQuery = _searchController.text;
+      });
+    }
   }
 
   List<String> get _filteredItems {
@@ -46,6 +56,7 @@ class _TagSelectionScreenState extends State<TagSelectionScreen> {
 
   @override
   void dispose() {
+    _searchController.removeListener(_onSearchChanged);
     _searchController.dispose();
     super.dispose();
   }
@@ -127,6 +138,7 @@ class _TagSelectionScreenState extends State<TagSelectionScreen> {
                           items: _filteredItems,
                           initialSelected: _selected,
                           shape: TagShape.rectangle,
+                          forceGridMode: false,
                         ),
                       ),
               ),

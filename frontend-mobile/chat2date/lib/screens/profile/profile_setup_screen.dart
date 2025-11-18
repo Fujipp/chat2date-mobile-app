@@ -1,6 +1,7 @@
 import 'package:chat2date/components/buttons/ds_button.dart';
 import 'package:chat2date/components/inputs/ds_label.dart';
 import 'package:chat2date/components/inputs/ds_text_field/ds_text_field.dart';
+import 'package:chat2date/components/inputs/ds_text_field/tag_autocomplete.dart';
 import 'package:chat2date/components/layout/responsive_container.dart';
 import 'package:chat2date/models/interest.dart';
 import 'package:chat2date/models/lifestyle.dart';
@@ -158,34 +159,57 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
             ),
 
             // 3. Tags
-            DsTextField(
-              label: 'tags(ไม่บังคับ)',
-              required: false,
-              controller: _tagsCtrl,
-              suffixIcon: Icons.add,
-              hintText: 'เพิ่มแท็กที่นี่',
-
-              onSuffixTap: () async {
-                final result = await Navigator.pushNamed(
-                  context,
-                  '/tagsSelection',
-                  arguments: _tags,
-                );
-
-                if (result != null && result is List<int>) {
-                  setState(() {
-                    _selectedTags = result;
-                    _tagsCtrl.text = _getSelectedText(
-                      result,
-                      _tags.map((l) => l.tag).toList(),
-                    );
-                  });
-                  print('เลือก Tags: $_selectedTags');
-                }
+            GestureDetector(
+              behavior: HitTestBehavior.translucent,
+              onTap: () {
+                FocusScope.of(context).unfocus(); // จะทำให้ทุก FocusNode หาย
               },
-              labelFontSize: 20,
+              child: Column(
+                children: [
+                  TagAutocomplete(
+                    allTags: _tags.map((t) => t.tag).toList(),
+                    selectedTags: _selectedTags
+                        .map((i) => _tags[i].tag)
+                        .toList(),
+                    onChanged: (newList) {
+                      setState(() {
+                        _selectedTags = newList
+                            .map((tag) => _tags.indexWhere((t) => t.tag == tag))
+                            .toList();
+                      });
+                    },
+                  ),
+                ],
+              ),
             ),
 
+            // DsTextField(
+            //   label: 'tags(ไม่บังคับ)',
+            //   required: false,
+            //   controller: _tagsCtrl,
+            //   suffixIcon: Icons.add,
+            //   hintText: 'เพิ่มแท็กที่นี่',
+
+            //   onSuffixTap: () async {
+            //     final result = await Navigator.pushNamed(
+            //       context,
+            //       '/tagsSelection',
+            //       arguments: _tags,
+            //     );
+
+            //     if (result != null && result is List<int>) {
+            //       setState(() {
+            //         _selectedTags = result;
+            //         _tagsCtrl.text = _getSelectedText(
+            //           result,
+            //           _tags.map((l) => l.tag).toList(),
+            //         );
+            //       });
+            //       print('เลือก Tags: $_selectedTags');
+            //     }
+            //   },
+            //   labelFontSize: 20,
+            // ),
             DsButton(
               label: 'ไปหน้าถัดไป',
               onPressed: () {

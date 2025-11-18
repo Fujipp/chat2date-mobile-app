@@ -33,7 +33,7 @@ class _PhonePageState extends State<PhonePage> {
     return RegExp(r'^(06|08|09)\d{8}$').hasMatch(p);
   }
 
-  Future<void> _submit() async {
+  Future<void> _submit(bool onLogin) async {
     if (_loading) return;
     FocusScope.of(context).unfocus();
 
@@ -54,7 +54,7 @@ class _PhonePageState extends State<PhonePage> {
       Navigator.pushNamed(
         context,
         '/otp',
-        arguments: {'token': token, 'phone': phone},
+        arguments: {'token': token, 'phone': phone, 'onLogin': onLogin},
       );
     } catch (e) {
       if (!mounted) return;
@@ -68,6 +68,8 @@ class _PhonePageState extends State<PhonePage> {
 
   @override
   Widget build(BuildContext context) {
+    final arguments = ModalRoute.of(context)?.settings.arguments;
+    final bool loginOtp = arguments is bool ? arguments : false;
     // แตะพื้นหลังเพื่อซ่อนคีย์บอร์ด
     return GestureDetector(
       onTap: () => FocusScope.of(context).unfocus(),
@@ -86,21 +88,22 @@ class _PhonePageState extends State<PhonePage> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 // ปุ่มย้อนกลับ (ไปหน้า /policy)
-                IconButton(
-                  splashRadius: 26,
-                  onPressed: () =>
-                      Navigator.pushReplacementNamed(context, '/policy'),
-                  icon: SvgPicture.asset(
-                    'assets/icons/icon_arrow-back-circle.svg',
-                    width: 32,
-                    height: 32,
+                if (!loginOtp)
+                  IconButton(
+                    splashRadius: 26,
+                    onPressed: () =>
+                        Navigator.pushReplacementNamed(context, '/policy'),
+                    icon: SvgPicture.asset(
+                      'assets/icons/icon_arrow-back-circle.svg',
+                      width: 32,
+                      height: 32,
+                    ),
                   ),
-                ),
                 const SizedBox(height: 8),
 
                 // หัวข้อ
-                const Text(
-                  'ลงทะเบียน',
+                Text(
+                  loginOtp ? 'เข้าสู่ระบบ' : 'ลงทะเบียน',
                   style: TextStyle(
                     color: Color(0xFF0F172A),
                     fontSize: 24,
@@ -155,7 +158,7 @@ class _PhonePageState extends State<PhonePage> {
                         child: TextField(
                           controller: _phoneCtrl,
                           textInputAction: TextInputAction.done,
-                          onSubmitted: (_) => _submit(),
+                          onSubmitted: (_) => _submit(loginOtp),
                           keyboardType: TextInputType.phone,
                           autofillHints: const [AutofillHints.telephoneNumber],
                           inputFormatters: [
@@ -202,7 +205,7 @@ class _PhonePageState extends State<PhonePage> {
                               _isValidThaiMobile(
                                 _normalizePhone(_phoneCtrl.text),
                               ))
-                          ? _submit
+                          ? () => _submit(loginOtp)
                           : null,
                     ),
                   ),

@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:chat2date/models/user.dart';
+import 'package:chat2date/services/user_service.dart';
 import 'package:chat2date/stores/user_store.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -21,6 +22,7 @@ class _OtpPageState extends ConsumerState<OtpPage> {
 
   String _phone = '';
   String _token = '';
+  bool onLogin = false;
   int _seconds = 60;
   Timer? _timer;
   bool _verifying = false;
@@ -39,6 +41,7 @@ class _OtpPageState extends ConsumerState<OtpPage> {
       if (args is Map) {
         _phone = (args['phone'] ?? '') as String;
         _token = (args['token'] ?? '') as String;
+        onLogin = (args['register'] ?? '') as bool;
       }
       _startTimer();
       if (_nodes.isNotEmpty) _nodes.first.requestFocus();
@@ -117,6 +120,14 @@ class _OtpPageState extends ConsumerState<OtpPage> {
     }
     setState(() => _verifying = true);
     try {
+      final isExist = await UserService.checkPhone(_phone);
+      if(onLogin && !isExist) {
+        throw Exception('ไม่สามารถเข้าสู่ระบบได้ เนื่องจากไม่มีเบอร์นี้ในระบบ');
+      }
+      if(!onLogin && isExist) {
+        throw Exception('ไม่สามารถลงทะเบียนเบอร์นี้ได้ เนื่องจากมีเบอร์นี้ในระบบแล้ว');
+      }
+
       final data = await BackendOtpService.validateOtp(
         token: _token,
         code: code,
@@ -127,12 +138,18 @@ class _OtpPageState extends ConsumerState<OtpPage> {
         final user = User.fromJson(data['body']['user']);
         final accessToken = data['body']['accessToken'];
         ref.read(userStoreProvider.notifier).setUser(user, accessToken);
+        if (user.accountStatus == AccountStatus.PENDING) {
+          Navigator.pushReplacementNamed(context, '/kyc-id-ocr');
+        } else if (user.accountStatus == AccountStatus.ACTIVE) {
+          Navigator.pushReplacementNamed(context, '/discovery');
+        } else {
+          throw Exception('เบอร์ดังกล่าวถูกระงับไว้');
+        }
         //ตัวอย่างการ log ดูข้อมูล---------------------------
         // final store = ref.watch(userStoreProvider);
         // print("USER: ${store['user']}");
         // print("TOKEN: ${store['accessToken']}");
         // -----------------------------------------------------
-        Navigator.pushReplacementNamed(context, '/kyc-id-ocr');
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('รหัสไม่ถูกต้อง กรุณาลองใหม่')),

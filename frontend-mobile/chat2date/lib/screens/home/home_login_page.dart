@@ -52,8 +52,11 @@ class HomeLoginPage extends ConsumerWidget {
                             label: 'เข้าสู่ระบบด้วยเบอร์โทร',
                             size: DsButtonSize.md, // 231×40, font 16
                             variant: DsButtonVariant.primary,
-                            onPressed: () =>
-                                Navigator.pushNamed(context, '/phone'),
+                            onPressed: () => Navigator.pushNamed(
+                              context,
+                              '/phone',
+                              arguments: true,
+                            ),
                           ),
                         ),
                         const SizedBox(height: 25),
@@ -66,14 +69,16 @@ class HomeLoginPage extends ConsumerWidget {
                             variant: DsButtonVariant.primary,
                             onPressed: () async {
                               try {
-                                final authService = ref.read(authServiceProvider);;
+                                final authService = ref.read(
+                                  authServiceProvider,
+                                );
                                 final userId = await authService
                                     .signInWithGoogle();
 
                                 Navigator.pushReplacementNamed(
                                   context,
                                   '/kyc-id-ocr',
-                                   arguments: userId,
+                                  arguments: userId,
                                 );
                               } catch (e) {
                                 ScaffoldMessenger.of(context).showSnackBar(

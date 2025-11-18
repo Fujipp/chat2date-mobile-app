@@ -398,12 +398,14 @@ class TagSelection extends StatefulWidget {
   final List<String> items;
   final List<int> initialSelected;
   final TagShape shape;
+  final bool forceGridMode;
 
   const TagSelection({
     super.key,
     required this.items,
     this.initialSelected = const [],
     this.shape = TagShape.rounded,
+    this.forceGridMode = true,
   });
 
   @override
@@ -424,10 +426,19 @@ class _TagSelectionState extends State<TagSelection> {
     return LayoutBuilder(
       builder: (context, constraints) {
         // กำหนดจำนวน tag ต่อแถว (ตัวอย่าง: 3 tag ต่อแถว)
-        int itemsPerRow = 3;
         double spacing = 8; // gap ระหว่าง tag
-        double totalSpacing = spacing * (itemsPerRow - 1);
-        double itemWidth = (constraints.maxWidth - totalSpacing) / itemsPerRow;
+        double? itemWidth;
+
+        final bool isGridActive =
+            widget.shape == TagShape.rectangle && widget.forceGridMode;
+
+        if (isGridActive) {
+          int itemsPerRow = 3;
+          double totalSpacing = spacing * (itemsPerRow - 1);
+          itemWidth = (constraints.maxWidth - totalSpacing) / itemsPerRow;
+        }
+
+        final double? currentSizedBoxWidth = isGridActive ? itemWidth : null;
 
         return Wrap(
           spacing: spacing,
@@ -436,7 +447,7 @@ class _TagSelectionState extends State<TagSelection> {
             final isSelected = _selected.contains(index);
 
             return SizedBox(
-              width: widget.shape == TagShape.rectangle ? itemWidth : null,
+              width: currentSizedBoxWidth,
               child: GestureDetector(
                 onTap: () {
                   setState(() {
@@ -484,16 +495,19 @@ class _TagSelectionState extends State<TagSelection> {
                             ),
                           ],
                         )
-                      : Center(
-                          child: Text(
-                            widget.items[index],
-                            style: TextStyle(
-                              fontSize: 12,
-                              color: isSelected
-                                  ? const Color(0xFF0F172A)
-                                  : const Color(0xFF94A3B8),
+                      : Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text(
+                              widget.items[index],
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: isSelected
+                                    ? const Color(0xFF0F172A)
+                                    : const Color(0xFF94A3B8),
+                              ),
                             ),
-                          ),
+                          ],
                         ),
                 ),
               ),
