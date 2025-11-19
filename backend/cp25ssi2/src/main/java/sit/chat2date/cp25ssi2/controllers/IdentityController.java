@@ -23,7 +23,7 @@ public class IdentityController {
         private IdentityService identityService;
 
         @PostMapping("/verify-face")
-        public ResponseEntity<?> verifyFace(
+        public ResponseEntity<?> verifyAndUpload(
                 @RequestParam("profile_images") List<MultipartFile> profileImages,
                 @RequestParam("id_card_base64") String idCardBase64,
                 @RequestParam("userId") String userId
