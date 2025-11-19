@@ -15,7 +15,7 @@ import java.util.Objects;
 public class UserHasInterestId implements Serializable {
     private static final long serialVersionUID = 5230127598127734923L;
     @Column(name = "user_userId", nullable = false)
-    private Integer userId;
+    private String userId;
 
     @Column(name = "interest_interestId", nullable = false)
     private Integer interestInterestid;

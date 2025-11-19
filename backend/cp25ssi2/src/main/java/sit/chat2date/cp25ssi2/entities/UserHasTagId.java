@@ -15,7 +15,7 @@ import java.util.Objects;
 public class UserHasTagId implements Serializable {
     private static final long serialVersionUID = -6826211503512329422L;
     @Column(name = "user_userId", nullable = false)
-    private Integer userId;
+    private String userId;
 
     @Column(name = "tag_tagId", nullable = false)
     private Integer tagTagid;

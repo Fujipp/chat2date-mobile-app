@@ -15,7 +15,7 @@ import java.util.Objects;
 public class UserHasTravelstyleId implements Serializable {
     private static final long serialVersionUID = -3263685253042598860L;
     @Column(name = "user_userId", nullable = false)
-    private Integer userId;
+    private String userId;
 
     @Column(name = "travelstyle_travelId", nullable = false)
     private Integer travelstyleTravelid;
