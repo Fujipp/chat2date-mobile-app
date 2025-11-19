@@ -4,6 +4,7 @@ import 'dart:io';
 import 'dart:typed_data';
 
 import 'package:chat2date/components/index.dart'; // DsButton / inputs
+import 'package:chat2date/config/backend_base.dart';
 import 'package:chat2date/models/face_scan_args.dart'; // ใช้ส่ง args ไปหน้า face-scan
 import 'package:chat2date/models/user.dart';
 import 'package:chat2date/services/ocr_thaiid_service.dart';
@@ -25,10 +26,11 @@ class IdOcrScreen extends ConsumerStatefulWidget {
 }
 
 class _IdOcrScreenState extends ConsumerState<IdOcrScreen> {
-  // === CONFIG (ใส่ค่าจริงก่อนใช้งาน) ===
-  final _ocrCfg = const ThaiIdOcrConfig(
-    endpoint: 'https://api.iapp.co.th/thai-national-id-card/v3.5/front',
-    apiKey: 'Z0XVt18RSoFlZAkRnhGy9U3u5J8MlrZA', // <- ใส่ key จริง (อย่า commit)
+  // === CONFIG ===
+  // ตอนนี้ให้ยิงเข้า Backend → /kyc/ocr-thaiid
+  // แล้วให้ Backend ไปคุย iApp + OCR + map field ให้
+  late final ThaiIdOcrConfig _ocrCfg = ThaiIdOcrConfig(
+    endpoint: '${ApiBase.baseUrl}/kyc/ocr-thaiid',
   );
 
   static const _backIcon = 'assets/icons/icon_arrow-back-circle.svg';
@@ -136,6 +138,7 @@ class _IdOcrScreenState extends ConsumerState<IdOcrScreen> {
   Future<void> _runOcr() async {
     if (_image == null) return;
     setState(() => _busy = true);
+
     try {
       final result = await ThaiIdOcrService.ocr(
         cfg: _ocrCfg,
@@ -144,7 +147,10 @@ class _IdOcrScreenState extends ConsumerState<IdOcrScreen> {
 
       // ถ้า OCR ไม่คืนรูปใบหน้ามา ให้ fallback เป็น bytes ของรูปทั้งใบ
       final fallbackBytes = await _image!.readAsBytes();
-      final base64Card = base64Encode(result.cardFaceBytes!);
+      final faceBytes = result.cardFaceBytes ?? fallbackBytes;
+      final base64Card = base64Encode(faceBytes);
+
+      // เก็บ base64 ของรูปหน้าไว้ใน userStore (ใช้ที่อื่นต่อได้)
       ref.read(userStoreProvider.notifier).setCardFaceBytes(base64Card);
 
       setState(() {
@@ -152,7 +158,7 @@ class _IdOcrScreenState extends ConsumerState<IdOcrScreen> {
         _fullName = result.fullName;
         _dob = result.birthDate; // มาจาก th_dob -> ค.ศ. แล้ว
         _gender = result.gender; // ชาย/หญิง/อื่นๆ
-        _cardFace = result.cardFaceBytes ?? fallbackBytes; // fallback
+        _cardFace = faceBytes;
 
         _thFirstName = result.thFname;
         _thLastName = result.thLname;

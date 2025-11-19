@@ -1,28 +1,64 @@
+// lib/services/kyc_remote_service.dart
+import 'dart:convert';
 import 'dart:typed_data';
 
+import 'package:http/http.dart' as http;
+
 class KycRemoteService {
-  final String baseUrl;
+  final String baseUrl; // เช่น /api/v1 หรือ http://10.0.2.2:8080/api/v1
   KycRemoteService(this.baseUrl);
 
+  /// ถ้าในอนาคตอยากส่งผล liveness ให้ backend ด้วย ค่อยมาเติม method เพิ่ม
   Future<Map<String, dynamic>> completeLivenessWithSelfie(
     Uint8List? selfieBytes,
   ) async {
-    // TODO: เรียกจริงด้วย http
-    await Future.delayed(const Duration(milliseconds: 400));
-    return {'liveness': 'pass'}; // mock
+    // ตอนนี้เราใช้ MLKit ฝั่ง FE อย่างเดียว ยังไม่ส่งอะไรไป BE
+    return {'liveness': 'pass'};
   }
 
+  /// ถ้าอยากให้ backend ครอปหน้าออกจากบัตรด้วย Azure ก็มาใช้ตัวนี้
   Future<Map<String, dynamic>> cropFaceFromIdFront(String idFrontBase64) async {
-    await Future.delayed(const Duration(milliseconds: 200));
-    return {'idFaceBase64': idFrontBase64}; // mock: ส่งกลับเดิม
+    final uri = Uri.parse('$baseUrl/kyc/ocr/crop-id-face');
+    final res = await http.post(
+      uri,
+      headers: {'Content-Type': 'application/json'},
+      body: jsonEncode({'idFrontBase64': idFrontBase64}),
+    );
+
+    if (res.statusCode != 200) {
+      throw 'Crop ID face failed: HTTP ${res.statusCode} ${res.body}';
+    }
+    final json = jsonDecode(res.body) as Map<String, dynamic>;
+    return json;
   }
 
+  /// เรียก BE: /kyc/verify-face → ใช้ Azure เทียบ selfie vs idFaceBase64
   Future<Map<String, dynamic>> verifyFaceBytesVsIdFaceBase64({
     required Uint8List? selfieBytes,
     required String idFaceBase64,
   }) async {
-    await Future.delayed(const Duration(milliseconds: 400));
-    // mock: ให้ผ่านเสมอ
-    return {'match': true, 'score': 0.95};
+    if (selfieBytes == null) {
+      throw 'selfieBytes is null';
+    }
+
+    final uri = Uri.parse('$baseUrl/kyc/verify-face');
+    final selfieB64 = base64Encode(selfieBytes);
+
+    final res = await http.post(
+      uri,
+      headers: {'Content-Type': 'application/json'},
+      body: jsonEncode({
+        'selfieBase64': selfieB64,
+        'idFaceBase64': idFaceBase64,
+      }),
+    );
+
+    if (res.statusCode != 200) {
+      throw 'Verify face failed: HTTP ${res.statusCode} ${res.body}';
+    }
+
+    final json = jsonDecode(res.body) as Map<String, dynamic>;
+    // backend ส่ง VerifyFaceResponse { match, score }
+    return json;
   }
 }
