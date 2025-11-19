@@ -6,16 +6,16 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
+import sit.chat2date.cp25ssi2.dto.PreferenceMatchUserDto;
 import sit.chat2date.cp25ssi2.dto.PreferenceUserDto;
 import sit.chat2date.cp25ssi2.entities.User;
 import sit.chat2date.cp25ssi2.exceptions.NotFoundException;
+import sit.chat2date.cp25ssi2.repositories.PreferenceMatchRepository;
 import sit.chat2date.cp25ssi2.repositories.UserRepository;
 import sit.chat2date.cp25ssi2.services.UserService;
 
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 
 @RestController
 public class UserController {
@@ -67,4 +67,10 @@ public class UserController {
         User user = userRepository.findByPhoneNumber(phoneNumber).orElseThrow(() -> new NotFoundException("User not found"));
         return user != null;
     }
+
+    @PostMapping("/users/preferenceMatch")
+    public ResponseEntity<PreferenceMatchUserDto> createUserPreferenceMatch(@RequestHeader("Authorization") String accessToken, @RequestBody PreferenceMatchUserDto preferenceUser) {
+        return userService.createUserPreferenceMatch(accessToken, preferenceUser);
+    }
+
 }

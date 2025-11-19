@@ -5,6 +5,7 @@ import lombok.Getter;
 import lombok.Setter;
 import org.hibernate.annotations.OnDelete;
 import org.hibernate.annotations.OnDeleteAction;
+import sit.chat2date.cp25ssi2.enums.PreferenceLevel;
 
 @Getter
 @Setter
@@ -17,26 +18,36 @@ public class PreferenceMatch {
     private Integer id;
 
     @Lob
+    @Enumerated(EnumType.STRING)
     @Column(name = "interestedGender", nullable = false)
-    private String interestedGender;
+    private PreferenceLevel interestedGender;
 
     @Lob
+    @Enumerated(EnumType.STRING)
     @Column(name = "interestedTravelStyle", nullable = false)
-    private String interestedTravelStyle;
+    private PreferenceLevel interestedTravelStyle;
 
     @Lob
+    @Enumerated(EnumType.STRING)
     @Column(name = "interestedLifeStyle", nullable = false)
-    private String interestedLifeStyle;
+    private PreferenceLevel interestedLifeStyle;
 
     @Lob
+    @Enumerated(EnumType.STRING)
     @Column(name = "interestedInterest", nullable = false)
-    private String interestedInterest;
+    private PreferenceLevel interestedInterest;
 
     @Column(name = "interestedAgeMin", nullable = false)
     private Integer interestedAgeMin;
 
     @Column(name = "interestedAgeMax", nullable = false)
     private Integer interestedAgeMax;
+
+    @Column(name = "interestedDistanceMin", nullable = false)
+    private Integer interestedDistanceMin;
+
+    @Column(name = "interestedDistanceMax", nullable = false)
+    private Integer interestedDistanceMax;
 
     @OneToOne(fetch = FetchType.LAZY, optional = false)
     @OnDelete(action = OnDeleteAction.CASCADE)

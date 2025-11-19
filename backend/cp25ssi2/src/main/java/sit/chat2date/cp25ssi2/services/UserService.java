@@ -13,8 +13,10 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.server.ResponseStatusException;
+import sit.chat2date.cp25ssi2.dto.PreferenceMatchUserDto;
 import sit.chat2date.cp25ssi2.dto.PreferenceUserDto;
 import sit.chat2date.cp25ssi2.entities.*;
+import sit.chat2date.cp25ssi2.enums.PreferenceLevel;
 import sit.chat2date.cp25ssi2.exceptions.NotFoundException;
 import sit.chat2date.cp25ssi2.exceptions.PreconditionFailedException;
 import sit.chat2date.cp25ssi2.repositories.*;
@@ -46,6 +48,8 @@ public class UserService {
     private TravelStyleRepository travelStyleRepository;
     @Autowired
     private UserHasTravelstyleRepository userHasTravelstyleRepository;
+    @Autowired
+    private PreferenceMatchRepository preferenceMatchRepository;
 
     public User createUser(User user) {
         return userRepository.save(user);
@@ -232,6 +236,40 @@ public class UserService {
                 },
                 userHasTravelstyleRepository::deleteAllByUser
         );
+
+        return ResponseEntity.ok(pref);
+    }
+
+    public ResponseEntity<PreferenceMatchUserDto> createUserPreferenceMatch(String accessToken, PreferenceMatchUserDto pref) {
+        String token = accessToken.substring(7);
+        DecodedJWT jwt = JWT.decode(token);
+        String sub = jwt.getClaim("sub").asString();
+
+        User user = (sub.length() == 10)
+                ? userRepository.findByPhoneNumber(sub).orElseThrow()
+                : userRepository.findByEmail(sub).orElseThrow();
+
+        PreferenceMatch preferenceMatch = new PreferenceMatch();
+
+        if (pref.getInterestedGender() != null) {
+            preferenceMatch.setInterestedGender(PreferenceLevel.valueOf(pref.getInterestedGender()));
+        }
+        if (pref.getInterestedInterest() != null) {
+            preferenceMatch.setInterestedInterest(PreferenceLevel.valueOf(pref.getInterestedInterest()));
+        }
+        if (pref.getInterestedLifeStyle() != null) {
+            preferenceMatch.setInterestedLifeStyle(PreferenceLevel.valueOf(pref.getInterestedLifeStyle()));
+        }
+        if (pref.getInterestedTravelStyle() != null) {
+            preferenceMatch.setInterestedTravelStyle(PreferenceLevel.valueOf(pref.getInterestedTravelStyle()));
+        }
+        preferenceMatch.setUser(user);
+        preferenceMatch.setInterestedAgeMax(pref.getInterestedAgeMax());
+        preferenceMatch.setInterestedAgeMin(pref.getInterestedAgeMin());
+        preferenceMatch.setInterestedDistanceMin(pref.getInterestedDistanceMin());
+        preferenceMatch.setInterestedDistanceMax(pref.getInterestedDistanceMax());
+
+        preferenceMatchRepository.save(preferenceMatch);
 
         return ResponseEntity.ok(pref);
     }
