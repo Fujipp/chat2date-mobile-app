@@ -271,7 +271,7 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
                       .read(userServiceProvider)
                       .addPreferenceUser(preference);
                 } catch (e) {
-                  return;
+                  throw Exception(e);
                 }
 
                 // // ส่งข้อมูลไปหน้าถัดไป

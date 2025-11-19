@@ -41,12 +41,34 @@ class UserService {
     final userState = ref.read(userStoreProvider);
     final accessToken = "${userState['accessToken']}";
 
-    final response = await http.put(
+    final response = await http.post(
       Uri.parse('${ApiBase.baseUrl}/users/preference'),
       headers: {
         'Content-Type': 'application/json',
         'Authorization': 'Bearer $accessToken',
       },
+      body: jsonEncode(preference),
+    );
+
+    if (response.statusCode != 200) {
+      throw Exception('Update failed: ${response.body}');
+    }
+
+    final data = jsonDecode(response.body);
+    return User.fromJson(data);
+  }
+
+  Future<User> addPreferenceMatchUser(Map<String, Object> preferenceMatch) async {
+    final userState = ref.read(userStoreProvider);
+    final accessToken = "${userState['accessToken']}";
+
+    final response = await http.post(
+      Uri.parse('${ApiBase.baseUrl}/users/preferenceMatch'),
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer $accessToken',
+      },
+      body: jsonEncode(preferenceMatch),
     );
 
     if (response.statusCode != 200) {

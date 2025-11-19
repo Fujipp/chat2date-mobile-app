@@ -63,9 +63,9 @@ class _PreferenceCardState extends State<PreferenceCard> {
                   ),
                 ),
                 const TextSpan(
-                  text: '*',
+                  text: ' *',
                   style: TextStyle(
-                    color: Color(0xFFF81919),
+                    color: Colors.red,
                     fontSize: 24,
                     fontFamily: 'Inter',
                     fontWeight: FontWeight.w400,
@@ -84,12 +84,12 @@ class _PreferenceCardState extends State<PreferenceCard> {
                   // 💡 แก้ไข: คอลัมน์ซ้าย (flex: 1)
                   Expanded(
                     flex: 1,
-                    child: _buildRadioOption('เหมือนกัน', 'same'),
+                    child: _buildRadioOption('เหมือนกัน', 'SAME'),
                   ),
 
                   Expanded(
                     flex: 1,
-                    child: _buildRadioOption('คล้ายกัน', 'similar'),
+                    child: _buildRadioOption('คล้ายกัน', 'NEARLY'),
                   ),
                 ],
               ),
@@ -99,7 +99,7 @@ class _PreferenceCardState extends State<PreferenceCard> {
                   // 💡 แก้ไข: คอลัมน์ซ้าย (flex: 1)
                   Expanded(
                     flex: 1,
-                    child: _buildRadioOption('ไม่จำเป็น', 'not_necessary'),
+                    child: _buildRadioOption('ไม่จำเป็น', 'UNNECESSARY'),
                   ),
 
                   // 💡 เพิ่ม: ช่องว่างตรงกลาง
@@ -107,7 +107,7 @@ class _PreferenceCardState extends State<PreferenceCard> {
                   // 💡 แก้ไข: คอลัมน์ขวา (flex: 1)
                   Expanded(
                     flex: 1,
-                    child: _buildRadioOption('ไม่เกี่ยวข้องกัน', 'not_related'),
+                    child: _buildRadioOption('ไม่เกี่ยวข้องกัน', 'UNRELATED'),
                   ),
                 ],
               ),
