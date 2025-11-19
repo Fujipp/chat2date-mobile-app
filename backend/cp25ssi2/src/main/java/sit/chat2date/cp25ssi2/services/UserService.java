@@ -16,6 +16,7 @@ import org.springframework.web.server.ResponseStatusException;
 import sit.chat2date.cp25ssi2.dto.PreferenceMatchUserDto;
 import sit.chat2date.cp25ssi2.dto.PreferenceUserDto;
 import sit.chat2date.cp25ssi2.entities.*;
+import sit.chat2date.cp25ssi2.enums.PreferenceGender;
 import sit.chat2date.cp25ssi2.enums.PreferenceLevel;
 import sit.chat2date.cp25ssi2.exceptions.NotFoundException;
 import sit.chat2date.cp25ssi2.exceptions.PreconditionFailedException;
@@ -252,7 +253,7 @@ public class UserService {
         PreferenceMatch preferenceMatch = new PreferenceMatch();
 
         if (pref.getInterestedGender() != null) {
-            preferenceMatch.setInterestedGender(PreferenceLevel.valueOf(pref.getInterestedGender()));
+            preferenceMatch.setInterestedGender(PreferenceGender.valueOf(pref.getInterestedGender()));
         }
         if (pref.getInterestedInterest() != null) {
             preferenceMatch.setInterestedInterest(PreferenceLevel.valueOf(pref.getInterestedInterest()));

@@ -5,6 +5,7 @@ import lombok.Getter;
 import lombok.Setter;
 import org.hibernate.annotations.OnDelete;
 import org.hibernate.annotations.OnDeleteAction;
+import sit.chat2date.cp25ssi2.enums.PreferenceGender;
 import sit.chat2date.cp25ssi2.enums.PreferenceLevel;
 
 @Getter
@@ -20,7 +21,7 @@ public class PreferenceMatch {
     @Lob
     @Enumerated(EnumType.STRING)
     @Column(name = "interestedGender", nullable = false)
-    private PreferenceLevel interestedGender;
+    private PreferenceGender interestedGender;
 
     @Lob
     @Enumerated(EnumType.STRING)
