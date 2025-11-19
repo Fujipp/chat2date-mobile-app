@@ -7,7 +7,9 @@ import 'dart:convert';
 
 import 'package:camera/camera.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart' show debugPrint;
 import 'package:google_mlkit_face_detection/google_mlkit_face_detection.dart';
+import 'package:google_mlkit_commons/google_mlkit_commons.dart';
 
 import 'package:chat2date/config/backend_base.dart';
 import 'package:chat2date/models/face_scan_args.dart';
@@ -29,20 +31,17 @@ class _FaceVerifyScreenState extends State<FaceVerifyScreen>
   FaceDetector? _detector;
 
   // debug
-  bool _showDebug = false;
+  bool _showDebug = false; // ถ้าอยากดูค่าพวก yaw/pitch ให้เปิดเป็น true
   String _debugText = '';
 
   bool _cameraActive = false;
   bool _started = false; // กดปุ่ม "เริ่มสแกน" แล้วหรือยัง
   bool _navigating = false;
 
-  // ===== Phase 0: จัดหน้าให้อยู่กลางวง 2 วิ =====
-  static const double _alignSecondsRequired = 2.0;
-  bool _alignPhase = false; // อยู่ช่วง "จัดหน้าให้ตรง"
-  bool _alignmentDone = false;
-  double _alignSeconds = 0;
+  // กัน processImage ซ้อนหลายเฟรม
+  bool _processingFrame = false;
 
-  // ===== Phase 1: ทำท่าทีละอย่าง (สุ่ม 5 ท่า) =====
+  // ===== Sequence (สุ่ม 5 ท่า) =====
   static const double _stepSecondsRequired = 1.2; // ต้องค้างท่าละ ~1.2 วิ
   final List<PoseStep> _sequence = [];
   int _currentIndex = 0; // index ของท่าปัจจุบันใน sequence
@@ -58,7 +57,7 @@ class _FaceVerifyScreenState extends State<FaceVerifyScreen>
   DateTime? _lastFrameAt;
 
   // ===== Baseline & Smoothing =====
-  double? _pitch0; // baseline pitch ตอนจัดหน้าเสร็จ (ใช้สำหรับก้ม/เงย)
+  double? _pitch0; // baseline pitch (ใช้สำหรับก้ม/เงย)
   double? _yaw0; // baseline yaw (เผื่ออยากใช้ภายหลัง)
   double? _smoothYaw;
   double? _smoothPitch;
@@ -147,63 +146,97 @@ class _FaceVerifyScreenState extends State<FaceVerifyScreen>
   // ---------- Start ----------
   Future<void> _startScan() async {
     if (_started) return;
+
     setState(() {
       _started = true;
       _hint = 'กำลังเปิดกล้อง...';
     });
 
+    // สร้าง detector ใหม่ (ปิดของเก่าก่อนถ้ามี)
+    try {
+      await _detector?.close();
+    } catch (_) {}
     _detector = FaceDetector(
       options: FaceDetectorOptions(
         enableClassification: true,
-        performanceMode: FaceDetectorMode.accurate,
+        performanceMode: FaceDetectorMode.fast, // ให้ลื่นหน่อย
         enableContours: false,
         enableLandmarks: false,
         enableTracking: true,
       ),
     );
 
-    final cams = await availableCameras();
-    final front = cams.firstWhere(
-      (c) => c.lensDirection == CameraLensDirection.front,
-      orElse: () => cams.first,
-    );
+    await _initCamera();
+  }
 
-    final ctrl = CameraController(
-      front,
-      ResolutionPreset.high,
-      enableAudio: false,
-      imageFormatGroup: ImageFormatGroup.yuv420,
-    );
-    _cam = ctrl;
-    await ctrl.initialize();
+  Future<void> _initCamera() async {
+    try {
+      final cams = await availableCameras();
 
-    if (!mounted) return;
+      if (cams.isEmpty) {
+        debugPrint('❌ ไม่พบกล้องใด ๆ ในอุปกรณ์นี้');
+        if (mounted) {
+          setState(() {
+            _hint = 'ไม่พบกล้องในอุปกรณ์นี้';
+            _started = false;
+          });
+        }
+        return;
+      }
 
-    setState(() {
-      _cameraActive = true;
+      // พยายามใช้กล้องหน้า แต่ถ้าไม่มีจริง ๆ ให้ fallback เป็นตัวแรก
+      CameraDescription selected;
+      try {
+        selected = cams.firstWhere(
+          (c) => c.lensDirection == CameraLensDirection.front,
+        );
+      } catch (_) {
+        selected = cams.first;
+        debugPrint(
+          '⚠️ ไม่มีกล้องหน้า ใช้กล้องตัวแรกแทน: ${selected.name}',
+        );
+      }
 
-      // Phase 0: เริ่มจากให้ user จัดหน้าให้อยู่กลางวงก่อน
-      _alignPhase = true;
-      _alignmentDone = false;
-      _alignSeconds = 0;
+      final ctrl = CameraController(
+        selected,
+        ResolutionPreset.medium, // ลดลงจาก high ให้ emulator เบาลง
+        enableAudio: false,
+        imageFormatGroup: ImageFormatGroup.yuv420,
+      );
+      _cam = ctrl;
 
-      _sequence.clear();
-      _currentIndex = 0;
-      _stepHoldSeconds = 0;
-      _progress = 0;
-      _progressTarget = 0;
+      await ctrl.initialize();
+      if (!mounted) return;
 
-      _pitch0 = null;
-      _yaw0 = null;
-      _smoothYaw = null;
-      _smoothPitch = null;
+      setState(() {
+        _cameraActive = true;
 
-      _hint = 'เล็งใบหน้าให้อยู่กลางวง (อย่าหลับตา)';
-    });
+        _sequence.clear();
+        _currentIndex = 0;
+        _stepHoldSeconds = 0;
+        _progress = 0;
+        _progressTarget = 0;
 
-    _lastFrameAt = DateTime.now();
-    await ctrl.startImageStream(_onFrame);
-    _startTick();
+        _pitch0 = null;
+        _yaw0 = null;
+        _smoothYaw = null;
+        _smoothPitch = null;
+
+        _hint = 'เล็งใบหน้าให้อยู่ในวงกลม';
+      });
+
+      _lastFrameAt = DateTime.now();
+      await ctrl.startImageStream(_onFrame);
+      _startTick();
+    } catch (e, s) {
+      debugPrint('❌ initCamera error: $e\n$s');
+      if (!mounted) return;
+      setState(() {
+        _hint = 'เปิดกล้องไม่สำเร็จ';
+        _started = false;
+        _cameraActive = false;
+      });
+    }
   }
 
   void _startTick() {
@@ -227,10 +260,14 @@ class _FaceVerifyScreenState extends State<FaceVerifyScreen>
     if (!mounted ||
         !_cameraActive ||
         !_started ||
+        _navigating ||
         _cam == null ||
         _detector == null) {
       return;
     }
+
+    if (_processingFrame) return;
+    _processingFrame = true;
 
     final dt = _frameDt();
 
@@ -244,8 +281,6 @@ class _FaceVerifyScreenState extends State<FaceVerifyScreen>
             _hint = 'หาใบหน้าไม่พบ — ขยับเข้ากล้องอีกนิด';
           });
         }
-        // alignment / step ถือว่าหลุด
-        if (_alignPhase) _alignSeconds = 0;
         _stepHoldSeconds = 0;
         return;
       }
@@ -261,9 +296,8 @@ class _FaceVerifyScreenState extends State<FaceVerifyScreen>
       final pitch = rawPitch;
 
       // smoothing
-      _smoothYaw = (_smoothYaw == null)
-          ? yaw
-          : _smoothYaw! + _ema * (yaw - _smoothYaw!);
+      _smoothYaw =
+          (_smoothYaw == null) ? yaw : _smoothYaw! + _ema * (yaw - _smoothYaw!);
       _smoothPitch = (_smoothPitch == null)
           ? pitch
           : _smoothPitch! + _ema * (pitch - _smoothPitch!);
@@ -278,75 +312,34 @@ class _FaceVerifyScreenState extends State<FaceVerifyScreen>
           ? true
           : (leftEye >= eyeOpenMin && rightEye >= eyeOpenMin);
 
-      // ===== Phase 0: ให้จัดหน้าให้อยู่กลางวง 2 วิ ก่อนเริ่มสุ่มท่า =====
-      if (_alignPhase && !_alignmentDone) {
-        final centerOk = eyesOpen && y.abs() <= yawCenterMax;
-
-        if (centerOk) {
-          _alignSeconds += dt.clamp(0.0, 0.25);
-        } else {
-          _alignSeconds = 0;
-        }
-
-        final alignRatio = (_alignSeconds / _alignSecondsRequired).clamp(
-          0.0,
-          1.0,
-        );
-
-        _progressTarget = 0.0; // ยังไม่เริ่มคิด 5 ท่า → progress จริง = 0
-
-        if (mounted) {
-          setState(() {
-            _hint = centerOk
-                ? 'ค้างไว้... กำลังจัดตำแหน่งใบหน้า (${_alignSeconds.toStringAsFixed(1)}/${_alignSecondsRequired.toStringAsFixed(1)} วินาที)'
-                : 'เล็งใบหน้าให้อยู่กลางวง (อย่าหลับตา)';
-
-            if (_showDebug) {
-              _debugText =
-                  'ALIGN | yaw=${y.toStringAsFixed(1)} pitch=${p.toStringAsFixed(1)} '
-                  't=${_alignSeconds.toStringAsFixed(2)} ratio=${alignRatio.toStringAsFixed(2)}';
-            }
-          });
-        }
-
-        if (_alignSeconds >= _alignSecondsRequired) {
-          // lock baseline
+      // ถ้ายังไม่มี baseline ให้ใช้เฟรมนี้เป็น baseline (ตอนหน้าเกือบตรง + ไม่หลับตา)
+      if (_pitch0 == null || _yaw0 == null) {
+        final nearCenter = y.abs() <= yawCenterMax;
+        if (eyesOpen && nearCenter) {
           _pitch0 = p;
           _yaw0 = y;
-          _alignmentDone = true;
-          _alignPhase = false;
-
-          // เริ่ม sequence 5 ท่าที่สุ่ม
-          _buildRandomSequence();
-
-          if (mounted) {
-            setState(() {
-              _hint = _hintForStep(_currentStep);
-            });
-          }
         }
-
-        return;
       }
 
-      // ถ้ายังไม่มี sequence (เผื่อเคสแปลก ๆ) ก็ไม่ต้องไปต่อ
-      if (!_alignmentDone || _sequence.isEmpty) {
-        return;
+      // ถ้ายังไม่มี sequence ให้เริ่มสร้างเลย
+      if (_sequence.isEmpty) {
+        _buildRandomSequence();
       }
 
-      // ===== Phase 1: ทำท่าตาม sequence ทีละท่า =====
+      // ===== Phase: ทำท่าตาม sequence ทีละท่า =====
       bool correct = false;
       String hint = _hint;
 
       switch (_currentStep) {
         case PoseStep.left:
-          correct = eyesOpen && y <= -yawLeftMin;
-          hint = correct ? 'ดีมาก… ค้างไว้' : 'หันหน้าไปทางขวาเล็กน้อย';
+          // หันหน้าไปทางซ้าย (เรา invert yaw แล้วสำหรับกล้องหน้า)
+          correct = eyesOpen && y >= yawLeftMin;
+          hint = correct ? 'ดีมาก… ค้างไว้' : 'หันหน้าไปทางซ้ายเล็กน้อย';
           break;
 
         case PoseStep.right:
-          correct = eyesOpen && y >= yawRightMin;
-          hint = correct ? 'ดีมาก… ค้างไว้' : 'หันหน้าไปทางซ้ายเล็กน้อย';
+          correct = eyesOpen && y <= -yawRightMin;
+          hint = correct ? 'ดีมาก… ค้างไว้' : 'หันหน้าไปทางขวาเล็กน้อย';
           break;
 
         case PoseStep.down:
@@ -373,9 +366,7 @@ class _FaceVerifyScreenState extends State<FaceVerifyScreen>
 
         case PoseStep.blink:
           {
-            // หลับตาชัด ๆ + หน้าเกือบตรง
-            final eyesClosed =
-                (leftEye != null &&
+            final eyesClosed = (leftEye != null &&
                 rightEye != null &&
                 leftEye < eyeClosedMax &&
                 rightEye < eyeClosedMax);
@@ -434,8 +425,10 @@ class _FaceVerifyScreenState extends State<FaceVerifyScreen>
           }
         });
       }
-    } catch (_) {
-      // ignore single-frame errors
+    } catch (e, s) {
+      debugPrint('❌ _onFrame error: $e\n$s');
+    } finally {
+      _processingFrame = false;
     }
   }
 
@@ -449,20 +442,16 @@ class _FaceVerifyScreenState extends State<FaceVerifyScreen>
   }
 
   // ---------- ไปหน้าโหลด + เรียก backend ----------
-  /// จับภาพนิ่งคุณภาพสูงสำหรับส่ง backend (หยุด stream ชั่วคราว)
   Future<Uint8List?> _captureSelfieBytes() async {
     try {
       if (_cam == null || !_cam!.value.isInitialized) return null;
-
-      if (_cam!.value.isStreamingImages) {
-        await _cam!.stopImageStream();
-      }
 
       final x = await _cam!.takePicture();
       final file = File(x.path);
       final bytes = await file.readAsBytes();
       return bytes;
-    } catch (_) {
+    } catch (e, s) {
+      debugPrint('❌ _captureSelfieBytes error: $e\n$s');
       return null;
     }
   }
@@ -472,6 +461,25 @@ class _FaceVerifyScreenState extends State<FaceVerifyScreen>
     _navigating = true;
 
     _stopTick();
+
+    // หยุดให้ _onFrame ทำงานต่อ
+    setState(() {
+      _cameraActive = false;
+      _started = false;
+    });
+
+    // หยุด image stream ก่อน (กันชนกับ takePicture)
+    try {
+      if (_cam != null &&
+          _cam!.value.isInitialized &&
+          _cam!.value.isStreamingImages) {
+        await _cam!.stopImageStream();
+        await Future.delayed(const Duration(
+            milliseconds: 100)); // เว้นให้กล้องหยุดจริง ๆ หน่อย
+      }
+    } catch (e, s) {
+      debugPrint('❌ stopImageStream error: $e\n$s');
+    }
 
     // ให้เวลาแอนิเมชันโหลด 0-100 อย่างน้อยเท่ากับ loadingMs
     const int loadingMs = 3000;
@@ -493,12 +501,6 @@ class _FaceVerifyScreenState extends State<FaceVerifyScreen>
       final selfieBytes = await _captureSelfieBytes();
 
       // 2) ปิดกล้อง
-      if (mounted) {
-        setState(() {
-          _cameraActive = false;
-          _started = false;
-        });
-      }
       await _teardownCamera();
 
       if (!mounted) return;
@@ -528,9 +530,8 @@ class _FaceVerifyScreenState extends State<FaceVerifyScreen>
       if (!mounted) return;
 
       // === รอให้ animation บนหน้าโหลดถึง 100% ก่อนค่อย pop ===
-      final elapsedMs = DateTime.now()
-          .difference(loadingStartedAt)
-          .inMilliseconds;
+      final elapsedMs =
+          DateTime.now().difference(loadingStartedAt).inMilliseconds;
       if (elapsedMs < loadingMs) {
         await Future.delayed(Duration(milliseconds: loadingMs - elapsedMs));
       }
@@ -545,13 +546,13 @@ class _FaceVerifyScreenState extends State<FaceVerifyScreen>
       } else {
         Navigator.pushReplacementNamed(context, '/kyc-result-fail');
       }
-    } catch (_) {
+    } catch (e, s) {
+      debugPrint('❌ _goLoading error: $e\n$s');
+
       if (!mounted) return;
 
-      // error ก็ยังเคารพ minimum loading time เหมือนกัน
-      final elapsedMs = DateTime.now()
-          .difference(loadingStartedAt)
-          .inMilliseconds;
+      final elapsedMs =
+          DateTime.now().difference(loadingStartedAt).inMilliseconds;
       if (elapsedMs < loadingMs) {
         await Future.delayed(Duration(milliseconds: loadingMs - elapsedMs));
       }
@@ -565,29 +566,97 @@ class _FaceVerifyScreenState extends State<FaceVerifyScreen>
     }
   }
 
-  // ---------- helpers ----------
-  InputImage _toInputImage(CameraImage img, int rotation) {
-    final builder = BytesBuilder(copy: false);
-    for (final Plane p in img.planes) {
-      builder.add(p.bytes);
+   // ---------- helpers ----------
+  InputImage _toInputImage(CameraImage image, int rotation) {
+    final rotationEnum =
+        InputImageRotationValue.fromRawValue(rotation) ??
+            InputImageRotation.rotation0deg;
+
+    // ✅ Android: YUV_420_888 (3 planes) → แปลงเป็น NV21 ให้ ML Kit ใช้ได้
+    if (Platform.isAndroid && image.planes.length == 3) {
+      final bytes = _yuv420ToNv21(image);
+
+      final metadata = InputImageMetadata(
+        size: Size(
+          image.width.toDouble(),
+          image.height.toDouble(),
+        ),
+        rotation: rotationEnum,
+        format: InputImageFormat.nv21,
+        bytesPerRow: image.width,
+      );
+
+      return InputImage.fromBytes(
+        bytes: bytes,
+        metadata: metadata,
+      );
+    }
+
+    // ✅ iOS / fallback: รวม bytes ตรง ๆ (BGRA8888 หรือรูปแบบเดียวกัน)
+    final builder = BytesBuilder();
+    for (final Plane plane in image.planes) {
+      builder.add(plane.bytes);
     }
     final bytes = builder.toBytes();
 
-    final isBgra = img.planes.length == 1;
-
     final metadata = InputImageMetadata(
-      size: Size(img.width.toDouble(), img.height.toDouble()),
-      rotation:
-          InputImageRotationValue.fromRawValue(rotation) ??
-          InputImageRotation.rotation0deg,
-      format: isBgra
-          ? InputImageFormat.bgra8888
-          : (InputImageFormatValue.fromRawValue(img.format.raw) ??
-                InputImageFormat.nv21),
-      bytesPerRow: img.planes.first.bytesPerRow,
+      size: Size(
+        image.width.toDouble(),
+        image.height.toDouble(),
+      ),
+      rotation: rotationEnum,
+      format: InputImageFormat.bgra8888,
+      bytesPerRow: image.planes.first.bytesPerRow,
     );
-    return InputImage.fromBytes(bytes: bytes, metadata: metadata);
+
+    return InputImage.fromBytes(
+      bytes: bytes,
+      metadata: metadata,
+    );
   }
+
+  /// แปลง CameraImage (YUV_420_888, 3 planes) → NV21 สำหรับ Android
+  Uint8List _yuv420ToNv21(CameraImage image) {
+    final int width = image.width;
+    final int height = image.height;
+
+    final int ySize = width * height;
+    final int uvSize = width * height ~/ 2;
+
+    final Uint8List nv21 = Uint8List(ySize + uvSize);
+
+    // ----- Y plane -----
+    final Plane yPlane = image.planes[0];
+    int dstIndex = 0;
+    for (int y = 0; y < height; y++) {
+      final int srcIndex = y * yPlane.bytesPerRow;
+      nv21.setRange(
+        dstIndex,
+        dstIndex + width,
+        yPlane.bytes.sublist(srcIndex, srcIndex + width),
+      );
+      dstIndex += width;
+    }
+
+    // ----- UV planes (U + V) → interleave เป็น VU (NV21) -----
+    final Plane uPlane = image.planes[1];
+    final Plane vPlane = image.planes[2];
+
+    final int uvRowStride = uPlane.bytesPerRow;
+    final int uvPixelStride = uPlane.bytesPerPixel ?? 1;
+
+    for (int y = 0; y < height ~/ 2; y++) {
+      for (int x = 0; x < width ~/ 2; x++) {
+        final int uvIndex = y * uvRowStride + x * uvPixelStride;
+
+        nv21[dstIndex++] = vPlane.bytes[uvIndex]; // V ก่อน
+        nv21[dstIndex++] = uPlane.bytes[uvIndex]; // U ตาม (NV21 = VU)
+      }
+    }
+
+    return nv21;
+  }
+
 
   // ---------- UI ----------
   Widget _buildFullScreenPreview() {
@@ -811,7 +880,8 @@ class _FaceScanRingPainter extends CustomPainter {
       );
       final pPartial = Offset(
         center.dx + (innerR + tickIn + tickLen * frac) * math.cos(ang),
-        center.dy + (innerR + tickIn + tickLen * frac) * math.sin(ang),
+        center.dy +
+            (innerR + tickIn + tickLen * frac) * math.sin(ang),
       );
       canvas.drawLine(p1, pPartial, fillPaint);
     }
