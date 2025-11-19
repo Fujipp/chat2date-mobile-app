@@ -41,7 +41,7 @@ class _OtpPageState extends ConsumerState<OtpPage> {
       if (args is Map) {
         _phone = (args['phone'] ?? '') as String;
         _token = (args['token'] ?? '') as String;
-        onLogin = (args['register'] ?? '') as bool;
+        onLogin = (args['onLogin'] ?? '') as bool;
       }
       _startTimer();
       if (_nodes.isNotEmpty) _nodes.first.requestFocus();
@@ -124,6 +124,8 @@ class _OtpPageState extends ConsumerState<OtpPage> {
       if(onLogin && !isExist) {
         throw Exception('ไม่สามารถเข้าสู่ระบบได้ เนื่องจากไม่มีเบอร์นี้ในระบบ');
       }
+      print(onLogin);
+      print(!onLogin);
       if(!onLogin && isExist) {
         throw Exception('ไม่สามารถลงทะเบียนเบอร์นี้ได้ เนื่องจากมีเบอร์นี้ในระบบแล้ว');
       }

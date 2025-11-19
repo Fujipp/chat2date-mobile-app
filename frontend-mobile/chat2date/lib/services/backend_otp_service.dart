@@ -7,15 +7,16 @@ class BackendOtpService {
   static const _headers = {'Content-Type': 'application/json'};
   static const _timeout = Duration(seconds: 15);
 
-  static Future<String> sendOtp(String phone08) async {
-    final uri = Uri.parse('$_base/otp/send');
+  static Future<String> sendOtp(String phoneNumber) async {
+    final uri = Uri.parse('$_base/auth/request-otp');
     final res = await http
-        .post(uri, headers: _headers, body: jsonEncode({'phone': phone08}))
+        .post(uri, headers: _headers, body: jsonEncode({'phoneNumber': phoneNumber}))
         .timeout(_timeout);
     if (res.statusCode != 200) throw 'HTTP ${res.statusCode}: ${res.body}';
-    final token = (jsonDecode(res.body)['token'] ?? '') as String;
-    if (token.isEmpty) throw 'No token from backend';
-    return token;
+    // final token = (jsonDecode(res.body)['token'] ?? '') as String;
+    // if (token.isEmpty) throw 'No token from backend';
+    // return token;
+    return "true";
   }
 
   static Future<Map<String, dynamic>> validateOtp({

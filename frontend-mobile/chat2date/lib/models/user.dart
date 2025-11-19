@@ -13,6 +13,7 @@ class User {
   final Provider? provider;
   final String? firstname;
   final String? lastname;
+  final String? nickname;
   final String? cardId;
   final DateTime? birthday;
   final Sex? sex;
@@ -32,6 +33,7 @@ class User {
     this.firstname,
     this.isBlacklist,
     this.lastname,
+    this.nickname,
     this.phoneNumber,
     this.provider,
     this.role,
@@ -58,6 +60,7 @@ class User {
       provider: enumFromString(Provider.values, json['provider']),
       firstname: json['firstname'],
       lastname: json['lastname'],
+      nickname: json['nickname'],
       cardId: json['cardId'],
       birthday: parseDate(json['birthday']),
       sex: enumFromString(Sex.values, json['sex']),
@@ -80,6 +83,7 @@ class User {
     'provider': provider?.toString().split('.').last,
     'firstname': firstname,
     'lastname': lastname,
+    'nickname': nickname,
     'cardId': cardId,
     'birthday': birthday?.toIso8601String(),
     'sex': sex?.toString().split('.').last,

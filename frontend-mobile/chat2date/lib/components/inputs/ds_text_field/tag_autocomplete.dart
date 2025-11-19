@@ -21,12 +21,12 @@ class _TagAutocompleteState extends State<TagAutocomplete> {
   final TextEditingController _controller = TextEditingController();
   final FocusNode _focus = FocusNode();
   List<String> suggestions = [];
+  late List<String> _selectedTags;
 
   @override
   void initState() {
     super.initState();
-
-    // ปิด suggestion เมื่อ TextField focus หายไป
+    _selectedTags = List.from(widget.selectedTags);
     _focus.addListener(() {
       if (!_focus.hasFocus) {
         setState(() => suggestions = []);
@@ -60,9 +60,9 @@ class _TagAutocompleteState extends State<TagAutocomplete> {
   }
 
   void _addTag(String tag) {
-    if (!widget.selectedTags.contains(tag)) {
-      widget.selectedTags.add(tag);
-      widget.onChanged(widget.selectedTags);
+    if (!_selectedTags.contains(tag)) {
+      setState(() => _selectedTags.add(tag));
+      widget.onChanged(_selectedTags);
       _controller.clear();
       _updateSuggestions('');
     }
@@ -70,7 +70,7 @@ class _TagAutocompleteState extends State<TagAutocomplete> {
 
   @override
   Widget build(BuildContext context) {
-    final tags = widget.selectedTags;
+    final tags = _selectedTags;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -103,8 +103,8 @@ class _TagAutocompleteState extends State<TagAutocomplete> {
                   label: Text(tag),
                   deleteIcon: const Icon(Icons.close, size: 18),
                   onDeleted: () {
-                    setState(() => tags.remove(tag));
-                    widget.onChanged(tags);
+                    setState(() => _selectedTags.remove(tag));
+                    widget.onChanged(_selectedTags);
                   },
                 ),
               ),

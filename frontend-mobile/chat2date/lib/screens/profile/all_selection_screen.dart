@@ -11,6 +11,7 @@ class TagSelectionScreen extends StatefulWidget {
   final List<String> items;
   final List<int>? initialSelected;
   final Function(List<int>)? onSelectionChanged;
+  final Function(List<int> selectedIndices)? onChanged;
 
   const TagSelectionScreen({
     super.key,
@@ -18,6 +19,7 @@ class TagSelectionScreen extends StatefulWidget {
     required this.items,
     this.initialSelected,
     this.onSelectionChanged,
+    this.onChanged,
   });
 
   @override
@@ -28,6 +30,23 @@ class _TagSelectionScreenState extends State<TagSelectionScreen> {
   final TextEditingController _searchController = TextEditingController();
   String _searchQuery = '';
   late List<int> _selected;
+
+  List<int> _mapFilteredIndicesToOriginalIndices(List<int> filteredIndices) {
+    final originalIndices = <int>[];
+    final filteredList = _filteredItems;
+
+    // หาชื่อ tag ที่เลือกใน filtered list
+    final selectedNames = filteredIndices.map((i) => filteredList[i]).toSet();
+
+    // หา index ของ tag เหล่านี้ใน original list
+    for (int i = 0; i < widget.items.length; i++) {
+      if (selectedNames.contains(widget.items[i])) {
+        originalIndices.add(i);
+      }
+    }
+
+    return originalIndices;
+  }
 
   @override
   void initState() {
@@ -139,6 +158,12 @@ class _TagSelectionScreenState extends State<TagSelectionScreen> {
                           initialSelected: _selected,
                           shape: TagShape.rectangle,
                           forceGridMode: false,
+                          onChanged: (newSelected) {
+                            setState(() {
+                              _selected = newSelected;
+                            });
+                            print('Selected in screen: $_selected');
+                          },
                         ),
                       ),
               ),
@@ -149,7 +174,10 @@ class _TagSelectionScreenState extends State<TagSelectionScreen> {
             top: 50,
             left: 16,
             child: InkWell(
-              onTap: () => Navigator.pop(context, _selected),
+              onTap: () => Navigator.pop(
+                context,
+                _mapFilteredIndicesToOriginalIndices(_selected),
+              ),
               child: Container(
                 width: 40,
                 height: 40,
@@ -176,11 +204,14 @@ class LifestylesSelectionScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final items = ModalRoute.of(context)!.settings.arguments as List<Lifestyle>;
+    final args = ModalRoute.of(context)!.settings.arguments as Map;
+
+    final List<Lifestyle> items = args['items'];
+    final List<int> selected = List<int>.from(args['selected']);
     return TagSelectionScreen(
       title: 'ไลฟ์สไตล์',
       items: items.map((l) => l.lifestyle).toList(),
-      initialSelected: [],
+      initialSelected: selected,
       onSelectionChanged: (selected) {
         Navigator.pop(context, selected);
       },
@@ -193,10 +224,14 @@ class InterestsSelectionScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final List<Interest> items = ModalRoute.of(context)!.settings.arguments as List<Interest>;
+    final args = ModalRoute.of(context)!.settings.arguments as Map;
+
+    final List<Interest> items = args['items'];
+    final List<int> selected = List<int>.from(args['selected'] ?? []);
     return TagSelectionScreen(
       title: 'สิ่งที่สนใจ',
       items: items.map((l) => l.interest).toList(),
+      initialSelected: selected,
       onSelectionChanged: (selected) {
         Navigator.pop(context, selected);
       },
@@ -209,7 +244,8 @@ class TagsSelectionScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final List<Tag> items = ModalRoute.of(context)!.settings.arguments as List<Tag>;
+    final List<Tag> items =
+        ModalRoute.of(context)!.settings.arguments as List<Tag>;
     return TagSelectionScreen(
       title: 'Tags',
       items: items.map((l) => l.tag).toList(),

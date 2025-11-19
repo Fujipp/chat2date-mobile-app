@@ -399,6 +399,7 @@ class TagSelection extends StatefulWidget {
   final List<int> initialSelected;
   final TagShape shape;
   final bool forceGridMode;
+  final Function(List<int>)? onChanged;
 
   const TagSelection({
     super.key,
@@ -406,6 +407,7 @@ class TagSelection extends StatefulWidget {
     this.initialSelected = const [],
     this.shape = TagShape.rounded,
     this.forceGridMode = true,
+    this.onChanged
   });
 
   @override
@@ -457,6 +459,7 @@ class _TagSelectionState extends State<TagSelection> {
                       _selected.add(index);
                     }
                   });
+                  widget.onChanged?.call(List.from(_selected));
                 },
                 child: Container(
                   padding: widget.shape == TagShape.rounded
