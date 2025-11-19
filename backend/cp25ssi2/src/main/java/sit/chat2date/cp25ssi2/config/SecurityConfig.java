@@ -29,6 +29,7 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                                 .requestMatchers("/preferences").permitAll()
                                 .requestMatchers("/auth/**").permitAll()
+                                .requestMatchers(HttpMethod.POST, "/users/phone").permitAll()
                                 .requestMatchers(HttpMethod.GET, "/users").hasRole(Role.ADMIN.name())
                                 .anyRequest().hasAnyRole(Role.USER.name(), Role.ADMIN.name())
                         //.anyRequest().authenticated()

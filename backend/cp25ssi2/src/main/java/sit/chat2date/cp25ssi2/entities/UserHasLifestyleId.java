@@ -15,7 +15,7 @@ import java.util.Objects;
 public class UserHasLifestyleId implements Serializable {
     private static final long serialVersionUID = 1666072158564239784L;
     @Column(name = "user_userId", nullable = false)
-    private Integer userId;
+    private String userId;
 
     @Column(name = "lifestyle_lifestyleId", nullable = false)
     private Integer lifestyleLifestyleid;

@@ -61,7 +61,7 @@ public class UserController {
         return userService.createUserPreference(accessToken, preferenceUser);
     }
 
-    @GetMapping("/users/phone")
+    @PostMapping("/users/phone")
     public boolean checkPhone(@RequestBody Map<String, String> requestBody) {
         String phoneNumber = requestBody.get("phoneNumber");
         User user = userRepository.findByPhoneNumber(phoneNumber).orElseThrow(() -> new NotFoundException("User not found"));

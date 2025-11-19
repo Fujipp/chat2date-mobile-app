@@ -37,9 +37,29 @@ class UserService {
     return User.fromJson(data);
   }
 
+  Future<User> addPreferenceUser(Map<String, Object> preference) async {
+    final userState = ref.read(userStoreProvider);
+    final accessToken = "${userState['accessToken']}";
+
+    final response = await http.put(
+      Uri.parse('${ApiBase.baseUrl}/users/preference'),
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer $accessToken',
+      },
+    );
+
+    if (response.statusCode != 200) {
+      throw Exception('Update failed: ${response.body}');
+    }
+
+    final data = jsonDecode(response.body);
+    return User.fromJson(data);
+  }
+
   static Future<bool> checkPhone(String phone) async {
     // 1. แก้ไข Return Type เป็น Future<bool>
-    final response = await http.put(
+    final response = await http.post(
       Uri.parse('${ApiBase.baseUrl}/users/phone'),
       headers: {
         'Content-Type': 'application/json',

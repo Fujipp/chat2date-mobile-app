@@ -2,6 +2,7 @@ package sit.chat2date.cp25ssi2.services;
 
 import com.auth0.jwt.JWT;
 import com.auth0.jwt.interfaces.DecodedJWT;
+import jakarta.transaction.Transactional;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.BeanWrapper;
 import org.springframework.beans.BeanWrapperImpl;
@@ -142,6 +143,7 @@ public class UserService {
         return ResponseEntity.ok(pref);
     }
 
+    @Transactional
     public ResponseEntity<PreferenceUserDto> createUserPreference(String accessToken, PreferenceUserDto pref) {
         String token = accessToken.substring(7);
         DecodedJWT jwt = JWT.decode(token);
@@ -159,7 +161,7 @@ public class UserService {
                 interestRepository,
                 (u, interest) -> {
                     UserHasInterestId id = new UserHasInterestId();
-                    id.setUserId(Integer.valueOf(u.getUserId()));
+                    id.setUserId(u.getUserId());
                     id.setInterestInterestid(interest.getId());
 
                     UserHasInterest join = new UserHasInterest();
@@ -179,7 +181,7 @@ public class UserService {
                 tagRepository,
                 (u, tag) -> {
                     UserHasTagId id = new UserHasTagId();
-                    id.setUserId(Integer.valueOf(u.getUserId()));
+                    id.setUserId(u.getUserId());
                     id.setTagTagid(tag.getId());
 
                     UserHasTag join = new UserHasTag();
@@ -199,7 +201,7 @@ public class UserService {
                 lifeStyleRepository,
                 (u, lifestyle) -> {
                     UserHasLifestyleId id = new UserHasLifestyleId();
-                    id.setUserId(Integer.valueOf(u.getUserId()));
+                    id.setUserId(u.getUserId());
                     id.setLifestyleLifestyleid(lifestyle.getId());
 
                     UserHasLifestyle join = new UserHasLifestyle();
@@ -219,7 +221,7 @@ public class UserService {
                 travelStyleRepository,
                 (u, travel) -> {
                     UserHasTravelstyleId id = new UserHasTravelstyleId();
-                    id.setUserId(Integer.valueOf(u.getUserId()));
+                    id.setUserId(u.getUserId());
                     id.setTravelstyleTravelid(travel.getId());
 
                     UserHasTravelstyle join = new UserHasTravelstyle();
