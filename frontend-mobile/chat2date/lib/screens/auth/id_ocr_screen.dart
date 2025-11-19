@@ -1,4 +1,5 @@
 // lib/screens/auth/id_ocr_screen.dart
+import 'dart:convert';
 import 'dart:io';
 import 'dart:typed_data';
 
@@ -143,6 +144,8 @@ class _IdOcrScreenState extends ConsumerState<IdOcrScreen> {
 
       // ถ้า OCR ไม่คืนรูปใบหน้ามา ให้ fallback เป็น bytes ของรูปทั้งใบ
       final fallbackBytes = await _image!.readAsBytes();
+      final base64Card = base64Encode(result.cardFaceBytes!);
+      ref.read(userStoreProvider.notifier).setCardFaceBytes(base64Card);
 
       setState(() {
         _ocrResult = result;
