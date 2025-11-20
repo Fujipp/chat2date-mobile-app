@@ -9,7 +9,7 @@ import org.hibernate.annotations.OnDeleteAction;
 @Getter
 @Setter
 @Entity
-@Table(name = "matchtable")
+@Table(name = "`match`")
 public class Match{
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

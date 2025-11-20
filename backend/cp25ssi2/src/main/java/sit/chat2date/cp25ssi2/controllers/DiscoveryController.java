@@ -34,7 +34,13 @@ public class DiscoveryController {
             @RequestHeader("Authorization") String accessToken,
             @RequestBody FeedbackRequest body
     ) {
-        String result = discoveryService.submitFeedback(body.getTargetUserId(), body.getAction(), accessToken);
-        return ResponseEntity.status(HttpStatus.CREATED).body(new FeedbackResponse(result));
+        FeedbackResponse result = discoveryService.submitFeedback(
+                body.getTargetUserId(),
+                body.getAction(),
+                accessToken
+        );
+
+        return ResponseEntity.status(HttpStatus.CREATED).body(result);
     }
+
 }

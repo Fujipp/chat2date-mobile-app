@@ -1,4 +1,20 @@
 {
   "java.configuration.updateBuildConfiguration": "automatic",
-  "dart.flutterHotReloadOnSave": "all"
+  "dart.flutterHotReloadOnSave": "all",
+  "sqltools.connections": [
+    {
+      "mysqlOptions": {
+        "authProtocol": "default",
+        "enableSsl": "Disabled"
+      },
+      "ssh": "Disabled",
+      "previewLimit": 50,
+      "server": "cp25ssi2.sit.kmutt.ac.th",
+      "port": 3306,
+      "driver": "MySQL",
+      "name": "cp25ssi2",
+      "database": "chat2date",
+      "username": "admin_chat2date"
+    }
+  ]
 }
