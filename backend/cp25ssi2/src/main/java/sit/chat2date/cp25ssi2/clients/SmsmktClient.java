@@ -3,12 +3,16 @@ package sit.chat2date.cp25ssi2.clients;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
+import java.util.concurrent.TimeUnit;
 
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.http.*;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestTemplate;
+import sit.chat2date.cp25ssi2.exceptions.TooManyRequestException;
 import sit.chat2date.cp25ssi2.utils.UserFactory;
 import sit.chat2date.cp25ssi2.entities.User;
 import sit.chat2date.cp25ssi2.repositories.UserRepository;
@@ -22,6 +26,8 @@ public class SmsmktClient {
     private final JwtTokenUtil jwtTokenUtil;
     private final UserRepository userRepository;
     private final UserFactory userFactory;
+    @Autowired
+    private StringRedisTemplate redis;
 
     @Value("${smsmkt.apiKey}")
     String apiKey;
@@ -41,7 +47,16 @@ public class SmsmktClient {
     /**
      * ส่ง OTP -> คืน token
      */
-    public String send(String phone08, String refCode) {
+    public String send(String phone08, String refCode, String deviceId) {
+        String phone = normalizePhone(phone08);
+
+        // 1) ถ้ามีอยู่ใน Redis แปลว่ายังไม่ครบ 60 วินาที
+        String key = "otp:lock:" + phone + ":" + deviceId;
+        if (redis.hasKey(key)) {
+            long waitSec = Optional.ofNullable(redis.getExpire(key, TimeUnit.SECONDS)).orElse(60L);
+            throw new TooManyRequestException("กรุณารออีก " + waitSec + " วินาที ก่อนขอ OTP ใหม่");
+        }
+        redis.opsForValue().set(key, "1", 60, TimeUnit.SECONDS);
 //        var url = "https://portal-otp.smsmkt.com/api/otp-send";
 //        var payload = new HashMap<String, Object>();
 //        payload.put("project_key", projectKey);
@@ -112,7 +127,7 @@ public class SmsmktClient {
             if (userOptional.isEmpty()) {
                 response.put("accessToken", jwtToken);
                 response.put("user", user);
-            }  else {
+            } else {
                 response.put("accessToken", jwtToken);
                 response.put("user", userOptional.get());
             }

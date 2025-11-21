@@ -38,6 +38,11 @@ public class GlobalExceptionHandler {
         return build(HttpStatus.NOT_FOUND, ex.getMessage(), req.getRequestURI());
     }
 
+    @ExceptionHandler(TooManyRequestException.class)
+    public ResponseEntity<ErrorResponse> handleTooManyRequest(NotFoundException ex, HttpServletRequest req) {
+        return build(HttpStatus.TOO_MANY_REQUESTS, ex.getMessage(), req.getRequestURI());
+    }
+
     @ExceptionHandler(PreconditionFailedException.class)
     @ResponseStatus(HttpStatus.PRECONDITION_FAILED)
     public ResponseEntity<ErrorResponse> handlePreconditionFailed(Exception e, WebRequest request) {

@@ -40,7 +40,7 @@ public class AuthController {
 
     @PostMapping("/request-otp")
     public Map<String, Object> send(@RequestBody OtpSendRequest body) {
-        String token = client.send(body.getPhoneNumber(), body.getRefCode());
+        String token = client.send(body.getPhoneNumber(), body.getRefCode(), body.getDeviceId());
         return Map.of("token", token);
     }
 
