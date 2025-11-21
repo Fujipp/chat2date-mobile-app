@@ -53,21 +53,20 @@ class KycRemoteService {
 
   /// เรียก BE: /kyc/verify-face → ใช้ Azure เทียบ selfie vs idFaceBase64
    Future<Map<String, dynamic>> verifyFaceBytesVsIdFaceBase64({
-    required Uint8List? selfieBytes,
+    required String? selfieBase64,
     required String idFaceBase64,
   }) async {
-    if (selfieBytes == null) {
-      throw 'selfieBytes is null';
-    }
+    // if (selfieBytes == null) {
+    //   throw 'selfieBytes is null';
+    // }
 
     final uri = Uri.parse('${ApiBase.baseUrl}/kyc/verify-face');
-    final selfieB64 = base64Encode(selfieBytes);
     final userState = ref.read(userStoreProvider);
     final accessToken = "${userState['accessToken']}";
 
     debugPrint('[KYC] POST $uri');
     debugPrint(
-      '[KYC] selfieB64.length=${selfieB64.length}, idFace.length=${idFaceBase64.length}',
+      '[KYC] selfieB64.length=${selfieBase64!.length}, idFace.length=${idFaceBase64.length}',
     );
 
     final res = await http.post(
@@ -77,7 +76,7 @@ class KycRemoteService {
         'Authorization': accessToken,
       },
       body: jsonEncode({
-        'selfieBase64': selfieB64,
+        'selfieBase64': selfieBase64,
         'idFaceBase64': idFaceBase64,
       }),
     );

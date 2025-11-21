@@ -6,13 +6,13 @@ import 'dart:io';
 import 'dart:convert';
 
 import 'package:camera/camera.dart';
+import 'package:chat2date/models/user.dart';
+import 'package:chat2date/stores/user_store.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart' show debugPrint;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_mlkit_face_detection/google_mlkit_face_detection.dart';
 import 'package:google_mlkit_commons/google_mlkit_commons.dart';
-
-import 'package:chat2date/config/backend_base.dart';
 import 'package:chat2date/models/face_scan_args.dart';
 import 'package:chat2date/services/kyc_remote_service.dart';
 
@@ -562,18 +562,35 @@ class _FaceVerifyScreenState extends ConsumerState<FaceVerifyScreen>
       final Uint8List? idCardFaceBytes = faceArgs?.cardFaceBytes;
       debugPrint('[KYC] idCardFaceBytes is null? ${idCardFaceBytes == null}');
 
-      String? idFaceBase64 = (idCardFaceBytes != null)
-          ? base64Encode(idCardFaceBytes)
+      final userState = ref.read(userStoreProvider);
+      final user = userState['user'] as User?;
+      final cardFaceBytes = userState['cardFaceBytes'] as String?;
+
+      // String? idFaceBase64 = (cardFaceBytes != null)
+      //     ? base64Encode(cardFaceBytes)
+      //     : null;
+      String? selfieBase64 = (selfieBytes != null)
+          ? base64Encode(selfieBytes)
           : null;
 
       const bool livenessPass = true;
       //final kyc = KycRemoteService(ref as Ref<Object?>);
-
-      if (livenessPass && selfieBytes != null && idFaceBase64 != null) {
-        final vr = await ref.read(kycRemoteServiceProvider).verifyFaceBytesVsIdFaceBase64(
-          selfieBytes: selfieBytes,
-          idFaceBase64: idFaceBase64,
-        );
+      print(
+        "llllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllll",
+      );
+      print(selfieBase64);
+      //print(idFaceBase64);
+      print(
+        "llllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllll",
+      );
+      if (livenessPass && selfieBytes != null && cardFaceBytes != null) {
+        print("Hellllllllllllllllllllllllllllllllllo");
+        final vr = await ref
+            .read(kycRemoteServiceProvider)
+            .verifyFaceBytesVsIdFaceBase64(
+              selfieBase64: selfieBase64,
+              idFaceBase64: cardFaceBytes,
+            );
 
         raw = vr;
         score = (vr['score'] ?? 0.0) * 1.0;

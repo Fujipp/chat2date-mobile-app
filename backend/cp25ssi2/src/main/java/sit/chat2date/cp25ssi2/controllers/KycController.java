@@ -31,6 +31,7 @@ public class KycController {
 
     @PostMapping("/verify-face")
     public ResponseEntity<VerifyFaceResponse> verify(@RequestBody VerifyFaceRequest req) {
+        System.out.println(1);
         Map<String, Object> d1 = faceClient.detectFace(req.getSelfieBase64());
         String faceId1 = d1.getOrDefault("faceId", "").toString();
         if (faceId1.isEmpty()) return ResponseEntity.ok(new VerifyFaceResponse(false, 0.0));
@@ -42,6 +43,7 @@ public class KycController {
         Map<String, Object> v = faceClient.verify(faceId1, faceId2);
         boolean isIdentical = Boolean.TRUE.equals(v.get("isIdentical"));
         double score = v.get("confidence") instanceof Number ? ((Number) v.get("confidence")).doubleValue() : 0.0;
+
 
         boolean match = isIdentical && score >= 0.80; // threshold ปรับได้
         return ResponseEntity.ok(new VerifyFaceResponse(match, score));
