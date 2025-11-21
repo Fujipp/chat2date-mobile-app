@@ -142,7 +142,7 @@ COLLATE = utf8mb4_0900_ai_ci;
 -- -----------------------------------------------------
 CREATE TABLE IF NOT EXISTS `chat2date`.`preferencematch` (
   `preferenceId` INT NOT NULL AUTO_INCREMENT,
-  `interestedGender` ENUM('SAME', 'NEARLY', 'UNRELATED', 'UNNECESSARY') NOT NULL,
+  `interestedGender` ENUM('MALE','FEMALE','BOTH') NOT NULL,
   `interestedTravelStyle` ENUM('SAME', 'NEARLY', 'UNRELATED', 'UNNECESSARY') NOT NULL,
   `interestedLifeStyle` ENUM('SAME', 'NEARLY', 'UNRELATED', 'UNNECESSARY') NOT NULL,
   `interestedInterest` ENUM('SAME', 'NEARLY', 'UNRELATED', 'UNNECESSARY') NOT NULL,
