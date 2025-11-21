@@ -31,13 +31,14 @@ public class DiscoveryController {
 
     @PostMapping("/feedback")
     public ResponseEntity<FeedbackResponse> feedback(
-            @RequestHeader("Authorization") String accessToken,
+            @RequestParam @NotBlank String userId,
             @RequestBody FeedbackRequest body
+
     ) {
         FeedbackResponse result = discoveryService.submitFeedback(
+                userId,
                 body.getTargetUserId(),
-                body.getAction(),
-                accessToken
+                body.getAction()
         );
 
         return ResponseEntity.status(HttpStatus.CREATED).body(result);
