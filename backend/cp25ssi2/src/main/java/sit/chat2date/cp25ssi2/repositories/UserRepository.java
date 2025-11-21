@@ -19,7 +19,7 @@ public interface UserRepository extends JpaRepository<User, String> {
             value = """
         SELECT DISTINCT u.*
         FROM user u
-        JOIN tempuserlocation loc ON u.userId = loc.userId
+        JOIN userlocation loc ON u.userId = loc.userId
         LEFT JOIN (
             SELECT uht.useruserId AS userId, COUNT(*) AS commonTravelStyles
             FROM userhastravelstyle uht

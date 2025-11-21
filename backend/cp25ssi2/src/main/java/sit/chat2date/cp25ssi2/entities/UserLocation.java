@@ -13,8 +13,8 @@ import java.time.Instant;
 @Getter
 @Setter
 @Entity
-@Table(name = "tempuserlocation")
-public class TempUserLocation {
+@Table(name = "userlocation")
+public class UserLocation {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "locationId", nullable = false)
