@@ -6,10 +6,14 @@ import 'screens/index.dart';
 
 final GlobalKey<NavigatorState> rootNavigatorKey = GlobalKey<NavigatorState>();
 
-void main() async {
+Future<void> main() async {
+  // ต้องเรียกก่อนใช้ async ใน main เสมอ
+  WidgetsFlutterBinding.ensureInitialized();
+
+  // โหลด .env
   await dotenv.load(fileName: ".env");
 
-  runApp(ProviderScope(child: MyApp()));
+  runApp(const ProviderScope(child: MyApp()));
 }
 
 class MyApp extends StatelessWidget {
@@ -23,8 +27,7 @@ class MyApp extends StatelessWidget {
       title: 'Component Test',
       theme: buildLightTheme(),
       navigatorKey: navigatorKey,
-      initialRoute:
-          '/matchPreference', //เวลาโค้ดเปลี่ยนเป็น path ตัวเองเอาไว้แสดงหน้าของตัวเองเด้อ
+      initialRoute: '/kyc-id-ocr',
       routes: {
         //Test
         '/test': (context) => const ComponentTestScreen(),
@@ -53,7 +56,6 @@ class MyApp extends StatelessWidget {
         '/kyc-result-success': (context) => const KycResultSuccessScreen(),
         '/kyc-result-fail': (context) => const KycResultFailScreen(),
       },
-      //ปุ่มไว้สำหรับดู comp
       builder: (context, child) {
         return Stack(
           children: [
@@ -65,11 +67,9 @@ class MyApp extends StatelessWidget {
                 onPressed: () {
                   final nav = navigatorKey.currentState!;
                   if (nav.canPop()) {
-                    nav.pop(); // 🔹 ถ้ามีหน้าก่อนหน้า -> กลับ
+                    nav.pop();
                   } else {
-                    nav.pushNamed(
-                      '/test',
-                    ); // 🔹 ถ้ายังอยู่หน้าแรก -> ไปหน้า test
+                    nav.pushNamed('/test');
                   }
                 },
                 backgroundColor: Colors.blueAccent,

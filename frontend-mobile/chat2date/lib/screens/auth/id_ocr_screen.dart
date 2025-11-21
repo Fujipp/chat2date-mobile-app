@@ -4,7 +4,6 @@ import 'dart:io';
 import 'dart:typed_data';
 
 import 'package:chat2date/components/index.dart'; // DsButton / inputs
-import 'package:chat2date/config/backend_base.dart';
 import 'package:chat2date/models/face_scan_args.dart'; // ใช้ส่ง args ไปหน้า face-scan
 import 'package:chat2date/models/user.dart';
 import 'package:chat2date/services/ocr_thaiid_service.dart';
@@ -17,6 +16,7 @@ import 'package:flutter_svg/flutter_svg.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
 import 'package:permission_handler/permission_handler.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 class IdOcrScreen extends ConsumerStatefulWidget {
   const IdOcrScreen({super.key});
@@ -27,20 +27,15 @@ class IdOcrScreen extends ConsumerStatefulWidget {
 
 class _IdOcrScreenState extends ConsumerState<IdOcrScreen> {
   // === CONFIG ===
-  // ตอนนี้ให้ยิงเข้า Backend → /kyc/ocr-thaiid
-   late final ThaiIdOcrConfig _ocrCfg = const ThaiIdOcrConfig(
-    endpoint: 'https://api.iapp.co.th/v3/store/ekyc/thai-national-id-card/front',
-    apiKey: 'Z0XVt18RSoFlZAkRnhGy9U3u5J8MlrZA', // << ตัวอย่างจาก doc ที่ Dev แปะมา
-  );
+  late final ThaiIdOcrConfig _ocrCfg;
 
   static const _backIcon = 'assets/icons/icon_arrow-back-circle.svg';
   static const _maxFileBytes = 10 * 1024 * 1024; // 10MB
 
   File? _image;
-  Uint8List? _cardFace; // รูปหน้าจากบัตร (ถ้ามี)
+  Uint8List? _cardFace;
   bool _busy = false;
 
-  // ค่าที่จะโชว์ (disable fields)
   String? _fullName;
   DateTime? _dob;
   String? _gender;
@@ -50,8 +45,19 @@ class _IdOcrScreenState extends ConsumerState<IdOcrScreen> {
 
   ThaiIdOcrResult? _ocrResult;
 
-  // รูปแบบวันที่ไทย
   final _fmt = DateFormat('dd/MM/yyyy');
+
+  @override
+  void initState() {
+    super.initState();
+
+    _ocrCfg = ThaiIdOcrConfig(
+      endpoint:
+          dotenv.env['THAIID_ENDPOINT_FRONT'] ??
+          'https://api.iapp.co.th/v3/store/ekyc/thai-national-id-card/front',
+      apiKey: dotenv.env['THAIID_API_KEY'] ?? '',
+    );
+  }
 
   /// เปิด BottomSheet เลือกแหล่งรูป แล้วเรียก _pick(...)
   Future<void> _chooseSource() async {
@@ -135,31 +141,16 @@ class _IdOcrScreenState extends ConsumerState<IdOcrScreen> {
     await _runOcr();
   }
 
-    Future<void> _runOcr() async {
+  Future<void> _runOcr() async {
     if (_image == null) return;
-
-    // 🔹 ดึง accessToken แบบเดียวกับ photo_verification_service.dart
-    final userState = ref.read(userStoreProvider);
-    final accessToken = userState['accessToken'] as String?;
-
-    if (accessToken == null || accessToken.isEmpty) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('เซสชันหมดอายุ กรุณาเข้าสู่ระบบใหม่'),
-          ),
-        );
-      }
-      return;
-    }
 
     setState(() => _busy = true);
 
     try {
+      // เรียก iApp OCR ตรง ๆ ไม่ต้องใช้ accessToken
       final result = await ThaiIdOcrService.ocr(
         cfg: _ocrCfg,
         imageFile: _image!,
-        bearerToken: accessToken, // 🔹 ส่ง token เข้าไป
       );
 
       // ถ้า OCR ไม่คืนรูปใบหน้ามา ให้ fallback เป็น bytes ของรูปทั้งใบ
@@ -181,20 +172,19 @@ class _IdOcrScreenState extends ConsumerState<IdOcrScreen> {
         _thLastName = result.thLname;
       });
 
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('สแกนสำเร็จ เติมข้อมูลอัตโนมัติแล้ว')),
-      );
+      // if (!mounted) return;
+      // ScaffoldMessenger.of(context).showSnackBar(
+      //   const SnackBar(content: Text('สแกนสำเร็จ เติมข้อมูลอัตโนมัติแล้ว')),
+      // );
     } catch (e) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('OCR ล้มเหลว: $e')));
+      // if (!mounted) return;
+      // ScaffoldMessenger.of(
+      //   context,
+      // ).showSnackBar(SnackBar(content: Text('OCR ล้มเหลว: $e')));
     } finally {
       if (mounted) setState(() => _busy = false);
     }
   }
-
 
   Future<void> _submit() async {
     if (_ocrResult == null || _image == null) {
