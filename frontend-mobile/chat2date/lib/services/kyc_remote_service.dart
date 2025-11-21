@@ -2,28 +2,30 @@
 import 'dart:convert';
 import 'dart:typed_data';
 
+import 'package:flutter/foundation.dart' show debugPrint;
 import 'package:http/http.dart' as http;
 
 class KycRemoteService {
-  final String baseUrl; // เช่น /api/v1 หรือ http://10.0.2.2:8080/api/v1
+  final String baseUrl; // ควรเป็นแบบ http://10.0.2.2:8080/api/v1
   KycRemoteService(this.baseUrl);
 
-  /// ถ้าในอนาคตอยากส่งผล liveness ให้ backend ด้วย ค่อยมาเติม method เพิ่ม
   Future<Map<String, dynamic>> completeLivenessWithSelfie(
     Uint8List? selfieBytes,
   ) async {
-    // ตอนนี้เราใช้ MLKit ฝั่ง FE อย่างเดียว ยังไม่ส่งอะไรไป BE
     return {'liveness': 'pass'};
   }
 
-  /// ถ้าอยากให้ backend ครอปหน้าออกจากบัตรด้วย Azure ก็มาใช้ตัวนี้
   Future<Map<String, dynamic>> cropFaceFromIdFront(String idFrontBase64) async {
     final uri = Uri.parse('$baseUrl/kyc/ocr/crop-id-face');
+    debugPrint('[KYC] POST $uri');
+
     final res = await http.post(
       uri,
       headers: {'Content-Type': 'application/json'},
       body: jsonEncode({'idFrontBase64': idFrontBase64}),
     );
+
+    debugPrint('[KYC] status=${res.statusCode} body=${res.body}');
 
     if (res.statusCode != 200) {
       throw 'Crop ID face failed: HTTP ${res.statusCode} ${res.body}';
@@ -44,6 +46,9 @@ class KycRemoteService {
     final uri = Uri.parse('$baseUrl/kyc/verify-face');
     final selfieB64 = base64Encode(selfieBytes);
 
+    debugPrint('[KYC] POST $uri');
+    debugPrint('[KYC] selfieB64.length=${selfieB64.length}, idFace.length=${idFaceBase64.length}');
+
     final res = await http.post(
       uri,
       headers: {'Content-Type': 'application/json'},
@@ -52,6 +57,8 @@ class KycRemoteService {
         'idFaceBase64': idFaceBase64,
       }),
     );
+
+    debugPrint('[KYC] status=${res.statusCode} body=${res.body}');
 
     if (res.statusCode != 200) {
       throw 'Verify face failed: HTTP ${res.statusCode} ${res.body}';

@@ -506,17 +506,20 @@ class _FaceVerifyScreenState extends State<FaceVerifyScreen>
     }
   }
 
-  Future<void> _goLoading() async {
+    Future<void> _goLoading() async {
     if (_navigating) return;
     _navigating = true;
 
     _stopTick();
 
-    // หยุดให้ _onFrame ทำงานต่อ
     setState(() {
       _cameraActive = false;
       _started = false;
     });
+
+    // เก็บ args จากหน้า IdOcrScreen ตั้งแต่ก่อน push หน้า loading
+    final faceArgs =
+        ModalRoute.of(context)?.settings.arguments as FaceScanArgs?;
 
     // หยุด image stream ก่อน (กันชนกับ takePicture)
     try {
@@ -524,100 +527,124 @@ class _FaceVerifyScreenState extends State<FaceVerifyScreen>
           _cam!.value.isInitialized &&
           _cam!.value.isStreamingImages) {
         await _cam!.stopImageStream();
-        await Future.delayed(
-          const Duration(milliseconds: 100),
-        ); // เว้นให้กล้องหยุดจริง ๆ หน่อย
+        await Future.delayed(const Duration(milliseconds: 100));
       }
     } catch (e, s) {
       debugPrint('❌ stopImageStream error: $e\n$s');
     }
 
-    // ให้เวลาแอนิเมชันโหลด 0-100 อย่างน้อยเท่ากับ loadingMs
     const int loadingMs = 3000;
     final DateTime loadingStartedAt = DateTime.now();
 
     // เปิดหน้าโหลด
-    if (mounted) {
-      Navigator.pushNamed(
-        context,
-        '/kyc-loading',
-        arguments: {'demo': false, 'ms': loadingMs},
-      );
-    } else {
-      return;
-    }
+    if (!mounted) return;
+    Navigator.pushNamed(
+      context,
+      '/kyc-loading',
+      arguments: {'demo': false, 'ms': loadingMs},
+    );
+
+    bool matched = false;
+    double score = 0.0;
+    Map<String, dynamic>? raw;
 
     try {
       // 1) ถ่าย selfie
       final selfieBytes = await _captureSelfieBytes();
+      debugPrint('[KYC] selfieBytes is null? ${selfieBytes == null}');
 
-      // 2) ปิดกล้อง
+      // 2) ปิดกล้องจริง ๆ
       await _teardownCamera();
 
       if (!mounted) return;
 
-      // 3) รับ args จากหน้า IdOcrScreen
-      final args = ModalRoute.of(context)?.settings.arguments as FaceScanArgs?;
-      final Uint8List? idCardFaceBytes = args?.cardFaceBytes;
+      final Uint8List? idCardFaceBytes = faceArgs?.cardFaceBytes;
+      debugPrint('[KYC] idCardFaceBytes is null? ${idCardFaceBytes == null}');
 
-      // 4) เรียก Backend
+      String? idFaceBase64 =
+          (idCardFaceBytes != null) ? base64Encode(idCardFaceBytes) : null;
+
       final kyc = KycRemoteService(ApiBase.baseUrl);
-      bool matched = false;
       const bool livenessPass = true;
-
-      String? idFaceBase64 = (idCardFaceBytes != null)
-          ? base64Encode(idCardFaceBytes)
-          : null;
 
       if (livenessPass && selfieBytes != null && idFaceBase64 != null) {
         final vr = await kyc.verifyFaceBytesVsIdFaceBase64(
           selfieBytes: selfieBytes,
           idFaceBase64: idFaceBase64,
         );
-        final score = (vr['score'] ?? 0.0) * 1.0;
+
+        raw = vr;
+        score = (vr['score'] ?? 0.0) * 1.0;
         matched = (vr['match'] == true) && score >= 0.80;
+
+        debugPrint('[KYC] RESULT from BE: match=$matched, score=$score, raw=$vr');
+      } else {
+        debugPrint('[KYC] SKIP verify (missing selfieBytes or idFaceBase64)');
       }
 
-      if (!mounted) return;
-
-      // === รอให้ animation บนหน้าโหลดถึง 100% ก่อนค่อย pop ===
-      final elapsedMs = DateTime.now()
-          .difference(loadingStartedAt)
-          .inMilliseconds;
+      // ===== รอให้โหลดครบเวลา =====
+      final elapsedMs =
+          DateTime.now().difference(loadingStartedAt).inMilliseconds;
       if (elapsedMs < loadingMs) {
         await Future.delayed(Duration(milliseconds: loadingMs - elapsedMs));
       }
 
-      // 5) ปิดหน้าโหลด แล้วไปผลลัพธ์
+      if (!mounted) return;
+
       if (Navigator.canPop(context)) {
         Navigator.pop(context); // ปิด /kyc-loading
       }
 
+      final resultArgs = {
+        'matched': matched,
+        'score': score,
+        'raw': raw,
+      };
+
       if (livenessPass && matched) {
-        Navigator.pushReplacementNamed(context, '/kyc-result-success');
+        Navigator.pushReplacementNamed(
+          context,
+          '/kyc-result-success',
+          arguments: resultArgs,
+        );
       } else {
-        Navigator.pushReplacementNamed(context, '/kyc-result-fail');
+        Navigator.pushReplacementNamed(
+          context,
+          '/kyc-result-fail',
+          arguments: resultArgs,
+        );
       }
     } catch (e, s) {
       debugPrint('❌ _goLoading error: $e\n$s');
 
-      if (!mounted) return;
-
-      final elapsedMs = DateTime.now()
-          .difference(loadingStartedAt)
-          .inMilliseconds;
+      final elapsedMs =
+          DateTime.now().difference(loadingStartedAt).inMilliseconds;
       if (elapsedMs < loadingMs) {
         await Future.delayed(Duration(milliseconds: loadingMs - elapsedMs));
       }
 
+      if (!mounted) return;
+
       if (Navigator.canPop(context)) {
         Navigator.pop(context);
       }
-      Navigator.pushReplacementNamed(context, '/kyc-result-fail');
+
+      final resultArgs = {
+        'matched': false,
+        'score': 0.0,
+        'raw': {'error': e.toString()},
+      };
+
+      Navigator.pushReplacementNamed(
+        context,
+        '/kyc-result-fail',
+        arguments: resultArgs,
+      );
     } finally {
       _navigating = false;
     }
   }
+
 
   // ---------- helpers ----------
   InputImage _toInputImage(CameraImage image, int rotation) {
@@ -699,7 +726,7 @@ class _FaceVerifyScreenState extends State<FaceVerifyScreen>
   }
 
   // ---------- UI ----------
-  Widget _buildFullScreenPreview() {
+    Widget _buildFullScreenPreview() {
     if (!_cameraActive || _cam == null || !_cam!.value.isInitialized) {
       return const SizedBox.shrink();
     }
@@ -712,17 +739,26 @@ class _FaceVerifyScreenState extends State<FaceVerifyScreen>
       previewRatio = 1 / previewRatio;
     }
 
+    final isFront =
+        _cam!.description.lensDirection == CameraLensDirection.front;
+
     return Center(
       child: Transform.scale(
         // scale ให้เต็มจอแบบไม่ยืดหน้า
         scale: previewRatio / deviceRatio,
         child: AspectRatio(
           aspectRatio: previewRatio,
-          child: CameraPreview(_cam!),
+          child: Transform(
+            alignment: Alignment.center,
+            // 🔁 ถ้าเป็นกล้องหน้าให้หมุนแกน Y 180° เพื่อ “แก้” mirror
+            transform: isFront ? Matrix4.rotationY(math.pi) : Matrix4.identity(),
+            child: CameraPreview(_cam!),
+          ),
         ),
       ),
     );
   }
+
 
   @override
   Widget build(BuildContext context) {
