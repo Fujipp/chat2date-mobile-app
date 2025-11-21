@@ -4,7 +4,7 @@ import com.auth0.jwt.JWT;
 import com.auth0.jwt.interfaces.DecodedJWT;
 import org.springframework.stereotype.Service;
 import sit.chat2date.cp25ssi2.dto.FeedbackResponse;
-import sit.chat2date.cp25ssi2.dto.UserSummaryDto;
+import sit.chat2date.cp25ssi2.dto.UserSummaryDTO;
 import sit.chat2date.cp25ssi2.entities.Action;
 import sit.chat2date.cp25ssi2.entities.Match;
 import sit.chat2date.cp25ssi2.entities.User;
@@ -24,11 +24,11 @@ import java.util.Objects;
 public class DiscoveryService {
 
     // === mock candidate ไว้ก่อน เผื่อ Dev ยังใช้ getCandidate อยู่ ===
-    private static final Map<String, UserSummaryDto> USERS = new HashMap<>();
+    private static final Map<String, UserSummaryDTO> USERS = new HashMap<>();
     static {
-        USERS.put("u_1", new UserSummaryDto("u_1", "08xxxxxxx"));
-        USERS.put("u_2", new UserSummaryDto("u_2", "09xxxxxxx"));
-        USERS.put("u_3", new UserSummaryDto("u_3", "06xxxxxxx"));
+        USERS.put("u_1", new UserSummaryDTO("u_1", "08xxxxxxx"));
+        USERS.put("u_2", new UserSummaryDTO("u_2", "09xxxxxxx"));
+        USERS.put("u_3", new UserSummaryDTO("u_3", "06xxxxxxx"));
     }
 
     private final UserRepository userRepository;
@@ -46,14 +46,14 @@ public class DiscoveryService {
     }
 
     // ถ้า Dev ยังใช้ /discovery/distance อยู่ ก็ปล่อยตัวนี้ไว้ก่อนได้
-    public UserSummaryDto getCandidate(String userId, int minDistance, int maxDistance) {
+    public UserSummaryDTO getCandidate(String userId, int minDistance, int maxDistance) {
         if (minDistance > maxDistance) {
             throw new BadRequestException("minDistance must be <= maxDistance");
         }
         if (!USERS.containsKey(userId)) {
             throw new NotFoundException("user not found: " + userId);
         }
-        for (UserSummaryDto u : USERS.values()) {
+        for (UserSummaryDTO u : USERS.values()) {
             if (!Objects.equals(u.getId(), userId)) return u;
         }
         throw new ServiceException("no candidate available");
