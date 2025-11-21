@@ -1,14 +1,18 @@
 // lib/services/kyc_remote_service.dart
 import 'dart:convert';
 import 'dart:typed_data';
-
+import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:chat2date/config/backend_base.dart';
 import 'package:chat2date/stores/user_store.dart';
 import 'package:flutter/foundation.dart' show debugPrint;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:http/http.dart' as http;
+part 'kyc_remote_service.g.dart';
 
-final kycRemoteServiceProvider = Provider((ref) => KycRemoteService(ref));
+@riverpod
+KycRemoteService kycRemoteService(Ref ref) {
+  return kycRemoteService(ref);
+}
 
 class KycRemoteService {
   final Ref ref;
@@ -48,7 +52,7 @@ class KycRemoteService {
   }
 
   /// เรียก BE: /kyc/verify-face → ใช้ Azure เทียบ selfie vs idFaceBase64
-  Future<Map<String, dynamic>> verifyFaceBytesVsIdFaceBase64({
+   Future<Map<String, dynamic>> verifyFaceBytesVsIdFaceBase64({
     required Uint8List? selfieBytes,
     required String idFaceBase64,
   }) async {
@@ -56,8 +60,10 @@ class KycRemoteService {
       throw 'selfieBytes is null';
     }
 
-    final uri = Uri.parse('$baseUrl/kyc/verify-face');
+    final uri = Uri.parse('${ApiBase.baseUrl}/kyc/verify-face');
     final selfieB64 = base64Encode(selfieBytes);
+    final userState = ref.read(userStoreProvider);
+    final accessToken = "${userState['accessToken']}";
 
     debugPrint('[KYC] POST $uri');
     debugPrint(
@@ -66,7 +72,10 @@ class KycRemoteService {
 
     final res = await http.post(
       uri,
-      headers: {'Content-Type': 'application/json'},
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': accessToken,
+      },
       body: jsonEncode({
         'selfieBase64': selfieB64,
         'idFaceBase64': idFaceBase64,

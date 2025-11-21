@@ -8,6 +8,7 @@ import 'dart:convert';
 import 'package:camera/camera.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart' show debugPrint;
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_mlkit_face_detection/google_mlkit_face_detection.dart';
 import 'package:google_mlkit_commons/google_mlkit_commons.dart';
 
@@ -21,14 +22,14 @@ import 'package:chat2date/services/kyc_remote_service.dart';
 /// - smile: ยิ้มให้กล้อง
 enum PoseStep { center, up, down, left, right, smile }
 
-class FaceVerifyScreen extends StatefulWidget {
+class FaceVerifyScreen extends ConsumerStatefulWidget {
   const FaceVerifyScreen({super.key});
 
   @override
-  State<FaceVerifyScreen> createState() => _FaceVerifyScreenState();
+  ConsumerState<FaceVerifyScreen> createState() => _FaceVerifyScreenState();
 }
 
-class _FaceVerifyScreenState extends State<FaceVerifyScreen>
+class _FaceVerifyScreenState extends ConsumerState<FaceVerifyScreen>
     with TickerProviderStateMixin {
   CameraController? _cam;
   FaceDetector? _detector;
@@ -506,7 +507,7 @@ class _FaceVerifyScreenState extends State<FaceVerifyScreen>
     }
   }
 
-    Future<void> _goLoading() async {
+  Future<void> _goLoading() async {
     if (_navigating) return;
     _navigating = true;
 
@@ -561,14 +562,15 @@ class _FaceVerifyScreenState extends State<FaceVerifyScreen>
       final Uint8List? idCardFaceBytes = faceArgs?.cardFaceBytes;
       debugPrint('[KYC] idCardFaceBytes is null? ${idCardFaceBytes == null}');
 
-      String? idFaceBase64 =
-          (idCardFaceBytes != null) ? base64Encode(idCardFaceBytes) : null;
+      String? idFaceBase64 = (idCardFaceBytes != null)
+          ? base64Encode(idCardFaceBytes)
+          : null;
 
-      final kyc = KycRemoteService(ApiBase.baseUrl);
       const bool livenessPass = true;
+      //final kyc = KycRemoteService(ref as Ref<Object?>);
 
       if (livenessPass && selfieBytes != null && idFaceBase64 != null) {
-        final vr = await kyc.verifyFaceBytesVsIdFaceBase64(
+        final vr = await ref.read(kycRemoteServiceProvider).verifyFaceBytesVsIdFaceBase64(
           selfieBytes: selfieBytes,
           idFaceBase64: idFaceBase64,
         );
@@ -577,14 +579,17 @@ class _FaceVerifyScreenState extends State<FaceVerifyScreen>
         score = (vr['score'] ?? 0.0) * 1.0;
         matched = (vr['match'] == true) && score >= 0.80;
 
-        debugPrint('[KYC] RESULT from BE: match=$matched, score=$score, raw=$vr');
+        debugPrint(
+          '[KYC] RESULT from BE: match=$matched, score=$score, raw=$vr',
+        );
       } else {
         debugPrint('[KYC] SKIP verify (missing selfieBytes or idFaceBase64)');
       }
 
       // ===== รอให้โหลดครบเวลา =====
-      final elapsedMs =
-          DateTime.now().difference(loadingStartedAt).inMilliseconds;
+      final elapsedMs = DateTime.now()
+          .difference(loadingStartedAt)
+          .inMilliseconds;
       if (elapsedMs < loadingMs) {
         await Future.delayed(Duration(milliseconds: loadingMs - elapsedMs));
       }
@@ -595,11 +600,7 @@ class _FaceVerifyScreenState extends State<FaceVerifyScreen>
         Navigator.pop(context); // ปิด /kyc-loading
       }
 
-      final resultArgs = {
-        'matched': matched,
-        'score': score,
-        'raw': raw,
-      };
+      final resultArgs = {'matched': matched, 'score': score, 'raw': raw};
 
       if (livenessPass && matched) {
         Navigator.pushReplacementNamed(
@@ -617,8 +618,9 @@ class _FaceVerifyScreenState extends State<FaceVerifyScreen>
     } catch (e, s) {
       debugPrint('❌ _goLoading error: $e\n$s');
 
-      final elapsedMs =
-          DateTime.now().difference(loadingStartedAt).inMilliseconds;
+      final elapsedMs = DateTime.now()
+          .difference(loadingStartedAt)
+          .inMilliseconds;
       if (elapsedMs < loadingMs) {
         await Future.delayed(Duration(milliseconds: loadingMs - elapsedMs));
       }
@@ -644,7 +646,6 @@ class _FaceVerifyScreenState extends State<FaceVerifyScreen>
       _navigating = false;
     }
   }
-
 
   // ---------- helpers ----------
   InputImage _toInputImage(CameraImage image, int rotation) {
@@ -726,7 +727,7 @@ class _FaceVerifyScreenState extends State<FaceVerifyScreen>
   }
 
   // ---------- UI ----------
-    Widget _buildFullScreenPreview() {
+  Widget _buildFullScreenPreview() {
     if (!_cameraActive || _cam == null || !_cam!.value.isInitialized) {
       return const SizedBox.shrink();
     }
@@ -751,14 +752,15 @@ class _FaceVerifyScreenState extends State<FaceVerifyScreen>
           child: Transform(
             alignment: Alignment.center,
             // 🔁 ถ้าเป็นกล้องหน้าให้หมุนแกน Y 180° เพื่อ “แก้” mirror
-            transform: isFront ? Matrix4.rotationY(math.pi) : Matrix4.identity(),
+            transform: isFront
+                ? Matrix4.rotationY(math.pi)
+                : Matrix4.identity(),
             child: CameraPreview(_cam!),
           ),
         ),
       ),
     );
   }
-
 
   @override
   Widget build(BuildContext context) {
