@@ -1,3 +1,4 @@
+// lib/screens/auth/kyc_result_fail.dart
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 
@@ -10,6 +11,35 @@ class KycResultFailScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // ดึง arguments จาก Navigator
+    final args =
+        ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>?;
+
+    bool? matched;
+    double? score;
+    Map<String, dynamic>? raw;
+
+    if (args != null) {
+      // matched
+      final m = args['matched'];
+      if (m is bool) {
+        matched = m;
+      }
+
+      // score
+      final s = args['score'];
+      if (s is num) {
+        score = s.toDouble();
+      }
+
+      // raw (ตรวจแบบง่าย ๆ กัน type error)
+      final r = args['raw'];
+      if (r is Map) {
+        // cast ให้เป็น Map<String, dynamic> แบบปลอดภัย
+        raw = r.map((key, value) => MapEntry(key.toString(), value));
+      }
+    }
+
     return Scaffold(
       backgroundColor: Colors.white,
       body: SafeArea(
@@ -49,7 +79,7 @@ class KycResultFailScreen extends StatelessWidget {
                           softWrap: true,
                           style: TextStyle(
                             color: Color(0xFF334155),
-                            fontSize: 18, // ลดนิดให้พอดีกับจอเล็ก
+                            fontSize: 18,
                             fontFamily: 'Inter',
                             fontWeight: FontWeight.w400,
                             height: 1.35,
@@ -71,8 +101,50 @@ class KycResultFailScreen extends StatelessWidget {
                         ),
                       ),
 
-                      // ===== ระยะหายใจก่อนปุ่ม =====
-                      SizedBox(height: constraints.maxHeight * 0.10),
+                      // ===== ระยะหายใจก่อน debug + ปุ่ม =====
+                      SizedBox(height: constraints.maxHeight * 0.06),
+
+                      // ===== Debug: แสดงค่าจาก Backend =====
+                      if (score != null || matched != null || raw != null) ...[
+                        const Text(
+                          'รายละเอียดจากระบบตรวจใบหน้า (debug)',
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            color: Color(0xFF475569),
+                            fontSize: 14,
+                            fontFamily: 'Inter',
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        if (score != null)
+                          Text(
+                            'score: ${score!.toStringAsFixed(3)}',
+                            style: const TextStyle(
+                              color: Color(0xFF64748B),
+                              fontSize: 13,
+                            ),
+                          ),
+                        if (matched != null)
+                          Text(
+                            'matched: $matched',
+                            style: const TextStyle(
+                              color: Color(0xFF64748B),
+                              fontSize: 13,
+                            ),
+                          ),
+                        if (raw != null) ...[
+                          const SizedBox(height: 4),
+                          Text(
+                            'raw: ${raw.toString()}',
+                            style: const TextStyle(
+                              color: Color(0xFF94A3B8),
+                              fontSize: 11,
+                            ),
+                          ),
+                        ],
+                        const SizedBox(height: 16),
+                      ],
 
                       // ===== ปุ่มลองใหม่ =====
                       SizedBox(
@@ -84,29 +156,13 @@ class KycResultFailScreen extends StatelessWidget {
                           variant: DsButtonVariant.primary,
                           onPressed: () {
                             // กลับไปเริ่มที่หน้าสแกนบัตรใหม่
-                            // เคลียร์สแตกจนเหลือหน้าแรก แล้ว push ไป /kyc-id-ocr
                             Navigator.popUntil(context, (r) => r.isFirst);
-                            Navigator.pushNamed(context, '/kyc-id-ocr');
+                            Navigator.pushNamed(context, '/face-scan');
                           },
                         ),
                       ),
 
                       const SizedBox(height: 12),
-                      // ลิงก์ตัวช่วย (ถ้าต้องการเสริม UX)
-                      // TextButton(
-                      //   onPressed: () {
-                      //     // ตัวอย่าง: เปิดหน้าคู่มือ/ทิป (ถ้ามี route)
-                      //     // Navigator.pushNamed(context, '/kyc-help');
-                      //     Navigator.maybePop(context);
-                      //   },
-                      //   child: const Text(
-                      //     'ย้อนกลับ',
-                      //     style: TextStyle(
-                      //       color: Color(0xFF64748B),
-                      //       fontWeight: FontWeight.w600,
-                      //     ),
-                      //   ),
-                      // ),
                     ],
                   ),
                 ),
