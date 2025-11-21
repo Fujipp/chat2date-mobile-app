@@ -1,20 +1,18 @@
 // lib/screens/auth/face_verify_screen.dart
 import 'dart:async';
+import 'dart:convert';
+import 'dart:io';
 import 'dart:math' as math;
 import 'dart:typed_data';
-import 'dart:io';
-import 'dart:convert';
 
 import 'package:camera/camera.dart';
+import 'package:chat2date/models/face_scan_args.dart';
 import 'package:chat2date/models/user.dart';
+import 'package:chat2date/services/kyc_remote_service.dart';
 import 'package:chat2date/stores/user_store.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/foundation.dart' show debugPrint;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_mlkit_face_detection/google_mlkit_face_detection.dart';
-import 'package:google_mlkit_commons/google_mlkit_commons.dart';
-import 'package:chat2date/models/face_scan_args.dart';
-import 'package:chat2date/services/kyc_remote_service.dart';
 
 /// ท่าที่ใช้ใน liveness
 /// - center: มองตรงกลาง
@@ -35,7 +33,8 @@ class _FaceVerifyScreenState extends ConsumerState<FaceVerifyScreen>
   FaceDetector? _detector;
 
   // debug
-  bool _showDebug = false; // ถ้าอยากดูค่าพวก yaw/pitch/perf ให้เปิดเป็น true
+  final bool _showDebug =
+      false; // ถ้าอยากดูค่าพวก yaw/pitch/perf ให้เปิดเป็น true
   String _debugText = '';
 
   bool _cameraActive = false;
@@ -463,7 +462,7 @@ class _FaceVerifyScreenState extends ConsumerState<FaceVerifyScreen>
           if (_showDebug) {
             final fps = dt > 0 ? (1.0 / dt) : 0.0;
             _debugText =
-                'STEP=${_currentStep} idx=$_currentIndex/${_totalSteps - 1} '
+                'STEP=$_currentStep idx=$_currentIndex/${_totalSteps - 1} '
                 'yaw=${y.toStringAsFixed(1)} pitch=${p.toStringAsFixed(1)} '
                 'L=${(leftEye ?? -1).toStringAsFixed(2)} '
                 'R=${(rightEye ?? -1).toStringAsFixed(2)} '
@@ -560,41 +559,40 @@ class _FaceVerifyScreenState extends ConsumerState<FaceVerifyScreen>
       if (!mounted) return;
 
       final Uint8List? idCardFaceBytes = faceArgs?.cardFaceBytes;
-      debugPrint('[KYC] idCardFaceBytes is null? ${idCardFaceBytes == null}');
-
       final userState = ref.read(userStoreProvider);
       final user = userState['user'] as User?;
       final cardFaceBytes = userState['cardFaceBytes'] as String?;
+      debugPrint('[KYC] idCardFaceBytes is null? ${idCardFaceBytes == null}');
 
-      // String? idFaceBase64 = (cardFaceBytes != null)
-      //     ? base64Encode(cardFaceBytes)
-      //     : null;
-      String? selfieBase64 = (selfieBytes != null)
+      String? idFaceBase64 = (idCardFaceBytes != null)
+          ? base64Encode(idCardFaceBytes)
+          : null;
+
+      String? selfieBytes64 = (selfieBytes != null)
           ? base64Encode(selfieBytes)
           : null;
 
+      final kyc = KycRemoteService(ref);
       const bool livenessPass = true;
-      //final kyc = KycRemoteService(ref as Ref<Object?>);
-      print(
-        "llllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllll",
-      );
-      print(selfieBase64);
-      //print(idFaceBase64);
-      print(
-        "llllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllll",
-      );
-      if (livenessPass && selfieBytes != null && cardFaceBytes != null) {
-        print("Hellllllllllllllllllllllllllllllllllo");
-        final vr = await ref
-            .read(kycRemoteServiceProvider)
-            .verifyFaceBytesVsIdFaceBase64(
-              selfieBase64: selfieBase64,
-              idFaceBase64: cardFaceBytes,
-            );
+
+      if (livenessPass && selfieBytes64 != null && idFaceBase64 != null) {
+        // ส่งข้อมูลไปตรวจสอบใน backend (API call)
+        final vr = await kyc.verifyFaceBytesVsIdFaceBase642(
+          selfieBytes: selfieBytes64,
+          idFaceBase64: idFaceBase64,
+        );
 
         raw = vr;
-        score = (vr['score'] ?? 0.0) * 1.0;
-        matched = (vr['match'] == true) && score >= 0.80;
+
+        // ดึงค่าจาก API Response
+        final bool apiMatched = vr['matched'] ?? false;
+        final double apiScore = (vr['score'] as num?)?.toDouble() ?? 0.0;
+        final double apiThreshold =
+            (vr['threshold'] as num?)?.toDouble() ?? 0.0;
+
+        // ตรวจสอบคะแนน (score >= threshold) เพื่อยืนยันการผ่าน
+        matched = apiMatched && apiScore >= apiThreshold;
+        score = apiScore;
 
         debugPrint(
           '[KYC] RESULT from BE: match=$matched, score=$score, raw=$vr',
@@ -769,9 +767,7 @@ class _FaceVerifyScreenState extends ConsumerState<FaceVerifyScreen>
           child: Transform(
             alignment: Alignment.center,
             // 🔁 ถ้าเป็นกล้องหน้าให้หมุนแกน Y 180° เพื่อ “แก้” mirror
-            transform: isFront
-                ? Matrix4.rotationY(math.pi)
-                : Matrix4.identity(),
+            transform: Matrix4.identity(),
             child: CameraPreview(_cam!),
           ),
         ),
