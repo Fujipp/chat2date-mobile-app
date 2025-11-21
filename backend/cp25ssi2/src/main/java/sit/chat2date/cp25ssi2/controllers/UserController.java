@@ -2,15 +2,12 @@ package sit.chat2date.cp25ssi2.controllers;
 
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-import org.springframework.web.server.ResponseStatusException;
-import sit.chat2date.cp25ssi2.dto.PreferenceMatchUserDto;
-import sit.chat2date.cp25ssi2.dto.PreferenceUserDto;
+import sit.chat2date.cp25ssi2.dto.PreferenceMatchUserDTO;
+import sit.chat2date.cp25ssi2.dto.PreferenceUserDTO;
 import sit.chat2date.cp25ssi2.entities.User;
 import sit.chat2date.cp25ssi2.exceptions.NotFoundException;
-import sit.chat2date.cp25ssi2.repositories.PreferenceMatchRepository;
 import sit.chat2date.cp25ssi2.repositories.UserRepository;
 import sit.chat2date.cp25ssi2.services.UserService;
 
@@ -52,12 +49,12 @@ public class UserController {
     }
 
     @GetMapping("/users/{id}/preference")
-    public ResponseEntity<PreferenceUserDto> UserPreferenceById(@PathVariable String id) {
+    public ResponseEntity<PreferenceUserDTO> UserPreferenceById(@PathVariable String id) {
         return userService.UserPreferenceById(id);
     }
 
     @PostMapping("/users/preference")
-    public ResponseEntity<PreferenceUserDto> createUserPreference(@RequestHeader("Authorization") String accessToken, @RequestBody PreferenceUserDto preferenceUser) {
+    public ResponseEntity<PreferenceUserDTO> createUserPreference(@RequestHeader("Authorization") String accessToken, @RequestBody PreferenceUserDTO preferenceUser) {
         return userService.createUserPreference(accessToken, preferenceUser);
     }
 
@@ -69,7 +66,7 @@ public class UserController {
     }
 
     @PostMapping("/users/preferenceMatch")
-    public ResponseEntity<PreferenceMatchUserDto> createUserPreferenceMatch(@RequestHeader("Authorization") String accessToken, @RequestBody PreferenceMatchUserDto preferenceUser) {
+    public ResponseEntity<PreferenceMatchUserDTO> createUserPreferenceMatch(@RequestHeader("Authorization") String accessToken, @RequestBody PreferenceMatchUserDTO preferenceUser) {
         return userService.createUserPreferenceMatch(accessToken, preferenceUser);
     }
 

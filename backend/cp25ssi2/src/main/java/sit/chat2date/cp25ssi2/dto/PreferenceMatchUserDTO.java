@@ -10,7 +10,7 @@ import sit.chat2date.cp25ssi2.entities.User;
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
-public class PreferenceMatchUserDto {
+public class PreferenceMatchUserDTO {
     private String interestedGender;
     private Integer interestedAgeMax;
     private Integer interestedAgeMin;

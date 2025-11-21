@@ -2,10 +2,8 @@ package sit.chat2date.cp25ssi2.controllers;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
-import sit.chat2date.cp25ssi2.dto.PreferenceDto;
+import sit.chat2date.cp25ssi2.dto.PreferenceDTO;
 import sit.chat2date.cp25ssi2.services.PreferenceService;
 
 
@@ -15,7 +13,7 @@ public class PreferenceController {
     private PreferenceService preferenceService;
 
     @GetMapping("/preferences")
-    public PreferenceDto getAllPreferences() {
+    public PreferenceDTO getAllPreferences() {
         return preferenceService.allPreferece();
     }
 

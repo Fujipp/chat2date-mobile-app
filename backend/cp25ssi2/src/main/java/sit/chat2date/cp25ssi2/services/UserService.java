@@ -13,8 +13,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.server.ResponseStatusException;
-import sit.chat2date.cp25ssi2.dto.PreferenceMatchUserDto;
-import sit.chat2date.cp25ssi2.dto.PreferenceUserDto;
+import sit.chat2date.cp25ssi2.dto.PreferenceMatchUserDTO;
+import sit.chat2date.cp25ssi2.dto.PreferenceUserDTO;
 import sit.chat2date.cp25ssi2.entities.*;
 import sit.chat2date.cp25ssi2.enums.PreferenceGender;
 import sit.chat2date.cp25ssi2.enums.PreferenceLevel;
@@ -110,12 +110,12 @@ public class UserService {
         return emptyNames.toArray(result);
     }
 
-    public ResponseEntity<PreferenceUserDto> UserPreferenceById(String id) {
+    public ResponseEntity<PreferenceUserDTO> UserPreferenceById(String id) {
         // 1. หา user
         User user = userRepository.findByUserId(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found"));
 
-        PreferenceUserDto pref = new PreferenceUserDto();
+        PreferenceUserDTO pref = new PreferenceUserDTO();
 
         // 2. ดึง interests
         List<Integer> interests = userHasInterestRepository.findAllByUser_UserId(user.getUserId())
@@ -149,7 +149,7 @@ public class UserService {
     }
 
     @Transactional
-    public ResponseEntity<PreferenceUserDto> createUserPreference(String accessToken, PreferenceUserDto pref) {
+    public ResponseEntity<PreferenceUserDTO> createUserPreference(String accessToken, PreferenceUserDTO pref) {
         String token = accessToken.substring(7);
         DecodedJWT jwt = JWT.decode(token);
         String sub = jwt.getClaim("sub").asString();
@@ -241,7 +241,7 @@ public class UserService {
         return ResponseEntity.ok(pref);
     }
 
-    public ResponseEntity<PreferenceMatchUserDto> createUserPreferenceMatch(String accessToken, PreferenceMatchUserDto pref) {
+    public ResponseEntity<PreferenceMatchUserDTO> createUserPreferenceMatch(String accessToken, PreferenceMatchUserDTO pref) {
         String token = accessToken.substring(7);
         DecodedJWT jwt = JWT.decode(token);
         String sub = jwt.getClaim("sub").asString();

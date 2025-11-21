@@ -11,7 +11,7 @@ import java.util.List;
 
 @Builder
 @Data
-public class PreferenceDto {
+public class PreferenceDTO {
     private List<Interest> interests;
     private List<LifeStyle> lifeStyles;
     private List<Tag> tags;

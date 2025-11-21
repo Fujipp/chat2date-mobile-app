@@ -11,7 +11,7 @@ import java.util.List;
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
-public class PreferenceUserDto {
+public class PreferenceUserDTO {
     private List<Integer> interests;
     private List<Integer> lifeStyles;
     private List<Integer> tags;

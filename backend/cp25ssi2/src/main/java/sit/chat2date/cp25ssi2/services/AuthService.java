@@ -6,7 +6,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
 import sit.chat2date.cp25ssi2.utils.UserFactory;
 import sit.chat2date.cp25ssi2.dto.AuthenticationResponse;
-import sit.chat2date.cp25ssi2.dto.UserDto;
+import sit.chat2date.cp25ssi2.dto.UserDTO;
 import sit.chat2date.cp25ssi2.entities.User;
 import sit.chat2date.cp25ssi2.enums.Provider;
 import sit.chat2date.cp25ssi2.repositories.UserRepository;
@@ -63,7 +63,7 @@ public class AuthService {
         String accessToken = jwtTokenUtil.generateToken(email);
         String refreshToken = jwtTokenUtil.generateRefreshToken(user.getUserId());
 
-        UserDto userDto = UserDto.builder()
+        UserDTO userDto = UserDTO.builder()
                 .id(user.getUserId())
                 .email(user.getEmail())
                 .build();

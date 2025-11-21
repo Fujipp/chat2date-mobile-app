@@ -2,7 +2,7 @@ package sit.chat2date.cp25ssi2.services;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
-import sit.chat2date.cp25ssi2.dto.PreferenceDto;
+import sit.chat2date.cp25ssi2.dto.PreferenceDTO;
 import sit.chat2date.cp25ssi2.entities.Interest;
 import sit.chat2date.cp25ssi2.entities.LifeStyle;
 import sit.chat2date.cp25ssi2.entities.Tag;
@@ -23,8 +23,8 @@ public class PreferenceService {
     @Autowired
     private InterestRepository interestRepository;
 
-    public PreferenceDto allPreferece() {
-        return PreferenceDto.builder().
+    public PreferenceDTO allPreferece() {
+        return PreferenceDTO.builder().
                 interests(interestRepository.findAll().stream()
                         .sorted(Comparator.comparing(Interest::getId))
                         .toList()).

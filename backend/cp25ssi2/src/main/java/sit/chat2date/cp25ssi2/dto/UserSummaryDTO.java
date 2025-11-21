@@ -1,11 +1,11 @@
 package sit.chat2date.cp25ssi2.dto;
 
-public class UserSummaryDto {
+public class UserSummaryDTO {
     private String id;
     private String phone;
 
-    public UserSummaryDto() {}
-    public UserSummaryDto(String id, String phone) {
+    public UserSummaryDTO() {}
+    public UserSummaryDTO(String id, String phone) {
         this.id = id; this.phone = phone;
     }
 
