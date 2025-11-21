@@ -39,7 +39,7 @@ public class GlobalExceptionHandler {
     }
 
     @ExceptionHandler(TooManyRequestException.class)
-    public ResponseEntity<ErrorResponse> handleTooManyRequest(NotFoundException ex, HttpServletRequest req) {
+    public ResponseEntity<ErrorResponse> handleTooManyRequest(TooManyRequestException ex, HttpServletRequest req) {
         return build(HttpStatus.TOO_MANY_REQUESTS, ex.getMessage(), req.getRequestURI());
     }
 
