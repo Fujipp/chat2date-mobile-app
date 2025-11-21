@@ -2,12 +2,19 @@
 import 'dart:convert';
 import 'dart:typed_data';
 
+import 'package:chat2date/config/backend_base.dart';
+import 'package:chat2date/stores/user_store.dart';
 import 'package:flutter/foundation.dart' show debugPrint;
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:http/http.dart' as http;
 
+final kycRemoteServiceProvider = Provider((ref) => KycRemoteService(ref));
+
 class KycRemoteService {
-  final String baseUrl; // ควรเป็นแบบ http://10.0.2.2:8080/api/v1
-  KycRemoteService(this.baseUrl);
+  final Ref ref;
+  KycRemoteService(this.ref);
+  // final String baseUrl; // ควรเป็นแบบ http://10.0.2.2:8080/api/v1
+  // KycRemoteService(this.baseUrl);
 
   Future<Map<String, dynamic>> completeLivenessWithSelfie(
     Uint8List? selfieBytes,
@@ -16,12 +23,18 @@ class KycRemoteService {
   }
 
   Future<Map<String, dynamic>> cropFaceFromIdFront(String idFrontBase64) async {
-    final uri = Uri.parse('$baseUrl/kyc/ocr/crop-id-face');
+    final uri = Uri.parse('${ApiBase.baseUrl}/kyc/ocr/crop-id-face');
     debugPrint('[KYC] POST $uri');
+
+    final userState = ref.read(userStoreProvider);
+    final accessToken = "${userState['accessToken']}";
 
     final res = await http.post(
       uri,
-      headers: {'Content-Type': 'application/json'},
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': accessToken,
+      },
       body: jsonEncode({'idFrontBase64': idFrontBase64}),
     );
 
@@ -47,7 +60,9 @@ class KycRemoteService {
     final selfieB64 = base64Encode(selfieBytes);
 
     debugPrint('[KYC] POST $uri');
-    debugPrint('[KYC] selfieB64.length=${selfieB64.length}, idFace.length=${idFaceBase64.length}');
+    debugPrint(
+      '[KYC] selfieB64.length=${selfieB64.length}, idFace.length=${idFaceBase64.length}',
+    );
 
     final res = await http.post(
       uri,
