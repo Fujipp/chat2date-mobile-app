@@ -5,17 +5,46 @@ import 'package:chat2date/components/inputs/ds_text_field/ds_text_field.dart';
 import 'package:chat2date/components/layout/header.dart';
 import 'package:chat2date/components/layout/menu_bar.dart';
 import 'package:chat2date/components/layout/responsive_container.dart';
+import 'package:chat2date/services/user_service.dart';
+import 'package:chat2date/stores/user_store.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:dropdown_button2/dropdown_button2.dart';
+import 'package:chat2date/theme/app_colors.dart';
 
-class ProfileScreen extends StatefulWidget {
+class ProfileScreen extends ConsumerStatefulWidget {
   const ProfileScreen({super.key});
 
   @override
-  State<ProfileScreen> createState() => _ProfileScreenState();
+  ConsumerState<ProfileScreen> createState() => _ProfileScreenState();
 }
 
-class _ProfileScreenState extends State<ProfileScreen> {
+class _ProfileScreenState extends ConsumerState<ProfileScreen> {
   final ScrollController _scrollController = ScrollController();
+  String nickname = "";
+  String? _selectedGenderPreference = "";
+  double behaviorScore = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadInitialData();
+  }
+
+  void _loadInitialData() async {
+    final userStore = ref.read(userStoreProvider) as Map<String, dynamic>?;
+    //final userId = userStore?['user']?['userId'];
+    //final accessToken = userStore?['accessToken'];
+    final String userId = "1";
+    final accessToken =
+        "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIwNjI2NDM0MTY1Iiwicm9sZSI6IlVTRVIiLCJpc3MiOiJjaGF0MmRhdGUiLCJuYW1lIjoiVW5rbm93biBVbmtub3duIiwiY2lkIjoiMDAwMTQ3MjI5NDM0MSIsImlhdCI6MTc2MzcxMDA5NiwiZXhwIjoyMTc5MDQzNzEwMDk2fQ.mOEZc07knlO1rrwJzLInYrTvMaiqywEwCCekdkI_du4";
+    final userById = await ref.read(userServiceProvider).getUser(userId);
+    ref.read(userStoreProvider.notifier).setUser(userById, accessToken);
+    setState(() {
+      nickname = userStore?['user']?['nickname'];
+      behaviorScore = (userStore?['user']?['behaviorScore'])/100;
+    });
+  }
 
   @override
   void dispose() {
@@ -64,12 +93,90 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   controller: _scrollController,
                   child: ResponsiveContainer.form(
                     children: [
-                      DsTextField(label: 'ชื่อเล่น', labelFontSize: 20),
-
                       DsTextField(
-                        label: 'เพศที่สนใจ',
+                        label: 'ชื่อเล่น',
                         labelFontSize: 20,
-                        suffixIcon: Icons.keyboard_arrow_down_rounded,
+                        controller: TextEditingController(text: nickname),
+                      ),
+
+                      // DsTextField(
+                      //   label: 'เพศที่สนใจ',
+                      //   labelFontSize: 20,
+                      //   suffixIcon: Icons.keyboard_arrow_down_rounded,
+                      // ),
+                      DropdownButtonFormField2<String>(
+                        value: _selectedGenderPreference,
+                        decoration: InputDecoration(
+                          label: RichText(
+                            text: TextSpan(
+                              children: [
+                                const TextSpan(
+                                  text: 'เพศที่สนใจ',
+                                  style: TextStyle(
+                                    fontSize: 20,
+                                    color: AppColors.textMuted,
+                                  ),
+                                ),
+                                TextSpan(
+                                  text: ' *',
+                                  style: TextStyle(
+                                    fontSize: 20,
+                                    color: Colors.red, // สีแดงของ *
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          enabledBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(16),
+                            borderSide: BorderSide(
+                              color: AppColors.inputBorderHover,
+                              width: 1.5,
+                            ),
+                          ),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(16),
+                            borderSide: BorderSide.none,
+                          ),
+                          contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 12,
+                            vertical: 12,
+                          ),
+                        ),
+
+                        isExpanded: true,
+
+                        buttonStyleData: const ButtonStyleData(
+                          padding: EdgeInsets.symmetric(horizontal: 12),
+                        ),
+
+                        // 👇👇 เพิ่มส่วนนี้เพื่อให้เมนูอยู่ล่างเสมอ
+                        dropdownStyleData: const DropdownStyleData(
+                          offset: Offset(0, 0), // เมนูเริ่มล่างช่อง
+                          direction: DropdownDirection
+                              .textDirection, // บังคับอยู่ด้านล่าง
+                        ),
+
+                        items: const [
+                          DropdownMenuItem(
+                            value: 'SAME',
+                            child: Text('เพศเดียวกัน'),
+                          ),
+                          DropdownMenuItem(
+                            value: 'OPPOSITE',
+                            child: Text('เพศตรงข้าม'),
+                          ),
+                          DropdownMenuItem(
+                            value: 'BOTH',
+                            child: Text('ได้ทั้งหมด'),
+                          ),
+                        ],
+
+                        onChanged: (value) {
+                          setState(() {
+                            _selectedGenderPreference = value;
+                          });
+                        },
                       ),
 
                       DsLabel(label: 'แก้ไขรูปภาพที่แสดง', labelFontSize: 20),
@@ -255,7 +362,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           ),
         ],
       ),
-      bottomNavigationBar: CustomBottomNavBar(selectedIndex: 2),
+      bottomNavigationBar: CustomBottomNavBar(selectedIndex: 2 ),
     );
   }
 }

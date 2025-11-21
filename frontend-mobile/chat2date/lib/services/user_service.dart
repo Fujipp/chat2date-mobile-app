@@ -16,6 +16,26 @@ class UserService {
   final Ref ref;
   UserService(this.ref);
 
+  Future<User> getUser(String id) async {
+    final userState = ref.read(userStoreProvider);
+    final accessToken = "${userState['accessToken']}";
+
+    final response = await http.get(
+      Uri.parse('${ApiBase.baseUrl}/users/$id'),
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': accessToken,
+      },
+    );
+
+    if (response.statusCode != 200) {
+      throw Exception('Update failed: ${response.body}');
+    }
+
+    final data = jsonDecode(response.body);
+    return User.fromJson(data);
+  }
+
   Future<User> updateUser(User user) async {
     final userState = ref.read(userStoreProvider);
     final accessToken = "${userState['accessToken']}";
@@ -58,7 +78,9 @@ class UserService {
     return User.fromJson(data);
   }
 
-  Future<User> addPreferenceMatchUser(Map<String, Object> preferenceMatch) async {
+  Future<User> addPreferenceMatchUser(
+    Map<String, Object> preferenceMatch,
+  ) async {
     final userState = ref.read(userStoreProvider);
     final accessToken = "${userState['accessToken']}";
 
@@ -98,7 +120,9 @@ class UserService {
       if (data is bool) {
         return data;
       } else {
-        throw Exception('Unexpected response format from server: expected boolean.');
+        throw Exception(
+          'Unexpected response format from server: expected boolean.',
+        );
       }
     }
 

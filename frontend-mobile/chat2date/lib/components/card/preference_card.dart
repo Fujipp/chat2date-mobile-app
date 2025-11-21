@@ -1,3 +1,4 @@
+import 'package:chat2date/theme/app_colors.dart';
 import 'package:flutter/material.dart';
 
 class PreferenceCard extends StatefulWidget {
@@ -5,6 +6,7 @@ class PreferenceCard extends StatefulWidget {
   final Color backgroundColor;
   final String? selectedValue;
   final ValueChanged<String>? onChanged;
+  final bool isDisabled;
 
   const PreferenceCard({
     super.key,
@@ -12,6 +14,7 @@ class PreferenceCard extends StatefulWidget {
     required this.backgroundColor,
     this.selectedValue,
     this.onChanged,
+    this.isDisabled = false,
   });
 
   @override
@@ -121,14 +124,17 @@ class _PreferenceCardState extends State<PreferenceCard> {
 
   Widget _buildRadioOption(String label, String value) {
     final bool isSelected = _selectedValue == value;
+    final bool isDisabled = widget.isDisabled;
 
     return InkWell(
-      onTap: () {
-        setState(() {
-          _selectedValue = value;
-        });
-        widget.onChanged?.call(value);
-      },
+      onTap: widget.isDisabled
+          ? null
+          : () {
+              setState(() {
+                _selectedValue = value;
+              });
+              widget.onChanged?.call(value);
+            },
       borderRadius: BorderRadius.circular(8),
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
@@ -142,14 +148,22 @@ class _PreferenceCardState extends State<PreferenceCard> {
               width: 20,
               height: 20,
               decoration: ShapeDecoration(
-                color: isSelected
-                    ? const Color(0xFF78CEFF)
-                    : const Color(0xFFF7FAFE),
+                color: isDisabled
+                    ? (isSelected
+                          ? const Color(0xFF78CEFF)
+                          : const Color(0xFFE5E7EB)) // เทาอ่อน
+                    : (isSelected
+                          ? const Color(0xFF78CEFF)
+                          : const Color(0xFFF7FAFE)),
                 shape: RoundedRectangleBorder(
                   side: BorderSide(
-                    color: isSelected
-                        ? const Color(0xFF78CEFF)
-                        : const Color(0xFFD1D5DB),
+                    color: isDisabled
+                        ? (isSelected
+                              ? const Color(0xFF78CEFF)
+                              : const Color(0xFFD1D5DB))
+                        : (isSelected
+                              ? const Color(0xFF78CEFF)
+                              : const Color(0xFFD1D5DB)),
                     width: 1,
                   ),
                   borderRadius: BorderRadius.circular(500),

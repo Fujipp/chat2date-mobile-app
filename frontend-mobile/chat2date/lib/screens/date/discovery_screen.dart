@@ -618,7 +618,7 @@ class _DiscoveryScreenState extends State<DiscoveryScreen>
           ),
         ],
       ),
-      bottomNavigationBar: const CustomBottomNavBar(),
+      bottomNavigationBar: const CustomBottomNavBar(selectedIndex: 0),
     );
   }
 }

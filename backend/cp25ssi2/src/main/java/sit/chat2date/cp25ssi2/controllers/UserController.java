@@ -70,4 +70,9 @@ public class UserController {
         return userService.createUserPreferenceMatch(accessToken, preferenceUser);
     }
 
+//    @GetMapping("/users/{id}/preference")
+//    public ResponseEntity<> getUserPreference() {
+//
+//    }
+
 }

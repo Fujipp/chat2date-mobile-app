@@ -15,6 +15,9 @@ dependencies:
 
   # === ENV / Config ===
   flutter_dotenv: ^6.0.0
+  device_info_plus: ^12.2.0
+  shared_preferences: ^2.1.1
+  uuid: ^4.5.2
 
   # === UI / Routing ===
   dropdown_button2: ^2.3.9

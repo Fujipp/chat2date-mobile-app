@@ -160,6 +160,7 @@ class _PhonePageState extends State<PhonePage> {
                           textInputAction: TextInputAction.done,
                           onSubmitted: (_) => _submit(loginOtp),
                           keyboardType: TextInputType.phone,
+                          textAlignVertical: TextAlignVertical.center,
                           autofillHints: const [AutofillHints.telephoneNumber],
                           inputFormatters: [
                             FilteringTextInputFormatter.allow(

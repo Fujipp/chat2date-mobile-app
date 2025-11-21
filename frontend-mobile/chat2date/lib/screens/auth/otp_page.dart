@@ -283,7 +283,7 @@ class _OtpPageState extends ConsumerState<OtpPage> {
                                 FilteringTextInputFormatter.digitsOnly,
                               ],
                               style: const TextStyle(
-                                fontSize: 20,
+                                fontSize: 10,
                                 fontWeight: FontWeight.w600,
                               ),
                               decoration: InputDecoration(

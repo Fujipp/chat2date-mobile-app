@@ -2,7 +2,6 @@ import 'package:chat2date/components/buttons/ds_button.dart';
 import 'package:chat2date/components/card/preference_card.dart';
 import 'package:chat2date/components/common/custom_range_slider.dart';
 import 'package:chat2date/components/inputs/ds_label.dart';
-import 'package:chat2date/components/inputs/ds_text_field/ds_text_field.dart';
 import 'package:chat2date/components/layout/responsive_container.dart';
 import 'package:chat2date/services/user_service.dart';
 import 'package:chat2date/stores/user_store.dart';
@@ -168,6 +167,7 @@ class _MatchPreferenceScreenState extends ConsumerState<MatchPreferenceScreen> {
                         _travelStylePreference = val;
                       });
                     },
+              isDisabled: _isGenderAgeSpecific,
             ),
             PreferenceCard(
               title: 'ไลฟ์สไตล์',
@@ -182,6 +182,7 @@ class _MatchPreferenceScreenState extends ConsumerState<MatchPreferenceScreen> {
                         _lifeStylePreference = val;
                       });
                     },
+              isDisabled: _isGenderAgeSpecific,
             ),
             PreferenceCard(
               title: 'สิ่งที่สนใจ',
@@ -196,6 +197,7 @@ class _MatchPreferenceScreenState extends ConsumerState<MatchPreferenceScreen> {
                         _interestPreference = val;
                       });
                     },
+              isDisabled: _isGenderAgeSpecific,
             ),
 
             InkWell(
