@@ -6,6 +6,7 @@ import org.springframework.web.multipart.MultipartFile;
 import sit.chat2date.cp25ssi2.clients.FaceVerificationClient;
 import sit.chat2date.cp25ssi2.entities.User;
 import sit.chat2date.cp25ssi2.entities.UserPhoto;
+import sit.chat2date.cp25ssi2.enums.AccountStatus;
 import sit.chat2date.cp25ssi2.repositories.UserPhotoRepository;
 import sit.chat2date.cp25ssi2.repositories.UserRepository;
 
@@ -48,8 +49,10 @@ public class IdentityService {
 
         // 3. ✨ Upload แบบ Parallel - อัปโหลดพร้อมกันทุกรูป
         List<String> uploadedUrls = uploadImagesParallel(profileImages);
+        User user = userRepository.findUsersByUserId(userId);
 
         // 4. บันทึกลง Database
+        user.setAccountStatus(AccountStatus.ACTIVE);
         saveUserPhotos(userId, uploadedUrls);
 
         return uploadedUrls;
