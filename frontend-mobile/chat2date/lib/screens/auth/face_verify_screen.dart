@@ -153,9 +153,9 @@ class _FaceVerifyScreenState extends ConsumerState<FaceVerifyScreen>
       case PoseStep.down:
         return 'ก้มหน้าเล็กน้อย';
       case PoseStep.left:
-        return 'หันหน้าไปทางซ้าย';
-      case PoseStep.right:
         return 'หันหน้าไปทางขวา';
+      case PoseStep.right:
+        return 'หันหน้าไปทางซ้าย';
       case PoseStep.smile:
         return 'ยิ้มให้กล้องหน่อย 😄';
     }

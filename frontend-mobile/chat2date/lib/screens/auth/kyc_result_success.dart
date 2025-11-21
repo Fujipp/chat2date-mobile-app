@@ -100,7 +100,7 @@ class _KycResultSuccessScreenState extends State<KycResultSuccessScreen> {
                           onPressed: () {
                             _autoTimer?.cancel();
                             Navigator.pop(context);
-                            Navigator.pushNamed(context, '/home');
+                            Navigator.pushNamed(context, '/profileSetup');
                           },
                           style: FilledButton.styleFrom(
                             backgroundColor: const Color(0xFF22C55E),
