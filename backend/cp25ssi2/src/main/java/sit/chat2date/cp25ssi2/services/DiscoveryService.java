@@ -64,7 +64,7 @@ public class DiscoveryService {
      * - บันทึก action ลง actiontable
      * - ถ้าอีกฝั่งเคยกด LIKE เราไว้ → สร้าง Match ใน matchtable และส่ง matched = true กลับไป
      */
-    public FeedbackResponse submitFeedback(String targetUserId, ActionType action, String accessToken) {
+    public FeedbackResponse submitFeedback(String userId,String targetUserId, ActionType action) {
         if (targetUserId == null || action == null) {
             throw new BadRequestException("targetUserId/action is required");
         }
@@ -73,18 +73,16 @@ public class DiscoveryService {
         User targetUser = userRepository.findByUserId(targetUserId)
                 .orElseThrow(() -> new NotFoundException("target user not found: " + targetUserId));
 
-        // 2) ดึง current user จาก JWT
-        String jwtToken = accessToken.substring(7); // ตัด "Bearer "
-        DecodedJWT jwt = JWT.decode(jwtToken);
-        String sub = jwt.getClaim("sub").asString();
+//        // 2) ดึง current user จาก JWT
+//        String jwtToken = accessToken.substring(7); // ตัด "Bearer "
+//        DecodedJWT jwt = JWT.decode(jwtToken);
+//        String sub = jwt.getClaim("sub").asString();
+//
+//        User currentUser = (sub.length() == 10)
+//                ? userRepository.findByPhoneNumber(sub).orElseThrow()
+//                : userRepository.findByEmail(sub).orElseThrow();
 
-        User currentUser = (sub.length() == 10)
-                ? userRepository.findByPhoneNumber(sub).orElseThrow()
-                : userRepository.findByEmail(sub).orElseThrow();
-
-        if (currentUser.getUserId().equals(targetUserId)) {
-            throw new BadRequestException("cannot feedback to self");
-        }
+        User currentUser = userRepository.findUsersByUserId(userId);
 
         try {
             // 3) บันทึก Action ทุกครั้งที่มีการ like / dislike

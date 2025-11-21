@@ -27,7 +27,7 @@ class MyApp extends StatelessWidget {
       title: 'Component Test',
       theme: buildLightTheme(),
       navigatorKey: navigatorKey,
-      initialRoute: '/kyc-id-ocr',
+      initialRoute: '/home', //เวลาโค้ดเปลี่ยนเป็น path ตัวเองเอาไว้แสดง
       routes: {
         //Test
         '/test': (context) => const ComponentTestScreen(),
@@ -67,7 +67,7 @@ class MyApp extends StatelessWidget {
                 onPressed: () {
                   final nav = navigatorKey.currentState!;
                   if (nav.canPop()) {
-                    nav.pop();
+                     nav.pop(); // 🔹 ถ้ามีหน้าก่อนหน้า -> กลับ
                   } else {
                     nav.pushNamed('/test');
                   }

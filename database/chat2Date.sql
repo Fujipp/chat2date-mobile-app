@@ -178,9 +178,9 @@ COLLATE = utf8mb4_0900_ai_ci;
 
 
 -- -----------------------------------------------------
--- Table `chat2date`.`tempuserlocation`
+-- Table `chat2date`.`userlocation`
 -- -----------------------------------------------------
-CREATE TABLE IF NOT EXISTS `chat2date`.`tempuserlocation` (
+CREATE TABLE IF NOT EXISTS `chat2date`.`userlocation` (
   `locationId` INT NOT NULL AUTO_INCREMENT,
   `latitude` DECIMAL(11,8) NOT NULL,
   `longtitude` DECIMAL(11,8) NOT NULL,
@@ -190,7 +190,7 @@ CREATE TABLE IF NOT EXISTS `chat2date`.`tempuserlocation` (
   PRIMARY KEY (`locationId`),
   INDEX `userId` (`userId` ASC) VISIBLE,
   UNIQUE INDEX `userId_UNIQUE` (`userId` ASC) VISIBLE,
-  CONSTRAINT `tempuserlocation_ibfk_1`
+  CONSTRAINT `userlocation_ibfk_1`
     FOREIGN KEY (`userId`)
     REFERENCES `chat2date`.`user` (`userId`)
     ON DELETE CASCADE)
