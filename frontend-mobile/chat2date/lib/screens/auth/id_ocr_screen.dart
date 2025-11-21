@@ -10,13 +10,13 @@ import 'package:chat2date/services/ocr_thaiid_service.dart';
 import 'package:chat2date/services/user_service.dart';
 import 'package:chat2date/stores/user_store.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
 import 'package:permission_handler/permission_handler.dart';
-import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 class IdOcrScreen extends ConsumerStatefulWidget {
   const IdOcrScreen({super.key});
@@ -92,18 +92,14 @@ class _IdOcrScreenState extends ConsumerState<IdOcrScreen> {
 
     if (src == null) return;
 
-    // ขอ permission ตามแหล่งที่เลือก
-    if (src == ImageSource.camera) {
-      final cam = await Permission.camera.request();
-      if (!cam.isGranted) {
-        if (!mounted) return;
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(const SnackBar(content: Text('ไม่ได้รับสิทธิ์กล้อง')));
-        return;
+    if (src == ImageSource.gallery) {
+      // Android 13+ (API 33)
+      var ph = await Permission.photos.request();
+      if (!ph.isGranted) {
+        // Android 12 -
+        ph = await Permission.storage.request();
       }
-    } else {
-      final ph = await Permission.photos.request();
+
       if (!ph.isGranted) {
         if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
