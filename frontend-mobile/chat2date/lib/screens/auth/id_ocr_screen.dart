@@ -28,9 +28,9 @@ class IdOcrScreen extends ConsumerStatefulWidget {
 class _IdOcrScreenState extends ConsumerState<IdOcrScreen> {
   // === CONFIG ===
   // ตอนนี้ให้ยิงเข้า Backend → /kyc/ocr-thaiid
-  // แล้วให้ Backend ไปคุย iApp + OCR + map field ให้
-  late final ThaiIdOcrConfig _ocrCfg = ThaiIdOcrConfig(
-    endpoint: '${ApiBase.baseUrl}/kyc/ocr-thaiid',
+   late final ThaiIdOcrConfig _ocrCfg = const ThaiIdOcrConfig(
+    endpoint: 'https://api.iapp.co.th/v3/store/ekyc/thai-national-id-card/front',
+    apiKey: 'Z0XVt18RSoFlZAkRnhGy9U3u5J8MlrZA', // << ตัวอย่างจาก doc ที่ Dev แปะมา
   );
 
   static const _backIcon = 'assets/icons/icon_arrow-back-circle.svg';
@@ -135,14 +135,31 @@ class _IdOcrScreenState extends ConsumerState<IdOcrScreen> {
     await _runOcr();
   }
 
-  Future<void> _runOcr() async {
+    Future<void> _runOcr() async {
     if (_image == null) return;
+
+    // 🔹 ดึง accessToken แบบเดียวกับ photo_verification_service.dart
+    final userState = ref.read(userStoreProvider);
+    final accessToken = userState['accessToken'] as String?;
+
+    if (accessToken == null || accessToken.isEmpty) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('เซสชันหมดอายุ กรุณาเข้าสู่ระบบใหม่'),
+          ),
+        );
+      }
+      return;
+    }
+
     setState(() => _busy = true);
 
     try {
       final result = await ThaiIdOcrService.ocr(
         cfg: _ocrCfg,
         imageFile: _image!,
+        bearerToken: accessToken, // 🔹 ส่ง token เข้าไป
       );
 
       // ถ้า OCR ไม่คืนรูปใบหน้ามา ให้ fallback เป็น bytes ของรูปทั้งใบ
@@ -156,8 +173,8 @@ class _IdOcrScreenState extends ConsumerState<IdOcrScreen> {
       setState(() {
         _ocrResult = result;
         _fullName = result.fullName;
-        _dob = result.birthDate; // มาจาก th_dob -> ค.ศ. แล้ว
-        _gender = result.gender; // ชาย/หญิง/อื่นๆ
+        _dob = result.birthDate;
+        _gender = result.gender;
         _cardFace = faceBytes;
 
         _thFirstName = result.thFname;
@@ -177,6 +194,7 @@ class _IdOcrScreenState extends ConsumerState<IdOcrScreen> {
       if (mounted) setState(() => _busy = false);
     }
   }
+
 
   Future<void> _submit() async {
     if (_ocrResult == null || _image == null) {

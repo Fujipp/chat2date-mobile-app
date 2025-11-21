@@ -7,9 +7,12 @@ import 'package:http/http.dart' as http;
 import 'package:intl/intl.dart';
 
 class ThaiIdOcrConfig {
-  final String endpoint; // ชี้ไปที่ Backend: /kyc/ocr-thaiid
-  final String apiKey; // ไม่ได้ใช้แล้ว แต่คง field ไว้เฉย ๆ
-  const ThaiIdOcrConfig({required this.endpoint, this.apiKey = ''});
+  final String endpoint; // ชี้ไปที่ iApp API: /v3/store/ekyc/thai-national-id-card/front
+  final String apiKey;
+  const ThaiIdOcrConfig({
+    required this.endpoint,
+    required this.apiKey,
+  });
 }
 
 class ThaiIdOcrResult {
@@ -47,17 +50,24 @@ class ThaiIdOcrService {
     required ThaiIdOcrConfig cfg,
     required File imageFile,
   }) async {
-    // ✅ 1) อ่านไฟล์ → base64
-    final bytes = await imageFile.readAsBytes();
-    final b64 = base64Encode(bytes);
-
-    // ✅ 2) ยิงเข้า Backend แทน (Dev config endpoint ให้เป็น /kyc/ocr-thaiid)
+    // 1) สร้าง MultipartRequest ตามตัวอย่าง Dart ของ iApp
     final uri = Uri.parse(cfg.endpoint);
-    final res = await http.post(
-      uri,
-      headers: {'Content-Type': 'application/json'},
-      body: jsonEncode({'imageBase64': b64}),
+    final request = http.MultipartRequest('POST', uri);
+
+    // header: apikey
+    request.headers['apikey'] = cfg.apiKey;
+
+    // แนบไฟล์บัตร
+    request.files.add(
+      await http.MultipartFile.fromPath('file', imageFile.path),
     );
+
+    // ถ้าอยากได้ image/ bbox เพิ่ม สามารถเพิ่ม options ได้
+    // request.fields['options'] = 'get_bbox,get_image';
+
+    // 2) ส่ง request
+    final streamed = await request.send();
+    final res = await http.Response.fromStream(streamed);
 
     if (res.statusCode != 200) {
       throw 'OCR HTTP ${res.statusCode}: ${res.body}';
@@ -65,13 +75,13 @@ class ThaiIdOcrService {
 
     final Map<String, dynamic> json = jsonDecode(res.body);
 
-    // ฝั่ง Backend forward body จาก iApp มาเหมือนเดิม
+    // ตรวจ error_message ตาม doc
     final err = (json['error_message'] ?? '') as String;
     if (err.isNotEmpty) {
       throw 'OCR error: $err';
     }
 
-    // ===== Fullname (ไทยก่อน, สำรองด้วยการประกอบ) =====
+    // ===== ดึงข้อมูลตาม field ของ iApp =====
     final thName = (json['th_name'] ?? '') as String;
     final thF = (json['th_fname'] ?? '') as String;
     final thL = (json['th_lname'] ?? '') as String;
@@ -86,12 +96,12 @@ class ThaiIdOcrService {
       (enF.isNotEmpty || enL.isNotEmpty) ? '$enF $enL'.trim() : '',
     ].firstWhere((s) => s.trim().isNotEmpty, orElse: () => '');
 
-    // ===== DOB =====
+    // DOB
     final thDobRaw = (json['th_dob'] ?? '') as String;
     final enDobRaw = (json['en_dob'] ?? '') as String;
     final dob = _parseThaiOrEnglishDob(thDobRaw, enDobRaw);
 
-    // ===== เพศ =====
+    // เพศ
     final g = ((json['gender'] ?? '') as String).trim().toLowerCase();
     final gender = switch (g) {
       'male' => 'ชาย',
@@ -99,15 +109,13 @@ class ThaiIdOcrService {
       _ => 'อื่นๆ',
     };
 
-    // ===== รูปหน้า (Base64) จาก iApp =====
+    // รูปหน้า base64
     Uint8List? faceBytes;
     final faceB64 = (json['face'] ?? '') as String;
     if (faceB64.isNotEmpty) {
       try {
         faceBytes = base64Decode(faceB64);
-      } catch (_) {
-        // ถ้าถอด base64 ไม่ได้ ปล่อยเป็น null
-      }
+      } catch (_) {}
     }
 
     final cardId = (json['id_number'] ?? '') as String;
@@ -123,7 +131,7 @@ class ThaiIdOcrService {
     );
   }
 
-  // ======= helper เดิม (ไม่ต้องแก้) =======
+  // ======= helpers เดิมใช้ต่อได้ =======
   static DateTime _parseThaiOrEnglishDob(String thDob, String enDob) {
     if (thDob.trim().isNotEmpty) {
       return _parseThaiDob(thDob);
