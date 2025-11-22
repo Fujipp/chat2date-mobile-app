@@ -57,7 +57,9 @@ class UserService {
     return User.fromJson(data);
   }
 
-  Future<Map<String, dynamic>> addPreferenceUser(Map<String, Object> preference) async {
+  Future<Map<String, dynamic>> addPreferenceUser(
+    Map<String, Object> preference,
+  ) async {
     final userState = ref.read(userStoreProvider);
     final accessToken = "${userState['accessToken']}";
 
@@ -102,30 +104,24 @@ class UserService {
   }
 
   static Future<bool> checkPhone(String phone) async {
-    // 1. แก้ไข Return Type เป็น Future<bool>
     final response = await http.post(
       Uri.parse('${ApiBase.baseUrl}/users/phone'),
-      headers: {
-        'Content-Type': 'application/json',
-      }, // ต้องเพิ่ม header สำหรับ JSON
-      // 2. แก้ไข body ให้เป็น Map ที่ถูกต้อง
+      headers: {'Content-Type': 'application/json'},
       body: jsonEncode({'phoneNumber': phone}),
     );
 
-    // 3. จัดการสถานะการตอบกลับ
     if (response.statusCode == 200) {
+      // มี user → true
       final data = jsonDecode(response.body);
-
-      // คืนค่าตามการตอบกลับของ Backend
-      if (data is bool) {
-        return data;
-      } else {
-        throw Exception(
-          'Unexpected response format from server: expected boolean.',
-        );
-      }
+      return data != null; // Optional<User> → ถ้าไม่ null ถือว่ามี user
     }
 
+    if (response.statusCode == 404) {
+      // ไม่มี user → false
+      return false;
+    }
+
+    // error อื่นที่ไม่คาดคิด
     throw Exception(
       'Check phone failed with status ${response.statusCode}: ${response.body}',
     );

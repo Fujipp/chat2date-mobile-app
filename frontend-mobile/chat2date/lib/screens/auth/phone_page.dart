@@ -23,13 +23,17 @@ class _PhonePageState extends State<PhonePage> {
   }
 
   String _normalizePhone(String raw) {
-    // เอาเฉพาะตัวเลข + แปลง 66xxxxxxxxx -> 0xxxxxxxxx
     var p = raw.replaceAll(RegExp(r'\D'), '');
-    if (p.startsWith('66') && p.length >= 11) p = '0${p.substring(2)}';
+    // ถ้าไม่ขึ้นต้นด้วย 0 ให้เติม 0 ให้อัตโนมัติ
+    if (!p.startsWith('0')) {
+      p = '0$p';
+    }
+
     return p;
   }
 
   bool _isValidThaiMobile(String p) {
+    // ถ้าขึ้นต้นด้วย 0 → ต้องยาว 10 ตัว เช่น 08xxxxxxxx
     return RegExp(r'^(06|08|09)\d{8}$').hasMatch(p);
   }
 
@@ -88,17 +92,20 @@ class _PhonePageState extends State<PhonePage> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 // ปุ่มย้อนกลับ (ไปหน้า /policy)
-                if (!loginOtp)
-                  IconButton(
-                    splashRadius: 26,
-                    onPressed: () =>
-                        Navigator.pushReplacementNamed(context, '/policy'),
-                    icon: SvgPicture.asset(
-                      'assets/icons/icon_arrow-back-circle.svg',
-                      width: 32,
-                      height: 32,
-                    ),
+                IconButton(
+                  splashRadius: 26,
+                  onPressed: () => {
+                    if (loginOtp)
+                      {Navigator.pushReplacementNamed(context, '/home')}
+                    else
+                      {Navigator.pushReplacementNamed(context, '/policy')},
+                  },
+                  icon: SvgPicture.asset(
+                    'assets/icons/icon_arrow-back-circle.svg',
+                    width: 32,
+                    height: 32,
                   ),
+                ),
                 const SizedBox(height: 8),
 
                 // หัวข้อ

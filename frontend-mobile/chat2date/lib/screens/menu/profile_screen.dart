@@ -33,11 +33,8 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
 
   void _loadInitialData() async {
     final userStore = ref.read(userStoreProvider) as Map<String, dynamic>?;
-    //final userId = userStore?['user']?['userId'];
-    //final accessToken = userStore?['accessToken'];
-    final String userId = "1";
-    final accessToken =
-        "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIwNjI2NDM0MTY1Iiwicm9sZSI6IlVTRVIiLCJpc3MiOiJjaGF0MmRhdGUiLCJuYW1lIjoiVW5rbm93biBVbmtub3duIiwiY2lkIjoiMDAwMTQ3MjI5NDM0MSIsImlhdCI6MTc2MzcxMDA5NiwiZXhwIjoyMTc5MDQzNzEwMDk2fQ.mOEZc07knlO1rrwJzLInYrTvMaiqywEwCCekdkI_du4";
+    final userId = userStore?['user']?['userId'];
+    final accessToken = userStore?['accessToken'];
     final userById = await ref.read(userServiceProvider).getUser(userId);
     ref.read(userStoreProvider.notifier).setUser(userById, accessToken);
     setState(() {

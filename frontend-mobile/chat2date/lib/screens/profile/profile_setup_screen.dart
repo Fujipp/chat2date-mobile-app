@@ -114,7 +114,7 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
               required: true,
               controller: _lifestyleCtrl,
               suffixIcon: Icons.arrow_circle_right_rounded,
-
+              readOnly: true,
               onSuffixTap: () async {
                 final result = await Navigator.pushNamed(
                   context,
@@ -146,7 +146,7 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
               required: true,
               controller: _interestsCtrl,
               suffixIcon: Icons.arrow_circle_right_rounded,
-
+              readOnly: true,
               onSuffixTap: () async {
                 final result = await Navigator.pushNamed(
                   context,
@@ -207,25 +207,41 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
                   return;
                 }
 
-                if (_selectedTravelStyles.isEmpty) {
+                if (_selectedTravelStyles.length < 2 ||
+                    _selectedTravelStyles.length > 3) {
                   ScaffoldMessenger.of(context).showSnackBar(
                     const SnackBar(
-                      content: Text('กรุณาเลือกสไตล์การท่องเที่ยว'),
+                      content: Text('กรุณาเลือกสไตล์การท่องเที่ยว 2–3 ข้อ'),
                     ),
                   );
                   return;
                 }
 
-                if (_selectedLifestyles.isEmpty) {
+                if (_selectedLifestyles.length < 3 ||
+                    _selectedLifestyles.length > 5) {
                   ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('กรุณาเลือกไลฟ์สไตล์')),
+                    const SnackBar(
+                      content: Text('กรุณาเลือกไลฟ์สไตล์ 3–5 ข้อ'),
+                    ),
                   );
                   return;
                 }
 
-                if (_selectedInterests.isEmpty) {
+                // ตรวจสอบ Interests
+                if (_selectedInterests.length < 3 ||
+                    _selectedInterests.length > 5) {
                   ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('กรุณาเลือกความสนใจ')),
+                    const SnackBar(content: Text('กรุณาเลือกความสนใจ 3–5 ข้อ')),
+                  );
+                  return;
+                }
+
+                // ตรวจสอบ Tags สูงสุด 5 (ไม่บังคับเลือก)
+                if (_selectedTags.length > 5) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('สามารถเลือก Tag สูงสุด 5 ข้อ'),
+                    ),
                   );
                   return;
                 }
@@ -246,7 +262,7 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
                 try {
                   final userStore =
                       ref.read(userStoreProvider) as Map<String, dynamic>?;
-                    
+
                   final oldUser = userStore?['user'] as User;
 
                   if (oldUser.userId == null || oldUser.version == null) return;
@@ -267,8 +283,9 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
 
                   final update = await userService.updateUser(user);
 
-                  final addPreference = await userService.addPreferenceUser(preference);
-
+                  final addPreference = await userService.addPreferenceUser(
+                    preference,
+                  );
                 } catch (e) {
                   throw Exception(e);
                 }

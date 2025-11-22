@@ -7,6 +7,7 @@ class DsTextField extends StatelessWidget {
     this.label,
     this.required = false,
     this.enabled = true,
+    this.readOnly = false,
     this.hintText,
     this.suffixIcon,
     this.prefixIcon,
@@ -30,6 +31,7 @@ class DsTextField extends StatelessWidget {
   final VoidCallback? onSuffixTap;
   final TextInputType? keyboardType; // ✅ เพิ่ม
   final ValueChanged<String>? onChanged; // ✅ เพิ่ม
+  final bool readOnly;
 
   final double? labelFontSize;
   final double? inputFontSize;
@@ -71,6 +73,7 @@ class DsTextField extends StatelessWidget {
             controller: controller,
             keyboardType: keyboardType, // ✅ ใช้งานจริง
             onChanged: onChanged, // ✅ ใช้งานจริง
+            readOnly: readOnly,
             style: TextStyle(
               color: enabled ? AppColors.textPrimary : AppColors.textMuted,
               fontSize: inputSize,

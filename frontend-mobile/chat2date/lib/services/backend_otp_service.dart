@@ -44,7 +44,6 @@ class BackendOtpService {
 
   static Future<String> sendOtp(String phoneNumber) async {
     final deviceId = await getDeviceId();
-    print(deviceId);
     final uri = Uri.parse('$_base/auth/request-otp');
     final res = await http
         .post(

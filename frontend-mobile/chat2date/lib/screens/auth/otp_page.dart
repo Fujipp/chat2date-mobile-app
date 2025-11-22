@@ -124,8 +124,6 @@ class _OtpPageState extends ConsumerState<OtpPage> {
       if (onLogin && !isExist) {
         throw Exception('ไม่สามารถเข้าสู่ระบบได้ เนื่องจากไม่มีเบอร์นี้ในระบบ');
       }
-      print(onLogin);
-      print(!onLogin);
       if (!onLogin && isExist) {
         throw Exception(
           'ไม่สามารถลงทะเบียนเบอร์นี้ได้ เนื่องจากมีเบอร์นี้ในระบบแล้ว',
@@ -144,7 +142,11 @@ class _OtpPageState extends ConsumerState<OtpPage> {
         ref.read(userStoreProvider.notifier).setUser(user, accessToken);
         ref.watch(userStoreProvider);
         if (user.accountStatus == AccountStatus.PENDING) {
-          Navigator.pushReplacementNamed(context, '/kyc-id-ocr');
+          if (onLogin) {
+            Navigator.pushNamed(context, '/policy', arguments: {"goKyc": true});
+          } else {
+            Navigator.pushReplacementNamed(context, '/kyc-id-ocr');
+          }
         } else if (user.accountStatus == AccountStatus.ACTIVE) {
           Navigator.pushReplacementNamed(context, '/discovery');
         } else {
@@ -220,8 +222,9 @@ class _OtpPageState extends ConsumerState<OtpPage> {
                 // ปุ่มย้อนกลับ -> /phone
                 IconButton(
                   splashRadius: 26,
-                  onPressed: () =>
-                      Navigator.pushReplacementNamed(context, '/phone'),
+                  onPressed: () => {
+                    Navigator.pushNamed(context, '/phone', arguments: onLogin),
+                  },
                   icon: SvgPicture.asset(
                     'assets/icons/icon_arrow-back-circle.svg',
                     width: 32,

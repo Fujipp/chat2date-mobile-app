@@ -61,7 +61,7 @@ class _PreferenceCardState extends State<PreferenceCard> {
                   text: widget.title,
                   style: const TextStyle(
                     color: Color(0xFF0F172A),
-                    fontSize: 16,
+                    fontSize: 20,
                     fontWeight: FontWeight.w300,
                   ),
                 ),

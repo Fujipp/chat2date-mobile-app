@@ -34,6 +34,11 @@ class _PolicyPageState extends State<PolicyPage> {
 
   @override
   Widget build(BuildContext context) {
+    final args = ModalRoute.of(context)?.settings.arguments;
+    bool onKyc = false;
+    if (args is Map<String, dynamic>) {
+      onKyc = args['onKyc'] as bool? ?? false;
+    }
     return Scaffold(
       backgroundColor: Colors.white,
       // เอากรอบมือถือออก: ไม่ใช้ AspectRatio + Container + ShapeDecoration แล้ว
@@ -190,7 +195,12 @@ class _PolicyPageState extends State<PolicyPage> {
                         size: DsButtonSize.md,
                         variant: DsButtonVariant.primary,
                         onPressed: _accepted
-                            ? () => Navigator.pushNamed(context, '/phone')
+                            ? () => {
+                                if (onKyc)
+                                  {Navigator.pushNamed(context, '/kyc-id-ocr')}
+                                else
+                                  {Navigator.pushNamed(context, '/phone')},
+                              }
                             : null, // ❌ ยังไม่ติ๊ก = ปิดปุ่ม
                       ),
                     ),

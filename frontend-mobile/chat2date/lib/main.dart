@@ -27,7 +27,7 @@ class MyApp extends StatelessWidget {
       title: 'Component Test',
       theme: buildLightTheme(),
       navigatorKey: navigatorKey,
-      initialRoute: '/face-scan', //เวลาโค้ดเปลี่ยนเป็น path ตัวเองเอาไว้แสดง
+      initialRoute: '/splash', //เวลาโค้ดเปลี่ยนเป็น path ตัวเองเอาไว้แสดง
       routes: {
         //Test
         '/test': (context) => const ComponentTestScreen(),
