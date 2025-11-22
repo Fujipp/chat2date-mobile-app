@@ -21,7 +21,7 @@ class _KycResultSuccessScreenState extends State<KycResultSuccessScreen> {
     super.initState();
 
     // Auto กลับ /home หลัง 100 วินาที (พฤติกรรมเดิม)
-    _autoTimer = Timer(const Duration(seconds: 100), () {
+    _autoTimer = Timer(const Duration(seconds: 5), () {
       if (!mounted) return;
       Navigator.pop(context); // ปิดหน้าปัจจุบัน
       Navigator.pushNamed(context, '/home');
@@ -114,7 +114,7 @@ class _KycResultSuccessScreenState extends State<KycResultSuccessScreen> {
 
                       // บอกนิดนึงว่าเดี๋ยวจะ auto กลับหน้าแรก
                       const Text(
-                        'ระบบจะพากลับหน้าแรกอัตโนมัติภายใน 100 วินาที',
+                        'ระบบจะพาไปหน้าถัดไปอัตโนมัติภายใน 5 วินาที',
                         textAlign: TextAlign.center,
                         style: TextStyle(
                           color: Color(0xFF94A3B8),

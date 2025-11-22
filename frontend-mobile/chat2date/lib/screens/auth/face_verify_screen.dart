@@ -135,7 +135,7 @@ class _FaceVerifyScreenState extends ConsumerState<FaceVerifyScreen>
     _sequence
       ..clear()
       ..add(PoseStep.center)
-      ..addAll(moves)
+      ..addAll(pool)
       ..add(PoseStep.center);
 
     _currentIndex = 0;
@@ -153,9 +153,9 @@ class _FaceVerifyScreenState extends ConsumerState<FaceVerifyScreen>
     case PoseStep.down:
       return 'ก้มหน้าเล็กน้อย';
     case PoseStep.left:
-      return 'หันหน้าไปทางซ้ายเล็กน้อย';
-    case PoseStep.right:
       return 'หันหน้าไปทางขวาเล็กน้อย';
+    case PoseStep.right:
+      return 'หันหน้าไปทางซ้ายเล็กน้อย';
     case PoseStep.smile:
       return 'ยิ้มให้กล้องหน่อย 😄';
   }
@@ -376,12 +376,14 @@ class _FaceVerifyScreenState extends ConsumerState<FaceVerifyScreen>
         case PoseStep.left:
           // หันหน้าไปทางซ้าย (เรา invert yaw แล้วสำหรับกล้องหน้า)
           correct = eyesOpen && y >= yawLeftMin;
-          hint = correct ? 'ดีมาก… ค้างไว้' : 'หันหน้าไปทางซ้ายเล็กน้อย';
+          // 🔁 สลับข้อความ: left → ขวา
+          hint = correct ? 'ดีมาก… ค้างไว้' : 'หันหน้าไปทางขวาเล็กน้อย';
           break;
 
         case PoseStep.right:
           correct = eyesOpen && y <= -yawRightMin;
-          hint = correct ? 'ดีมาก… ค้างไว้' : 'หันหน้าไปทางขวาเล็กน้อย';
+          // 🔁 สลับข้อความ: right → ซ้าย
+          hint = correct ? 'ดีมาก… ค้างไว้' : 'หันหน้าไปทางซ้ายเล็กน้อย';
           break;
 
         case PoseStep.down:
