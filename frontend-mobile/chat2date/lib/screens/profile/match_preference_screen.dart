@@ -95,9 +95,9 @@ class _MatchPreferenceScreenState extends ConsumerState<MatchPreferenceScreen> {
               ),
 
               items: const [
-                DropdownMenuItem(value: 'SAME', child: Text('เพศเดียวกัน')),
-                DropdownMenuItem(value: 'OPPOSITE', child: Text('เพศตรงข้าม')),
-                DropdownMenuItem(value: 'BOTH', child: Text('ได้ทั้งหมด')),
+                DropdownMenuItem(value: 'ผู้ชาย', child: Text('MALE')),
+                DropdownMenuItem(value: 'ผู้หญิง', child: Text('FEMALE')),
+                DropdownMenuItem(value: 'ได้ทั้งคู่', child: Text('BOTH')),
               ],
 
               onChanged: (value) {

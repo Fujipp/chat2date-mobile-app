@@ -142,6 +142,7 @@ class _OtpPageState extends ConsumerState<OtpPage> {
         final user = User.fromJson(data['body']['user']);
         final accessToken = data['body']['accessToken'];
         ref.read(userStoreProvider.notifier).setUser(user, accessToken);
+        ref.watch(userStoreProvider);
         if (user.accountStatus == AccountStatus.PENDING) {
           Navigator.pushReplacementNamed(context, '/kyc-id-ocr');
         } else if (user.accountStatus == AccountStatus.ACTIVE) {

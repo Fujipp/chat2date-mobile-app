@@ -2,7 +2,7 @@
 import 'dart:convert';
 import 'dart:io';
 import 'dart:typed_data';
-
+ 
 import 'package:chat2date/components/index.dart'; // DsButton / inputs
 import 'package:chat2date/models/face_scan_args.dart'; // ใช้ส่ง args ไปหน้า face-scan
 import 'package:chat2date/models/user.dart';
@@ -17,40 +17,40 @@ import 'package:flutter_svg/flutter_svg.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
 import 'package:permission_handler/permission_handler.dart';
-
+ 
 class IdOcrScreen extends ConsumerStatefulWidget {
   const IdOcrScreen({super.key});
-
+ 
   @override
   ConsumerState<IdOcrScreen> createState() => _IdOcrScreenState();
 }
-
+ 
 class _IdOcrScreenState extends ConsumerState<IdOcrScreen> {
   // === CONFIG ===
   late final ThaiIdOcrConfig _ocrCfg;
-
+ 
   static const _backIcon = 'assets/icons/icon_arrow-back-circle.svg';
   static const _maxFileBytes = 10 * 1024 * 1024; // 10MB
-
+ 
   File? _image;
   Uint8List? _cardFace;
   bool _busy = false;
-
+ 
   String? _fullName;
   DateTime? _dob;
   String? _gender;
-
+ 
   String? _thFirstName;
   String? _thLastName;
-
+ 
   ThaiIdOcrResult? _ocrResult;
-
+ 
   final _fmt = DateFormat('dd/MM/yyyy');
-
+ 
   @override
   void initState() {
     super.initState();
-
+ 
     _ocrCfg = ThaiIdOcrConfig(
       endpoint:
           dotenv.env['THAIID_ENDPOINT_FRONT'] ??
@@ -58,7 +58,7 @@ class _IdOcrScreenState extends ConsumerState<IdOcrScreen> {
       apiKey: dotenv.env['THAIID_API_KEY'] ?? '',
     );
   }
-
+ 
   /// เปิด BottomSheet เลือกแหล่งรูป แล้วเรียก _pick(...)
   Future<void> _chooseSource() async {
     FocusScope.of(context).unfocus();
@@ -89,9 +89,9 @@ class _IdOcrScreenState extends ConsumerState<IdOcrScreen> {
         );
       },
     );
-
+ 
     if (src == null) return;
-
+ 
     if (src == ImageSource.gallery) {
       // Android 13+ (API 33)
       var ph = await Permission.photos.request();
@@ -99,7 +99,7 @@ class _IdOcrScreenState extends ConsumerState<IdOcrScreen> {
         // Android 12 -
         ph = await Permission.storage.request();
       }
-
+ 
       if (!ph.isGranted) {
         if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
@@ -108,10 +108,10 @@ class _IdOcrScreenState extends ConsumerState<IdOcrScreen> {
         return;
       }
     }
-
+ 
     await _pick(src);
   }
-
+ 
   Future<void> _pick(ImageSource src) async {
     final picker = ImagePicker();
     final x = await picker.pickImage(
@@ -120,7 +120,7 @@ class _IdOcrScreenState extends ConsumerState<IdOcrScreen> {
       maxWidth: 2600,
     );
     if (x == null) return;
-
+ 
     final f = File(x.path);
     final size = await f.length();
     if (size > _maxFileBytes) {
@@ -130,44 +130,44 @@ class _IdOcrScreenState extends ConsumerState<IdOcrScreen> {
       ).showSnackBar(const SnackBar(content: Text('ไฟล์ใหญ่เกิน 10MB')));
       return;
     }
-
+ 
     setState(() => _image = f);
-
+ 
     // เรียก OCR ต่อเลย
     await _runOcr();
   }
-
+ 
   Future<void> _runOcr() async {
     if (_image == null) return;
-
+ 
     setState(() => _busy = true);
-
+ 
     try {
       // เรียก iApp OCR ตรง ๆ ไม่ต้องใช้ accessToken
       final result = await ThaiIdOcrService.ocr(
         cfg: _ocrCfg,
         imageFile: _image!,
       );
-
+ 
       // ถ้า OCR ไม่คืนรูปใบหน้ามา ให้ fallback เป็น bytes ของรูปทั้งใบ
       final fallbackBytes = await _image!.readAsBytes();
       final faceBytes = result.cardFaceBytes ?? fallbackBytes;
       final base64Card = base64Encode(faceBytes);
-
+ 
       // เก็บ base64 ของรูปหน้าไว้ใน userStore (ใช้ที่อื่นต่อได้)
       ref.read(userStoreProvider.notifier).setCardFaceBytes(base64Card);
-
+ 
       setState(() {
         _ocrResult = result;
         _fullName = result.fullName;
         _dob = result.birthDate;
         _gender = result.gender;
         _cardFace = faceBytes;
-
+ 
         _thFirstName = result.thFname;
         _thLastName = result.thLname;
       });
-
+ 
       // if (!mounted) return;
       // ScaffoldMessenger.of(context).showSnackBar(
       //   const SnackBar(content: Text('สแกนสำเร็จ เติมข้อมูลอัตโนมัติแล้ว')),
@@ -181,7 +181,7 @@ class _IdOcrScreenState extends ConsumerState<IdOcrScreen> {
       if (mounted) setState(() => _busy = false);
     }
   }
-
+ 
   Future<void> _submit() async {
     if (_ocrResult == null || _image == null) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -189,37 +189,85 @@ class _IdOcrScreenState extends ConsumerState<IdOcrScreen> {
       );
       return;
     }
-
+ 
+    setState(() => _busy = true);
+ 
     try {
-      final storage = const FlutterSecureStorage();
-      final userId = await storage.read(key: 'userId');
-      final versionStr = await storage.read(key: 'version') ?? '0';
-      final version = int.tryParse(versionStr) ?? 0;
-
-      if (userId == null) throw Exception('Missing userId');
-
-      // แปลง gender เป็น enum หรือค่าที่ backend ต้องการ
+      // 1. อ่านจาก userStore ก่อน
+      final userStoreNotifier = ref.read(userStoreProvider.notifier);
+      User? currentUser = userStoreNotifier.user;
+      String? accessToken = userStoreNotifier.accessToken;
+ 
+      print('📦 Current User from Store: ${currentUser?.toJson()}');
+      print('🔑 Access Token: $accessToken');
+ 
+      // 2. ถ้าไม่มีใน store ให้ลองดึงจาก storage (กรณีเปิดแอพใหม่)
+      if (currentUser == null || accessToken == null) {
+        final storage = const FlutterSecureStorage();
+        final userId = await storage.read(key: 'userId');
+        accessToken = await storage.read(key: 'accessToken');
+ 
+        print('💾 UserId from Storage: $userId');
+        print('💾 Token from Storage: $accessToken');
+ 
+        if (userId == null || accessToken == null) {
+          throw Exception('กรุณาเข้าสู่ระบบใหม่');
+        }
+ 
+        // ดึงข้อมูล User ล่าสุดจาก API
+        final userService = ref.read(userServiceProvider);
+        currentUser = await userService.getUser(userId);
+ 
+        print('✅ Fetched User from API: ${currentUser.toJson()}');
+ 
+        // อัปเดตลง userStore
+        userStoreNotifier.setUser(currentUser, accessToken);
+      }
+ 
+      // 3. แปลง gender
       final sex = (_ocrResult!.gender == 'ชาย')
           ? Sex.MALE
           : (_ocrResult!.gender == 'หญิง')
           ? Sex.FEMALE
           : null;
-
+ 
+      // 4. สร้าง User object ใหม่ โดยรวมข้อมูลเดิม + ข้อมูลจาก OCR
       final userToUpdate = User(
-        userId: userId,
-        version: version,
+        userId: currentUser.userId,
+        version: currentUser.version, // ใช้ version ล่าสุด
         firstname: _ocrResult!.thFname,
         lastname: _ocrResult!.thLname,
         birthday: _dob,
         sex: sex,
         cardId: _ocrResult!.cardId,
+        nickname: currentUser.nickname, // เก็บ nickname เดิมไว้
       );
+ 
+      print('📤 Updating user...');
+      print('User to update: ${userToUpdate.toJson()}');
+ 
+      // 5. เรียก API
       final userService = ref.read(userServiceProvider);
-      await userService.updateUser(userToUpdate);
-
-      // ส่งต่อรูปหน้าไปหน้า face-scan
+      final updatedUser = await userService.updateUser(userToUpdate);
+ 
+      print('✅ User updated: ${updatedUser.toJson()}');
+ 
+      // 6. อัปเดต userStore และ SecureStorage
+      userStoreNotifier.setUser(updatedUser, accessToken);
+ 
+      final storage = const FlutterSecureStorage();
+      await storage.write(key: 'userId', value: updatedUser.userId);
+      await storage.write(
+        key: 'version',
+        value: updatedUser.version.toString(),
+      );
+      await storage.write(key: 'accessToken', value: accessToken);
+ 
+      print('✅ Store and Storage updated');
+ 
+      // 7. ส่งต่อรูปหน้าไปหน้า face-scan
       final faceBytes = _cardFace ?? await _image!.readAsBytes();
-
+ 
       if (!mounted) return;
       Navigator.pushNamed(
         context,
@@ -231,14 +279,22 @@ class _IdOcrScreenState extends ConsumerState<IdOcrScreen> {
           gender: _gender!,
         ),
       );
-    } catch (e) {
+    } catch (e, stackTrace) {
+      print('❌ Submit Error: $e');
+      print('Stack trace: $stackTrace');
+ 
       if (!mounted) return;
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('อัปเดตผู้ใช้ล้มเหลว: $e')));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('อัปเดตผู้ใช้ล้มเหลว: $e'),
+          duration: const Duration(seconds: 5),
+        ),
+      );
+    } finally {
+      if (mounted) setState(() => _busy = false);
     }
   }
-
+ 
   int _calcAgeForDisplay(DateTime dob) {
     final now = DateTime.now();
     DateTime d = dob;
@@ -249,11 +305,11 @@ class _IdOcrScreenState extends ConsumerState<IdOcrScreen> {
     if (DateTime(now.year, d.month, d.day).isAfter(now)) age--;
     return age.clamp(0, 120);
   }
-
+ 
   @override
   Widget build(BuildContext context) {
     const borderColor = Color(0x599CABC2);
-
+ 
     return Scaffold(
       backgroundColor: Colors.white,
       // เอากรอบมือถือออก: ใช้ SafeArea + Center + ConstrainedBox + Padding
@@ -285,9 +341,9 @@ class _IdOcrScreenState extends ConsumerState<IdOcrScreen> {
                     padding: EdgeInsets.zero,
                     visualDensity: VisualDensity.compact,
                   ),
-
+ 
                   const SizedBox(height: 12),
-
+ 
                   // เนื้อหา: กรอบรูป -> ฟิลด์ -> ปุ่มยืนยัน
                   Expanded(
                     child: SingleChildScrollView(
@@ -353,9 +409,9 @@ class _IdOcrScreenState extends ConsumerState<IdOcrScreen> {
                               ),
                             ),
                           ),
-
+ 
                           const SizedBox(height: 24),
-
+ 
                           // ===== กลุ่มฟิลด์ (กว้าง 295) =====
                           SizedBox(
                             width: 295,
@@ -386,9 +442,9 @@ class _IdOcrScreenState extends ConsumerState<IdOcrScreen> {
                               ],
                             ),
                           ),
-
+ 
                           const SizedBox(height: 24),
-
+ 
                           // ===== ปุ่มยืนยัน =====
                           SizedBox(
                             width: 231,
@@ -399,7 +455,7 @@ class _IdOcrScreenState extends ConsumerState<IdOcrScreen> {
                               onPressed: _busy ? null : _submit,
                             ),
                           ),
-
+ 
                           if (_busy) ...[
                             const SizedBox(height: 12),
                             const SizedBox(
@@ -423,13 +479,13 @@ class _IdOcrScreenState extends ConsumerState<IdOcrScreen> {
     );
   }
 }
-
+ 
 /// ช่องแสดงผลแบบ disable ตามดีไซน์
 class _DisabledField extends StatelessWidget {
   final String label;
   final String value;
   const _DisabledField({required this.label, required this.value});
-
+ 
   @override
   Widget build(BuildContext context) {
     return SizedBox(
@@ -475,3 +531,4 @@ class _DisabledField extends StatelessWidget {
     );
   }
 }
+ 

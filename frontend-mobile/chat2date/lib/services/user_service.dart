@@ -57,7 +57,7 @@ class UserService {
     return User.fromJson(data);
   }
 
-  Future<User> addPreferenceUser(Map<String, Object> preference) async {
+  Future<Map<String, dynamic>> addPreferenceUser(Map<String, Object> preference) async {
     final userState = ref.read(userStoreProvider);
     final accessToken = "${userState['accessToken']}";
 
@@ -75,10 +75,10 @@ class UserService {
     }
 
     final data = jsonDecode(response.body);
-    return User.fromJson(data);
+    return data;
   }
 
-  Future<User> addPreferenceMatchUser(
+  Future<Map<String, dynamic>> addPreferenceMatchUser(
     Map<String, Object> preferenceMatch,
   ) async {
     final userState = ref.read(userStoreProvider);
@@ -98,7 +98,7 @@ class UserService {
     }
 
     final data = jsonDecode(response.body);
-    return User.fromJson(data);
+    return data;
   }
 
   static Future<bool> checkPhone(String phone) async {

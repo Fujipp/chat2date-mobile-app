@@ -198,7 +198,7 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
 
             DsButton(
               label: 'ไปหน้าถัดไป',
-              onPressed: () {
+              onPressed: () async {
                 // ตรวจสอบข้อมูลก่อนส่ง
                 if (_nicknameCtrl.text.isEmpty) {
                   ScaffoldMessenger.of(context).showSnackBar(
@@ -246,16 +246,16 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
                 try {
                   final userStore =
                       ref.read(userStoreProvider) as Map<String, dynamic>?;
-                  final userId = userStore?['user']?['userId'];
-                  final version = userStore?['user']?['version'];
+                    
+                  final oldUser = userStore?['user'] as User;
 
-                  if (userId == null || version == null) return;
+                  if (oldUser.userId == null || oldUser.version == null) return;
 
                   // สร้าง Map ของ user ที่ต้องการส่งไปอัปเดต
                   final user = User(
-                    userId: userId,
+                    userId: oldUser.userId,
                     nickname: _nicknameCtrl.text,
-                    version: version,
+                    version: oldUser.version,
                   );
                   final preference = {
                     "interests": incrementedInterests,
@@ -263,13 +263,12 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
                     "tags": incrementedTag,
                     "travelStyles": incrementedTravelStyles,
                   };
+                  final userService = ref.read(userServiceProvider);
 
-                  final updatedUser = ref
-                      .read(userServiceProvider)
-                      .updateUser(user);
-                  final addPreference = ref
-                      .read(userServiceProvider)
-                      .addPreferenceUser(preference);
+                  final update = await userService.updateUser(user);
+
+                  final addPreference = await userService.addPreferenceUser(preference);
+
                 } catch (e) {
                   throw Exception(e);
                 }
