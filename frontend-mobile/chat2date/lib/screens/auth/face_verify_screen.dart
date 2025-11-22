@@ -145,21 +145,22 @@ class _FaceVerifyScreenState extends ConsumerState<FaceVerifyScreen>
   }
 
   String _hintForStep(PoseStep s) {
-    switch (s) {
-      case PoseStep.center:
-        return 'หันหน้ามองตรงกลางจอ';
-      case PoseStep.up:
-        return 'เงยหน้าเล็กน้อย';
-      case PoseStep.down:
-        return 'ก้มหน้าเล็กน้อย';
-      case PoseStep.left:
-        return 'หันหน้าไปทางขวา';
-      case PoseStep.right:
-        return 'หันหน้าไปทางซ้าย';
-      case PoseStep.smile:
-        return 'ยิ้มให้กล้องหน่อย 😄';
-    }
+  switch (s) {
+    case PoseStep.center:
+      return 'หันหน้ามองตรงกลางจอ';
+    case PoseStep.up:
+      return 'เงยหน้าเล็กน้อย';
+    case PoseStep.down:
+      return 'ก้มหน้าเล็กน้อย';
+    case PoseStep.left:
+      return 'หันหน้าไปทางซ้ายเล็กน้อย';
+    case PoseStep.right:
+      return 'หันหน้าไปทางขวาเล็กน้อย';
+    case PoseStep.smile:
+      return 'ยิ้มให้กล้องหน่อย 😄';
   }
+}
+
 
   // ---------- Start ----------
   Future<void> _startScan() async {
@@ -756,20 +757,20 @@ class _FaceVerifyScreenState extends ConsumerState<FaceVerifyScreen>
     }
 
     final isFront =
-        _cam!.description.lensDirection == CameraLensDirection.front;
+    _cam!.description.lensDirection == CameraLensDirection.front;
 
-    return Center(
-      child: Transform.scale(
-        // scale ให้เต็มจอแบบไม่ยืดหน้า
-        scale: previewRatio / deviceRatio,
-        child: AspectRatio(
-          aspectRatio: previewRatio,
-          child: Transform(
-            alignment: Alignment.center,
-            // 🔁 ถ้าเป็นกล้องหน้าให้หมุนแกน Y 180° เพื่อ “แก้” mirror
-            transform: Matrix4.identity(),
-            child: CameraPreview(_cam!),
-          ),
+return Center(
+  child: Transform.scale(
+    // scale ให้เต็มจอแบบไม่ยืดหน้า
+    scale: previewRatio / deviceRatio,
+    child: AspectRatio(
+      aspectRatio: previewRatio,
+      child: Transform(
+        alignment: Alignment.center,
+        // 🔁 ถ้าเป็นกล้องหน้าให้หมุนแกน Y 180° เพื่อ “แก้” mirror
+        transform: Matrix4.identity(),
+        child: CameraPreview(_cam!),
+      ),
         ),
       ),
     );

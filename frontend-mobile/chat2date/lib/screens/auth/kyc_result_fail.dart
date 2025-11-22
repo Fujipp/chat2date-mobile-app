@@ -104,47 +104,47 @@ class KycResultFailScreen extends StatelessWidget {
                       // ===== ระยะหายใจก่อน debug + ปุ่ม =====
                       SizedBox(height: constraints.maxHeight * 0.06),
 
-                      // ===== Debug: แสดงค่าจาก Backend =====
-                      if (score != null || matched != null || raw != null) ...[
-                        const Text(
-                          'รายละเอียดจากระบบตรวจใบหน้า (debug)',
-                          textAlign: TextAlign.center,
-                          style: TextStyle(
-                            color: Color(0xFF475569),
-                            fontSize: 14,
-                            fontFamily: 'Inter',
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                        const SizedBox(height: 4),
-                        if (score != null)
-                          Text(
-                            'score: ${score!.toStringAsFixed(3)}',
-                            style: const TextStyle(
-                              color: Color(0xFF64748B),
-                              fontSize: 13,
-                            ),
-                          ),
-                        if (matched != null)
-                          Text(
-                            'matched: $matched',
-                            style: const TextStyle(
-                              color: Color(0xFF64748B),
-                              fontSize: 13,
-                            ),
-                          ),
-                        if (raw != null) ...[
-                          const SizedBox(height: 4),
-                          Text(
-                            'raw: ${raw.toString()}',
-                            style: const TextStyle(
-                              color: Color(0xFF94A3B8),
-                              fontSize: 11,
-                            ),
-                          ),
-                        ],
-                        const SizedBox(height: 16),
-                      ],
+                      // // ===== Debug: แสดงค่าจาก Backend =====
+                      // if (score != null || matched != null || raw != null) ...[
+                      //   const Text(
+                      //     'รายละเอียดจากระบบตรวจใบหน้า (debug)',
+                      //     textAlign: TextAlign.center,
+                      //     style: TextStyle(
+                      //       color: Color(0xFF475569),
+                      //       fontSize: 14,
+                      //       fontFamily: 'Inter',
+                      //       fontWeight: FontWeight.w600,
+                      //     ),
+                      //   ),
+                      //   const SizedBox(height: 4),
+                      //   if (score != null)
+                      //     Text(
+                      //       'score: ${score!.toStringAsFixed(3)}',
+                      //       style: const TextStyle(
+                      //         color: Color(0xFF64748B),
+                      //         fontSize: 13,
+                      //       ),
+                      //     ),
+                      //   if (matched != null)
+                      //     Text(
+                      //       'matched: $matched',
+                      //       style: const TextStyle(
+                      //         color: Color(0xFF64748B),
+                      //         fontSize: 13,
+                      //       ),
+                      //     ),
+                      //   if (raw != null) ...[
+                      //     const SizedBox(height: 4),
+                      //     Text(
+                      //       'raw: ${raw.toString()}',
+                      //       style: const TextStyle(
+                      //         color: Color(0xFF94A3B8),
+                      //         fontSize: 11,
+                      //       ),
+                      //     ),
+                      //   ],
+                      //   const SizedBox(height: 16),
+                      // ],
 
                       // ===== ปุ่มลองใหม่ =====
                       SizedBox(

@@ -1,9 +1,14 @@
+// lib/screens/auth/kyc_result_success_screen.dart
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 
+// เปลี่ยน path ให้ตรงกับโปรเจกต์ Dev
+import 'package:chat2date/components/buttons/ds_button.dart';
+
 class KycResultSuccessScreen extends StatefulWidget {
   const KycResultSuccessScreen({super.key});
+
   @override
   State<KycResultSuccessScreen> createState() => _KycResultSuccessScreenState();
 }
@@ -14,10 +19,11 @@ class _KycResultSuccessScreenState extends State<KycResultSuccessScreen> {
   @override
   void initState() {
     super.initState();
-    // auto ไปหน้า /home หลัง 100 วินาที (คงพฤติกรรมเดิม)
+
+    // Auto กลับ /home หลัง 100 วินาที (พฤติกรรมเดิม)
     _autoTimer = Timer(const Duration(seconds: 100), () {
       if (!mounted) return;
-      Navigator.pop(context); // ปิด success
+      Navigator.pop(context); // ปิดหน้าปัจจุบัน
       Navigator.pushNamed(context, '/home');
     });
   }
@@ -67,7 +73,7 @@ class _KycResultSuccessScreenState extends State<KycResultSuccessScreen> {
                           softWrap: true,
                           style: TextStyle(
                             color: Color(0xFF334155),
-                            fontSize: 18, // ลดนิดให้พอดีกับจอเล็ก
+                            fontSize: 18,
                             fontFamily: 'Inter',
                             fontWeight: FontWeight.w400,
                             height: 1.35,
@@ -76,10 +82,9 @@ class _KycResultSuccessScreenState extends State<KycResultSuccessScreen> {
                         ),
                       ),
 
-                      // ระยะหายใจแบบยืดหยุ่น
                       SizedBox(height: constraints.maxHeight * 0.08),
 
-                      // ไอคอนสำเร็จ
+                      // รูป success
                       SizedBox(
                         width: 211,
                         height: 213,
@@ -89,26 +94,34 @@ class _KycResultSuccessScreenState extends State<KycResultSuccessScreen> {
                         ),
                       ),
 
-                      // เว้นช่วงก่อนจบ
                       SizedBox(height: constraints.maxHeight * 0.12),
 
-                      // ปุ่มลัดไปหน้า Home ทันที (ถ้าผู้ใช้ไม่อยากรอ)
-                      SizedBox(
-                        width: 200,
-                        height: 40,
-                        child: FilledButton(
-                          onPressed: () {
-                            _autoTimer?.cancel();
-                            Navigator.pop(context);
-                            Navigator.pushNamed(context, '/profileSetup');
-                          },
-                          style: FilledButton.styleFrom(
-                            backgroundColor: const Color(0xFF22C55E),
-                          ),
-                          child: const Text(
-                            'ไปหน้าแรกเลย',
-                            style: TextStyle(fontWeight: FontWeight.w700),
-                          ),
+                      // ปุ่มไปหน้า profile setup (สีเขียว)
+                      DsButton(
+                        label: 'ไปหน้าถัดไป',
+                        onPressed: () {
+                          _autoTimer?.cancel();
+                          Navigator.pop(context);
+                          Navigator.pushNamed(context, '/profileSetup');
+                        },
+                        variant: DsButtonVariant.secondary, // ✅ ปุ่มสีเขียว
+                        size: DsButtonSize.md,
+                        fontWeight: FontWeight.w700,
+                        fontFamily: 'Inter',
+                      ),
+
+                      const SizedBox(height: 12),
+
+                      // บอกนิดนึงว่าเดี๋ยวจะ auto กลับหน้าแรก
+                      const Text(
+                        'ระบบจะพากลับหน้าแรกอัตโนมัติภายใน 100 วินาที',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          color: Color(0xFF94A3B8),
+                          fontSize: 12,
+                          fontFamily: 'Inter',
+                          fontWeight: FontWeight.w400,
+                          height: 1.4,
                         ),
                       ),
                     ],
