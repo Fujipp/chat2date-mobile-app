@@ -29,8 +29,13 @@ public class UserLocation {
     @Column(name = "accuracy", nullable = false, precision = 6, scale = 2)
     private BigDecimal accuracy;
 
-    @ColumnDefault("CURRENT_TIMESTAMP")
-    @Column(name = "timestamp", nullable = false)
+//    @ColumnDefault("CURRENT_TIMESTAMP")
+    @Column(
+            name = "timestamp",
+            nullable = false,
+            insertable = false,
+            updatable = false
+    )
     private Instant timestamp;
 
     @OneToOne(fetch = FetchType.LAZY, optional = false)
