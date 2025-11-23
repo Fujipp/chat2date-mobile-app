@@ -314,7 +314,11 @@ public class UserService {
         preferenceUserProfileDTO.setLifeStyles(userHasLifestyles);
         preferenceUserProfileDTO.setTags(userHasTags);
         preferenceUserProfileDTO.setTravelStyles(userHasTravelstyles);
-        preferenceUserProfileDTO.setPhotos(userPhotos);
+
+        List<String> photoUrls = userPhotos.stream()
+                .map(photo -> photo.getAttributes().get("url").toString()) // สมมติ attributes เป็น Map
+                .toList();
+        preferenceUserProfileDTO.setPhotos(photoUrls);
 
         return preferenceUserProfileDTO;
     }

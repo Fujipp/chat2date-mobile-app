@@ -8,5 +8,6 @@ public class OtpValidateRequest {
     private String phoneNumber;
     private String token;    // จาก otp-send
     private String otpCode; // โค้ดที่ผู้ใช้กรอก
+    private boolean onLogin;
     private String refCode;  // optional
 }

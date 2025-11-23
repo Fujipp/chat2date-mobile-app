@@ -46,7 +46,7 @@ public class AuthController {
 
     @PostMapping("/verify-otp")
     public Map<String, Object> validate(@RequestBody OtpValidateRequest body) {
-        return client.validate(body.getToken(), body.getOtpCode(), body.getRefCode(), body.getPhoneNumber());
+        return client.validate(body.getToken(), body.getOtpCode(), body.getRefCode(), body.getPhoneNumber(), body.isOnLogin());
     }
 
     @PostMapping("/request-token")

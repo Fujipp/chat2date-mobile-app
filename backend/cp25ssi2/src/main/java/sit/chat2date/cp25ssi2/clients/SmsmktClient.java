@@ -14,6 +14,7 @@ import org.springframework.http.*;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestTemplate;
 import sit.chat2date.cp25ssi2.dto.UserDTO;
+import sit.chat2date.cp25ssi2.enums.AccountStatus;
 import sit.chat2date.cp25ssi2.exceptions.TooManyRequestException;
 import sit.chat2date.cp25ssi2.utils.UserFactory;
 import sit.chat2date.cp25ssi2.entities.User;
@@ -87,7 +88,7 @@ public class SmsmktClient {
     /**
      * ตรวจ OTP -> true/false
      */
-    public Map<String, Object> validate(String token, String otpCode, String refCode, String phoneNumber) {
+    public Map<String, Object> validate(String token, String otpCode, String refCode, String phoneNumber, boolean onLogin) {
         // URL ของ OTP validate API
 //        String url = "https://portal-otp.smsmkt.com/api/otp-validate";
 //
@@ -124,42 +125,35 @@ public class SmsmktClient {
         }
         String jwtToken = jwtTokenUtil.generateToken(phoneNumber);
         String jwtRefreshToken = jwtTokenUtil.generateRefreshToken(phoneNumber);
+        UserDTO userDto;
 
         Map<String, Object> response = new LinkedHashMap<>();
         if (valid) {
-//            if (userOptional.isEmpty()) {
-//                response.put("accessToken", jwtToken);
-//                response.put("refreshToken", jwtRefreshToken);
-//                response.put("user", user);
-//            } else {
-//                response.put("accessToken", jwtToken);
-//                response.put("refreshToken", jwtRefreshToken);
-//                response.put("user", userOptional.get());
-//            }
-            UserDTO userDto = UserDTO.builder()
-                    .id(user.getUserId())
-                    .email(user.getEmail())
-                    .phoneNumber(user.getPhoneNumber())
-                    .accountStatus(user.getAccountStatus() != null ? user.getAccountStatus().toString() : null)
-                    .build();
+            if (userOptional.isEmpty()) {
+                userDto = UserDTO.builder()
+                        .id(user.getUserId())
+                        .email(user.getEmail())
+                        .phoneNumber(user.getPhoneNumber())
+                        .accountStatus(user.getAccountStatus() != null ? user.getAccountStatus().toString() : null)
+                        .build();
 
-            response.put("user", userDto);
+            } else {
+                if (onLogin && userOptional.get().getAccountStatus() == AccountStatus.ACTIVE) {
+                    response.put("user", userOptional);
+                } else {
+                    userDto = UserDTO.builder()
+                            .id(userOptional.get().getUserId())
+                            .email(userOptional.get().getEmail())
+                            .phoneNumber(userOptional.get().getPhoneNumber())
+                            .accountStatus(userOptional.get().getAccountStatus() != null ? userOptional.get().getAccountStatus().toString() : null)
+                            .build();
+                    response.put("user", userDto);
+                }
+
+            }
             response.put("accessToken", jwtToken);
             response.put("refreshToken", jwtRefreshToken);
-
-
         }
-
-//        Map<String, Object> response = new HashMap<>();
-//        if (valid) {
-//            if (userOptional.isEmpty()) {
-//                response.put("accessToken", jwtToken);
-//                response.put("user", user);
-//            } else {
-//                response.put("accessToken", jwtToken);
-//                response.put("user", userOptional.get());
-//            }
-//        }
 
         return response;
     }

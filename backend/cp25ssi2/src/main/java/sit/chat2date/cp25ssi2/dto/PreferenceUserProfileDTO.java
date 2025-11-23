@@ -18,5 +18,5 @@ public class PreferenceUserProfileDTO {
     private List<UserHasTag> tags;
     private List<UserHasTravelstyle> travelStyles;
     private String interestedGender;
-    private List<UserPhoto> photos;
+    private List<String> photos;
 }
