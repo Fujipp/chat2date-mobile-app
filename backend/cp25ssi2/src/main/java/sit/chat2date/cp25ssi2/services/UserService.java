@@ -15,6 +15,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.server.ResponseStatusException;
 import sit.chat2date.cp25ssi2.dto.PreferenceMatchUserDTO;
 import sit.chat2date.cp25ssi2.dto.PreferenceUserDTO;
+import sit.chat2date.cp25ssi2.dto.PreferenceUserProfileDTO;
 import sit.chat2date.cp25ssi2.entities.*;
 import sit.chat2date.cp25ssi2.enums.PreferenceGender;
 import sit.chat2date.cp25ssi2.enums.PreferenceLevel;
@@ -51,6 +52,8 @@ public class UserService {
     private UserHasTravelstyleRepository userHasTravelstyleRepository;
     @Autowired
     private PreferenceMatchRepository preferenceMatchRepository;
+    @Autowired
+    private UserPhotoRepository userPhotoRepository;
 
     public User createUser(User user) {
         return userRepository.save(user);
@@ -296,6 +299,24 @@ public class UserService {
 
             joinRepo.save(joinEntity);
         }
+    }
+
+    public PreferenceUserProfileDTO getUserProfile(String id) {
+        List<UserHasInterest> userHasInterest = userHasInterestRepository.findAllByUser_UserId(id);
+        List<UserHasLifestyle> userHasLifestyles = userHasLifestyleRepository.findAllByUser_UserId(id);
+        List<UserHasTravelstyle> userHasTravelstyles = userHasTravelstyleRepository.findAllByUser_UserId(id);
+        List<UserHasTag> userHasTags = userHasTagRepository.findAllByUser_UserId(id);
+        List<UserPhoto> userPhotos = userPhotoRepository.findAllByUser_UserId(id);
+        PreferenceMatch preferenceMatch = preferenceMatchRepository.findPreferenceMatchByUser_UserId(id);
+        PreferenceUserProfileDTO preferenceUserProfileDTO = new PreferenceUserProfileDTO();
+        preferenceUserProfileDTO.setInterestedGender(preferenceMatch.getInterestedGender().toString());
+        preferenceUserProfileDTO.setInterests(userHasInterest);
+        preferenceUserProfileDTO.setLifeStyles(userHasLifestyles);
+        preferenceUserProfileDTO.setTags(userHasTags);
+        preferenceUserProfileDTO.setTravelStyles(userHasTravelstyles);
+        preferenceUserProfileDTO.setPhotos(userPhotos);
+
+        return preferenceUserProfileDTO;
     }
 
 

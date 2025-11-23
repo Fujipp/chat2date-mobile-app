@@ -48,15 +48,15 @@ public class SmsmktClient {
      * ส่ง OTP -> คืน token
      */
     public String send(String phone08, String refCode, String deviceId) {
-        String phone = normalizePhone(phone08);
-
-        // 1) ถ้ามีอยู่ใน Redis แปลว่ายังไม่ครบ 60 วินาที
-        String key = "otp:lock:" + phone + ":" + deviceId;
-        if (redis.hasKey(key)) {
-            long waitSec = Optional.ofNullable(redis.getExpire(key, TimeUnit.SECONDS)).orElse(60L);
-            throw new TooManyRequestException("กรุณารออีก " + waitSec + " วินาที ก่อนขอ OTP ใหม่");
-        }
-        redis.opsForValue().set(key, "1", 60, TimeUnit.SECONDS);
+//        String phone = normalizePhone(phone08);
+//
+//        // 1) ถ้ามีอยู่ใน Redis แปลว่ายังไม่ครบ 60 วินาที
+//        String key = "otp:lock:" + phone + ":" + deviceId;
+//        if (redis.hasKey(key)) {
+//            long waitSec = Optional.ofNullable(redis.getExpire(key, TimeUnit.SECONDS)).orElse(60L);
+//            throw new TooManyRequestException("กรุณารออีก " + waitSec + " วินาที ก่อนขอ OTP ใหม่");
+//        }
+//        redis.opsForValue().set(key, "1", 60, TimeUnit.SECONDS);
 //        var url = "https://portal-otp.smsmkt.com/api/otp-send";
 //        var payload = new HashMap<String, Object>();
 //        payload.put("project_key", projectKey);

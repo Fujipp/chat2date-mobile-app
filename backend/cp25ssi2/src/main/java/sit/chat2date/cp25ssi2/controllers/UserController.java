@@ -6,6 +6,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import sit.chat2date.cp25ssi2.dto.PreferenceMatchUserDTO;
 import sit.chat2date.cp25ssi2.dto.PreferenceUserDTO;
+import sit.chat2date.cp25ssi2.dto.PreferenceUserProfileDTO;
 import sit.chat2date.cp25ssi2.entities.User;
 import sit.chat2date.cp25ssi2.exceptions.NotFoundException;
 import sit.chat2date.cp25ssi2.repositories.UserRepository;
@@ -70,9 +71,9 @@ public class UserController {
         return userService.createUserPreferenceMatch(accessToken, preferenceUser);
     }
 
-//    @GetMapping("/users/{id}/preference")
-//    public ResponseEntity<> getUserPreference() {
-//
-//    }
+    @GetMapping("/users/{id}/profile")
+    public PreferenceUserProfileDTO getUserProfile(@PathVariable String id) {
+        return userService.getUserProfile(id);
+    }
 
 }
