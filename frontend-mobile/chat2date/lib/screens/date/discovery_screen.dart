@@ -14,8 +14,10 @@ import 'package:chat2date/components/inputs/index.dart';
 import 'package:chat2date/components/layout/header.dart';
 import 'package:chat2date/components/layout/menu_bar.dart';
 import 'package:chat2date/theme/app_colors.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:chat2date/services/location_service.dart';
 
-class DiscoveryScreen extends StatefulWidget {
+class DiscoveryScreen extends ConsumerStatefulWidget {
   final String username;
   final List<String> tags;
   final List<Map<String, dynamic>> headerTop;
@@ -51,12 +53,12 @@ class DiscoveryScreen extends StatefulWidget {
   });
 
   @override
-  State<DiscoveryScreen> createState() => _DiscoveryScreenState();
+  ConsumerState<DiscoveryScreen> createState() => _DiscoveryScreenState();
 }
 
 enum ActivePanel { none, top, bottom }
 
-class _DiscoveryScreenState extends State<DiscoveryScreen>
+class _DiscoveryScreenState extends ConsumerState<DiscoveryScreen>
     with SingleTickerProviderStateMixin {
   // --- Panel state ---
   final _topCtrl = PanelController(); // slideDirection: DOWN
@@ -116,6 +118,13 @@ class _DiscoveryScreenState extends State<DiscoveryScreen>
   @override
   void initState() {
     super.initState();
+      // ✅ ขอสิทธิ์ + อัปเดต location ตอนเข้า /discovery ครั้งแรก
+      WidgetsBinding.instance.addPostFrameCallback((_) async {
+      await ref
+          .read(locationServiceProvider)
+          .tryUpdateLocationSilently();
+    });
+
     _cardCtrl =
         AnimationController(
             vsync: this,
@@ -299,7 +308,14 @@ class _DiscoveryScreenState extends State<DiscoveryScreen>
             rightIconPath: 'assets/icons/icon_menu.svg',
             iconColor: const Color(0xFF5ce1e6),
             onBack: () {},
-            onSettings: () => _togglePanel(context),
+            onSettings: () async {
+              // 📍 รีเฟรช location แบบเงียบ ๆ (ไม่เด้งขอสิทธิ์ใหม่ ถ้ามีแล้ว)
+              await ref
+                  .read(locationServiceProvider)
+                  .tryUpdateLocationSilently();
+
+              _togglePanel(context);
+            },
           ),
 
           // ===== Canvas (ภาพ + Panels + Overlay) =====
