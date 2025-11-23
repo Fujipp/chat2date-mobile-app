@@ -13,10 +13,10 @@ import java.util.List;
 @AllArgsConstructor
 @NoArgsConstructor
 public class PreferenceUserProfileDTO {
-    private List<UserHasInterest> interests;
-    private List<UserHasLifestyle> lifeStyles;
-    private List<UserHasTag> tags;
-    private List<UserHasTravelstyle> travelStyles;
+    private List<Integer> interests;
+    private List<Integer> lifeStyles;
+    private List<Integer> tags;
+    private List<Integer> travelStyles;
     private String interestedGender;
-    private List<String> photos;
+    private String photos;
 }

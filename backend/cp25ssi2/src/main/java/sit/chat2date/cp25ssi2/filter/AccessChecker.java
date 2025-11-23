@@ -26,10 +26,18 @@ public class AccessChecker {
 
         // ตรวจสอบ /api/v1/users
         if (method.matches("GET|PUT|DELETE") && path.startsWith("/api/v1/users")) {
-            String targetId = path.substring(path.lastIndexOf("/") + 1);
-            if (!targetId.equals(currentUser.getUserId())) {
-                sendErrorResponse(response, "Forbidden: cannot access another user's data", request, HttpStatus.FORBIDDEN);
-                return false;
+            java.util.regex.Matcher m = java.util.regex.Pattern.compile("/api/v1/users/([^/]+)").matcher(path);
+            if (m.find()) {
+                String targetId = m.group(1);
+                if (!targetId.equals(currentUser.getUserId())) {
+                    sendErrorResponse(
+                            response,
+                            "Forbidden: cannot access another user's data",
+                            request,
+                            HttpStatus.FORBIDDEN
+                    );
+                    return false;
+                }
             }
         }
 

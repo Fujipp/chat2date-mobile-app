@@ -25,6 +25,7 @@ import sit.chat2date.cp25ssi2.repositories.*;
 
 import java.util.HashSet;
 import java.util.List;
+import java.util.Objects;
 import java.util.Set;
 import java.util.function.BiFunction;
 import java.util.function.Consumer;
@@ -302,25 +303,48 @@ public class UserService {
     }
 
     public PreferenceUserProfileDTO getUserProfile(String id) {
+        // ดึง entity จาก DB
         List<UserHasInterest> userHasInterest = userHasInterestRepository.findAllByUser_UserId(id);
         List<UserHasLifestyle> userHasLifestyles = userHasLifestyleRepository.findAllByUser_UserId(id);
         List<UserHasTravelstyle> userHasTravelstyles = userHasTravelstyleRepository.findAllByUser_UserId(id);
         List<UserHasTag> userHasTags = userHasTagRepository.findAllByUser_UserId(id);
-        List<UserPhoto> userPhotos = userPhotoRepository.findAllByUser_UserId(id);
+        String userPhotos = userPhotoRepository.findAttributesJsonByUser_UserId(id);
         PreferenceMatch preferenceMatch = preferenceMatchRepository.findPreferenceMatchByUser_UserId(id);
-        PreferenceUserProfileDTO preferenceUserProfileDTO = new PreferenceUserProfileDTO();
-        preferenceUserProfileDTO.setInterestedGender(preferenceMatch.getInterestedGender().toString());
-        preferenceUserProfileDTO.setInterests(userHasInterest);
-        preferenceUserProfileDTO.setLifeStyles(userHasLifestyles);
-        preferenceUserProfileDTO.setTags(userHasTags);
-        preferenceUserProfileDTO.setTravelStyles(userHasTravelstyles);
 
-        List<String> photoUrls = userPhotos.stream()
-                .map(photo -> photo.getAttributes().get("url").toString()) // สมมติ attributes เป็น Map
-                .toList();
-        preferenceUserProfileDTO.setPhotos(photoUrls);
+        PreferenceUserProfileDTO dto = new PreferenceUserProfileDTO();
 
-        return preferenceUserProfileDTO;
+        // เพศที่สนใจ
+        dto.setInterestedGender(preferenceMatch.getInterestedGender().toString());
+
+        // แปลง entity เป็น List<Integer> ของ id
+        dto.setInterests(
+                userHasInterest.stream()
+                        .map(uhi -> uhi.getInterestInterest().getId())
+                        .toList()
+        );
+
+        dto.setLifeStyles(
+                userHasLifestyles.stream()
+                        .map(uhl -> uhl.getLifestyleLifestyle().getId()) // สมมติ entity มี getLifeStyleId()
+                        .toList()
+        );
+
+        dto.setTags(
+                userHasTags.stream()
+                        .map(uht -> uht.getTagTag().getId()) // สมมติ entity มี getTagId()
+                        .toList()
+        );
+
+        dto.setTravelStyles(
+                userHasTravelstyles.stream()
+                        .map(uhts -> uhts.getTravelstyleTravel().getId()) // สมมติ entity มี getTravelStyleId()
+                        .toList()
+        );
+
+        // รูปภาพ
+        dto.setPhotos(userPhotos);
+
+        return dto;
     }
 
 

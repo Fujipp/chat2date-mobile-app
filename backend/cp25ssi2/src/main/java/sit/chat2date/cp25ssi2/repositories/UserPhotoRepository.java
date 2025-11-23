@@ -9,7 +9,7 @@ import java.util.List;
 
 public interface UserPhotoRepository extends JpaRepository<UserPhoto, Integer> {
     UserPhoto findByUser_UserId(String userId);
-    List<UserPhoto> findAllByUser_UserId(String userId);
+    //List<UserPhoto> findAllByUser_UserId(String userId);
     @Query(value = "SELECT attributes FROM userphoto WHERE userId = :userId LIMIT 1", nativeQuery = true)
     String findAttributesJsonByUser_UserId(@Param("userId") String userId);
 

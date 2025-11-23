@@ -136,7 +136,7 @@ public class SmsmktClient {
                         .phoneNumber(user.getPhoneNumber())
                         .accountStatus(user.getAccountStatus() != null ? user.getAccountStatus().toString() : null)
                         .build();
-
+                response.put("user", userDto);
             } else {
                 if (onLogin && userOptional.get().getAccountStatus() == AccountStatus.ACTIVE) {
                     response.put("user", userOptional);
