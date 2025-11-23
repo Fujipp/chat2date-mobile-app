@@ -9,6 +9,8 @@ import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 import sit.chat2date.cp25ssi2.dto.*;
 import sit.chat2date.cp25ssi2.services.DiscoveryService; // <<== ใช้ services
+
+import java.util.List;
 // (ไม่ต้อง import jakarta.Validation หรือ jakarta.validation แบบทั่วไป)
 
 @RestController
@@ -19,14 +21,14 @@ public class DiscoveryController {
     private final DiscoveryService discoveryService;
     public DiscoveryController(DiscoveryService discoveryService) { this.discoveryService = discoveryService; }
 
-    @GetMapping("/")
-    public ResponseEntity<DiscoveryGetResponse> getDiscovery(
-            @RequestParam @Min(0) int minDistance,
-            @RequestParam @Min(0) int maxDistance,
+    @GetMapping("")
+    public ResponseEntity<List<DiscoveryResponse>> getDiscovery(
+            @RequestParam(required = false, defaultValue = "1") @Min(0) int minDistance,
+            @RequestParam(required = false, defaultValue = "1800") @Min(0) int maxDistance,
             @RequestParam @NotBlank String userId
     ) {
-        var user = discoveryService.getCandidate(userId, minDistance, maxDistance);
-        return ResponseEntity.ok(new DiscoveryGetResponse(user));
+        List<DiscoveryResponse> responses = discoveryService.getCandidates(userId, minDistance, maxDistance);
+        return ResponseEntity.ok(responses);
     }
 
     @PostMapping("/feedback")

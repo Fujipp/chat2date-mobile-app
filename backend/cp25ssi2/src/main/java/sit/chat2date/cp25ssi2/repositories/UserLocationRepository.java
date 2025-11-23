@@ -6,4 +6,5 @@ import sit.chat2date.cp25ssi2.entities.UserLocation;
 
 public interface UserLocationRepository extends JpaRepository<UserLocation, Integer> {
     UserLocation findByUser_UserId(String userId);
+    UserLocation findFirstByUser_UserId(String userId);
 }

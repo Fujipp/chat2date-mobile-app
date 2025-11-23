@@ -15,6 +15,37 @@ public interface UserRepository extends JpaRepository<User, String> {
 
     User findUsersByUserId(String userId);
 
+    @Query(value = """
+    SELECT DISTINCT u.*
+    FROM user u
+    JOIN userlocation loc ON u.userId = loc.userId
+    WHERE u.userId != :currentUserId
+      AND u.accountStatus = 'ACTIVE'
+      AND u.isBlacklist = 0
+      AND (:interestedGender = 'BOTH' OR u.sex = :interestedGender)
+      AND (
+        6371 * acos(
+          cos(radians(:myLat)) * cos(radians(loc.latitude)) *
+          cos(radians(loc.longtitude) - radians(:myLon)) +
+          sin(radians(:myLat)) * sin(radians(loc.latitude))
+        )
+      ) BETWEEN :minDistance AND :maxDistance
+      AND TIMESTAMPDIFF(YEAR, u.birthday, CURDATE()) BETWEEN :minAge AND :maxAge
+    ORDER BY RAND()
+    LIMIT :limit
+""", nativeQuery = true)
+    List<User> findCandidatesBasic(
+            @Param("currentUserId") String currentUserId,
+            @Param("myLat") double myLat,
+            @Param("myLon") double myLon,
+            @Param("minDistance") int minDistance,
+            @Param("maxDistance") int maxDistance,
+            @Param("minAge") int minAge,
+            @Param("maxAge") int maxAge,
+            @Param("interestedGender") String interestedGender,
+            @Param("limit") int limit
+    );
+
     @Query(
             value = """
         SELECT DISTINCT u.*
@@ -53,7 +84,7 @@ public interface UserRepository extends JpaRepository<User, String> {
         WHERE u.userId != :currentUserId
           AND u.accountStatus = 'ACTIVE'
           AND u.isBlacklist = 0
-          AND u.sex = :interestedGender
+          AND (:interestedGender = 'BOTH' OR u.sex = :interestedGender)
           AND (
             6371 * acos(
               cos(radians(:myLat)) * cos(radians(loc.latitude)) *

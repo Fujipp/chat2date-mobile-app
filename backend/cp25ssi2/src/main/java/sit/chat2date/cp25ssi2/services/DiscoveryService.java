@@ -1,63 +1,241 @@
 package sit.chat2date.cp25ssi2.services;
 
-import com.auth0.jwt.JWT;
-import com.auth0.jwt.interfaces.DecodedJWT;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import sit.chat2date.cp25ssi2.dto.FeedbackResponse;
 import sit.chat2date.cp25ssi2.dto.UserSummaryDTO;
 import sit.chat2date.cp25ssi2.entities.Action;
 import sit.chat2date.cp25ssi2.entities.Match;
 import sit.chat2date.cp25ssi2.entities.User;
+import sit.chat2date.cp25ssi2.dto.*;
+import sit.chat2date.cp25ssi2.entities.*;
 import sit.chat2date.cp25ssi2.enums.ActionType;
 import sit.chat2date.cp25ssi2.exceptions.BadRequestException;
 import sit.chat2date.cp25ssi2.exceptions.NotFoundException;
 import sit.chat2date.cp25ssi2.exceptions.ServiceException;
-import sit.chat2date.cp25ssi2.repositories.ActionRepository;
-import sit.chat2date.cp25ssi2.repositories.MatchRepository;
-import sit.chat2date.cp25ssi2.repositories.UserRepository;
+import sit.chat2date.cp25ssi2.repositories.*;
+import sit.chat2date.cp25ssi2.utils.CompatibilityCalculator;
 
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Objects;
+import java.time.LocalDate;
+import java.time.Period;
+import java.util.*;
+import java.util.stream.Collectors;
 
 @Service
 public class DiscoveryService {
+    @Autowired
+    private UserRepository userRepository;
 
-    // === mock candidate ไว้ก่อน เผื่อ Dev ยังใช้ getCandidate อยู่ ===
-    private static final Map<String, UserSummaryDTO> USERS = new HashMap<>();
-    static {
-        USERS.put("u_1", new UserSummaryDTO("u_1", "08xxxxxxx"));
-        USERS.put("u_2", new UserSummaryDTO("u_2", "09xxxxxxx"));
-        USERS.put("u_3", new UserSummaryDTO("u_3", "06xxxxxxx"));
+    @Autowired
+    private  ActionRepository actionRepository;
+
+    @Autowired
+    private  MatchRepository matchRepository;
+
+    @Autowired
+    private TravelStyleRepository travelStyleRepository;
+
+    @Autowired
+    private LifeStyleRepository lifestyleRepository;
+
+    @Autowired
+    private InterestRepository interestRepository;
+
+    @Autowired
+    private PreferenceMatchRepository preferenceRepository;
+
+    @Autowired
+    private UserLocationRepository locationRepository;
+    @Autowired
+    private CompatibilityCalculator compatibilityCalculator;
+    @Autowired
+    private UserPhotoRepository userPhotoRepository;
+    @Autowired
+    private TagRepository tagRepository;
+
+    public List<DiscoveryResponse> getCandidates(
+            String userId,
+            int minDistance,
+            int maxDistance
+            ) {
+        Integer limit = 10;
+
+        PreferenceMatch pref = preferenceRepository.findByUser_UserId(userId);
+        UserLocation myLocation = locationRepository.findFirstByUser_UserId(userId);
+
+        List<String> userTravelStyles = travelStyleRepository.findTravelStylesByUserId(userId);
+        List<String> userLifestyles = lifestyleRepository.findLifeStylesByUserId(userId);
+        List<String> userInterests = interestRepository.findInterestsByUserId(userId);
+
+        System.out.println("\n========================================");
+        System.out.println("🔍 DISCOVERY QUERY DEBUG");
+        System.out.println("========================================");
+        System.out.println("Current User ID: " + userId);
+        System.out.println("My Location: LAT=" + myLocation.getLatitude() + ", LON=" + myLocation.getLongtitude());
+        System.out.println("Distance Range: " + minDistance + " - " + maxDistance + " km");
+        System.out.println("Age Range: " + pref.getInterestedAgeMin() + " - " + pref.getInterestedAgeMax());
+        System.out.println("Interested Gender: " + pref.getInterestedGender());
+        System.out.println("========================================\n");
+
+        // ... rest of your code
+        boolean allUnnecessary =
+                        "UNNECESSARY".equals(pref.getInterestedTravelStyle().name()) &&
+                        "UNNECESSARY".equals(pref.getInterestedLifeStyle().name()) &&
+                        "UNNECESSARY".equals(pref.getInterestedInterest().name());
+
+        List<User> candidates;
+
+        if(allUnnecessary){
+            System.out.println("Using BASIC query (all UNNECESSARY)");
+            candidates = userRepository.findCandidatesBasic(
+                    userId,
+                    myLocation.getLatitude().doubleValue(),
+                    myLocation.getLongtitude().doubleValue(),
+                    minDistance,
+                    maxDistance,
+                    pref.getInterestedAgeMin(),
+                    pref.getInterestedAgeMax(),
+                    pref.getInterestedGender().name(),
+                    limit
+            );
+            System.out.println("✅ Found " + candidates.size() + " candidates");
+            System.out.println("Candidate IDs: " + candidates.stream()
+                    .map(User::getUserId));
+
+        }else{
+            candidates = userRepository.findCandidatesWithPreference(
+                    userId,
+                    myLocation.getLatitude().doubleValue(),
+                    myLocation.getLongtitude().doubleValue(),
+                    minDistance,
+                    maxDistance,
+                    pref.getInterestedAgeMin(),
+                    pref.getInterestedAgeMax(),
+                    pref.getInterestedGender().name(),
+                    pref.getInterestedTravelStyle().name(),
+                    pref.getInterestedLifeStyle().name(),
+                    pref.getInterestedInterest().name(),
+                    userTravelStyles.size(),
+                    userLifestyles.size(),
+                    userInterests.size(),
+                    limit
+            );
+        }
+
+        // Batch fetch attribute mappings for candidates here (not shown for brevity)
+
+        return candidates.stream().map(candidate -> {
+                    List<String> candidateTravelStyles = travelStyleRepository.findTravelStylesByUserId(candidate.getUserId());
+                    List<String> candidateLifestyles = lifestyleRepository.findLifeStylesByUserId(candidate.getUserId());
+                    List<String> candidateInterests = interestRepository.findInterestsByUserId(candidate.getUserId());
+                    List<String> candidatePhotos = getPhotoUrls(candidate.getUserId());
+                    List<String> candidateTags = tagRepository.findTagsByUserId(candidate.getUserId());
+
+
+                    double distance = calculateDistance(myLocation, locationRepository.findFirstByUser_UserId(candidate.getUserId()));
+                    int score = compatibilityCalculator.calculateCompatibilityWithPreference(
+                            userTravelStyles, candidateTravelStyles, pref.getInterestedTravelStyle().name(),
+                            userLifestyles, candidateLifestyles, pref.getInterestedLifeStyle().name(),
+                            userInterests, candidateInterests, pref.getInterestedInterest().name());
+
+                    return new DiscoveryResponse(
+                            candidate.getUserId(),
+                            candidate.getNickname(),
+                            calculateAge(candidate.getBirthday()),
+                            candidate.getSex().toString(),  // แปลงเป็น String
+                            candidatePhotos,                // List<String> photos
+                            candidateTags,                  // List<String> tags
+                            candidateTravelStyles,
+                            candidateInterests,
+                            candidateLifestyles,
+                            distance,
+                            score
+                    );
+
+                }).sorted(Comparator.comparingInt(DiscoveryResponse::getCompatibilityScore).reversed())
+                .collect(Collectors.toList());
     }
 
-    private final UserRepository userRepository;
-    private final ActionRepository actionRepository;
-    private final MatchRepository matchRepository;
+    private List<String> getPhotoUrls(String userId) {
+        String jsonString = userPhotoRepository.findAttributesJsonByUser_UserId(userId);
+        if (jsonString == null || jsonString.isEmpty()) {
+            return Collections.emptyList();
+        }
 
-    public DiscoveryService(
-            UserRepository userRepository,
-            ActionRepository actionRepository,
-            MatchRepository matchRepository
-    ) {
-        this.userRepository = userRepository;
-        this.actionRepository = actionRepository;
-        this.matchRepository = matchRepository;
+        try {
+            ObjectMapper objectMapper = new ObjectMapper();
+            PhotoDTO photoDTO = objectMapper.readValue(jsonString, PhotoDTO.class);
+            return photoDTO.getUrls();
+        } catch (Exception e) {  // JsonProcessingException
+            e.printStackTrace();
+            return Collections.emptyList();
+        }
     }
 
-    // ถ้า Dev ยังใช้ /discovery/distance อยู่ ก็ปล่อยตัวนี้ไว้ก่อนได้
-    public UserSummaryDTO getCandidate(String userId, int minDistance, int maxDistance) {
-        if (minDistance > maxDistance) {
-            throw new BadRequestException("minDistance must be <= maxDistance");
+    private double calculateDistance(UserLocation loc1, UserLocation loc2) {
+        if (loc1 == null || loc2 == null) {
+            return 0.0;
         }
-        if (!USERS.containsKey(userId)) {
-            throw new NotFoundException("user not found: " + userId);
-        }
-        for (UserSummaryDTO u : USERS.values()) {
-            if (!Objects.equals(u.getId(), userId)) return u;
-        }
-        throw new ServiceException("no candidate available");
+
+        double lat1 = loc1.getLatitude().doubleValue();
+        double lon1 = loc1.getLongtitude().doubleValue();
+        double lat2 = loc2.getLatitude().doubleValue();
+        double lon2 = loc2.getLongtitude().doubleValue();
+
+        // Haversine formula
+        final double EARTH_RADIUS_KM = 6371;
+
+        double dLat = Math.toRadians(lat2 - lat1);
+        double dLon = Math.toRadians(lon2 - lon1);
+
+        double a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+                Math.cos(Math.toRadians(lat1)) * Math.cos(Math.toRadians(lat2)) *
+                        Math.sin(dLon / 2) * Math.sin(dLon / 2);
+
+        double c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+
+        double distance = EARTH_RADIUS_KM * c;
+
+        // Round to 2 decimal places
+        return Math.round(distance * 100.0) / 100.0;
     }
+
+    private int calculateAge(LocalDate birthday) {
+        return Period.between(birthday, LocalDate.now()).getYears();
+    }
+
+//    // === mock candidate ไว้ก่อน เผื่อ Dev ยังใช้ getCandidate อยู่ ===
+//    private static final Map<String, UserSummaryDto> USERS = new HashMap<>();
+//    static {
+//        USERS.put("u_1", new UserSummaryDto("u_1", "08xxxxxxx"));
+//        USERS.put("u_2", new UserSummaryDto("u_2", "09xxxxxxx"));
+//        USERS.put("u_3", new UserSummaryDto("u_3", "06xxxxxxx"));
+//    }
+
+//    public DiscoveryService(
+//            UserRepository userRepository,
+//            ActionRepository actionRepository,
+//            MatchRepository matchRepository
+//    ) {
+//        this.userRepository = userRepository;
+//        this.actionRepository = actionRepository;
+//        this.matchRepository = matchRepository;
+//    }
+
+//    // ถ้า Dev ยังใช้ /discovery/distance อยู่ ก็ปล่อยตัวนี้ไว้ก่อนได้
+//    public UserSummaryDto getCandidate(String userId, int minDistance, int maxDistance) {
+//        if (minDistance > maxDistance) {
+//            throw new BadRequestException("minDistance must be <= maxDistance");
+//        }
+//        if (!USERS.containsKey(userId)) {
+//            throw new NotFoundException("user not found: " + userId);
+//        }
+//        for (UserSummaryDto u : USERS.values()) {
+//            if (!Objects.equals(u.getId(), userId)) return u;
+//        }
+//        throw new ServiceException("no candidate available");
+//    }
 
     /**
      * ใช้ตอน user กด like/dislike
@@ -83,6 +261,10 @@ public class DiscoveryService {
 //                : userRepository.findByEmail(sub).orElseThrow();
 
         User currentUser = userRepository.findUsersByUserId(userId);
+
+        if (currentUser.getUserId().equals(targetUserId)) {
+            throw new BadRequestException("cannot feedback to self");
+        }
 
         try {
             // 3) บันทึก Action ทุกครั้งที่มีการ like / dislike
