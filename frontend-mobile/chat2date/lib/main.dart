@@ -1,7 +1,8 @@
 import 'package:chat2date/theme/app_theme.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+
 import 'screens/index.dart';
 
 final GlobalKey<NavigatorState> rootNavigatorKey = GlobalKey<NavigatorState>();
@@ -56,30 +57,30 @@ class MyApp extends StatelessWidget {
         '/kyc-result-success': (context) => const KycResultSuccessScreen(),
         '/kyc-result-fail': (context) => const KycResultFailScreen(),
       },
-      builder: (context, child) {
-        return Stack(
-          children: [
-            child ?? const SizedBox(),
-            Positioned(
-              right: 16,
-              bottom: 16,
-              child: FloatingActionButton(
-                onPressed: () {
-                  final nav = navigatorKey.currentState!;
-                  if (nav.canPop()) {
-                     nav.pop(); // 🔹 ถ้ามีหน้าก่อนหน้า -> กลับ
-                  } else {
-                    nav.pushNamed('/test');
-                  }
-                },
-                backgroundColor: Colors.blueAccent,
-                heroTag: 'globalTestBtn',
-                child: const Icon(Icons.help, color: Colors.white),
-              ),
-            ),
-          ],
-        );
-      },
+      // builder: (context, child) {
+      //   return Stack(
+      //     children: [
+      //       child ?? const SizedBox(),
+      //       Positioned(
+      //         right: 16,
+      //         bottom: 16,
+      //         child: FloatingActionButton(
+      //           onPressed: () {
+      //             final nav = navigatorKey.currentState!;
+      //             if (nav.canPop()) {
+      //                nav.pop(); // 🔹 ถ้ามีหน้าก่อนหน้า -> กลับ
+      //             } else {
+      //               nav.pushNamed('/test');
+      //             }
+      //           },
+      //           backgroundColor: Colors.blueAccent,
+      //           heroTag: 'globalTestBtn',
+      //           child: const Icon(Icons.help, color: Colors.white),
+      //         ),
+      //       ),
+      //     ],
+      //   );
+      // },
     );
   }
 }

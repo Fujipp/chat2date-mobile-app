@@ -1,10 +1,10 @@
 // lib/screens/auth/kyc_result_success_screen.dart
 import 'dart:async';
-import 'package:flutter/material.dart';
-import 'package:flutter_svg/flutter_svg.dart';
 
 // เปลี่ยน path ให้ตรงกับโปรเจกต์ Dev
 import 'package:chat2date/components/buttons/ds_button.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 
 class KycResultSuccessScreen extends StatefulWidget {
   const KycResultSuccessScreen({super.key});
@@ -24,7 +24,7 @@ class _KycResultSuccessScreenState extends State<KycResultSuccessScreen> {
     _autoTimer = Timer(const Duration(seconds: 5), () {
       if (!mounted) return;
       Navigator.pop(context); // ปิดหน้าปัจจุบัน
-      Navigator.pushNamed(context, '/home');
+      Navigator.pushNamed(context, '/profileSetup');
     });
   }
 
