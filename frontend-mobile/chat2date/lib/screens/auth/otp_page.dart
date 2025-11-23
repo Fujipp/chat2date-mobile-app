@@ -134,6 +134,7 @@ class _OtpPageState extends ConsumerState<OtpPage> {
         token: _token,
         code: code,
         phone: _phone,
+        onLogin: onLogin
       );
       if (!mounted) return;
       if (data['statusCode'] == 200) {

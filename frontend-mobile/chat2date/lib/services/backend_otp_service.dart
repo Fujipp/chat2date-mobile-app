@@ -63,6 +63,7 @@ class BackendOtpService {
     required String token,
     required String code,
     required String phone,
+    required bool onLogin
   }) async {
     final uri = Uri.parse('$_base/auth/verify-otp');
     final res = await http
@@ -73,6 +74,7 @@ class BackendOtpService {
             'token': token,
             'otpCode': code,
             'phoneNumber': phone,
+            'onLogin': onLogin
           }),
         )
         .timeout(_timeout);

@@ -1,3 +1,7 @@
+import 'dart:convert';
+import 'dart:io';
+
+import 'package:chat2date/components/buttons/ds_button.dart';
 import 'package:chat2date/components/common/image_upload_grid.dart';
 import 'package:chat2date/components/common/loading_component.dart';
 import 'package:chat2date/components/inputs/ds_label.dart';
@@ -5,16 +9,24 @@ import 'package:chat2date/components/inputs/ds_text_field/ds_text_field.dart';
 import 'package:chat2date/components/layout/header.dart';
 import 'package:chat2date/components/layout/menu_bar.dart';
 import 'package:chat2date/components/layout/responsive_container.dart';
+import 'package:chat2date/models/interest.dart';
+import 'package:chat2date/models/lifestyle.dart';
+import 'package:chat2date/models/tag.dart';
+import 'package:chat2date/models/travelstyle.dart';
+import 'package:chat2date/models/user.dart';
 import 'package:chat2date/models/user_has_interest.dart';
 import 'package:chat2date/models/user_has_lifestyle.dart';
 import 'package:chat2date/models/user_has_tag.dart';
 import 'package:chat2date/models/user_has_travelstyle.dart';
+import 'package:chat2date/services/photo_verification_service.dart';
+import 'package:chat2date/services/preference_service.dart';
 import 'package:chat2date/services/user_service.dart';
 import 'package:chat2date/stores/user_store.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:dropdown_button2/dropdown_button2.dart';
 import 'package:chat2date/theme/app_colors.dart';
+import 'package:chat2date/components/inputs/ds_text_field/tag_autocomplete.dart';
 
 class ProfileScreen extends ConsumerStatefulWidget {
   const ProfileScreen({super.key});
@@ -24,15 +36,24 @@ class ProfileScreen extends ConsumerStatefulWidget {
 }
 
 class _ProfileScreenState extends ConsumerState<ProfileScreen> {
+  final _nicknameCtrl = TextEditingController();
+  final _lifestyleCtrl = TextEditingController();
+  final _interestsCtrl = TextEditingController();
+  final _tagsCtrl = TextEditingController();
   final ScrollController _scrollController = ScrollController();
-  String nickname = "";
-  String? _selectedGenderPreference = "";
+  String? nickname = "";
+  String? _selectedGenderPreference = null;
   double behaviorScore = 0;
-  List<UserHasInterest> user_has_interest = [];
-  List<UserHasLifestyle> user_has_lifestyle = [];
-  List<UserHasTravelstyle> user_has_travelstyle = [];
-  List<UserHasTag> user_has_tag = [];
-  String interestGender = "";
+  List<int> user_has_interest = [];
+  List<int> user_has_lifestyle = [];
+  List<int> user_has_travelstyle = [];
+  List<int> user_has_tag = [];
+  List<Travelstyle> _travelStyles = [];
+  List<Lifestyle> _lifeStyles = [];
+  List<Interest> _interests = [];
+  List<Tag> _tags = [];
+  List<String> photoUrls = [];
+  int _selectedIndex = 2;
 
   @override
   void initState() {
@@ -42,32 +63,269 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
 
   void _loadInitialData() async {
     final userStore = ref.read(userStoreProvider) as Map<String, dynamic>?;
-    final userId = userStore?['user']?['userId'];
-    final accessToken = userStore?['accessToken'];
-    final userById = await ref.read(userServiceProvider).getUser(userId);
-    ref.read(userStoreProvider.notifier).setUser(userById, accessToken);
+    final prefs = await PreferenceService.getPreference();
+    final user = userStore?['user'] as User;
+    final userId = user.userId;
     final userService = ref.read(userServiceProvider);
     final userProfile = await userService.getProfile(userId);
-    user_has_interest = userProfile['interests'];
-    user_has_lifestyle = userProfile['lifeStyles'];
-    user_has_tag = userProfile['tags'];
-    user_has_travelstyle = userProfile['travelStyles'];
-    interestGender = userProfile['interestedGender'];
-    
-    //interestGender = userProfile['']
-
-    
-
     setState(() {
-      nickname = userStore?['user']?['nickname'];
-      behaviorScore = (userStore?['user']?['behaviorScore'])/100;
+      _travelStyles = prefs.travelStyles;
+      _lifeStyles = prefs.lifeStyles;
+      _interests = prefs.interests;
+      _tags = prefs.tags;
+      user_has_interest = (userProfile['interests'] as List)
+          .map((e) => (e as int) - 1)
+          .toList();
+
+      user_has_lifestyle = (userProfile['lifeStyles'] as List)
+          .map((e) => (e as int) - 1)
+          .toList();
+
+      user_has_tag = (userProfile['tags'] as List)
+          .map((e) => (e as int) - 1)
+          .toList();
+
+      user_has_travelstyle = (userProfile['travelStyles'] as List)
+          .map((e) => (e as int) - 1)
+          .toList();
+
+      _selectedGenderPreference = userProfile['interestedGender'];
+      nickname = user.nickname;
+      behaviorScore = (user.behaviorScore!) / 100;
+
+      _lifestyleCtrl.text = _getSelectedText(
+        user_has_lifestyle,
+        _lifeStyles.map((l) => l.lifestyle).toList(),
+      );
+
+      _interestsCtrl.text = _getSelectedText(
+        user_has_interest,
+        _interests.map((l) => l.interest).toList(),
+      );
+
+      _tagsCtrl.text = _getSelectedText(
+        user_has_tag,
+        _tags.map((t) => t.tag).toList(),
+      );
+
+      final photoPath = userProfile['photos'];
+      final photoMap = jsonDecode(photoPath) as Map<String, dynamic>;
+      photoUrls = (photoMap['urls'] as List<dynamic>)
+          .map((e) => e.toString())
+          .toList();
+      print(photoUrls);
     });
+  }
+
+  String _getSelectedText(List<int> selected, List<String> allItems) {
+    if (selected.isEmpty) return '';
+    return selected.map((i) => allItems[i]).join(', ');
   }
 
   @override
   void dispose() {
     _scrollController.dispose(); // ป้องกัน memory leak
     super.dispose();
+  }
+
+  List<File> _selectedImages = [];
+  bool _isLoading = false;
+
+  // แสดง Dialog แจ้งเตือนเมื่อใบหน้าไม่ตรงกับบัตร
+  void _showFaceVerificationDialog() {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
+          contentPadding: const EdgeInsets.all(24),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // ไอคอนเตือน
+              Container(
+                width: 64,
+                height: 64,
+                decoration: BoxDecoration(
+                  color: AppColors.warning.withOpacity(0.1),
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(
+                  Icons.warning_amber_rounded,
+                  size: 36,
+                  color: AppColors.warning,
+                ),
+              ),
+              const SizedBox(height: 20),
+
+              // หัวข้อ
+              const Text(
+                'ไม่พบใบหน้าที่ชัดเจน',
+                style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 12),
+
+              // รายละเอียด
+              Text(
+                'เราตรวจไม่พบใบหน้าที่ชัดเจนในรูปภาพของคุณ หรือใบหน้าไม่ตรงกับรูปบัตรประชาชน',
+                style: TextStyle(
+                  fontSize: 14,
+                  color: Colors.grey[600],
+                  height: 1.5,
+                ),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 20),
+
+              // คำแนะนำ
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Colors.blue.withOpacity(0.05),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: Colors.blue.withOpacity(0.2)),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Icon(
+                          Icons.lightbulb_outline,
+                          size: 20,
+                          color: Colors.blue[700],
+                        ),
+                        const SizedBox(width: 8),
+                        Text(
+                          'คำแนะนำ',
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            color: Colors.blue[700],
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 12),
+                    _buildTip('ถ่ายรูปในที่ที่มีแสงสว่างเพียงพอ'),
+                    _buildTip('ใบหน้าหันตรงกล้องและเห็นชัดเจน'),
+                    _buildTip('อัปโหลดรูปที่เห็นหน้าตรงอย่างน้อย 1 รูป'),
+                    _buildTip('หลีกเลี่ยงแว่นตาหรือหมวกที่บังหน้า'),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          actions: [
+            // ปุ่มลองใหม่
+            SizedBox(
+              width: double.infinity,
+              child: DsButton(
+                label: 'เลือกรูปใหม่',
+                onPressed: () {
+                  Navigator.of(context).pop();
+                },
+                variant: DsButtonVariant.primary,
+                size: DsButtonSize.md,
+              ),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  Widget _buildTip(String text) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 6),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            margin: const EdgeInsets.only(top: 6),
+            width: 4,
+            height: 4,
+            decoration: BoxDecoration(
+              color: Colors.blue[700],
+              shape: BoxShape.circle,
+            ),
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              text,
+              style: TextStyle(
+                fontSize: 13,
+                color: Colors.grey[700],
+                height: 1.4,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _handleSubmit() async {
+    final userState = ref.read(userStoreProvider);
+    final user = userState['user'] as User?;
+    final cardFaceBytes = userState['cardFaceBytes'] as String?;
+
+    // Validation
+    if (_selectedImages.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('กรุณาเลือกรูปภาพอย่างน้อย 1 รูป')),
+      );
+      return;
+    }
+
+    if (user == null || cardFaceBytes == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('ไม่พบข้อมูลผู้ใช้ หรือยังไม่ได้ถ่ายรูปบัตรประชาชน'),
+        ),
+      );
+      return;
+    }
+
+    setState(() => _isLoading = true);
+
+    try {
+      final service = ref.read(photoVerificationServiceProvider);
+
+      await service.verifyAndUpload(
+        userId: user.userId,
+        profileImages: _selectedImages,
+        idCardBase64: cardFaceBytes,
+      );
+
+      // if (mounted) {
+      //   Navigator.pushReplacementNamed(context, '/discovery');
+      // }
+    } catch (e) {
+      if (mounted) {
+        // ตรวจสอบว่า error เป็นเรื่องใบหน้าไม่ตรงหรือไม่
+        final errorMessage = e.toString().toLowerCase();
+        if (errorMessage.contains('face') ||
+            errorMessage.contains('ใบหน้า') ||
+            errorMessage.contains('upload failed')) {
+          // แสดง Dialog แทน SnackBar
+          _showFaceVerificationDialog();
+        } else {
+          // Error อื่นๆ แสดง SnackBar ปกติ
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(SnackBar(content: Text('เกิดข้อผิดพลาด: $e')));
+        }
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
+    }
   }
 
   @override
@@ -177,16 +435,16 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
 
                         items: const [
                           DropdownMenuItem(
-                            value: 'SAME',
-                            child: Text('เพศเดียวกัน'),
+                            value: 'MALE',
+                            child: Text('ผู้ชาย'),
                           ),
                           DropdownMenuItem(
-                            value: 'OPPOSITE',
-                            child: Text('เพศตรงข้าม'),
+                            value: 'FEMALE',
+                            child: Text('ผู้หญิง'),
                           ),
                           DropdownMenuItem(
                             value: 'BOTH',
-                            child: Text('ได้ทั้งหมด'),
+                            child: Text('ได้ทั้งคู่'),
                           ),
                         ],
 
@@ -199,6 +457,8 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
 
                       DsLabel(label: 'แก้ไขรูปภาพที่แสดง', labelFontSize: 20),
                       ImageUploadGrid(
+                        key: ValueKey(photoUrls.join(',')),
+                        imageUser: photoUrls,
                         onImagesChanged: (images) {
                           print('จำนวนรูปที่เลือก: ${images.length}');
                         },
@@ -213,17 +473,16 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                           ),
                           const SizedBox(height: 0),
                           TagSelection(
-                            items: [
-                              'Style 1',
-                              'Style 2Style',
-                              'Style 3',
-                              'Style 4',
-                              'Style 5Style',
-                              'Style 6',
-                              'Style 7Style',
-                              'Style 8',
-                              'Style 9',
-                            ],
+                            key: ValueKey(user_has_travelstyle.join(',')),
+                            items: _travelStyles
+                                .map((t) => t.travelstyle)
+                                .toList(),
+                            initialSelected: user_has_travelstyle,
+                            onChanged: (newSelected) {
+                              setState(() {
+                                user_has_travelstyle = newSelected;
+                              });
+                            },
                           ),
                         ],
                       ),
@@ -231,13 +490,29 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                       // ไลฟ์สไตล์
                       DsTextField(
                         label: 'ไลฟ์สไตล์',
-
+                        controller: _lifestyleCtrl,
+                        required: true,
+                        readOnly: true,
                         suffixIcon: Icons.arrow_circle_right_rounded,
                         onSuffixTap: () async {
                           final result = await Navigator.pushNamed(
                             context,
                             '/lifestylesSelection',
+                            arguments: {
+                              'items': _lifeStyles,
+                              'selected': user_has_lifestyle,
+                            },
                           );
+                          if (result != null && result is List<int>) {
+                            setState(() {
+                              user_has_lifestyle = result;
+                              _lifestyleCtrl.text = _getSelectedText(
+                                result,
+                                _lifeStyles.map((l) => l.lifestyle).toList(),
+                              );
+                            });
+                            print('เลือกความสนใจ: $user_has_lifestyle');
+                          }
                         },
                         labelFontSize: 20,
                       ),
@@ -245,34 +520,69 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                       // สิ่งที่สนใจ
                       DsTextField(
                         label: 'สิ่งที่สนใจ',
-
+                        controller: _interestsCtrl,
+                        required: true,
+                        readOnly: true,
                         suffixIcon: Icons.arrow_circle_right_rounded,
                         onSuffixTap: () async {
                           final result = await Navigator.pushNamed(
                             context,
                             '/interestsSelection',
+                            arguments: {
+                              'items': _interests,
+                              'selected': user_has_interest,
+                            },
                           );
+                          if (result != null && result is List<int>) {
+                            setState(() {
+                              user_has_interest = result;
+                              _interestsCtrl.text = _getSelectedText(
+                                result,
+                                _interests.map((l) => l.interest).toList(),
+                              );
+                            });
+                            print('เลือกความสนใจ: $user_has_interest');
+                          }
                         },
                         labelFontSize: 20,
                       ),
 
                       // Tags
-                      DsTextField(
-                        label: 'tags(ไม่บังคับ)',
-                        required: false,
-                        suffixIcon: Icons.add,
-                        hintText: 'เพิ่มแท็กที่นี่',
-                        onSuffixTap: () async {
-                          final result = await Navigator.pushNamed(
+                      GestureDetector(
+                        behavior: HitTestBehavior.translucent,
+                        onTap: () {
+                          FocusScope.of(
                             context,
-                            '/tagsSelection',
-                          );
+                          ).unfocus(); // จะทำให้ทุก FocusNode หาย
                         },
-                        labelFontSize: 20,
+                        child: Column(
+                          children: [
+                            TagAutocomplete(
+                              key: ValueKey(
+                                user_has_tag.join(','),
+                              ), // บังคับ rebuild
+                              allTags: _tags.map((t) => t.tag).toList(),
+                              selectedTags: user_has_tag
+                                  .map((i) => _tags[i].tag)
+                                  .toList(),
+                              onChanged: (newList) {
+                                setState(() {
+                                  user_has_tag = newList
+                                      .map(
+                                        (tag) => _tags.indexWhere(
+                                          (t) => t.tag == tag,
+                                        ),
+                                      )
+                                      .toList();
+                                });
+                              },
+                            ),
+                          ],
+                        ),
                       ),
 
                       DsLabel(label: 'คะแนนความประพฤติ', labelFontSize: 20),
-                      CircularLoading(percent: 0.75),
+                      CircularLoading(percent: behaviorScore),
                       Card(
                         elevation: 2,
                         shape: RoundedRectangleBorder(
@@ -380,7 +690,19 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
           ),
         ],
       ),
-      bottomNavigationBar: CustomBottomNavBar(selectedIndex: 2 ),
+      bottomNavigationBar: CustomBottomNavBar(
+        selectedIndex: _selectedIndex,
+        onTap: (index) {
+          setState(() {
+            _selectedIndex = index; // อัปเดต selectedIndex
+          });
+
+          // ตรวจสอบ index
+          if (index == 2) {
+            Navigator.pushReplacementNamed(context, '/discovery');
+          }
+        },
+      ),
     );
   }
 }

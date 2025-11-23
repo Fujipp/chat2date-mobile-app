@@ -18,7 +18,9 @@ import 'package:flutter_svg/flutter_svg.dart';
 import 'package:sliding_up_panel/sliding_up_panel.dart';
 
 class DiscoveryScreen extends ConsumerStatefulWidget {
-  const DiscoveryScreen({super.key});
+  final int selectedIndex;
+
+  const DiscoveryScreen({super.key, this.selectedIndex = 0});
 
   @override
   ConsumerState<DiscoveryScreen> createState() => _DiscoveryScreenState();
@@ -36,6 +38,8 @@ class _DiscoveryScreenState extends ConsumerState<DiscoveryScreen>
   final ValueNotifier<ActivePanel> activePanel = ValueNotifier(
     ActivePanel.none,
   );
+
+  late int _selectedIndex;
 
   // --- Card animation (like/unlike) ---
   late final AnimationController _cardCtrl;
@@ -113,6 +117,11 @@ class _DiscoveryScreenState extends ConsumerState<DiscoveryScreen>
   @override
   void initState() {
     super.initState();
+    // ✅ ขอสิทธิ์ + อัปเดต location ตอนเข้า /discovery ครั้งแรก
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      await ref.read(locationServiceProvider).tryUpdateLocationSilently();
+    });
+    _selectedIndex = widget.selectedIndex;
 
     // เริ่มต้น card animation controller
     _cardCtrl =
@@ -398,7 +407,19 @@ class _DiscoveryScreenState extends ConsumerState<DiscoveryScreen>
             ),
           ],
         ),
-        bottomNavigationBar: const CustomBottomNavBar(selectedIndex: 0),
+        bottomNavigationBar: CustomBottomNavBar(
+          selectedIndex: _selectedIndex,
+          onTap: (index) {
+            setState(() {
+              _selectedIndex = index; // อัปเดต selectedIndex
+            });
+
+            // ตรวจสอบ index
+            if (index == 2) {
+              Navigator.pushReplacementNamed(context, '/profile');
+            }
+          },
+        ),
       );
     }
 
@@ -453,7 +474,19 @@ class _DiscoveryScreenState extends ConsumerState<DiscoveryScreen>
             ),
           ],
         ),
-        bottomNavigationBar: const CustomBottomNavBar(selectedIndex: 0),
+        bottomNavigationBar: CustomBottomNavBar(
+          selectedIndex: _selectedIndex,
+          onTap: (index) {
+            setState(() {
+              _selectedIndex = index; // อัปเดต selectedIndex
+            });
+
+            // ตรวจสอบ index
+            if (index == 2) {
+              Navigator.pushReplacementNamed(context, '/profile');
+            }
+          },
+        ),
       );
     }
 
@@ -825,7 +858,19 @@ class _DiscoveryScreenState extends ConsumerState<DiscoveryScreen>
           ),
         ],
       ),
-      bottomNavigationBar: const CustomBottomNavBar(selectedIndex: 0),
+      bottomNavigationBar: CustomBottomNavBar(
+        selectedIndex: _selectedIndex,
+        onTap: (index) {
+          setState(() {
+            _selectedIndex = index; // อัปเดต selectedIndex
+          });
+
+          // ตรวจสอบ index
+          if (index == 2) {
+            Navigator.pushReplacementNamed(context, '/profile');
+          }
+        },
+      ),
     );
   }
 }

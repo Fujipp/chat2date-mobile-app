@@ -7,12 +7,14 @@ class ImageUploadGrid extends StatefulWidget {
   final Function(List<XFile> images)? onImagesChanged;
   final double spacing;
   final double runSpacing;
+  final List<String> imageUser;
 
   const ImageUploadGrid({
     super.key,
     this.onImagesChanged,
     this.spacing = 12.0,
     this.runSpacing = 50.0,
+    this.imageUser = const [""]
   });
 
   @override
@@ -20,7 +22,7 @@ class ImageUploadGrid extends StatefulWidget {
 }
 
 class _ImageUploadGridState extends State<ImageUploadGrid> {
-  final List<XFile?> _images = List.filled(6, null);
+  late List<dynamic> _images = List.filled(6, null);
   final ImagePicker _picker = ImagePicker();
 
   Future<void> _pickImage(int index) async {
@@ -28,6 +30,16 @@ class _ImageUploadGridState extends State<ImageUploadGrid> {
     if (image != null) {
       setState(() => _images[index] = image);
       _notifyParent();
+    }
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    // โหลด URL จาก user profile มาใส่ใน _images
+    _images = List<dynamic>.filled(6, null);
+    for (int i = 0; i < widget.imageUser.length && i < _images.length; i++) {
+      _images[i] = widget.imageUser[i]; // ใส่ URL
     }
   }
 
@@ -79,7 +91,7 @@ class _ImageUploadGridState extends State<ImageUploadGrid> {
           runSpacing: runSpacing,
           alignment: WrapAlignment.start,
           children: List.generate(6, (index) {
-            final XFile? image = _images[index];
+            final image = _images[index];
             Widget content;
 
             if (image == null) {
@@ -90,13 +102,22 @@ class _ImageUploadGridState extends State<ImageUploadGrid> {
                 iconSize: iconSize,
                 padding: internalPadding,
               );
-            } else {
+            } else if (image is XFile) {
               content = _ImagePreview(
                 imageFile: File(image.path),
                 onRemove: () => _removeImage(index),
                 itemWidth: itemWidth,
                 itemHeight: itemHeight,
               );
+            } else if (image is String) {
+              content = _ImagePreview(
+                imageUrl: image,
+                onRemove: () => _removeImage(index),
+                itemWidth: itemWidth,
+                itemHeight: itemHeight,
+              );
+            } else {
+              content = SizedBox.shrink();
             }
 
             return SizedBox(
@@ -147,13 +168,15 @@ class _AddImageButton extends StatelessWidget {
 }
 
 class _ImagePreview extends StatelessWidget {
-  final File imageFile;
+  final File? imageFile;
+  final String? imageUrl;
   final VoidCallback onRemove;
   final double itemWidth;
   final double itemHeight;
 
   const _ImagePreview({
-    required this.imageFile,
+    this.imageFile,
+    this.imageUrl,
     required this.onRemove,
     required this.itemWidth,
     required this.itemHeight,
@@ -169,7 +192,18 @@ class _ImagePreview extends StatelessWidget {
         children: [
           ClipRRect(
             borderRadius: BorderRadius.circular(10),
-            child: Image.file(imageFile, fit: BoxFit.cover),
+            child: imageFile != null
+                ? Image.file(imageFile!, fit: BoxFit.cover)
+                : Image.network(
+                    imageUrl!,
+                    fit: BoxFit.cover,
+                    errorBuilder: (context, error, stackTrace) =>
+                        const Center(child: Icon(Icons.broken_image)),
+                    loadingBuilder: (context, child, loadingProgress) {
+                      if (loadingProgress == null) return child;
+                      return const Center(child: CircularProgressIndicator());
+                    },
+                  ),
           ),
           Positioned(
             top: 4,

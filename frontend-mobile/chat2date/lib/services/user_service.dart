@@ -131,7 +131,7 @@ class UserService {
     final userState = ref.read(userStoreProvider);
     final accessToken = "${userState['accessToken']}";
     final response = await http.get(
-      Uri.parse('${ApiBase.baseUrl}/users/$id/photo'),
+      Uri.parse('${ApiBase.baseUrl}/users/$id/profile'),
       headers: {
         'Content-Type': 'application/json',
         'Authorization': 'Bearer $accessToken',
