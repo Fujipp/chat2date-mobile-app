@@ -95,9 +95,9 @@ class _MatchPreferenceScreenState extends ConsumerState<MatchPreferenceScreen> {
               ),
 
               items: const [
-                DropdownMenuItem(value: 'ผู้ชาย', child: Text('MALE')),
-                DropdownMenuItem(value: 'ผู้หญิง', child: Text('FEMALE')),
-                DropdownMenuItem(value: 'ได้ทั้งคู่', child: Text('BOTH')),
+                DropdownMenuItem(value: 'MALE', child: Text('ผู้ชาย')),
+                DropdownMenuItem(value: 'FEMALE', child: Text('ผู้หญิง')),
+                DropdownMenuItem(value: 'BOTH', child: Text('ได้ทั้งคู่')),
               ],
 
               onChanged: (value) {

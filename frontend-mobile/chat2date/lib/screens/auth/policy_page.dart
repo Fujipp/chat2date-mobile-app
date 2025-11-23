@@ -37,7 +37,7 @@ class _PolicyPageState extends State<PolicyPage> {
     final args = ModalRoute.of(context)?.settings.arguments;
     bool onKyc = false;
     if (args is Map<String, dynamic>) {
-      onKyc = args['onKyc'] as bool? ?? false;
+      onKyc = args['goKyc'] as bool? ?? false;
     }
     return Scaffold(
       backgroundColor: Colors.white,

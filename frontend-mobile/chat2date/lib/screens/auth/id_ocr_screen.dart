@@ -250,7 +250,7 @@ class _IdOcrScreenState extends ConsumerState<IdOcrScreen> {
       final userService = ref.read(userServiceProvider);
       final updatedUser = await userService.updateUser(userToUpdate);
  
-      print('✅ User updated: ${updatedUser.toJson()}');
+      print('✅ User updated: ${updatedUser}');
  
       // 6. อัปเดต userStore และ SecureStorage
       userStoreNotifier.setUser(updatedUser, accessToken);

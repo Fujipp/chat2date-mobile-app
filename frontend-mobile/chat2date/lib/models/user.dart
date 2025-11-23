@@ -52,9 +52,10 @@ class User {
         orElse: () => values.first,
       );
     }
+    final userId = json['userId'] ?? json['id'];
 
     return User(
-      userId: json['userId'],
+      userId: userId,
       email: json['email'],
       phoneNumber: json['phoneNumber'],
       provider: enumFromString(Provider.values, json['provider']),

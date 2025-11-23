@@ -137,6 +137,7 @@ class _OtpPageState extends ConsumerState<OtpPage> {
       );
       if (!mounted) return;
       if (data['statusCode'] == 200) {
+        print(data['body']['user']);
         final user = User.fromJson(data['body']['user']);
         final accessToken = data['body']['accessToken'];
         ref.read(userStoreProvider.notifier).setUser(user, accessToken);

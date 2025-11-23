@@ -5,6 +5,10 @@ import 'package:chat2date/components/inputs/ds_text_field/ds_text_field.dart';
 import 'package:chat2date/components/layout/header.dart';
 import 'package:chat2date/components/layout/menu_bar.dart';
 import 'package:chat2date/components/layout/responsive_container.dart';
+import 'package:chat2date/models/user_has_interest.dart';
+import 'package:chat2date/models/user_has_lifestyle.dart';
+import 'package:chat2date/models/user_has_tag.dart';
+import 'package:chat2date/models/user_has_travelstyle.dart';
 import 'package:chat2date/services/user_service.dart';
 import 'package:chat2date/stores/user_store.dart';
 import 'package:flutter/material.dart';
@@ -24,6 +28,11 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
   String nickname = "";
   String? _selectedGenderPreference = "";
   double behaviorScore = 0;
+  List<UserHasInterest> user_has_interest = [];
+  List<UserHasLifestyle> user_has_lifestyle = [];
+  List<UserHasTravelstyle> user_has_travelstyle = [];
+  List<UserHasTag> user_has_tag = [];
+  String interestGender = "";
 
   @override
   void initState() {
@@ -37,6 +46,18 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     final accessToken = userStore?['accessToken'];
     final userById = await ref.read(userServiceProvider).getUser(userId);
     ref.read(userStoreProvider.notifier).setUser(userById, accessToken);
+    final userService = ref.read(userServiceProvider);
+    final userProfile = await userService.getProfile(userId);
+    user_has_interest = userProfile['interests'];
+    user_has_lifestyle = userProfile['lifeStyles'];
+    user_has_tag = userProfile['tags'];
+    user_has_travelstyle = userProfile['travelStyles'];
+    interestGender = userProfile['interestedGender'];
+    
+    //interestGender = userProfile['']
+
+    
+
     setState(() {
       nickname = userStore?['user']?['nickname'];
       behaviorScore = (userStore?['user']?['behaviorScore'])/100;

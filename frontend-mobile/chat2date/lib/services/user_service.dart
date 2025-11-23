@@ -126,4 +126,26 @@ class UserService {
       'Check phone failed with status ${response.statusCode}: ${response.body}',
     );
   }
+
+  Future<Map<String, dynamic>> getProfile(String id) async {
+    final userState = ref.read(userStoreProvider);
+    final accessToken = "${userState['accessToken']}";
+    final response = await http.get(
+      Uri.parse('${ApiBase.baseUrl}/users/$id/photo'),
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer $accessToken',
+      },
+    );
+
+    if (response.statusCode == 200) {
+      final data = jsonDecode(response.body);
+      return data; 
+    }
+
+    // error อื่นที่ไม่คาดคิด
+    throw Exception(
+      'Check phone failed with status ${response.statusCode}: ${response.body}',
+    );
+  }
 }
