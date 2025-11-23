@@ -1,4 +1,5 @@
 import 'package:chat2date/components/index.dart'; // DsButton / Variant / Size
+import 'package:chat2date/controllers/auth_controller.dart';
 import 'package:chat2date/services/auth_service.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -72,13 +73,25 @@ class HomeLoginPage extends ConsumerWidget {
                                 final authService = ref.read(
                                   authServiceProvider,
                                 );
-                                final userId = await authService
-                                    .signInWithGoogle();
+                                // final userId = await authService
+                                //     .signInWithGoogle();
+
+                                final authController = ref.read(
+                                  authControllerProvider,
+                                );
+                                final result = await authController
+                                    .handleGoogleLogin(onLogin: true);
+
+                                // Navigator.pushReplacementNamed(
+                                //   context,
+                                //   '/kyc-id-ocr',
+                                //   arguments: userId,
+                                // );
 
                                 Navigator.pushReplacementNamed(
                                   context,
-                                  '/kyc-id-ocr',
-                                  arguments: userId,
+                                  result.route,
+                                  arguments: result.arguments,
                                 );
                               } catch (e) {
                                 ScaffoldMessenger.of(context).showSnackBar(

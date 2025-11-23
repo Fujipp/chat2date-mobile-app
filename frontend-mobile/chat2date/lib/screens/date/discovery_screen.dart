@@ -1,56 +1,24 @@
 import 'dart:math';
 import 'dart:ui';
+
 import 'package:chat2date/components/buttons/ds_button.dart';
+import 'package:chat2date/components/buttons/ds_svg_swap_button.dart';
 import 'package:chat2date/components/common/custom_range_slider.dart';
+import 'package:chat2date/components/common/style_component.dart';
 import 'package:chat2date/components/inputs/ds_label.dart';
+import 'package:chat2date/components/layout/header.dart';
+import 'package:chat2date/components/layout/menu_bar.dart';
+import 'package:chat2date/services/discovery_service.dart';
+import 'package:chat2date/services/location_service.dart';
+import 'package:chat2date/stores/user_store.dart';
+import 'package:chat2date/theme/app_colors.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:sliding_up_panel/sliding_up_panel.dart';
 
-import 'package:chat2date/components/buttons/ds_svg_swap_button.dart';
-import 'package:chat2date/components/common/modal_component.dart';
-import 'package:chat2date/components/common/style_component.dart';
-import 'package:chat2date/components/inputs/index.dart';
-import 'package:chat2date/components/layout/header.dart';
-import 'package:chat2date/components/layout/menu_bar.dart';
-import 'package:chat2date/theme/app_colors.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:chat2date/services/location_service.dart';
-
 class DiscoveryScreen extends ConsumerStatefulWidget {
-  final String username;
-  final List<String> tags;
-  final List<Map<String, dynamic>> headerTop;
-  final List<Map<String, dynamic>> headerBottom;
-  final List<String> images;
-
-  const DiscoveryScreen({
-    super.key,
-    this.username = "กีกี้",
-    this.tags = const ['Tag A', 'Tag B', 'Tag CCCCCC', 'Tag D', 'Tag E'],
-    this.headerTop = const [
-      {
-        'title': 'กีฬา',
-        'style': ['Tag A', 'Tag B'],
-      },
-      {'title': 'ระยะห่าง', 'range': 50.0},
-    ],
-    this.headerBottom = const [
-      {
-        'title': 'ไลฟ์สไตล์',
-        'style': ['Tag 1', 'Tag 2', 'Tag 3', 'Tag 5', 'Tag 4'],
-      },
-      {
-        'title': 'กีฬา',
-        'style': ['Tag A', 'Tag B'],
-      },
-    ],
-    this.images = const [
-      'https://media.printler.com/media/photo/193484-2.jpg?rmode=crop&width=638&height=900',
-      'https://m.media-amazon.com/images/I/71dAIiXhTQL._AC_UF1000,1000_QL80_.jpg',
-      'https://www.ubuy.co.th/productimg/?image=aHR0cHM6Ly9tLm1lZGlhLWFtYXpvbi5jb20vaW1hZ2VzL0kvNjFVR1dxQzNTRUwuX1NMMTM2MF8uanBn.jpg',
-    ],
-  });
+  const DiscoveryScreen({super.key});
 
   @override
   ConsumerState<DiscoveryScreen> createState() => _DiscoveryScreenState();
@@ -79,6 +47,12 @@ class _DiscoveryScreenState extends ConsumerState<DiscoveryScreen>
   double _opacity = 1.0;
 
   int _index = 0;
+  String? _userId;
+
+  // Settings
+  OverlayEntry? _settingsOverlay;
+  bool _isSettingsOpen = false;
+  RangeValues _selectedRange = const RangeValues(1, 1800);
 
   // ---------- Utils ----------
 
@@ -88,14 +62,12 @@ class _DiscoveryScreenState extends ConsumerState<DiscoveryScreen>
     return Colors.white.withOpacity(k);
   }
 
-  void _nextImage() {
-    setState(() => _index = (_index + 1) % widget.images.length);
+  void _nextImage(int maxLength) {
+    setState(() => _index = (_index + 1) % maxLength);
   }
 
-  void _prevImage() {
-    setState(
-      () => _index = (_index - 1 + widget.images.length) % widget.images.length,
-    );
+  void _prevImage(int maxLength) {
+    setState(() => _index = (_index - 1 + maxLength) % maxLength);
   }
 
   // --- Card animation: safe & simple ---
@@ -112,19 +84,37 @@ class _DiscoveryScreenState extends ConsumerState<DiscoveryScreen>
     _cardCtrl.forward();
   }
 
-  void _onUnlike() => _animateCard(to: const Offset(-500, 0), rot: -pi / 10);
-  void _onLike() => _animateCard(to: const Offset(0, 400), rot: 0);
+  void _onUnlike() {
+    if (_userId == null) return;
+
+    _animateCard(to: const Offset(-500, 0), rot: -pi / 10);
+
+    // เรียก unlike API หลัง animation เริ่ม
+    Future.delayed(const Duration(milliseconds: 200), () {
+      if (mounted) {
+        ref.read(discoveryProvider(_userId!).notifier).unlikeCurrentCandidate();
+      }
+    });
+  }
+
+  void _onLike() {
+    if (_userId == null) return;
+
+    _animateCard(to: const Offset(0, 400), rot: 0);
+
+    // เรียก like API หลัง animation เริ่ม
+    Future.delayed(const Duration(milliseconds: 200), () {
+      if (mounted) {
+        ref.read(discoveryProvider(_userId!).notifier).likeCurrentCandidate();
+      }
+    });
+  }
 
   @override
   void initState() {
     super.initState();
-      // ✅ ขอสิทธิ์ + อัปเดต location ตอนเข้า /discovery ครั้งแรก
-      WidgetsBinding.instance.addPostFrameCallback((_) async {
-      await ref
-          .read(locationServiceProvider)
-          .tryUpdateLocationSilently();
-    });
 
+    // เริ่มต้น card animation controller
     _cardCtrl =
         AnimationController(
             vsync: this,
@@ -132,15 +122,12 @@ class _DiscoveryScreenState extends ConsumerState<DiscoveryScreen>
           )
           ..addListener(() {
             setState(() {
-              // linear 0..1
               final t = _cardCtrl.value;
-              // ease opacity out
               _opacity = 1 - t;
             });
           })
           ..addStatusListener((st) async {
             if (st == AnimationStatus.completed) {
-              // reset card & go next image
               await Future.delayed(const Duration(milliseconds: 150));
               if (!mounted) return;
               setState(() {
@@ -156,16 +143,51 @@ class _DiscoveryScreenState extends ConsumerState<DiscoveryScreen>
   }
 
   @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+
+    // โหลดข้อมูลครั้งเดียวตอนเริ่มต้น
+    if (_userId == null) {
+      WidgetsBinding.instance.addPostFrameCallback((_) async {
+        try {
+          // ดึง userId จาก UserStore
+          final userStore = ref.read(userStoreProvider.notifier);
+          final user = userStore.user; // getter
+          final userId = user?.userId;
+
+          if (userId == null) {
+            print('❌ User ID not found');
+            return;
+          }
+
+          setState(() {
+            _userId = userId;
+          });
+
+          // อัปเดต location
+          await ref.read(locationServiceProvider).tryUpdateLocationSilently();
+
+          // โหลด candidates
+          if (mounted && _userId != null) {
+            await ref
+                .read(discoveryProvider(_userId!).notifier)
+                .loadCandidates();
+          }
+        } catch (e) {
+          print('❌ Error initializing discovery: $e');
+        }
+      });
+    }
+  }
+
+  @override
   void dispose() {
     _cardCtrl.dispose();
+    _settingsOverlay?.remove();
     super.dispose();
   }
 
   // -------------Part Settings Panel------------------
-
-  OverlayEntry? _settingsOverlay;
-  bool _isSettingsOpen = false;
-  RangeValues _selectedRange = const RangeValues(1, 1900);
 
   void _togglePanel(BuildContext context) {
     if (_isSettingsOpen) {
@@ -224,7 +246,6 @@ class _DiscoveryScreenState extends ConsumerState<DiscoveryScreen>
                           labelFontSize: 20,
                         ),
                         const SizedBox(height: 10),
-
                         Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
@@ -244,9 +265,7 @@ class _DiscoveryScreenState extends ConsumerState<DiscoveryScreen>
                             ),
                           ],
                         ),
-
                         const SizedBox(height: 10),
-
                         CustomRangeSlider(
                           values: _selectedRange,
                           min: 1,
@@ -258,19 +277,26 @@ class _DiscoveryScreenState extends ConsumerState<DiscoveryScreen>
                             });
                           },
                         ),
-
                         const SizedBox(height: 10),
-
-                        //เผื่อใช้ ถ้าไม่ใช้ลบไปได้
                         Center(
                           child: DsButton(
                             label: 'ยืนยัน',
-                            onPressed: () => {
+                            onPressed: () {
                               setStateOverlay(() {
                                 _isSettingsOpen = false;
-                              }),
-                              _settingsOverlay?.remove(),
-                              _settingsOverlay = null,
+                              });
+                              _settingsOverlay?.remove();
+                              _settingsOverlay = null;
+
+                              // โหลด candidates ใหม่ตามระยะที่เลือก
+                              if (_userId != null) {
+                                ref
+                                    .read(discoveryProvider(_userId!).notifier)
+                                    .refresh(
+                                      minDistance: _selectedRange.start.round(),
+                                      maxDistance: _selectedRange.end.round(),
+                                    );
+                              }
                             },
                             fontWeight: FontWeight.w700,
                             size: DsButtonSize.md,
@@ -293,6 +319,159 @@ class _DiscoveryScreenState extends ConsumerState<DiscoveryScreen>
 
   @override
   Widget build(BuildContext context) {
+    // รอจนกว่าจะได้ userId
+    if (_userId == null) {
+      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+    }
+
+    // Watch discovery state
+    final discoveryState = ref.watch(discoveryProvider(_userId!));
+    final currentCandidate = discoveryState.currentCandidate;
+
+    // แสดง loading state
+    // if (discoveryState.isLoading && discoveryState.isEmpty) {
+    //   return Scaffold(
+    //     body: Column(
+    //       children: [
+    //         const SizedBox(height: 25),
+    //         ChatToDateHeaderWhite(
+    //           leftIconPath: 'assets/icons/icon_chat2date_full.svg',
+    //           rightIconPath: 'assets/icons/icon_menu.svg',
+    //           iconColor: const Color(0xFF5ce1e6),
+    //           onBack: () {},
+    //           onSettings: () async {
+    //             await ref
+    //                 .read(locationServiceProvider)
+    //                 .tryUpdateLocationSilently();
+    //             _togglePanel(context);
+    //           },
+    //         ),
+    //         const Expanded(child: Center(child: CircularProgressIndicator())),
+    //       ],
+    //     ),
+    //     bottomNavigationBar: const CustomBottomNavBar(selectedIndex: 0),
+    //   );
+    // }
+
+    // แสดง error state
+    if (discoveryState.error != null) {
+      return Scaffold(
+        body: Column(
+          children: [
+            const SizedBox(height: 25),
+            ChatToDateHeaderWhite(
+              leftIconPath: 'assets/icons/icon_chat2date_full.svg',
+              rightIconPath: 'assets/icons/icon_menu.svg',
+              iconColor: const Color(0xFF5ce1e6),
+              onBack: () {},
+              onSettings: () async {
+                await ref
+                    .read(locationServiceProvider)
+                    .tryUpdateLocationSilently();
+                _togglePanel(context);
+              },
+            ),
+            Expanded(
+              child: Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const Icon(
+                      Icons.error_outline,
+                      size: 64,
+                      color: Colors.red,
+                    ),
+                    const SizedBox(height: 16),
+                    Text('เกิดข้อผิดพลาด: ${discoveryState.error}'),
+                    const SizedBox(height: 16),
+                    ElevatedButton(
+                      onPressed: () {
+                        ref
+                            .read(discoveryProvider(_userId!).notifier)
+                            .refresh();
+                      },
+                      child: const Text('ลองอีกครั้ง'),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
+        bottomNavigationBar: const CustomBottomNavBar(selectedIndex: 0),
+      );
+    }
+
+    // ไม่มี candidates
+    if (currentCandidate == null || discoveryState.isEmpty) {
+      return Scaffold(
+        body: Column(
+          children: [
+            const SizedBox(height: 25),
+            ChatToDateHeaderWhite(
+              leftIconPath: 'assets/icons/icon_chat2date_full.svg',
+              rightIconPath: 'assets/icons/icon_menu.svg',
+              iconColor: const Color(0xFF5ce1e6),
+              onBack: () {},
+              onSettings: () async {
+                await ref
+                    .read(locationServiceProvider)
+                    .tryUpdateLocationSilently();
+                _togglePanel(context);
+              },
+            ),
+            Expanded(
+              child: Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const Icon(
+                      Icons.person_search,
+                      size: 64,
+                      color: Colors.grey,
+                    ),
+                    const SizedBox(height: 16),
+                    const Text(
+                      'ไม่มีคนที่เหมาะสมในขณะนี้',
+                      style: TextStyle(fontSize: 18),
+                    ),
+                    const SizedBox(height: 16),
+                    ElevatedButton(
+                      onPressed: () {
+                        ref
+                            .read(discoveryProvider(_userId!).notifier)
+                            .refresh(
+                              minDistance: _selectedRange.start.round(),
+                              maxDistance: _selectedRange.end.round(),
+                            );
+                      },
+                      child: const Text('ค้นหาใหม่'),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
+        bottomNavigationBar: const CustomBottomNavBar(selectedIndex: 0),
+      );
+    }
+
+    // มี candidate - แสดงข้อมูลจริง
+    final images = currentCandidate.photos.isNotEmpty
+        ? currentCandidate.photos
+        : ['https://via.placeholder.com/400x600?text=No+Image'];
+
+    final headerTop = [
+      {'title': 'สไตล์การเที่ยว', 'style': currentCandidate.travelStyles},
+      {'title': 'ระยะห่าง', 'range': currentCandidate.distance},
+    ];
+
+    final headerBottom = [
+      {'title': 'ความสนใจ', 'style': currentCandidate.interests},
+      {'title': 'ไลฟ์สไตล์', 'style': currentCandidate.lifestyles},
+    ];
+
     // card transforms derive from controller value
     final t = Curves.easeOutCubic.transform(_cardCtrl.value);
     final dx = _startPos.dx + (_targetPos.dx - _startPos.dx) * t;
@@ -333,10 +512,20 @@ class _DiscoveryScreenState extends ConsumerState<DiscoveryScreen>
                     child: Transform.rotate(
                       angle: rot,
                       child: Image.network(
-                        widget.images[_index],
+                        images[_index],
                         width: double.infinity,
                         height: 585,
                         fit: BoxFit.cover,
+                        errorBuilder: (context, error, stackTrace) {
+                          return Container(
+                            width: double.infinity,
+                            height: 585,
+                            color: Colors.grey[300],
+                            child: const Center(
+                              child: Icon(Icons.person, size: 100),
+                            ),
+                          );
+                        },
                       ),
                     ),
                   ),
@@ -347,8 +536,9 @@ class _DiscoveryScreenState extends ConsumerState<DiscoveryScreen>
                   ValueListenableBuilder(
                     valueListenable: activePanel,
                     builder: (context, value, _) {
-                      if (value == ActivePanel.top)
+                      if (value == ActivePanel.top) {
                         return const SizedBox.shrink();
+                      }
                       return IgnorePointer(
                         ignoring: activePanel.value == ActivePanel.top,
                         child: SlidingUpPanel(
@@ -398,9 +588,7 @@ class _DiscoveryScreenState extends ConsumerState<DiscoveryScreen>
                                 ),
                                 child: Column(
                                   children: [
-                                    HeadersWithStyles(
-                                      headers: widget.headerTop,
-                                    ),
+                                    HeadersWithStyles(headers: headerTop),
                                   ],
                                 ),
                               ),
@@ -468,7 +656,7 @@ class _DiscoveryScreenState extends ConsumerState<DiscoveryScreen>
                                         horizontal: 24,
                                       ),
                                       child: HeadersWithStyles(
-                                        headers: widget.headerBottom,
+                                        headers: headerBottom,
                                       ),
                                     ),
                                   ],
@@ -548,12 +736,12 @@ class _DiscoveryScreenState extends ConsumerState<DiscoveryScreen>
                                   children: [
                                     _ArrowButton(
                                       icon: Icons.chevron_left,
-                                      onTap: _prevImage,
+                                      onTap: () => _prevImage(images.length),
                                     ),
                                     const Spacer(),
                                     _ArrowButton(
                                       icon: Icons.chevron_right,
-                                      onTap: _nextImage,
+                                      onTap: () => _nextImage(images.length),
                                     ),
                                   ],
                                 ),
@@ -565,7 +753,7 @@ class _DiscoveryScreenState extends ConsumerState<DiscoveryScreen>
                                   child: SizedBox(
                                     width: 311,
                                     child: Text(
-                                      widget.username,
+                                      '${currentCandidate.nickname}, ${currentCandidate.age}',
                                       style: const TextStyle(
                                         fontSize: 32,
                                         color: Colors.white,
@@ -574,53 +762,56 @@ class _DiscoveryScreenState extends ConsumerState<DiscoveryScreen>
                                     ),
                                   ),
                                 ),
-                                Padding(
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 10,
-                                  ),
-                                  child: Wrap(
-                                    spacing: 5,
-                                    runSpacing: 7,
-                                    children: widget.tags.map((tag) {
-                                      return Container(
-                                        padding: const EdgeInsets.symmetric(
-                                          horizontal: 10,
-                                          vertical: 4,
-                                        ),
-                                        height: 27,
-                                        constraints: const BoxConstraints(
-                                          minWidth: 60,
-                                        ),
-                                        decoration: BoxDecoration(
-                                          color: AppColors.btnPrimary,
-                                          borderRadius: BorderRadius.circular(
-                                            30,
+                                if (currentCandidate.tags.isNotEmpty)
+                                  Padding(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 10,
+                                    ),
+                                    child: Wrap(
+                                      spacing: 5,
+                                      runSpacing: 7,
+                                      children: currentCandidate.tags.map((
+                                        tag,
+                                      ) {
+                                        return Container(
+                                          padding: const EdgeInsets.symmetric(
+                                            horizontal: 10,
+                                            vertical: 4,
                                           ),
-                                        ),
-                                        child: Row(
-                                          mainAxisSize: MainAxisSize.min,
-                                          children: [
-                                            SvgPicture.asset(
-                                              'assets/icons/icon_tag.svg',
-                                              width: 24,
-                                              height: 24,
+                                          height: 27,
+                                          constraints: const BoxConstraints(
+                                            minWidth: 60,
+                                          ),
+                                          decoration: BoxDecoration(
+                                            color: AppColors.btnPrimary,
+                                            borderRadius: BorderRadius.circular(
+                                              30,
                                             ),
-                                            Text(
-                                              tag,
-                                              style: const TextStyle(
-                                                fontSize: 14,
-                                                color: Colors.white,
-                                                fontFamily: 'Inter',
-                                                fontWeight: FontWeight.w400,
+                                          ),
+                                          child: Row(
+                                            mainAxisSize: MainAxisSize.min,
+                                            children: [
+                                              SvgPicture.asset(
+                                                'assets/icons/icon_tag.svg',
+                                                width: 24,
+                                                height: 24,
                                               ),
-                                            ),
-                                            const SizedBox(width: 20),
-                                          ],
-                                        ),
-                                      );
-                                    }).toList(),
+                                              Text(
+                                                tag,
+                                                style: const TextStyle(
+                                                  fontSize: 14,
+                                                  color: Colors.white,
+                                                  fontFamily: 'Inter',
+                                                  fontWeight: FontWeight.w400,
+                                                ),
+                                              ),
+                                              const SizedBox(width: 20),
+                                            ],
+                                          ),
+                                        );
+                                      }).toList(),
+                                    ),
                                   ),
-                                ),
                               ],
                             ),
                           ),
@@ -660,31 +851,6 @@ class _ArrowButton extends StatelessWidget {
           child: IconButton(
             icon: Icon(icon, color: Colors.white, size: 50),
             onPressed: onTap,
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _ChipBtn extends StatelessWidget {
-  final String label;
-  final VoidCallback onTap;
-  const _ChipBtn({required this.label, required this.onTap});
-
-  @override
-  Widget build(BuildContext context) {
-    return Material(
-      color: Colors.black.withOpacity(0.28),
-      borderRadius: BorderRadius.circular(999),
-      child: InkWell(
-        borderRadius: BorderRadius.circular(999),
-        onTap: onTap,
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-          child: Text(
-            label,
-            style: const TextStyle(color: Colors.white, fontSize: 12),
           ),
         ),
       ),
