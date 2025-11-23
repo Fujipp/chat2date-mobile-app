@@ -245,7 +245,10 @@ public class UserService {
         return ResponseEntity.ok(pref);
     }
 
-    public ResponseEntity<PreferenceMatchUserDTO> createUserPreferenceMatch(String accessToken, PreferenceMatchUserDTO pref) {
+    public ResponseEntity<PreferenceMatchUserDTO> createUserPreferenceMatch(
+            String accessToken,
+            PreferenceMatchUserDTO pref
+    ) {
         String token = accessToken.substring(7);
         DecodedJWT jwt = JWT.decode(token);
         String sub = jwt.getClaim("sub").asString();
@@ -254,30 +257,53 @@ public class UserService {
                 ? userRepository.findByPhoneNumber(sub).orElseThrow()
                 : userRepository.findByEmail(sub).orElseThrow();
 
-        PreferenceMatch preferenceMatch = new PreferenceMatch();
+        // หา preferenceMatch ของ user
+        PreferenceMatch preferenceMatch =
+                preferenceMatchRepository.findPreferenceMatchByUser_UserId(user.getUserId());
+
+        if (preferenceMatch == null) {
+            preferenceMatch = new PreferenceMatch();
+            preferenceMatch.setUser(user);
+        }
 
         if (pref.getInterestedGender() != null) {
-            preferenceMatch.setInterestedGender(PreferenceGender.valueOf(pref.getInterestedGender()));
+            preferenceMatch.setInterestedGender(
+                    PreferenceGender.valueOf(pref.getInterestedGender()));
         }
-        if (pref.getInterestedInterest() != null) {
-            preferenceMatch.setInterestedInterest(PreferenceLevel.valueOf(pref.getInterestedInterest()));
-        }
-        if (pref.getInterestedLifeStyle() != null) {
-            preferenceMatch.setInterestedLifeStyle(PreferenceLevel.valueOf(pref.getInterestedLifeStyle()));
-        }
-        if (pref.getInterestedTravelStyle() != null) {
-            preferenceMatch.setInterestedTravelStyle(PreferenceLevel.valueOf(pref.getInterestedTravelStyle()));
-        }
-        preferenceMatch.setUser(user);
-        preferenceMatch.setInterestedAgeMax(pref.getInterestedAgeMax());
-        preferenceMatch.setInterestedAgeMin(pref.getInterestedAgeMin());
-        preferenceMatch.setInterestedDistanceMin(pref.getInterestedDistanceMin());
-        preferenceMatch.setInterestedDistanceMax(pref.getInterestedDistanceMax());
 
+        if (pref.getInterestedInterest() != null) {
+            preferenceMatch.setInterestedInterest(
+                    PreferenceLevel.valueOf(pref.getInterestedInterest()));
+        }
+
+        if (pref.getInterestedLifeStyle() != null) {
+            preferenceMatch.setInterestedLifeStyle(
+                    PreferenceLevel.valueOf(pref.getInterestedLifeStyle()));
+        }
+
+        if (pref.getInterestedTravelStyle() != null) {
+            preferenceMatch.setInterestedTravelStyle(
+                    PreferenceLevel.valueOf(pref.getInterestedTravelStyle()));
+        }
+
+        if (pref.getInterestedAgeMin() != null)
+            preferenceMatch.setInterestedAgeMin(pref.getInterestedAgeMin());
+
+        if (pref.getInterestedAgeMax() != null)
+            preferenceMatch.setInterestedAgeMax(pref.getInterestedAgeMax());
+
+        if (pref.getInterestedDistanceMin() != null)
+            preferenceMatch.setInterestedDistanceMin(pref.getInterestedDistanceMin());
+
+        if (pref.getInterestedDistanceMax() != null)
+            preferenceMatch.setInterestedDistanceMax(pref.getInterestedDistanceMax());
+
+        // Save (JPA จะเข้าใจเป็น update หรือ insert)
         preferenceMatchRepository.save(preferenceMatch);
 
         return ResponseEntity.ok(pref);
     }
+
 
     private <E, M> void saveManyToMany(
             User user,

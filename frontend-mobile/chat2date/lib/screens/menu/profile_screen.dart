@@ -9,15 +9,12 @@ import 'package:chat2date/components/inputs/ds_text_field/ds_text_field.dart';
 import 'package:chat2date/components/layout/header.dart';
 import 'package:chat2date/components/layout/menu_bar.dart';
 import 'package:chat2date/components/layout/responsive_container.dart';
+import 'package:chat2date/models/dto/preference_dto.dart';
 import 'package:chat2date/models/interest.dart';
 import 'package:chat2date/models/lifestyle.dart';
 import 'package:chat2date/models/tag.dart';
 import 'package:chat2date/models/travelstyle.dart';
 import 'package:chat2date/models/user.dart';
-import 'package:chat2date/models/user_has_interest.dart';
-import 'package:chat2date/models/user_has_lifestyle.dart';
-import 'package:chat2date/models/user_has_tag.dart';
-import 'package:chat2date/models/user_has_travelstyle.dart';
 import 'package:chat2date/services/photo_verification_service.dart';
 import 'package:chat2date/services/preference_service.dart';
 import 'package:chat2date/services/user_service.dart';
@@ -63,16 +60,57 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
 
   void _loadInitialData() async {
     final userStore = ref.read(userStoreProvider) as Map<String, dynamic>?;
+
+    // ถ้ามีข้อมูลใน userStore ใช้เลย
+
+    if (userStore?['profile'] != null && userStore?['user'] != null) {
+      final prefs = userStore?['preferences']; // Map<String, dynamic>?
+      await _setDataFromStore(
+        userStore?['profile'],
+        userStore?['user'],
+        prefs: prefs,
+      );
+      return;
+    }
+    // ถ้าไม่มีข้อมูลใน store ต้องโหลดจาก backend
     final prefs = await PreferenceService.getPreference();
-    final user = userStore?['user'] as User;
+    final user = userStore?['user'] as User; // ต้องแน่ใจว่ามี user
     final userId = user.userId;
     final userService = ref.read(userServiceProvider);
     final userProfile = await userService.getProfile(userId);
+
+    // เก็บลง userStore
+    ref.read(userStoreProvider.notifier).setProfile(userProfile);
+    ref.read(userStoreProvider.notifier).setPreferences({
+      'travelStyles': prefs.travelStyles,
+      'lifeStyles': prefs.lifeStyles,
+      'interests': prefs.interests,
+      'tags': prefs.tags,
+    });
+
+    await _setDataFromStore(
+      userProfile,
+      user,
+      prefs: {
+        'travelStyles': prefs.travelStyles,
+        'lifeStyles': prefs.lifeStyles,
+        'interests': prefs.interests,
+        'tags': prefs.tags,
+      },
+    );
+  }
+
+  Future<void> _setDataFromStore(
+    Map<String, dynamic> userProfile,
+    User user, {
+    Map<String, dynamic>? prefs,
+  }) async {
     setState(() {
-      _travelStyles = prefs.travelStyles;
-      _lifeStyles = prefs.lifeStyles;
-      _interests = prefs.interests;
-      _tags = prefs.tags;
+      _travelStyles = prefs?['travelStyles'] ?? [];
+      _lifeStyles = prefs?['lifeStyles'] ?? [];
+      _interests = prefs?['interests'] ?? [];
+      _tags = prefs?['tags'] ?? [];
+
       user_has_interest = (userProfile['interests'] as List)
           .map((e) => (e as int) - 1)
           .toList();
@@ -92,6 +130,8 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
       _selectedGenderPreference = userProfile['interestedGender'];
       nickname = user.nickname;
       behaviorScore = (user.behaviorScore!) / 100;
+
+      _nicknameCtrl.text = nickname.toString();
 
       _lifestyleCtrl.text = _getSelectedText(
         user_has_lifestyle,
@@ -113,6 +153,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
       photoUrls = (photoMap['urls'] as List<dynamic>)
           .map((e) => e.toString())
           .toList();
+
       print(photoUrls);
     });
   }
@@ -682,6 +723,127 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                           ),
                         ),
                       ),
+                      DsButton(
+                        label: 'บันทึกข้อมูล',
+                        onPressed: () async {
+                          // ตรวจสอบข้อมูลก่อนส่ง
+                          if (_nicknameCtrl.text.isEmpty) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text('กรุณากรอกชื่อเล่น'),
+                              ),
+                            );
+                            return;
+                          }
+
+                          if (user_has_travelstyle.length < 2 ||
+                              user_has_travelstyle.length > 3) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text(
+                                  'กรุณาเลือกสไตล์การท่องเที่ยว 2–3 ข้อ',
+                                ),
+                              ),
+                            );
+                            return;
+                          }
+
+                          if (user_has_lifestyle.length < 3 ||
+                              user_has_lifestyle.length > 5) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text('กรุณาเลือกไลฟ์สไตล์ 3–5 ข้อ'),
+                              ),
+                            );
+                            return;
+                          }
+
+                          // ตรวจสอบ Interests
+                          if (user_has_interest.length < 3 ||
+                              user_has_interest.length > 5) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text('กรุณาเลือกความสนใจ 3–5 ข้อ'),
+                              ),
+                            );
+                            return;
+                          }
+
+                          // ตรวจสอบ Tags สูงสุด 5 (ไม่บังคับเลือก)
+                          if (user_has_tag.length > 5) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text('สามารถเลือก Tag สูงสุด 5 ข้อ'),
+                              ),
+                            );
+                            return;
+                          }
+
+                          final incrementedInterests = user_has_interest
+                              .map((id) => id + 1)
+                              .toList();
+                          final incrementedLifestyles = user_has_lifestyle
+                              .map((id) => id + 1)
+                              .toList();
+                          final incrementedTravelStyles = user_has_travelstyle
+                              .map((id) => id + 1)
+                              .toList();
+                          final incrementedTag = user_has_tag
+                              .map((id) => id + 1)
+                              .toList();
+
+                          try {
+                            final userStore =
+                                ref.read(userStoreProvider)
+                                    as Map<String, dynamic>?;
+
+                            final oldUser = userStore?['user'] as User;
+
+                            if (oldUser.userId == null ||
+                                oldUser.version == null)
+                              return;
+
+                            // สร้าง Map ของ user ที่ต้องการส่งไปอัปเดต
+                            final user = User(
+                              userId: oldUser.userId,
+                              nickname: _nicknameCtrl.text,
+                              version: oldUser.version,
+                            );
+                            final preference = {
+                              "interests": incrementedInterests,
+                              "lifeStyles": incrementedLifestyles,
+                              "tags": incrementedTag,
+                              "travelStyles": incrementedTravelStyles,
+                            };
+                            final userService = ref.read(userServiceProvider);
+
+                            final update = await userService.updateUser(user);
+
+                            final addPreference = await userService
+                                .addPreferenceUser(preference);
+                          } catch (e) {
+                            throw Exception(e);
+                          }
+                          final Map<String, Object> preferenceMatch = {
+                            "interestedGender": _selectedGenderPreference!,
+                          };
+
+                          final updatedUser = ref
+                              .read(userServiceProvider)
+                              .addPreferenceMatchUser(preferenceMatch);
+
+                          // // ส่งข้อมูลไปหน้าถัดไป
+                          // print('===== ข้อมูล Profile =====');
+                          // print('ชื่อเล่น: ${_nicknameCtrl.text}');
+                          // print('ไลฟ์สไตล์: $_selectedLifestyles');
+                          // print('ความสนใจ: $_selectedInterests');
+                          // print('Tags: $_selectedTags');
+
+                          // // TODO: บันทึกข้อมูลหรือไปหน้าถัดไป
+                        },
+                        variant: DsButtonVariant.primary,
+                        size: DsButtonSize.md,
+                      ),
                     ],
                   ),
                 ),
@@ -698,7 +860,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
           });
 
           // ตรวจสอบ index
-          if (index == 2) {
+          if (index == 0) {
             Navigator.pushReplacementNamed(context, '/discovery');
           }
         },
