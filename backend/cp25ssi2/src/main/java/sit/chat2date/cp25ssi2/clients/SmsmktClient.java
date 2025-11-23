@@ -1,6 +1,7 @@
 package sit.chat2date.cp25ssi2.clients;
 
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
@@ -12,6 +13,7 @@ import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.http.*;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestTemplate;
+import sit.chat2date.cp25ssi2.dto.UserDTO;
 import sit.chat2date.cp25ssi2.exceptions.TooManyRequestException;
 import sit.chat2date.cp25ssi2.utils.UserFactory;
 import sit.chat2date.cp25ssi2.entities.User;
@@ -121,17 +123,43 @@ public class SmsmktClient {
             }
         }
         String jwtToken = jwtTokenUtil.generateToken(phoneNumber);
+        String jwtRefreshToken = jwtTokenUtil.generateRefreshToken(phoneNumber);
 
-        Map<String, Object> response = new HashMap<>();
+        Map<String, Object> response = new LinkedHashMap<>();
         if (valid) {
-            if (userOptional.isEmpty()) {
-                response.put("accessToken", jwtToken);
-                response.put("user", user);
-            } else {
-                response.put("accessToken", jwtToken);
-                response.put("user", userOptional.get());
-            }
+//            if (userOptional.isEmpty()) {
+//                response.put("accessToken", jwtToken);
+//                response.put("refreshToken", jwtRefreshToken);
+//                response.put("user", user);
+//            } else {
+//                response.put("accessToken", jwtToken);
+//                response.put("refreshToken", jwtRefreshToken);
+//                response.put("user", userOptional.get());
+//            }
+            UserDTO userDto = UserDTO.builder()
+                    .id(user.getUserId())
+                    .email(user.getEmail())
+                    .phoneNumber(user.getPhoneNumber())
+                    .accountStatus(user.getAccountStatus() != null ? user.getAccountStatus().toString() : null)
+                    .build();
+
+            response.put("user", userDto);
+            response.put("accessToken", jwtToken);
+            response.put("refreshToken", jwtRefreshToken);
+
+
         }
+
+//        Map<String, Object> response = new HashMap<>();
+//        if (valid) {
+//            if (userOptional.isEmpty()) {
+//                response.put("accessToken", jwtToken);
+//                response.put("user", user);
+//            } else {
+//                response.put("accessToken", jwtToken);
+//                response.put("user", userOptional.get());
+//            }
+//        }
 
         return response;
     }

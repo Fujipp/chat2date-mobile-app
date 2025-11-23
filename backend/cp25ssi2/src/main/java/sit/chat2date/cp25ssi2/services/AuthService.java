@@ -66,6 +66,7 @@ public class AuthService {
         UserDTO userDto = UserDTO.builder()
                 .id(user.getUserId())
                 .email(user.getEmail())
+                .accountStatus(user.getAccountStatus().toString())
                 .build();
 
         return AuthenticationResponse.builder()
