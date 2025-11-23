@@ -21,34 +21,34 @@ public interface UserRepository extends JpaRepository<User, String> {
         FROM user u
         JOIN userlocation loc ON u.userId = loc.userId
         LEFT JOIN (
-            SELECT uht.useruserId AS userId, COUNT(*) AS commonTravelStyles
-            FROM userhastravelstyle uht
-            WHERE uht.travelstyletravelId IN (
-                SELECT travelstyletravelId 
-                FROM userhastravelstyle 
-                WHERE useruserId = :currentUserId
+            SELECT uht.user_userId AS userId, COUNT(*) AS commonTravelStyles
+            FROM user_has_travelstyle uht
+            WHERE uht.travelstyle_travelId IN (
+                SELECT travelstyle_travelId 
+                FROM user_has_travelstyle
+                WHERE user_userId = :currentUserId
             )
-            GROUP BY uht.useruserId
+            GROUP BY uht.user_userId
         ) travel ON travel.userId = u.userId
         LEFT JOIN (
-            SELECT uhl.useruserId AS userId, COUNT(*) AS commonLifestyles
-            FROM userhaslifestyle uhl
-            WHERE uhl.lifestylelifestyleId IN (
-                SELECT lifestylelifestyleId 
-                FROM userhaslifestyle 
-                WHERE useruserId = :currentUserId
+            SELECT uhl.user_userId AS userId, COUNT(*) AS commonLifestyles
+            FROM user_has_lifestyle uhl
+            WHERE uhl.lifestyle_lifestyleId IN (
+                SELECT lifestyle_lifestyleId 
+                FROM user_has_lifestyle 
+                WHERE user_userId = :currentUserId
             )
-            GROUP BY uhl.useruserId
+            GROUP BY uhl.user_userId
         ) lifestyle ON lifestyle.userId = u.userId
         LEFT JOIN (
-            SELECT uhi.useruserId AS userId, COUNT(*) AS commonInterests
-            FROM userhasinterest uhi
-            WHERE uhi.interestinterestId IN (
-                SELECT interestinterestId 
-                FROM userhasinterest 
-                WHERE useruserId = :currentUserId
+            SELECT uhi.user_userId AS userId, COUNT(*) AS commonInterests
+            FROM user_has_interest uhi
+            WHERE uhi.interest_interestId IN (
+                SELECT interest_interestId 
+                FROM user_has_interest 
+                WHERE user_userId = :currentUserId
             )
-            GROUP BY uhi.useruserId
+            GROUP BY uhi.user_userId
         ) interest ON interest.userId = u.userId
         WHERE u.userId != :currentUserId
           AND u.accountStatus = 'ACTIVE'
