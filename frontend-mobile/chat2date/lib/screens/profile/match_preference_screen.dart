@@ -309,8 +309,8 @@ class _MatchPreferenceScreenState extends ConsumerState<MatchPreferenceScreen> {
                   // สร้าง Map ของ user ที่ต้องการส่งไปอัปเดต
                   final Map<String, Object> preferenceMatch = {
                     "interestedGender": _selectedGenderPreference!,
-                    "interestedAgeMax": _selectedRange.start,
-                    "interestedAgeMin": _selectedRange.end,
+                    "interestedAgeMax": _selectedRange.end,
+                    "interestedAgeMin": _selectedRange.start,
                     "interestedTravelStyle": _travelStylePreference!,
                     "interestedLifeStyle": _lifeStylePreference!,
                     "interestedInterest": _interestPreference!,
