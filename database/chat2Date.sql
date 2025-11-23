@@ -327,6 +327,27 @@ DEFAULT CHARACTER SET = utf8mb4
 COLLATE = utf8mb4_0900_ai_ci;
 
 
+-- -----------------------------------------------------
+-- Table `chat2date`.`devicetoken`
+-- -----------------------------------------------------
+CREATE TABLE IF NOT EXISTS `chat2date`.`devicetoken` (
+  `devicetokenId` INT NOT NULL AUTO_INCREMENT,
+  `userId` VARCHAR(36) NOT NULL,
+  `fcmToken` VARCHAR(512) NOT NULL,
+  `platform` VARCHAR(20) NULL,              -- android / ios
+  `createdAt` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`devicetokenId`),
+  INDEX `userId_idx` (`userId` ASC) VISIBLE,
+  CONSTRAINT `devicetoken_ibfk_1`
+    FOREIGN KEY (`userId`)
+    REFERENCES `chat2date`.`user` (`userId`)
+    ON DELETE CASCADE,
+  UNIQUE INDEX `uk_user_token` (`userId`, `fcmToken`) VISIBLE
+)
+ENGINE = InnoDB
+DEFAULT CHARACTER SET = utf8mb4
+COLLATE = utf8mb4_0900_ai_ci;
+
 SET SQL_MODE=@OLD_SQL_MODE;
 SET FOREIGN_KEY_CHECKS=@OLD_FOREIGN_KEY_CHECKS;
 SET UNIQUE_CHECKS=@OLD_UNIQUE_CHECKS;
