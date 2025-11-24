@@ -1,27 +1,31 @@
 package sit.chat2date.cp25ssi2.services;
 
+import com.google.firebase.FirebaseApp;
+import com.google.firebase.messaging.FirebaseMessaging;
+import com.google.firebase.messaging.FirebaseMessagingException;
+import com.google.firebase.messaging.Message;
+import com.google.firebase.messaging.Notification;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
-
-import java.util.List;
 
 @Service
 @RequiredArgsConstructor
 public class NotificationService {
 
-    private final DeviceTokenService deviceTokenService;
+    private final FirebaseApp firebaseApp; // แค่ inject ไว้ให้แน่ใจว่า init แล้ว
 
-    // TODO: ไว้ต่อกับ Firebase Admin SDK ภายหลัง
-    public void sendNewMatchNotification(String userId, String matchedUserName) {
-        List<String> tokens = deviceTokenService.getTokensForUser(userId);
+    public String sendTestToToken(String fcmToken) throws FirebaseMessagingException {
+        // สร้าง message แบบง่าย ๆ
+        Message message = Message.builder()
+                .setToken(fcmToken)
+                .setNotification(Notification.builder()
+                        .setTitle("Chat2Date Test")
+                        .setBody("This is a test notification from backend.")
+                        .build())
+                .putData("type", "TEST")  // data เผื่อใช้ในอนาคต
+                .build();
 
-        // ตรงนี้ตอนนี้แค่ log ไว้ก่อน
-        System.out.println("[NOTIFY] send match notification to " + userId);
-        System.out.println("Tokens: " + tokens);
-        System.out.println("Matched with: " + matchedUserName);
-
-        // ภายหลังจะเปลี่ยนเป็น:
-        // for (String token : tokens) { firebaseMessaging.send(...); }
+        // ส่งข้อความ
+        return FirebaseMessaging.getInstance().send(message);
     }
 }
-    
