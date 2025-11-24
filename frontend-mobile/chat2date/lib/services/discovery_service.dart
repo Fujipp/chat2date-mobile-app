@@ -53,7 +53,43 @@ class DiscoveryService {
     }
   }
 
-  Future<void> submitFeedback() async {}
+  Future<void> submitFeedback({
+  required String userId,
+  required String targetUserId,
+  required String action, // "LIKE" / "DISLIKE"
+}) async {
+  final uri = Uri.parse('${ApiBase.baseUrl}/discovery/feedback')
+      .replace(queryParameters: {'userId': userId});
+
+  final body = {
+    'targetUserId': targetUserId,
+    'action': action,
+  };
+
+  print('➡️ [Feedback] POST $uri');
+  print('   headers: ${{
+    'Content-Type': 'application/json',
+    if (accessToken != null) 'Authorization': 'Bearer $accessToken',
+  }}');
+  print('   body   : ${jsonEncode(body)}');
+
+  final res = await http.post(
+    uri,
+    headers: {
+      'Content-Type': 'application/json',
+      if (accessToken != null) 'Authorization': 'Bearer $accessToken',
+    },
+    body: jsonEncode(body),
+  );
+
+  print('⬅️ [Feedback] status: ${res.statusCode}');
+  print('   response body: ${res.body}');
+
+  if (res.statusCode != 201) {
+    throw Exception('Feedback failed: ${res.statusCode} ${res.body}');
+  }
+}
+
 }
 
 final discoveryServiceProvider = Provider<DiscoveryService>((ref) {
@@ -152,21 +188,42 @@ class DiscoveryNotifier extends StateNotifier<DiscoveryState> {
 
   /// Like candidate ปัจจุบัน
   Future<void> likeCurrentCandidate() async {
-    final candidate = state.currentCandidate;
-    if (candidate != null) {
-      print('👍 Liked: ${candidate.nickname}');
-    }
-    nextCandidate();
+  final candidate = state.currentCandidate;
+  if (candidate == null) return;
+
+  try {
+    await _service.submitFeedback(
+      userId: userId,
+      targetUserId: candidate.userId,   // ต้องมี field นี้ใน DiscoveryResponse
+      action: 'LIKE',
+    );
+    print('👍 Liked: ${candidate.nickname}');
+  } catch (e) {
+    print('❌ Like error: $e');
   }
+
+  nextCandidate();
+}
 
   /// Unlike candidate ปัจจุบัน
   Future<void> unlikeCurrentCandidate() async {
-    final candidate = state.currentCandidate;
-    if (candidate != null) {
-      print('👎 Unliked: ${candidate.nickname}');
-    }
-    nextCandidate();
+  final candidate = state.currentCandidate;
+  if (candidate == null) return;
+
+  try {
+    await _service.submitFeedback(
+      userId: userId,
+      targetUserId: candidate.userId,
+      action: 'DISLIKE',
+    );
+    print('👎 Unliked: ${candidate.nickname}');
+  } catch (e) {
+    print('❌ Unlike error: $e');
   }
+
+  nextCandidate();
+}
+
 
   /// Refresh candidates
   Future<void> refresh({int minDistance = 1, int maxDistance = 1800}) async {

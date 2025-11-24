@@ -16,6 +16,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:sliding_up_panel/sliding_up_panel.dart';
+import 'package:chat2date/services/fcm_token_service.dart';
+
 
 class DiscoveryScreen extends ConsumerStatefulWidget {
   final int selectedIndex;
@@ -119,7 +121,11 @@ class _DiscoveryScreenState extends ConsumerState<DiscoveryScreen>
     super.initState();
     // ✅ ขอสิทธิ์ + อัปเดต location ตอนเข้า /discovery ครั้งแรก
     WidgetsBinding.instance.addPostFrameCallback((_) async {
+      debugPrint('[Discovery] postFrame: start location + FCM');
       await ref.read(locationServiceProvider).tryUpdateLocationSilently();
+      debugPrint('[Discovery] location done, start FCM');
+      await ref.read(fcmTokenServiceProvider).registerDeviceTokenSilently();
+      debugPrint('[Discovery] FCM call done');
     });
     _selectedIndex = widget.selectedIndex;
 
