@@ -14,11 +14,18 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_mlkit_face_detection/google_mlkit_face_detection.dart';
 
-/// ท่าที่ใช้ใน liveness
+/// ท่าที่ใช้ใน liveness sequence:
 /// - center: มองตรงกลาง
-/// - up / down / left / right: ขยับหัวตามทิศทาง
 /// - smile: ยิ้มให้กล้อง
-enum PoseStep { center, up, down, left, right, smile }
+/// - blink: หลับตา/กระพริบตา
+/// - lookLeft / lookRight: หันหน้าไปซ้าย/ขวา
+enum PoseStep {
+  center,
+  smile,
+  blink,
+  lookLeft,
+  lookRight,
+}
 
 class FaceVerifyScreen extends ConsumerStatefulWidget {
   const FaceVerifyScreen({super.key});
@@ -32,7 +39,7 @@ class _FaceVerifyScreenState extends ConsumerState<FaceVerifyScreen>
   CameraController? _cam;
   FaceDetector? _detector;
 
-  // debug
+  // debug overlay
   final bool _showDebug =
       false; // ถ้าอยากดูค่าพวก yaw/pitch/perf ให้เปิดเป็น true
   String _debugText = '';
@@ -45,7 +52,8 @@ class _FaceVerifyScreenState extends ConsumerState<FaceVerifyScreen>
   bool _processingFrame = false;
 
   // ===== Sequence =====
-  static const double _stepSecondsRequired = 1.0; // ต้องค้างท่าละ ~1 วิ
+  static const double _stepSecondsRequired =
+      1.0; // ต้องค้างท่าละ ~1 วิ เพื่อกันกระพริบเร็ว ๆ ผ่าน
   final List<PoseStep> _sequence = [];
   int _currentIndex = 0; // index ของท่าปัจจุบันใน sequence
   double _stepHoldSeconds = 0; // เวลาที่อยู่ในท่าปัจจุบันแบบ "ถูกต้อง"
@@ -59,23 +67,23 @@ class _FaceVerifyScreenState extends ConsumerState<FaceVerifyScreen>
   Timer? _tick; // ให้ progress ลื่นขึ้นเรื่อย ๆ
   DateTime? _lastFrameAt;
 
-  // ===== Baseline & Smoothing =====
-  double? _pitch0; // baseline pitch (ใช้สำหรับก้ม/เงย)
-  double? _yaw0; // baseline yaw
+  // ===== Smoothing =====
   double? _smoothYaw;
   double? _smoothPitch;
   static const double _ema = 0.2; // smoothing factor
 
   // ===== เกณฑ์ท่าทาง =====
-  static const double yawCenterMax = 12; // หน้าตรง
-  static const double yawLeftMin = 15; // หันซ้าย
-  static const double yawRightMin = 15; // หันขวา
+  static const double yawCenterMax = 12; // ใกล้หน้าตรง
+  static const double yawSideMin = 15; // หันซ้าย/ขวา
 
-  static const double pitchDownDeltaMin = 10; // ก้มจาก baseline ≥ 10°
-  static const double pitchUpDeltaMin = 10; // เงยจาก baseline ≥ 10°
+  static const double eyeOpenMin = 0.4; // ใช้บอกว่า "ตาเปิดอยู่"
+  static const double neutralEyeOpenMin =
+      0.6; // neutral: ต้องลืมตาชัดหน่อย
 
-  static const double eyeOpenMin = 0.4; // ตาเปิด (ค่อนข้างชัด)
-  static const double smileMin = 0.60; // ยิ้ม (smilingProbability)
+  static const double smileMin = 0.60; // ยิ้ม
+  static const double neutralSmileMax = 0.20; // neutral: ไม่ยิ้มมาก
+
+  static const double blinkEyeClosedMax = 0.30; // < 0.3 = หลับตา/กระพริบ
 
   int get _totalSteps => _sequence.length;
 
@@ -117,25 +125,22 @@ class _FaceVerifyScreenState extends ConsumerState<FaceVerifyScreen>
   }
 
   // ---------- Sequence / Hint ----------
+  /// สร้าง random sequence:
+  /// center → [สุ่ม 4 ท่าจาก smile/blink/lookLeft/lookRight] → center
   void _buildRandomSequence() {
-    // รูปแบบ (ทั้งหมด 6 step):
-    // 1) center (มองตรงกลาง)
-    // 2-5) สุ่ม 4 ท่าจาก {up, down, left, right, smile}
-    // 6) center (กลับมามองตรงเพื่อถ่ายภาพ)
     final pool = <PoseStep>[
-      PoseStep.up,
-      PoseStep.down,
-      PoseStep.left,
-      PoseStep.right,
       PoseStep.smile,
+      PoseStep.blink,
+      PoseStep.lookLeft,
+      PoseStep.lookRight,
     ]..shuffle(math.Random());
 
-    final moves = pool.take(4).toList(); // เลือกมา 4 ท่าที่ไม่ซ้ำกัน
+    final actions = pool.take(4).toList(); // เลือกมา 4 ท่าที่ไม่ซ้ำกัน
 
     _sequence
       ..clear()
       ..add(PoseStep.center)
-      ..addAll(pool)
+      ..addAll(actions)
       ..add(PoseStep.center);
 
     _currentIndex = 0;
@@ -145,22 +150,19 @@ class _FaceVerifyScreenState extends ConsumerState<FaceVerifyScreen>
   }
 
   String _hintForStep(PoseStep s) {
-  switch (s) {
-    case PoseStep.center:
-      return 'หันหน้ามองตรงกลางจอ';
-    case PoseStep.up:
-      return 'เงยหน้าเล็กน้อย';
-    case PoseStep.down:
-      return 'ก้มหน้าเล็กน้อย';
-    case PoseStep.left:
-      return 'หันหน้าไปทางขวาเล็กน้อย';
-    case PoseStep.right:
-      return 'หันหน้าไปทางซ้ายเล็กน้อย';
-    case PoseStep.smile:
-      return 'ยิ้มให้กล้องหน่อย 😄';
+    switch (s) {
+      case PoseStep.center:
+        return 'หันหน้ามองตรงกลางจอ';
+      case PoseStep.smile:
+        return 'ยิ้มให้กล้องหน่อย 😄';
+      case PoseStep.blink:
+        return 'ลองหลับตาหนึ่งที (กระพริบตา)';
+      case PoseStep.lookRight:
+        return 'หันหน้าไปทางขวาเล็กน้อย';
+      case PoseStep.lookLeft:
+        return 'หันหน้าไปทางซ้ายเล็กน้อย';
+    }
   }
-}
-
 
   // ---------- Start ----------
   Future<void> _startScan() async {
@@ -216,7 +218,8 @@ class _FaceVerifyScreenState extends ConsumerState<FaceVerifyScreen>
 
       final ctrl = CameraController(
         selected,
-        ResolutionPreset.medium, // balance ระหว่างคุณภาพกับความลื่น
+        ResolutionPreset
+            .medium, // balance ระหว่างคุณภาพกับความลื่น (ไม่ต้องใหญ่เกิน)
         enableAudio: false,
         imageFormatGroup: ImageFormatGroup.yuv420,
       );
@@ -234,8 +237,6 @@ class _FaceVerifyScreenState extends ConsumerState<FaceVerifyScreen>
         _progress = 0;
         _progressTarget = 0;
 
-        _pitch0 = null;
-        _yaw0 = null;
         _smoothYaw = null;
         _smoothPitch = null;
 
@@ -310,10 +311,8 @@ class _FaceVerifyScreenState extends ConsumerState<FaceVerifyScreen>
           });
         }
         _stepHoldSeconds = 0;
-        _lastProcessMs = DateTime.now()
-            .difference(frameStart)
-            .inMilliseconds
-            .toDouble();
+        _lastProcessMs =
+            DateTime.now().difference(frameStart).inMilliseconds.toDouble();
         _lastProcessAt = DateTime.now();
         return;
       }
@@ -329,9 +328,8 @@ class _FaceVerifyScreenState extends ConsumerState<FaceVerifyScreen>
       final pitch = rawPitch;
 
       // smoothing
-      _smoothYaw = (_smoothYaw == null)
-          ? yaw
-          : _smoothYaw! + _ema * (yaw - _smoothYaw!);
+      _smoothYaw =
+          (_smoothYaw == null) ? yaw : _smoothYaw! + _ema * (yaw - _smoothYaw!);
       _smoothPitch = (_smoothPitch == null)
           ? pitch
           : _smoothPitch! + _ema * (pitch - _smoothPitch!);
@@ -343,18 +341,10 @@ class _FaceVerifyScreenState extends ConsumerState<FaceVerifyScreen>
       final rightEye = f.rightEyeOpenProbability;
       final smileProb = f.smilingProbability ?? 0.0;
 
+      // (eyesOpen เก็บไว้เผื่อใช้ต่อในอนาคต)
       final eyesOpen = (leftEye == null || rightEye == null)
           ? true
           : (leftEye >= eyeOpenMin && rightEye >= eyeOpenMin);
-
-      // ถ้ายังไม่มี baseline ให้ใช้เฟรมนี้เป็น baseline (ตอนหน้าเกือบตรง + ไม่หลับตา)
-      if (_pitch0 == null || _yaw0 == null) {
-        final nearCenter = y.abs() <= yawCenterMax;
-        if (eyesOpen && nearCenter) {
-          _pitch0 = p;
-          _yaw0 = y;
-        }
-      }
 
       // ถ้ายังไม่มี sequence ให้เริ่มสร้างเลย
       if (_sequence.isEmpty) {
@@ -367,44 +357,17 @@ class _FaceVerifyScreenState extends ConsumerState<FaceVerifyScreen>
 
       switch (_currentStep) {
         case PoseStep.center:
-          // มองตรงกลางจอ: yaw ใกล้ 0, ตาเปิด
-          final nearCenter = y.abs() <= yawCenterMax;
-          correct = eyesOpen && nearCenter;
-          hint = correct ? 'ดีมาก… ค้างไว้' : 'หันหน้ามองตรงกลางจอ';
-          break;
-
-        case PoseStep.left:
-          // หันหน้าไปทางซ้าย (เรา invert yaw แล้วสำหรับกล้องหน้า)
-          correct = eyesOpen && y >= yawLeftMin;
-          // 🔁 สลับข้อความ: left → ขวา
-          hint = correct ? 'ดีมาก… ค้างไว้' : 'หันหน้าไปทางขวาเล็กน้อย';
-          break;
-
-        case PoseStep.right:
-          correct = eyesOpen && y <= -yawRightMin;
-          // 🔁 สลับข้อความ: right → ซ้าย
-          hint = correct ? 'ดีมาก… ค้างไว้' : 'หันหน้าไปทางซ้ายเล็กน้อย';
-          break;
-
-        case PoseStep.down:
           {
-            final base = _pitch0 ?? 0.0;
-            final delta = p - base;
-            final downOk =
-                delta >= pitchDownDeltaMin || (-delta) >= pitchDownDeltaMin;
-            correct = eyesOpen && downOk;
-            hint = correct ? 'ดีมาก… ค้างไว้' : 'ก้มหน้าเล็กน้อย';
-            break;
-          }
+            // neutral: มองตรง, ไม่ยิ้ม, ลืมตาชัด
+            final nearCenter = y.abs() <= yawCenterMax;
+            final neutralEyes =
+                (leftEye == null || leftEye >= neutralEyeOpenMin) &&
+                    (rightEye == null || rightEye >= neutralEyeOpenMin);
+            final neutralSmile = smileProb <= neutralSmileMax;
 
-        case PoseStep.up:
-          {
-            final base = _pitch0 ?? 0.0;
-            final delta = p - base;
-            final upOk =
-                (-delta) >= pitchUpDeltaMin || delta >= pitchUpDeltaMin;
-            correct = eyesOpen && upOk;
-            hint = correct ? 'ดีมาก… ค้างไว้' : 'เงยหน้าเล็กน้อย';
+            correct = nearCenter && neutralEyes && neutralSmile;
+            hint =
+                correct ? 'ดีมาก… ค้างมองตรงไว้' : 'หันหน้ามองตรงกลางจอ';
             break;
           }
 
@@ -412,11 +375,55 @@ class _FaceVerifyScreenState extends ConsumerState<FaceVerifyScreen>
           {
             final nearCenter = y.abs() <= yawCenterMax;
             final smiling = smileProb >= smileMin;
-            // ต้องหันหน้าตรง + ยิ้ม
-            correct = eyesOpen && nearCenter && smiling;
+            final eyesOk =
+                (leftEye == null || leftEye >= eyeOpenMin) &&
+                    (rightEye == null || rightEye >= eyeOpenMin);
+
+            // ต้องหันหน้าตรง + ยิ้ม + ไม่หลับตา
+            correct = nearCenter && smiling && eyesOk;
             hint = correct
                 ? 'ดีมาก… ค้างยิ้มไว้เลย'
                 : 'หันหน้าตรงแล้วลองยิ้มให้กล้อง 😄';
+            break;
+          }
+
+        case PoseStep.blink:
+          {
+            final nearCenter = y.abs() <= yawCenterMax;
+            final eyeClosed = (leftEye != null &&
+                    leftEye <= blinkEyeClosedMax) ||
+                (rightEye != null && rightEye <= blinkEyeClosedMax);
+
+            // ให้ user หลับตา/กระพริบค้าง ~1 วิ
+            correct = nearCenter && eyeClosed;
+            hint = correct
+                ? 'ดีมาก… ค้างหลับตาไว้สักครู่'
+                : 'หันหน้าตรงแล้วลองหลับตาหนึ่งที';
+            break;
+          }
+
+        case PoseStep.lookRight:
+          {
+            // lookRight = yaw > yawSideMin หลัง invert front cam
+            final eyesOk =
+                (leftEye == null || leftEye >= eyeOpenMin) &&
+                    (rightEye == null || rightEye >= eyeOpenMin);
+            correct = eyesOk && y >= yawSideMin;
+            hint = correct
+                ? 'ดีมาก… ค้างไว้'
+                : 'หันหน้าไปทางขวาเล็กน้อย';
+            break;
+          }
+
+        case PoseStep.lookLeft:
+          {
+            final eyesOk =
+                (leftEye == null || leftEye >= eyeOpenMin) &&
+                    (rightEye == null || rightEye >= eyeOpenMin);
+            correct = eyesOk && y <= -yawSideMin;
+            hint = correct
+                ? 'ดีมาก… ค้างไว้'
+                : 'หันหน้าไปทางซ้ายเล็กน้อย';
             break;
           }
       }
@@ -427,10 +434,8 @@ class _FaceVerifyScreenState extends ConsumerState<FaceVerifyScreen>
         _stepHoldSeconds = 0;
       }
 
-      final stepRatio = (_stepHoldSeconds / _stepSecondsRequired).clamp(
-        0.0,
-        1.0,
-      );
+      final stepRatio =
+          (_stepHoldSeconds / _stepSecondsRequired).clamp(0.0, 1.0);
 
       // progressTarget = (index + ratio) / จำนวน step ทั้งหมด
       final total = _totalSteps == 0
@@ -453,10 +458,8 @@ class _FaceVerifyScreenState extends ConsumerState<FaceVerifyScreen>
         }
       }
 
-      _lastProcessMs = DateTime.now()
-          .difference(frameStart)
-          .inMilliseconds
-          .toDouble();
+      _lastProcessMs =
+          DateTime.now().difference(frameStart).inMilliseconds.toDouble();
       _lastProcessAt = DateTime.now();
 
       if (mounted) {
@@ -567,16 +570,14 @@ class _FaceVerifyScreenState extends ConsumerState<FaceVerifyScreen>
       final cardFaceBytes = userState['cardFaceBytes'] as String?;
       debugPrint('[KYC] idCardFaceBytes is null? ${idCardFaceBytes == null}');
 
-      String? idFaceBase64 = (idCardFaceBytes != null)
-          ? base64Encode(idCardFaceBytes)
-          : null;
+      String? idFaceBase64 =
+          (idCardFaceBytes != null) ? base64Encode(idCardFaceBytes) : null;
 
-      String? selfieBytes64 = (selfieBytes != null)
-          ? base64Encode(selfieBytes)
-          : null;
+      String? selfieBytes64 =
+          (selfieBytes != null) ? base64Encode(selfieBytes) : null;
 
       final kyc = KycRemoteService(ref);
-      const bool livenessPass = true;
+      const bool livenessPass = true; // ตอนนี้ถือว่าผ่าน liveness ถ้าทำครบ sequence
 
       if (livenessPass && selfieBytes64 != null && idFaceBase64 != null) {
         // ส่งข้อมูลไปตรวจสอบใน backend (API call)
@@ -605,9 +606,8 @@ class _FaceVerifyScreenState extends ConsumerState<FaceVerifyScreen>
       }
 
       // ===== รอให้โหลดครบเวลา =====
-      final elapsedMs = DateTime.now()
-          .difference(loadingStartedAt)
-          .inMilliseconds;
+      final elapsedMs =
+          DateTime.now().difference(loadingStartedAt).inMilliseconds;
       if (elapsedMs < loadingMs) {
         await Future.delayed(Duration(milliseconds: loadingMs - elapsedMs));
       }
@@ -636,9 +636,8 @@ class _FaceVerifyScreenState extends ConsumerState<FaceVerifyScreen>
     } catch (e, s) {
       debugPrint('❌ _goLoading error: $e\n$s');
 
-      final elapsedMs = DateTime.now()
-          .difference(loadingStartedAt)
-          .inMilliseconds;
+      final elapsedMs =
+          DateTime.now().difference(loadingStartedAt).inMilliseconds;
       if (elapsedMs < loadingMs) {
         await Future.delayed(Duration(milliseconds: loadingMs - elapsedMs));
       }
@@ -667,8 +666,7 @@ class _FaceVerifyScreenState extends ConsumerState<FaceVerifyScreen>
 
   // ---------- helpers ----------
   InputImage _toInputImage(CameraImage image, int rotation) {
-    final rotationEnum =
-        InputImageRotationValue.fromRawValue(rotation) ??
+    final rotationEnum = InputImageRotationValue.fromRawValue(rotation) ??
         InputImageRotation.rotation0deg;
 
     // Android: YUV_420_888 (3 planes) → แปลงเป็น NV21 ให้ ML Kit ใช้ได้
@@ -685,7 +683,7 @@ class _FaceVerifyScreenState extends ConsumerState<FaceVerifyScreen>
       return InputImage.fromBytes(bytes: bytes, metadata: metadata);
     }
 
-    // iOS / fallback: รวม bytes ตรง ๆ (BGRA8888 หรือรูปแบบเดียวกัน)
+    // iOS / fallback: รวม bytes ตรง ๆ (เช่น BGRA8888)
     final builder = BytesBuilder();
     for (final Plane plane in image.planes) {
       builder.add(plane.bytes);
@@ -755,24 +753,25 @@ class _FaceVerifyScreenState extends ConsumerState<FaceVerifyScreen>
 
     double previewRatio = _cam!.value.aspectRatio;
     if (size.height > size.width) {
+      // ถ้ามือถือเป็น portrait ให้กลับ ratio
       previewRatio = 1 / previewRatio;
     }
 
     final isFront =
-    _cam!.description.lensDirection == CameraLensDirection.front;
+        _cam!.description.lensDirection == CameraLensDirection.front;
 
-return Center(
-  child: Transform.scale(
-    // scale ให้เต็มจอแบบไม่ยืดหน้า
-    scale: previewRatio / deviceRatio,
-    child: AspectRatio(
-      aspectRatio: previewRatio,
-      child: Transform(
-        alignment: Alignment.center,
-        // 🔁 ถ้าเป็นกล้องหน้าให้หมุนแกน Y 180° เพื่อ “แก้” mirror
-        transform: Matrix4.identity(),
-        child: CameraPreview(_cam!),
-      ),
+    return Center(
+      child: Transform.scale(
+        // scale ให้เต็มจอแบบไม่ยืดหน้า
+        scale: previewRatio / deviceRatio,
+        child: AspectRatio(
+          aspectRatio: previewRatio,
+          child: Transform(
+            alignment: Alignment.center,
+            // ถ้าอยากแก้ mirror กล้องหน้าเพิ่ม สามารถใส่ rotateY ได้
+            transform: Matrix4.identity(),
+            child: CameraPreview(_cam!),
+          ),
         ),
       ),
     );
