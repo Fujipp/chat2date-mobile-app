@@ -2,10 +2,10 @@ import 'dart:convert';
 
 import 'package:chat2date/config/backend_base.dart';
 import 'package:chat2date/models/dto/discovery_dto.dart';
+import 'package:chat2date/models/dto/feedback_response_dto.dart';
 import 'package:chat2date/stores/user_store.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:http/http.dart' as http;
-import 'package:chat2date/models/dto/feedback_response_dto.dart';
 
 class DiscoveryService {
   final String? accessToken;
@@ -55,47 +55,42 @@ class DiscoveryService {
   }
 
   Future<FeedbackResponseDto> submitFeedback({
-  required String userId,
-  required String targetUserId,
-  required String action, // "LIKE" / "DISLIKE"
-}) async {
-  final uri = Uri.parse('${ApiBase.baseUrl}/discovery/feedback')
-      .replace(queryParameters: {'userId': userId});
+    required String userId,
+    required String targetUserId,
+    required String action, // "LIKE" / "DISLIKE"
+  }) async {
+    final uri = Uri.parse(
+      '${ApiBase.baseUrl}/discovery/feedback',
+    ).replace(queryParameters: {'userId': userId});
 
-  final body = {
-    'targetUserId': targetUserId,
-    'action': action,
-  };
+    final body = {'targetUserId': targetUserId, 'action': action};
 
-  print('➡️ [Feedback] POST $uri');
-  print('   headers: ${{
-    'Content-Type': 'application/json',
-    if (accessToken != null) 'Authorization': 'Bearer $accessToken',
-  }}');
-  print('   body   : ${jsonEncode(body)}');
+    print('➡️ [Feedback] POST $uri');
+    print(
+      '   headers: ${{'Content-Type': 'application/json', if (accessToken != null) 'Authorization': 'Bearer $accessToken'}}',
+    );
+    print('   body   : ${jsonEncode(body)}');
 
-  final res = await http.post(
-    uri,
-    headers: {
-      'Content-Type': 'application/json',
-      if (accessToken != null) 'Authorization': 'Bearer $accessToken',
-    },
-    body: jsonEncode(body),
-  );
+    final res = await http.post(
+      uri,
+      headers: {
+        'Content-Type': 'application/json',
+        if (accessToken != null) 'Authorization': 'Bearer $accessToken',
+      },
+      body: jsonEncode(body),
+    );
 
-  print('⬅️ [Feedback] status: ${res.statusCode}');
-  print('   response body: ${res.body}');
+    print('⬅️ [Feedback] status: ${res.statusCode}');
+    print('   response body: ${res.body}');
 
-  if (res.statusCode != 201) {
-    throw Exception('Feedback failed: ${res.statusCode} ${res.body}');
+    if (res.statusCode != 201) {
+      throw Exception('Feedback failed: ${res.statusCode} ${res.body}');
+    }
+
+    // ✅ แปลง body เป็น DTO แล้ว return
+    final Map<String, dynamic> json = jsonDecode(res.body);
+    return FeedbackResponseDto.fromJson(json);
   }
-
-  // ✅ แปลง body เป็น DTO แล้ว return
-  final Map<String, dynamic> json = jsonDecode(res.body);
-  return FeedbackResponseDto.fromJson(json);
-}
-
-
 }
 
 final discoveryServiceProvider = Provider<DiscoveryService>((ref) {
@@ -114,12 +109,16 @@ class DiscoveryState {
   final bool isLoading;
   final String? error;
   final int currentIndex;
+  final bool hasLoadedOnce;
+  final bool isInitializing; // ✅ เพิ่ม flag สำหรับ first load
 
   DiscoveryState({
     this.candidates = const [],
     this.isLoading = false,
     this.error,
     this.currentIndex = 0,
+    this.hasLoadedOnce = false,
+    this.isInitializing = true, // ✅ เริ่มต้นเป็น true
   });
 
   DiscoveryState copyWith({
@@ -127,12 +126,16 @@ class DiscoveryState {
     bool? isLoading,
     String? error,
     int? currentIndex,
+    bool? hasLoadedOnce,
+    bool? isInitializing,
   }) {
     return DiscoveryState(
       candidates: candidates ?? this.candidates,
       isLoading: isLoading ?? this.isLoading,
       error: error,
       currentIndex: currentIndex ?? this.currentIndex,
+      hasLoadedOnce: hasLoadedOnce ?? this.hasLoadedOnce,
+      isInitializing: isInitializing ?? this.isInitializing,
     );
   }
 
@@ -173,10 +176,17 @@ class DiscoveryNotifier extends StateNotifier<DiscoveryState> {
         candidates: candidates,
         isLoading: false,
         currentIndex: 0,
+        hasLoadedOnce: true,
+        isInitializing: false, // ✅ เซ็ต false เมื่อโหลดเสร็จ
       );
     } catch (e) {
       print('❌ Error in loadCandidates: $e');
-      state = state.copyWith(isLoading: false, error: e.toString());
+      state = state.copyWith(
+        isLoading: false,
+        error: e.toString(),
+        hasLoadedOnce: true,
+        isInitializing: false, // ✅ เซ็ต false แม้จะ error
+      );
     }
   }
 
@@ -193,48 +203,45 @@ class DiscoveryNotifier extends StateNotifier<DiscoveryState> {
   }
 
   /// Like candidate ปัจจุบัน
-    Future<FeedbackResponseDto?> likeCurrentCandidate() async {
-  final candidate = state.currentCandidate;
-  if (candidate == null) return null;
+  Future<FeedbackResponseDto?> likeCurrentCandidate() async {
+    final candidate = state.currentCandidate;
+    if (candidate == null) return null;
 
-  try {
-    final feedback = await _service.submitFeedback(
-      userId: userId,
-      targetUserId: candidate.userId,
-      action: 'LIKE',
-    );
-    print('👍 Liked: ${candidate.nickname}');
+    try {
+      final feedback = await _service.submitFeedback(
+        userId: userId,
+        targetUserId: candidate.userId,
+        action: 'LIKE',
+      );
+      print('👍 Liked: ${candidate.nickname}');
 
-    nextCandidate(); // ขยับไปคนถัดไปหลังจากกดแล้ว
+      nextCandidate(); // ขยับไปคนถัดไปหลังจากกดแล้ว
 
-    return feedback;   // ✅ คืน feedback ออกไปให้ UI ใช้เช็ค matched
-  } catch (e) {
-    print('❌ Like error: $e');
-    return null;
+      return feedback; // ✅ คืน feedback ออกไปให้ UI ใช้เช็ค matched
+    } catch (e) {
+      print('❌ Like error: $e');
+      return null;
+    }
   }
-}
-
-
 
   /// Unlike candidate ปัจจุบัน
   Future<void> unlikeCurrentCandidate() async {
-  final candidate = state.currentCandidate;
-  if (candidate == null) return;
+    final candidate = state.currentCandidate;
+    if (candidate == null) return;
 
-  try {
-    await _service.submitFeedback(
-      userId: userId,
-      targetUserId: candidate.userId,
-      action: 'DISLIKE',
-    );
-    print('👎 Unliked: ${candidate.nickname}');
-  } catch (e) {
-    print('❌ Unlike error: $e');
+    try {
+      await _service.submitFeedback(
+        userId: userId,
+        targetUserId: candidate.userId,
+        action: 'DISLIKE',
+      );
+      print('👎 Unliked: ${candidate.nickname}');
+    } catch (e) {
+      print('❌ Unlike error: $e');
+    }
+
+    nextCandidate();
   }
-
-  nextCandidate();
-}
-
 
   /// Refresh candidates
   Future<void> refresh({int minDistance = 1, int maxDistance = 1800}) async {

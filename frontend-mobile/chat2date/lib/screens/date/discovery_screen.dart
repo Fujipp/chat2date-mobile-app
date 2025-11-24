@@ -8,7 +8,9 @@ import 'package:chat2date/components/common/style_component.dart';
 import 'package:chat2date/components/inputs/ds_label.dart';
 import 'package:chat2date/components/layout/header.dart';
 import 'package:chat2date/components/layout/menu_bar.dart';
+import 'package:chat2date/models/dto/discovery_dto.dart';
 import 'package:chat2date/services/discovery_service.dart';
+import 'package:chat2date/services/fcm_token_service.dart';
 import 'package:chat2date/services/location_service.dart';
 import 'package:chat2date/stores/user_store.dart';
 import 'package:chat2date/theme/app_colors.dart';
@@ -16,9 +18,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:sliding_up_panel/sliding_up_panel.dart';
-import 'package:chat2date/services/fcm_token_service.dart';
-import 'package:chat2date/screens/match/match_success_screen.dart';
-import 'package:chat2date/models/dto/feedback_response_dto.dart';
 
 class DiscoveryScreen extends ConsumerStatefulWidget {
   final int selectedIndex;
@@ -34,10 +33,10 @@ enum ActivePanel { none, top, bottom }
 class _DiscoveryScreenState extends ConsumerState<DiscoveryScreen>
     with SingleTickerProviderStateMixin {
   // --- Panel state ---
-  final _topCtrl = PanelController(); // slideDirection: DOWN
-  final _bottomCtrl = PanelController(); // slideDirection: UP
-  double _posTop = 0.0; // 0..1 ของแผงบน
-  double _posBottom = 0.0; // 0..1 ของแผงล่าง
+  final _topCtrl = PanelController();
+  final _bottomCtrl = PanelController();
+  double _posTop = 0.0;
+  double _posBottom = 0.0;
   final ValueNotifier<ActivePanel> activePanel = ValueNotifier(
     ActivePanel.none,
   );
@@ -46,7 +45,6 @@ class _DiscoveryScreenState extends ConsumerState<DiscoveryScreen>
 
   // --- Card animation (like/unlike) ---
   late final AnimationController _cardCtrl;
-  // target values จะปรับทุกครั้งกดปุ่ม
   Offset _startPos = Offset.zero;
   Offset _targetPos = Offset.zero;
   double _startRot = 0;
@@ -60,6 +58,9 @@ class _DiscoveryScreenState extends ConsumerState<DiscoveryScreen>
   OverlayEntry? _settingsOverlay;
   bool _isSettingsOpen = false;
   RangeValues _selectedRange = const RangeValues(1, 1800);
+
+  // ✅ Key สำหรับบังคับให้ rebuild CandidateView
+  Key _candidateKey = UniqueKey();
 
   // ---------- Utils ----------
 
@@ -77,9 +78,7 @@ class _DiscoveryScreenState extends ConsumerState<DiscoveryScreen>
     setState(() => _index = (_index - 1 + maxLength) % maxLength);
   }
 
-  // --- Card animation: safe & simple ---
   void _animateCard({required Offset to, required double rot}) {
-    // reset tween endpoints
     _startPos = Offset.zero;
     _startRot = 0;
     _targetPos = to;
@@ -96,80 +95,45 @@ class _DiscoveryScreenState extends ConsumerState<DiscoveryScreen>
 
     _animateCard(to: const Offset(-500, 0), rot: -pi / 10);
 
-    // เรียก unlike API หลัง animation เริ่ม
     Future.delayed(const Duration(milliseconds: 200), () {
       if (mounted) {
         ref.read(discoveryProvider(_userId!).notifier).unlikeCurrentCandidate();
+        // ✅ สร้าง key ใหม่เพื่อ rebuild widget
+        setState(() {
+          _candidateKey = UniqueKey();
+        });
       }
     });
   }
 
   void _onLike() {
-  if (_userId == null) return;
+    if (_userId == null) return;
 
-  // เก็บ candidate ปัจจุบันไว้ก่อน
-  final discoveryState = ref.read(discoveryProvider(_userId!));
-  final currentCandidate = discoveryState.currentCandidate;
-  if (currentCandidate == null) return;
+    _animateCard(to: const Offset(0, 400), rot: 0);
 
-  _animateCard(to: const Offset(0, 400), rot: 0);
-
-  Future.delayed(const Duration(milliseconds: 200), () async {
-    if (!mounted) return;
-
-    final feedback = await ref
-        .read(discoveryProvider(_userId!).notifier)
-        .likeCurrentCandidate();
-
-    if (!mounted) return;
-
-    // ถ้าไม่ match ก็ไม่ต้องเด้ง popup
-    if (feedback == null || feedback.matched != true) {
-      return;
-    }
-
-    // ฝั่งเรา
-    final userState = ref.read(userStoreProvider);
-    final me = userState['user'];
-    final myName =
-        (me as dynamic).nickname ?? (me as dynamic).firstname ?? 'คุณ';
-
-    // รูปเรา (Dev เติมเองตาม model ที่ใช้เก็บรูป profile)
-    final String? myAvatarUrl = null;
-
-    // รูปฝั่งเค้า = รูปแรกใน list
-    final String? partnerAvatarUrl =
-        currentCandidate.photos.isNotEmpty ? currentCandidate.photos.first : null;
-
-    // ✅ push หน้าจับคู่ขึ้นมา (Discovery ยังอยู่ข้างล่าง)
-    Navigator.of(context).pushNamed(
-      MatchSuccessScreen.routeName,
-      arguments: MatchSuccessArgs(
-        myName: myName,
-        partnerName: currentCandidate.nickname,
-        myAvatarUrl: myAvatarUrl,
-        partnerAvatarUrl: partnerAvatarUrl,
-      ),
-    );
-    // แล้ว MatchSuccessScreen จะ auto pop ตัวเองใน 5 วิ (จาก initState)
-  });
-}
-
+    Future.delayed(const Duration(milliseconds: 200), () {
+      if (mounted) {
+        ref.read(discoveryProvider(_userId!).notifier).likeCurrentCandidate();
+        // ✅ สร้าง key ใหม่เพื่อ rebuild widget
+        setState(() {
+          _candidateKey = UniqueKey();
+        });
+      }
+    });
+  }
 
   @override
   void initState() {
     super.initState();
-    // ✅ ขอสิทธิ์ + อัปเดต location ตอนเข้า /discovery ครั้งแรก
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       debugPrint('[Discovery] postFrame: start location + FCM');
-      // await ref.read(locationServiceProvider).tryUpdateLocationSilently();
+      await ref.read(locationServiceProvider).tryUpdateLocationSilently();
       debugPrint('[Discovery] location done, start FCM');
       await ref.read(fcmTokenServiceProvider).registerDeviceTokenSilently();
       debugPrint('[Discovery] FCM call done');
     });
     _selectedIndex = widget.selectedIndex;
 
-    // เริ่มต้น card animation controller
     _cardCtrl =
         AnimationController(
             vsync: this,
@@ -201,13 +165,11 @@ class _DiscoveryScreenState extends ConsumerState<DiscoveryScreen>
   void didChangeDependencies() {
     super.didChangeDependencies();
 
-    // โหลดข้อมูลครั้งเดียวตอนเริ่มต้น
     if (_userId == null) {
       WidgetsBinding.instance.addPostFrameCallback((_) async {
         try {
-          // ดึง userId จาก UserStore
           final userStore = ref.read(userStoreProvider.notifier);
-          final user = userStore.user; // getter
+          final user = userStore.user;
           final userId = user?.userId;
 
           if (userId == null) {
@@ -219,10 +181,8 @@ class _DiscoveryScreenState extends ConsumerState<DiscoveryScreen>
             _userId = userId;
           });
 
-          // อัปเดต location
-          // await ref.read(locationServiceProvider).tryUpdateLocationSilently();
+          await ref.read(locationServiceProvider).tryUpdateLocationSilently();
 
-          // โหลด candidates
           if (mounted && _userId != null) {
             await ref
                 .read(discoveryProvider(_userId!).notifier)
@@ -242,8 +202,6 @@ class _DiscoveryScreenState extends ConsumerState<DiscoveryScreen>
     super.dispose();
   }
 
-  // -------------Part Settings Panel------------------
-
   void _togglePanel(BuildContext context) {
     if (_isSettingsOpen) {
       _settingsOverlay?.remove();
@@ -262,7 +220,7 @@ class _DiscoveryScreenState extends ConsumerState<DiscoveryScreen>
       builder: (context) => StatefulBuilder(
         builder: (context, setStateOverlay) {
           return Positioned(
-            top: offset.dy + 80, // ตำแหน่งต่อจาก header
+            top: offset.dy + 80,
             left: 16,
             right: 16,
             child: Material(
@@ -336,21 +294,25 @@ class _DiscoveryScreenState extends ConsumerState<DiscoveryScreen>
                         Center(
                           child: DsButton(
                             label: 'ยืนยัน',
-                            onPressed: () {
+                            onPressed: () async {
                               setStateOverlay(() {
                                 _isSettingsOpen = false;
                               });
                               _settingsOverlay?.remove();
                               _settingsOverlay = null;
 
-                              // โหลด candidates ใหม่ตามระยะที่เลือก
                               if (_userId != null) {
-                                ref
+                                await ref
                                     .read(discoveryProvider(_userId!).notifier)
                                     .refresh(
                                       minDistance: _selectedRange.start.round(),
                                       maxDistance: _selectedRange.end.round(),
                                     );
+
+                                // ✅ สร้าง key ใหม่หลัง refresh
+                                setState(() {
+                                  _candidateKey = UniqueKey();
+                                });
                               }
                             },
                             fontWeight: FontWeight.w700,
@@ -376,37 +338,51 @@ class _DiscoveryScreenState extends ConsumerState<DiscoveryScreen>
   Widget build(BuildContext context) {
     // รอจนกว่าจะได้ userId
     if (_userId == null) {
-      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+      return Scaffold(
+        body: Column(
+          children: [
+            const SizedBox(height: 25),
+            ChatToDateHeaderWhite(
+              leftIconPath: 'assets/icons/icon_chat2date_full.svg',
+              rightIconPath: 'assets/icons/icon_menu.svg',
+              iconColor: const Color(0xFF5ce1e6),
+              onBack: () {},
+              onSettings: () {},
+            ),
+            const Expanded(child: _DiscoveryLoadingWidget()),
+          ],
+        ),
+        bottomNavigationBar: CustomBottomNavBar(selectedIndex: _selectedIndex),
+      );
     }
 
-    // Watch discovery state
     final discoveryState = ref.watch(discoveryProvider(_userId!));
     final currentCandidate = discoveryState.currentCandidate;
 
-    // แสดง loading state
-    // if (discoveryState.isLoading && discoveryState.isEmpty) {
-    //   return Scaffold(
-    //     body: Column(
-    //       children: [
-    //         const SizedBox(height: 25),
-    //         ChatToDateHeaderWhite(
-    //           leftIconPath: 'assets/icons/icon_chat2date_full.svg',
-    //           rightIconPath: 'assets/icons/icon_menu.svg',
-    //           iconColor: const Color(0xFF5ce1e6),
-    //           onBack: () {},
-    //           onSettings: () async {
-    //             await ref
-    //                 .read(locationServiceProvider)
-    //                 .tryUpdateLocationSilently();
-    //             _togglePanel(context);
-    //           },
-    //         ),
-    //         const Expanded(child: Center(child: CircularProgressIndicator())),
-    //       ],
-    //     ),
-    //     bottomNavigationBar: const CustomBottomNavBar(selectedIndex: 0),
-    //   );
-    // }
+    // ✅ แสดง Loading ถ้ายังไม่เคยโหลด หรือกำลัง initialize
+    if (discoveryState.isInitializing || !discoveryState.hasLoadedOnce) {
+      return Scaffold(
+        body: Column(
+          children: [
+            const SizedBox(height: 25),
+            ChatToDateHeaderWhite(
+              leftIconPath: 'assets/icons/icon_chat2date_full.svg',
+              rightIconPath: 'assets/icons/icon_menu.svg',
+              iconColor: const Color(0xFF5ce1e6),
+              onBack: () {},
+              onSettings: () async {
+                await ref
+                    .read(locationServiceProvider)
+                    .tryUpdateLocationSilently();
+                _togglePanel(context);
+              },
+            ),
+            const Expanded(child: _DiscoveryLoadingWidget()),
+          ],
+        ),
+        bottomNavigationBar: CustomBottomNavBar(selectedIndex: _selectedIndex),
+      );
+    }
 
     // แสดง error state
     if (discoveryState.error != null) {
@@ -440,10 +416,13 @@ class _DiscoveryScreenState extends ConsumerState<DiscoveryScreen>
                     Text('เกิดข้อผิดพลาด: ${discoveryState.error}'),
                     const SizedBox(height: 16),
                     ElevatedButton(
-                      onPressed: () {
-                        ref
+                      onPressed: () async {
+                        await ref
                             .read(discoveryProvider(_userId!).notifier)
                             .refresh();
+                        setState(() {
+                          _candidateKey = UniqueKey();
+                        });
                       },
                       child: const Text('ลองอีกครั้ง'),
                     ),
@@ -457,10 +436,9 @@ class _DiscoveryScreenState extends ConsumerState<DiscoveryScreen>
           selectedIndex: _selectedIndex,
           onTap: (index) {
             setState(() {
-              _selectedIndex = index; // อัปเดต selectedIndex
+              _selectedIndex = index;
             });
 
-            // ตรวจสอบ index
             if (index == 2) {
               Navigator.pushReplacementNamed(context, '/profile');
             }
@@ -469,7 +447,7 @@ class _DiscoveryScreenState extends ConsumerState<DiscoveryScreen>
       );
     }
 
-    // ไม่มี candidates
+    // ✅ ไม่มี candidates (แต่โหลดเสร็จแล้ว)
     if (currentCandidate == null || discoveryState.isEmpty) {
       return Scaffold(
         body: Column(
@@ -485,6 +463,20 @@ class _DiscoveryScreenState extends ConsumerState<DiscoveryScreen>
                     .read(locationServiceProvider)
                     .tryUpdateLocationSilently();
                 _togglePanel(context);
+
+                if (_userId != null) {
+                  await ref
+                      .read(discoveryProvider(_userId!).notifier)
+                      .refresh(
+                        minDistance: _selectedRange.start.round(),
+                        maxDistance: _selectedRange.end.round(),
+                      );
+
+                  // รีเฟรช widget หรือแสดงข้อมูลใหม่
+                  setState(() {
+                    _candidateKey = UniqueKey(); // force rebuild widget
+                  });
+                }
               },
             ),
             Expanded(
@@ -504,13 +496,16 @@ class _DiscoveryScreenState extends ConsumerState<DiscoveryScreen>
                     ),
                     const SizedBox(height: 16),
                     ElevatedButton(
-                      onPressed: () {
-                        ref
+                      onPressed: () async {
+                        await ref
                             .read(discoveryProvider(_userId!).notifier)
                             .refresh(
                               minDistance: _selectedRange.start.round(),
                               maxDistance: _selectedRange.end.round(),
                             );
+                        setState(() {
+                          _candidateKey = UniqueKey();
+                        });
                       },
                       child: const Text('ค้นหาใหม่'),
                     ),
@@ -524,10 +519,9 @@ class _DiscoveryScreenState extends ConsumerState<DiscoveryScreen>
           selectedIndex: _selectedIndex,
           onTap: (index) {
             setState(() {
-              _selectedIndex = index; // อัปเดต selectedIndex
+              _selectedIndex = index;
             });
 
-            // ตรวจสอบ index
             if (index == 2) {
               Navigator.pushReplacementNamed(context, '/profile');
             }
@@ -536,392 +530,776 @@ class _DiscoveryScreenState extends ConsumerState<DiscoveryScreen>
       );
     }
 
-    // มี candidate - แสดงข้อมูลจริง
-    final images = currentCandidate.photos.isNotEmpty
-        ? currentCandidate.photos
-        : ['https://via.placeholder.com/400x600?text=No+Image'];
+    // ✅ มี candidate - ใช้ CandidateView ที่มี FutureBuilder
+    return _CandidateView(
+      key: _candidateKey, // บังคับ rebuild เมื่อเปลี่ยน candidate
+      userId: _userId!,
+      candidate: currentCandidate,
+      selectedIndex: _selectedIndex,
+      cardCtrl: _cardCtrl,
+      startPos: _startPos,
+      targetPos: _targetPos,
+      startRot: _startRot,
+      targetRot: _targetRot,
+      opacity: _opacity,
+      index: _index,
+      topCtrl: _topCtrl,
+      bottomCtrl: _bottomCtrl,
+      posTop: _posTop,
+      posBottom: _posBottom,
+      activePanel: activePanel,
+      selectedRange: _selectedRange,
+      blurredWhite: _blurredWhite,
+      onNextImage: _nextImage,
+      onPrevImage: _prevImage,
+      onLike: _onLike,
+      onUnlike: _onUnlike,
+      onTogglePanel: () => _togglePanel(context),
+      onPanelSlideTop: (p) {
+        setState(() {
+          _posTop = p;
+          if (p > 0) activePanel.value = ActivePanel.top;
+        });
+      },
+      onPanelClosedTop: () {
+        setState(() {
+          _posTop = 0;
+          if (activePanel.value == ActivePanel.top) {
+            activePanel.value = ActivePanel.none;
+          }
+        });
+      },
+      onPanelSlideBottom: (p) {
+        setState(() {
+          _posBottom = p;
+          if (p > 0) activePanel.value = ActivePanel.bottom;
+        });
+      },
+      onPanelClosedBottom: () {
+        setState(() {
+          _posBottom = 0;
+          if (activePanel.value == ActivePanel.bottom) {
+            activePanel.value = ActivePanel.none;
+          }
+        });
+      },
+      onBottomNavTap: (index) {
+        setState(() {
+          _selectedIndex = index;
+        });
+        if (index == 2) {
+          Navigator.pushReplacementNamed(context, '/profile');
+        }
+      },
+    );
+  }
+}
 
-    final headerTop = [
-      {'title': 'สไตล์การเที่ยว', 'style': currentCandidate.travelStyles},
-      {'title': 'ระยะห่าง', 'range': currentCandidate.distance},
-    ];
+// ✅ Widget แยกสำหรับแสดง Candidate พร้อม Image Preloading
+class _CandidateView extends ConsumerStatefulWidget {
+  final String userId;
+  final DiscoveryResponse candidate;
+  final int selectedIndex;
+  final AnimationController cardCtrl;
+  final Offset startPos;
+  final Offset targetPos;
+  final double startRot;
+  final double targetRot;
+  final double opacity;
+  final int index;
+  final PanelController topCtrl;
+  final PanelController bottomCtrl;
+  final double posTop;
+  final double posBottom;
+  final ValueNotifier<ActivePanel> activePanel;
+  final RangeValues selectedRange;
+  final Color Function(double) blurredWhite;
+  final void Function(int) onNextImage;
+  final void Function(int) onPrevImage;
+  final VoidCallback onLike;
+  final VoidCallback onUnlike;
+  final VoidCallback onTogglePanel;
+  final void Function(double) onPanelSlideTop;
+  final VoidCallback onPanelClosedTop;
+  final void Function(double) onPanelSlideBottom;
+  final VoidCallback onPanelClosedBottom;
+  final void Function(int) onBottomNavTap;
 
-    final headerBottom = [
-      {'title': 'ความสนใจ', 'style': currentCandidate.interests},
-      {'title': 'ไลฟ์สไตล์', 'style': currentCandidate.lifestyles},
-    ];
+  const _CandidateView({
+    super.key,
+    required this.userId,
+    required this.candidate,
+    required this.selectedIndex,
+    required this.cardCtrl,
+    required this.startPos,
+    required this.targetPos,
+    required this.startRot,
+    required this.targetRot,
+    required this.opacity,
+    required this.index,
+    required this.topCtrl,
+    required this.bottomCtrl,
+    required this.posTop,
+    required this.posBottom,
+    required this.activePanel,
+    required this.selectedRange,
+    required this.blurredWhite,
+    required this.onNextImage,
+    required this.onPrevImage,
+    required this.onLike,
+    required this.onUnlike,
+    required this.onTogglePanel,
+    required this.onPanelSlideTop,
+    required this.onPanelClosedTop,
+    required this.onPanelSlideBottom,
+    required this.onPanelClosedBottom,
+    required this.onBottomNavTap,
+  });
 
-    // card transforms derive from controller value
-    final t = Curves.easeOutCubic.transform(_cardCtrl.value);
-    final dx = _startPos.dx + (_targetPos.dx - _startPos.dx) * t;
-    final dy = _startPos.dy + (_targetPos.dy - _startPos.dy) * t;
-    final rot = _startRot + (_targetRot - _startRot) * t;
+  @override
+  ConsumerState<_CandidateView> createState() => _CandidateViewState();
+}
 
-    return Scaffold(
-      body: Column(
-        children: [
-          const SizedBox(height: 25),
-          ChatToDateHeaderWhite(
-            leftIconPath: 'assets/icons/icon_chat2date_full.svg',
-            rightIconPath: 'assets/icons/icon_menu.svg',
-            iconColor: const Color(0xFF5ce1e6),
-            onBack: () {},
-            onSettings: () async {
-              // 📍 รีเฟรช location แบบเงียบ ๆ (ไม่เด้งขอสิทธิ์ใหม่ ถ้ามีแล้ว)
-              await ref
-                  .read(locationServiceProvider)
-                  .tryUpdateLocationSilently();
+class _CandidateViewState extends ConsumerState<_CandidateView> {
+  Future<void>? _imagePrecacheFuture;
 
-              _togglePanel(context);
-            },
-          ),
+  @override
+  void initState() {
+    super.initState();
+    // ✅ Preload รูปแรกของ candidate
+    if (widget.candidate.photos.isNotEmpty) {
+      _imagePrecacheFuture =
+          precacheImage(
+            NetworkImage(widget.candidate.photos.first),
+            context,
+          ).catchError((e) {
+            print('⚠️ Failed to precache image: $e');
+            return null; // อย่าให้ error block UI
+          });
+    } else {
+      _imagePrecacheFuture = Future.value();
+    }
+  }
 
-          // ===== Canvas (ภาพ + Panels + Overlay) =====
-          SizedBox(
-            width: double.infinity,
-            height: 585,
-            child: Stack(
-              clipBehavior: Clip.none,
+  @override
+  Widget build(BuildContext context) {
+    // ✅ ใช้ FutureBuilder รอให้รูปโหลดเสร็จก่อนแสดง
+    return FutureBuilder<void>(
+      future: _imagePrecacheFuture,
+      builder: (context, snapshot) {
+        // ยังโหลดรูปอยู่ - แสดง Loading
+        if (snapshot.connectionState != ConnectionState.done) {
+          return Scaffold(
+            body: Column(
               children: [
-                // --- Profile image (with animation) ---
-                Opacity(
-                  opacity: _opacity,
-                  child: Transform.translate(
-                    offset: Offset(dx, dy),
-                    child: Transform.rotate(
-                      angle: rot,
-                      child: Image.network(
-                        images[_index],
-                        width: double.infinity,
-                        height: 585,
-                        fit: BoxFit.cover,
-                        errorBuilder: (context, error, stackTrace) {
-                          return Container(
+                const SizedBox(height: 25),
+                ChatToDateHeaderWhite(
+                  leftIconPath: 'assets/icons/icon_chat2date_full.svg',
+                  rightIconPath: 'assets/icons/icon_menu.svg',
+                  iconColor: const Color(0xFF5ce1e6),
+                  onBack: () {},
+                  onSettings: () async {
+                    await ref
+                        .read(locationServiceProvider)
+                        .tryUpdateLocationSilently();
+                    widget.onTogglePanel();
+                  },
+                ),
+                const Expanded(child: _DiscoveryLoadingWidget()),
+              ],
+            ),
+            bottomNavigationBar: CustomBottomNavBar(
+              selectedIndex: widget.selectedIndex,
+            ),
+          );
+        }
+
+        // รูปโหลดเสร็จแล้ว - แสดงข้อมูล candidate
+        final images = widget.candidate.photos;
+
+        final headerTop = [
+          {'title': 'สไตล์การเที่ยว', 'style': widget.candidate.travelStyles},
+          {'title': 'ระยะห่าง', 'range': widget.candidate.distance},
+        ];
+
+        final headerBottom = [
+          {'title': 'ความสนใจ', 'style': widget.candidate.interests},
+          {'title': 'ไลฟ์สไตล์', 'style': widget.candidate.lifestyles},
+        ];
+
+        final t = Curves.easeOutCubic.transform(widget.cardCtrl.value);
+        final dx =
+            widget.startPos.dx + (widget.targetPos.dx - widget.startPos.dx) * t;
+        final dy =
+            widget.startPos.dy + (widget.targetPos.dy - widget.startPos.dy) * t;
+        final rot = widget.startRot + (widget.targetRot - widget.startRot) * t;
+
+        return Scaffold(
+          body: Column(
+            children: [
+              const SizedBox(height: 25),
+              ChatToDateHeaderWhite(
+                leftIconPath: 'assets/icons/icon_chat2date_full.svg',
+                rightIconPath: 'assets/icons/icon_menu.svg',
+                iconColor: const Color(0xFF5ce1e6),
+                onBack: () {},
+                onSettings: () async {
+                  await ref
+                      .read(locationServiceProvider)
+                      .tryUpdateLocationSilently();
+                  widget.onTogglePanel();
+                },
+              ),
+
+              // ===== Canvas (ภาพ + Panels + Overlay) =====
+              SizedBox(
+                width: double.infinity,
+                height: 585,
+                child: Stack(
+                  clipBehavior: Clip.none,
+                  children: [
+                    // --- Profile image (with animation) ---
+                    Opacity(
+                      opacity: widget.opacity,
+                      child: Transform.translate(
+                        offset: Offset(dx, dy),
+                        child: Transform.rotate(
+                          angle: rot,
+                          child: Image.network(
+                            images[widget.index],
                             width: double.infinity,
                             height: 585,
-                            color: Colors.grey[300],
-                            child: const Center(
-                              child: Icon(Icons.person, size: 100),
+                            fit: BoxFit.cover,
+                            errorBuilder: (context, error, stackTrace) {
+                              return Container(
+                                width: double.infinity,
+                                height: 585,
+                                color: Colors.grey[300],
+                                child: const Center(
+                                  child: Icon(Icons.person, size: 100),
+                                ),
+                              );
+                            },
+                          ),
+                        ),
+                      ),
+                    ),
+
+                    // --- Bottom Panel ---
+                    if (widget.activePanel.value != ActivePanel.top)
+                      ValueListenableBuilder(
+                        valueListenable: widget.activePanel,
+                        builder: (context, value, _) {
+                          if (value == ActivePanel.top) {
+                            return const SizedBox.shrink();
+                          }
+                          return IgnorePointer(
+                            ignoring:
+                                widget.activePanel.value == ActivePanel.top,
+                            child: SlidingUpPanel(
+                              controller: widget.bottomCtrl,
+                              maxHeight: 436,
+                              minHeight: 40,
+                              color: widget.blurredWhite(widget.posBottom),
+                              backdropEnabled: value == ActivePanel.bottom,
+                              isDraggable: value != ActivePanel.top,
+                              panelSnapping: true,
+                              collapsed: const Center(
+                                child: Icon(
+                                  Icons.keyboard_double_arrow_up,
+                                  color: Colors.white,
+                                ),
+                              ),
+                              onPanelSlide: widget.onPanelSlideBottom,
+                              onPanelClosed: widget.onPanelClosedBottom,
+                              panel: ClipRRect(
+                                borderRadius: const BorderRadius.vertical(
+                                  bottom: Radius.circular(20),
+                                ),
+                                child: BackdropFilter(
+                                  filter: ImageFilter.blur(
+                                    sigmaX: 5 * widget.posBottom,
+                                    sigmaY: 5 * widget.posBottom,
+                                  ),
+                                  child: Container(
+                                    color: Colors.white.withOpacity(
+                                      0.2 * widget.posBottom,
+                                    ),
+                                    child: SingleChildScrollView(
+                                      physics: const BouncingScrollPhysics(),
+                                      padding:
+                                          const EdgeInsets.symmetric(
+                                            horizontal: 32,
+                                            vertical: 40,
+                                          ).copyWith(
+                                            bottom: 56,
+                                          ), // กัน content ชิดขอบตอนเลื่อน
+                                      child: Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        children: [
+                                          HeadersWithStyles(headers: headerTop),
+                                        ],
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ),
                             ),
                           );
                         },
                       ),
-                    ),
-                  ),
-                ),
 
-                // --- Bottom Panel (Slide UP) ---
-                if (activePanel.value != ActivePanel.top)
-                  ValueListenableBuilder(
-                    valueListenable: activePanel,
-                    builder: (context, value, _) {
-                      if (value == ActivePanel.top) {
-                        return const SizedBox.shrink();
-                      }
-                      return IgnorePointer(
-                        ignoring: activePanel.value == ActivePanel.top,
-                        child: SlidingUpPanel(
-                          controller: _bottomCtrl,
-                          maxHeight: 436,
-                          minHeight: 40,
-                          color: _blurredWhite(_posBottom),
-                          backdropEnabled: value == ActivePanel.bottom,
-                          isDraggable: value != ActivePanel.top,
-                          panelSnapping: true,
-                          collapsed: const Center(
-                            child: Icon(
-                              Icons.keyboard_double_arrow_up,
-                              color: Colors.white,
-                            ),
-                          ),
-                          onPanelSlide: (p) {
-                            setState(() {
-                              _posBottom = p;
-                              if (p > 0) activePanel.value = ActivePanel.bottom;
-                            });
-                          },
-                          onPanelClosed: () {
-                            setState(() {
-                              _posBottom = 0;
-                              if (activePanel.value == ActivePanel.bottom) {
-                                activePanel.value = ActivePanel.none;
-                              }
-                            });
-                          },
-                          panel: ClipRRect(
-                            borderRadius: const BorderRadius.vertical(
-                              bottom: Radius.circular(20),
-                            ),
-                            child: BackdropFilter(
-                              filter: ImageFilter.blur(
-                                sigmaX: 5 * _posBottom,
-                                sigmaY: 5 * _posBottom,
-                              ),
-                              child: Container(
-                                color: Colors.white.withOpacity(
-                                  0.2 * _posBottom,
-                                ),
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 32,
-                                  vertical: 60,
-                                ),
-                                child: Column(
-                                  children: [
-                                    HeadersWithStyles(headers: headerTop),
-                                  ],
+                    // --- Top Panel ---
+                    if (widget.activePanel.value != ActivePanel.bottom)
+                      IgnorePointer(
+                        ignoring:
+                            widget.activePanel.value == ActivePanel.bottom,
+                        child: ValueListenableBuilder(
+                          valueListenable: widget.activePanel,
+                          builder: (context, value, _) {
+                            return SlidingUpPanel(
+                              controller: widget.topCtrl,
+                              slideDirection: SlideDirection.DOWN,
+                              maxHeight: 436,
+                              minHeight: 40,
+                              color: widget.blurredWhite(widget.posTop),
+                              backdropEnabled: value == ActivePanel.top,
+                              isDraggable: value != ActivePanel.bottom,
+                              panelSnapping: true,
+                              collapsed: const Center(
+                                child: Icon(
+                                  Icons.keyboard_double_arrow_down,
+                                  color: Colors.white,
                                 ),
                               ),
-                            ),
-                          ),
-                        ),
-                      );
-                    },
-                  ),
-
-                // --- Top Panel (Slide DOWN) ---
-                if (activePanel.value != ActivePanel.bottom)
-                  IgnorePointer(
-                    ignoring: activePanel.value == ActivePanel.bottom,
-                    child: ValueListenableBuilder(
-                      valueListenable: activePanel,
-                      builder: (context, value, _) {
-                        return SlidingUpPanel(
-                          controller: _topCtrl,
-                          slideDirection: SlideDirection.DOWN,
-                          maxHeight: 436,
-                          minHeight: 40,
-                          color: _blurredWhite(_posTop),
-                          backdropEnabled: value == ActivePanel.top,
-                          isDraggable: value != ActivePanel.bottom,
-                          panelSnapping: true,
-                          collapsed: const Center(
-                            child: Icon(
-                              Icons.keyboard_double_arrow_down,
-                              color: Colors.white,
-                            ),
-                          ),
-                          onPanelSlide: (p) {
-                            setState(() {
-                              _posTop = p;
-                              if (p > 0) activePanel.value = ActivePanel.top;
-                            });
-                          },
-                          onPanelClosed: () {
-                            setState(() {
-                              _posTop = 0;
-                              if (activePanel.value == ActivePanel.top) {
-                                activePanel.value = ActivePanel.none;
-                              }
-                            });
-                          },
-                          panel: ClipRRect(
-                            borderRadius: const BorderRadius.vertical(
-                              bottom: Radius.circular(20),
-                            ),
-                            child: BackdropFilter(
-                              filter: ImageFilter.blur(
-                                sigmaX: 5 * _posTop,
-                                sigmaY: 5 * _posTop,
-                              ),
-                              child: Container(
-                                color: Colors.white.withOpacity(0.2 * _posTop),
-                                padding: const EdgeInsets.symmetric(
-                                  vertical: 32,
+                              onPanelSlide: widget.onPanelSlideTop,
+                              onPanelClosed: widget.onPanelClosedTop,
+                              panel: ClipRRect(
+                                borderRadius: const BorderRadius.vertical(
+                                  bottom: Radius.circular(20),
                                 ),
-                                child: Column(
-                                  children: [
-                                    Padding(
+                                child: BackdropFilter(
+                                  filter: ImageFilter.blur(
+                                    sigmaX: 5 * widget.posTop,
+                                    sigmaY: 5 * widget.posTop,
+                                  ),
+                                  child: Container(
+                                    color: Colors.white.withOpacity(
+                                      0.2 * widget.posTop,
+                                    ),
+                                    child: SingleChildScrollView(
+                                      physics: const BouncingScrollPhysics(),
                                       padding: const EdgeInsets.symmetric(
                                         horizontal: 24,
-                                      ),
-                                      child: HeadersWithStyles(
-                                        headers: headerBottom,
+                                        vertical: 32,
+                                      ).copyWith(bottom: 56),
+                                      child: Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        children: [
+                                          HeadersWithStyles(
+                                            headers: headerBottom,
+                                          ),
+                                        ],
                                       ),
                                     ),
-                                  ],
+                                  ),
                                 ),
                               ),
-                            ),
+                            );
+                          },
+                        ),
+                      ),
+
+                    // --- Action buttons ---
+                    ValueListenableBuilder<ActivePanel>(
+                      valueListenable: widget.activePanel,
+                      builder: (context, value, _) {
+                        final panelsClosed = value == ActivePanel.none;
+                        if (!panelsClosed) return const SizedBox.shrink();
+
+                        return Positioned(
+                          left: 75,
+                          bottom: -30,
+                          child: DsSvgSwapButton(
+                            assetA: 'assets/icons/icon_unlike.svg',
+                            assetB: 'assets/icons/icon_unlike_hover.svg',
+                            iconSize: 60,
+                            glowColor: const Color(0x33FF6B6B),
+                            glowBlur: 20,
+                            onPressed: widget.onUnlike,
                           ),
                         );
                       },
                     ),
-                  ),
+                    ValueListenableBuilder<ActivePanel>(
+                      valueListenable: widget.activePanel,
+                      builder: (context, value, _) {
+                        final panelsClosed = value == ActivePanel.none;
+                        if (!panelsClosed) return const SizedBox.shrink();
 
-                // --- Action buttons & overlays (เฉพาะตอน panel ปิด) ---
-                ValueListenableBuilder<ActivePanel>(
-                  valueListenable: activePanel,
-                  builder: (context, value, _) {
-                    final panelsClosed = value == ActivePanel.none;
+                        return Positioned(
+                          right: 75,
+                          bottom: -30,
+                          child: DsSvgSwapButton(
+                            assetA: 'assets/icons/icon_like.svg',
+                            assetB: 'assets/icons/icon_like_hover.svg',
+                            iconSize: 60,
+                            glowColor: const Color(0x33FF6B6B),
+                            glowBlur: 20,
+                            onPressed: widget.onLike,
+                          ),
+                        );
+                      },
+                    ),
 
-                    if (!panelsClosed) return const SizedBox.shrink();
+                    // arrows + name + tags
+                    ValueListenableBuilder<ActivePanel>(
+                      valueListenable: widget.activePanel,
+                      builder: (context, value, _) {
+                        final panelsClosed = value == ActivePanel.none;
 
-                    return Positioned(
-                      left: 75,
-                      bottom: -30,
-                      child: DsSvgSwapButton(
-                        assetA: 'assets/icons/icon_unlike.svg',
-                        assetB: 'assets/icons/icon_unlike_hover.svg',
-                        iconSize: 60,
-                        glowColor: const Color(0x33FF6B6B),
-                        glowBlur: 20,
-                        onPressed: _onUnlike,
-                      ),
-                    );
-                  },
-                ),
-                ValueListenableBuilder<ActivePanel>(
-                  valueListenable: activePanel,
-                  builder: (context, value, _) {
-                    final panelsClosed = value == ActivePanel.none;
-
-                    if (!panelsClosed) return const SizedBox.shrink();
-
-                    return Positioned(
-                      right: 75,
-                      bottom: -30,
-                      child: DsSvgSwapButton(
-                        assetA: 'assets/icons/icon_like.svg',
-                        assetB: 'assets/icons/icon_like_hover.svg',
-                        iconSize: 60,
-                        glowColor: const Color(0x33FF6B6B),
-                        glowBlur: 20,
-                        onPressed: _onLike,
-                      ),
-                    );
-                  },
-                ),
-
-                // arrows + name + tags
-                ValueListenableBuilder<ActivePanel>(
-                  valueListenable: activePanel,
-                  builder: (context, value, _) {
-                    final panelsClosed = value == ActivePanel.none;
-
-                    return Stack(
-                      children: [
-                        // Panels...
-                        if (panelsClosed) ...[
-                          Padding(
-                            padding: const EdgeInsets.symmetric(
-                              vertical: 50,
-                              horizontal: 16,
-                            ),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                const Spacer(),
-                                Row(
-                                  children: [
-                                    _ArrowButton(
-                                      icon: Icons.chevron_left,
-                                      onTap: () => _prevImage(images.length),
-                                    ),
-                                    const Spacer(),
-                                    _ArrowButton(
-                                      icon: Icons.chevron_right,
-                                      onTap: () => _nextImage(images.length),
-                                    ),
-                                  ],
+                        return Stack(
+                          children: [
+                            if (panelsClosed) ...[
+                              Padding(
+                                padding: const EdgeInsets.symmetric(
+                                  vertical: 50,
+                                  horizontal: 16,
                                 ),
-                                const SizedBox(height: 118),
-                                Padding(
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 20,
-                                  ),
-                                  child: SizedBox(
-                                    width: 311,
-                                    child: Text(
-                                      '${currentCandidate.nickname}, ${currentCandidate.age}',
-                                      style: const TextStyle(
-                                        fontSize: 32,
-                                        color: Colors.white,
-                                        fontFamily: 'Inter',
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    const Spacer(),
+                                    Row(
+                                      children: [
+                                        _ArrowButton(
+                                          icon: Icons.chevron_left,
+                                          onTap: () =>
+                                              widget.onPrevImage(images.length),
+                                        ),
+                                        const Spacer(),
+                                        _ArrowButton(
+                                          icon: Icons.chevron_right,
+                                          onTap: () =>
+                                              widget.onNextImage(images.length),
+                                        ),
+                                      ],
+                                    ),
+                                    const SizedBox(height: 118),
+                                    Padding(
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 20,
+                                      ),
+                                      child: SizedBox(
+                                        width: 311,
+                                        child: Text(
+                                          '${widget.candidate.nickname}, ${widget.candidate.age}',
+                                          style: const TextStyle(
+                                            fontSize: 32,
+                                            color: Colors.white,
+                                            fontFamily: 'Inter',
+                                          ),
+                                        ),
                                       ),
                                     ),
-                                  ),
+                                    if (widget.candidate.tags.isNotEmpty)
+                                      Padding(
+                                        padding: const EdgeInsets.symmetric(
+                                          horizontal: 10,
+                                        ),
+                                        child: Wrap(
+                                          spacing: 5,
+                                          runSpacing: 7,
+                                          children: widget.candidate.tags.map((
+                                            tag,
+                                          ) {
+                                            return Container(
+                                              padding:
+                                                  const EdgeInsets.symmetric(
+                                                    horizontal: 10,
+                                                    vertical: 4,
+                                                  ),
+                                              height: 27,
+                                              constraints: const BoxConstraints(
+                                                minWidth: 60,
+                                              ),
+                                              decoration: BoxDecoration(
+                                                color: AppColors.btnPrimary,
+                                                borderRadius:
+                                                    BorderRadius.circular(30),
+                                              ),
+                                              child: Row(
+                                                mainAxisSize: MainAxisSize.min,
+                                                children: [
+                                                  SvgPicture.asset(
+                                                    'assets/icons/icon_tag.svg',
+                                                    width: 24,
+                                                    height: 24,
+                                                  ),
+                                                  Text(
+                                                    tag,
+                                                    style: const TextStyle(
+                                                      fontSize: 14,
+                                                      color: Colors.white,
+                                                      fontFamily: 'Inter',
+                                                      fontWeight:
+                                                          FontWeight.w400,
+                                                    ),
+                                                  ),
+                                                  const SizedBox(width: 20),
+                                                ],
+                                              ),
+                                            );
+                                          }).toList(),
+                                        ),
+                                      ),
+                                  ],
                                 ),
-                                if (currentCandidate.tags.isNotEmpty)
-                                  Padding(
-                                    padding: const EdgeInsets.symmetric(
-                                      horizontal: 10,
-                                    ),
-                                    child: Wrap(
-                                      spacing: 5,
-                                      runSpacing: 7,
-                                      children: currentCandidate.tags.map((
-                                        tag,
-                                      ) {
-                                        return Container(
-                                          padding: const EdgeInsets.symmetric(
-                                            horizontal: 10,
-                                            vertical: 4,
-                                          ),
-                                          height: 27,
-                                          constraints: const BoxConstraints(
-                                            minWidth: 60,
-                                          ),
-                                          decoration: BoxDecoration(
-                                            color: AppColors.btnPrimary,
-                                            borderRadius: BorderRadius.circular(
-                                              30,
-                                            ),
-                                          ),
-                                          child: Row(
-                                            mainAxisSize: MainAxisSize.min,
-                                            children: [
-                                              SvgPicture.asset(
-                                                'assets/icons/icon_tag.svg',
-                                                width: 24,
-                                                height: 24,
-                                              ),
-                                              Text(
-                                                tag,
-                                                style: const TextStyle(
-                                                  fontSize: 14,
-                                                  color: Colors.white,
-                                                  fontFamily: 'Inter',
-                                                  fontWeight: FontWeight.w400,
-                                                ),
-                                              ),
-                                              const SizedBox(width: 20),
-                                            ],
-                                          ),
-                                        );
-                                      }).toList(),
-                                    ),
-                                  ),
-                              ],
-                            ),
-                          ),
-                        ],
-                      ],
-                    );
-                  },
+                              ),
+                            ],
+                          ],
+                        );
+                      },
+                    ),
+                  ],
                 ),
+              ),
+            ],
+          ),
+          bottomNavigationBar: CustomBottomNavBar(
+            selectedIndex: widget.selectedIndex,
+            onTap: widget.onBottomNavTap,
+          ),
+        );
+      },
+    );
+  }
+}
+
+// ✨ Beautiful Loading Widget (เหมือนเดิม)
+class _DiscoveryLoadingWidget extends StatefulWidget {
+  const _DiscoveryLoadingWidget();
+
+  @override
+  State<_DiscoveryLoadingWidget> createState() =>
+      _DiscoveryLoadingWidgetState();
+}
+
+class _DiscoveryLoadingWidgetState extends State<_DiscoveryLoadingWidget>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _shimmerController;
+
+  @override
+  void initState() {
+    super.initState();
+    _shimmerController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1500),
+    )..repeat();
+  }
+
+  @override
+  void dispose() {
+    _shimmerController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: _shimmerController,
+      builder: (context, child) {
+        return Container(
+          width: double.infinity,
+          height: 585,
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [
+                const Color(0xFF5ce1e6).withOpacity(0.1),
+                const Color(0xFF5ce1e6).withOpacity(0.2),
+                const Color(0xFF5ce1e6).withOpacity(0.1),
               ],
+              stops: [
+                _shimmerController.value - 0.3,
+                _shimmerController.value,
+                _shimmerController.value + 0.3,
+              ].map((s) => s.clamp(0.0, 1.0)).toList(),
             ),
           ),
-        ],
-      ),
-      bottomNavigationBar: CustomBottomNavBar(
-        selectedIndex: _selectedIndex,
-        onTap: (index) {
-          setState(() {
-            _selectedIndex = index; // อัปเดต selectedIndex
-          });
+          child: Stack(
+            children: [
+              Positioned.fill(
+                child: Container(
+                  margin: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                ),
+              ),
+              Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    TweenAnimationBuilder<double>(
+                      tween: Tween(begin: 0.8, end: 1.2),
+                      duration: const Duration(milliseconds: 800),
+                      curve: Curves.easeInOut,
+                      builder: (context, scale, child) {
+                        return Transform.scale(
+                          scale: scale,
+                          child: Container(
+                            padding: const EdgeInsets.all(24),
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              color: const Color(0xFF5ce1e6).withOpacity(0.2),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: const Color(
+                                    0xFF5ce1e6,
+                                  ).withOpacity(0.3),
+                                  blurRadius: 30,
+                                  spreadRadius: 10,
+                                ),
+                              ],
+                            ),
+                            child: const Icon(
+                              Icons.favorite,
+                              size: 60,
+                              color: Color(0xFF5ce1e6),
+                            ),
+                          ),
+                        );
+                      },
+                      onEnd: () {
+                        if (mounted) {
+                          setState(() {});
+                        }
+                      },
+                    ),
+                    const SizedBox(height: 32),
+                    const Text(
+                      'กำลังค้นหาคนที่ใช่สำหรับคุณ',
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.w600,
+                        color: Color(0xFF5ce1e6),
+                        fontFamily: 'Inter',
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: List.generate(3, (index) {
+                        return AnimatedBuilder(
+                          animation: _shimmerController,
+                          builder: (context, child) {
+                            final delay = index * 0.2;
+                            final progress =
+                                (_shimmerController.value + delay) % 1.0;
+                            final opacity = (sin(progress * pi * 2) + 1) / 2;
 
-          // ตรวจสอบ index
-          if (index == 2) {
-            Navigator.pushReplacementNamed(context, '/profile');
-          }
-        },
+                            return Container(
+                              margin: const EdgeInsets.symmetric(horizontal: 4),
+                              width: 8,
+                              height: 8,
+                              decoration: BoxDecoration(
+                                shape: BoxShape.circle,
+                                color: const Color(
+                                  0xFF5ce1e6,
+                                ).withOpacity(opacity),
+                              ),
+                            );
+                          },
+                        );
+                      }),
+                    ),
+                  ],
+                ),
+              ),
+              Positioned(
+                bottom: 80,
+                left: 32,
+                right: 32,
+                child: Column(
+                  children: [
+                    _ShimmerBar(
+                      width: double.infinity,
+                      height: 16,
+                      animation: _shimmerController,
+                    ),
+                    const SizedBox(height: 12),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: _ShimmerBar(
+                            width: double.infinity,
+                            height: 32,
+                            animation: _shimmerController,
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: _ShimmerBar(
+                            width: double.infinity,
+                            height: 32,
+                            animation: _shimmerController,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+}
+
+class _ShimmerBar extends StatelessWidget {
+  final double width;
+  final double height;
+  final Animation<double> animation;
+
+  const _ShimmerBar({
+    required this.width,
+    required this.height,
+    required this.animation,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: width,
+      height: height,
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(8),
+        gradient: LinearGradient(
+          begin: Alignment.centerLeft,
+          end: Alignment.centerRight,
+          colors: [
+            Colors.white.withOpacity(0.1),
+            Colors.white.withOpacity(0.3),
+            Colors.white.withOpacity(0.1),
+          ],
+          stops: [
+            (animation.value - 0.3).clamp(0.0, 1.0),
+            animation.value.clamp(0.0, 1.0),
+            (animation.value + 0.3).clamp(0.0, 1.0),
+          ],
+        ),
       ),
     );
   }
 }
 
-// ===== Small helpers =====
 class _ArrowButton extends StatelessWidget {
   final IconData icon;
   final VoidCallback onTap;
