@@ -54,6 +54,9 @@ public class DiscoveryService {
     @Autowired
     private TagRepository tagRepository;
 
+    @Autowired
+    private NotificationService notificationService;
+
     public List<DiscoveryResponse> getCandidates(
             String userId,
             int minDistance,
@@ -296,7 +299,21 @@ public class DiscoveryService {
                     matchRepository.save(m);
                 }
 
-                // 5.2 ส่ง response ว่า match แล้ว 🎉
+                // ★ 5.2 ยิง push แจ้งเตือนให้ทั้งสองฝั่ง
+                try {
+                    notificationService.sendMatchNotification(
+                            currentUser.getUserId(),
+                            targetUser.getNickname()
+                    );
+                    notificationService.sendMatchNotification(
+                            targetUser.getUserId(),
+                            currentUser.getNickname()
+                    );
+                } catch (Exception e) {
+                    System.out.println("[Discovery] Failed to send match notifications: " + e.getMessage());
+                }
+
+                // 5.3 ส่ง response ว่า match แล้ว 🎉
                 return new FeedbackResponse(
                         "match",
                         true,

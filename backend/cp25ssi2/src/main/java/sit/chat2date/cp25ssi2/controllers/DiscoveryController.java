@@ -35,8 +35,11 @@ public class DiscoveryController {
     public ResponseEntity<FeedbackResponse> feedback(
             @RequestParam @NotBlank String userId,
             @RequestBody FeedbackRequest body
-
     ) {
+        System.out.println("[Controller] /discovery/feedback userId=" + userId
+                + " targetUserId=" + body.getTargetUserId()
+                + " action=" + body.getAction());
+
         FeedbackResponse result = discoveryService.submitFeedback(
                 userId,
                 body.getTargetUserId(),
@@ -45,5 +48,6 @@ public class DiscoveryController {
 
         return ResponseEntity.status(HttpStatus.CREATED).body(result);
     }
+
 
 }
