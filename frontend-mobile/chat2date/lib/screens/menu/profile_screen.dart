@@ -61,10 +61,8 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
   void _loadInitialData() async {
     final userStore = ref.read(userStoreProvider) as Map<String, dynamic>?;
 
-    // ถ้ามีข้อมูลใน userStore ใช้เลย
-
     if (userStore?['profile'] != null && userStore?['user'] != null) {
-      final prefs = userStore?['preferences']; // Map<String, dynamic>?
+      final prefs = userStore?['preferences']; 
       await _setDataFromStore(
         userStore?['profile'],
         userStore?['user'],
@@ -72,14 +70,12 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
       );
       return;
     }
-    // ถ้าไม่มีข้อมูลใน store ต้องโหลดจาก backend
     final prefs = await PreferenceService.getPreference();
-    final user = userStore?['user'] as User; // ต้องแน่ใจว่ามี user
+    final user = userStore?['user'] as User;
     final userId = user.userId;
     final userService = ref.read(userServiceProvider);
     final userProfile = await userService.getProfile(userId);
 
-    // เก็บลง userStore
     ref.read(userStoreProvider.notifier).setProfile(userProfile);
     ref.read(userStoreProvider.notifier).setPreferences({
       'travelStyles': prefs.travelStyles,
@@ -831,7 +827,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                           final updatedUser = ref
                               .read(userServiceProvider)
                               .addPreferenceMatchUser(preferenceMatch);
-
+                              _handleSubmit();
                           // // ส่งข้อมูลไปหน้าถัดไป
                           // print('===== ข้อมูล Profile =====');
                           // print('ชื่อเล่น: ${_nicknameCtrl.text}');
