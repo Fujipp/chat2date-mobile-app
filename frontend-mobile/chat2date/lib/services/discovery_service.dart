@@ -5,6 +5,7 @@ import 'package:chat2date/models/dto/discovery_dto.dart';
 import 'package:chat2date/stores/user_store.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:http/http.dart' as http;
+import 'package:chat2date/models/dto/feedback_response_dto.dart';
 
 class DiscoveryService {
   final String? accessToken;
@@ -53,7 +54,7 @@ class DiscoveryService {
     }
   }
 
-  Future<void> submitFeedback({
+  Future<FeedbackResponseDto> submitFeedback({
   required String userId,
   required String targetUserId,
   required String action, // "LIKE" / "DISLIKE"
@@ -88,7 +89,12 @@ class DiscoveryService {
   if (res.statusCode != 201) {
     throw Exception('Feedback failed: ${res.statusCode} ${res.body}');
   }
+
+  // ✅ แปลง body เป็น DTO แล้ว return
+  final Map<String, dynamic> json = jsonDecode(res.body);
+  return FeedbackResponseDto.fromJson(json);
 }
+
 
 }
 
@@ -187,23 +193,28 @@ class DiscoveryNotifier extends StateNotifier<DiscoveryState> {
   }
 
   /// Like candidate ปัจจุบัน
-  Future<void> likeCurrentCandidate() async {
+    Future<FeedbackResponseDto?> likeCurrentCandidate() async {
   final candidate = state.currentCandidate;
-  if (candidate == null) return;
+  if (candidate == null) return null;
 
   try {
-    await _service.submitFeedback(
+    final feedback = await _service.submitFeedback(
       userId: userId,
-      targetUserId: candidate.userId,   // ต้องมี field นี้ใน DiscoveryResponse
+      targetUserId: candidate.userId,
       action: 'LIKE',
     );
     print('👍 Liked: ${candidate.nickname}');
+
+    nextCandidate(); // ขยับไปคนถัดไปหลังจากกดแล้ว
+
+    return feedback;   // ✅ คืน feedback ออกไปให้ UI ใช้เช็ค matched
   } catch (e) {
     print('❌ Like error: $e');
+    return null;
   }
-
-  nextCandidate();
 }
+
+
 
   /// Unlike candidate ปัจจุบัน
   Future<void> unlikeCurrentCandidate() async {

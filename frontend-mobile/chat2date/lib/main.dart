@@ -4,6 +4,7 @@ import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'firebase_options.dart';
+import 'package:chat2date/screens/match/match_success_screen.dart';
 
 import 'screens/index.dart';
 
@@ -61,6 +62,11 @@ class MyApp extends StatelessWidget {
         '/kyc-loading': (context) => const KycLoadingScreen(),
         '/kyc-result-success': (context) => const KycResultSuccessScreen(),
         '/kyc-result-fail': (context) => const KycResultFailScreen(),
+
+              MatchSuccessScreen.routeName: (context) {
+          final args = ModalRoute.of(context)!.settings.arguments as MatchSuccessArgs;
+          return MatchSuccessScreen(args: args);
+        },
       },
       // builder: (context, child) {
       //   return Stack(

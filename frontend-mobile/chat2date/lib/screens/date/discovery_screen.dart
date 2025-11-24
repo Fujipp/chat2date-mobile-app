@@ -17,7 +17,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:sliding_up_panel/sliding_up_panel.dart';
 import 'package:chat2date/services/fcm_token_service.dart';
-
+import 'package:chat2date/screens/match/match_success_screen.dart';
+import 'package:chat2date/models/dto/feedback_response_dto.dart';
 
 class DiscoveryScreen extends ConsumerStatefulWidget {
   final int selectedIndex;
@@ -104,17 +105,56 @@ class _DiscoveryScreenState extends ConsumerState<DiscoveryScreen>
   }
 
   void _onLike() {
-    if (_userId == null) return;
+  if (_userId == null) return;
 
-    _animateCard(to: const Offset(0, 400), rot: 0);
+  // เก็บ candidate ปัจจุบันไว้ก่อน
+  final discoveryState = ref.read(discoveryProvider(_userId!));
+  final currentCandidate = discoveryState.currentCandidate;
+  if (currentCandidate == null) return;
 
-    // เรียก like API หลัง animation เริ่ม
-    Future.delayed(const Duration(milliseconds: 200), () {
-      if (mounted) {
-        ref.read(discoveryProvider(_userId!).notifier).likeCurrentCandidate();
-      }
-    });
-  }
+  _animateCard(to: const Offset(0, 400), rot: 0);
+
+  Future.delayed(const Duration(milliseconds: 200), () async {
+    if (!mounted) return;
+
+    final feedback = await ref
+        .read(discoveryProvider(_userId!).notifier)
+        .likeCurrentCandidate();
+
+    if (!mounted) return;
+
+    // ถ้าไม่ match ก็ไม่ต้องเด้ง popup
+    if (feedback == null || feedback.matched != true) {
+      return;
+    }
+
+    // ฝั่งเรา
+    final userState = ref.read(userStoreProvider);
+    final me = userState['user'];
+    final myName =
+        (me as dynamic).nickname ?? (me as dynamic).firstname ?? 'คุณ';
+
+    // รูปเรา (Dev เติมเองตาม model ที่ใช้เก็บรูป profile)
+    final String? myAvatarUrl = null;
+
+    // รูปฝั่งเค้า = รูปแรกใน list
+    final String? partnerAvatarUrl =
+        currentCandidate.photos.isNotEmpty ? currentCandidate.photos.first : null;
+
+    // ✅ push หน้าจับคู่ขึ้นมา (Discovery ยังอยู่ข้างล่าง)
+    Navigator.of(context).pushNamed(
+      MatchSuccessScreen.routeName,
+      arguments: MatchSuccessArgs(
+        myName: myName,
+        partnerName: currentCandidate.nickname,
+        myAvatarUrl: myAvatarUrl,
+        partnerAvatarUrl: partnerAvatarUrl,
+      ),
+    );
+    // แล้ว MatchSuccessScreen จะ auto pop ตัวเองใน 5 วิ (จาก initState)
+  });
+}
+
 
   @override
   void initState() {
@@ -122,7 +162,7 @@ class _DiscoveryScreenState extends ConsumerState<DiscoveryScreen>
     // ✅ ขอสิทธิ์ + อัปเดต location ตอนเข้า /discovery ครั้งแรก
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       debugPrint('[Discovery] postFrame: start location + FCM');
-      await ref.read(locationServiceProvider).tryUpdateLocationSilently();
+      // await ref.read(locationServiceProvider).tryUpdateLocationSilently();
       debugPrint('[Discovery] location done, start FCM');
       await ref.read(fcmTokenServiceProvider).registerDeviceTokenSilently();
       debugPrint('[Discovery] FCM call done');
@@ -180,7 +220,7 @@ class _DiscoveryScreenState extends ConsumerState<DiscoveryScreen>
           });
 
           // อัปเดต location
-          await ref.read(locationServiceProvider).tryUpdateLocationSilently();
+          // await ref.read(locationServiceProvider).tryUpdateLocationSilently();
 
           // โหลด candidates
           if (mounted && _userId != null) {
