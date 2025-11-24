@@ -62,7 +62,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     final userStore = ref.read(userStoreProvider) as Map<String, dynamic>?;
 
     if (userStore?['profile'] != null && userStore?['user'] != null) {
-      final prefs = userStore?['preferences']; 
+      final prefs = userStore?['preferences'];
       await _setDataFromStore(
         userStore?['profile'],
         userStore?['user'],
@@ -497,6 +497,11 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                         key: ValueKey(photoUrls.join(',')),
                         imageUser: photoUrls,
                         onImagesChanged: (images) {
+                          setState(() {
+                            _selectedImages = images
+                                .map((xFile) => File(xFile.path))
+                                .toList();
+                          });
                           print('จำนวนรูปที่เลือก: ${images.length}');
                         },
                       ),
@@ -827,7 +832,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                           final updatedUser = ref
                               .read(userServiceProvider)
                               .addPreferenceMatchUser(preferenceMatch);
-                              _handleSubmit();
+                          _handleSubmit();
                           // // ส่งข้อมูลไปหน้าถัดไป
                           // print('===== ข้อมูล Profile =====');
                           // print('ชื่อเล่น: ${_nicknameCtrl.text}');

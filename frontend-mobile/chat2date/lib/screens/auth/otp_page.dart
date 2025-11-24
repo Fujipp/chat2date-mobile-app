@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:chat2date/controllers/auth_controller.dart';
 import 'package:chat2date/models/user.dart';
 import 'package:chat2date/services/user_service.dart';
 import 'package:chat2date/stores/user_store.dart';
@@ -134,26 +135,17 @@ class _OtpPageState extends ConsumerState<OtpPage> {
         token: _token,
         code: code,
         phone: _phone,
-        onLogin: onLogin
+        onLogin: onLogin,
       );
       if (!mounted) return;
       if (data['statusCode'] == 200) {
-        print(data['body']['user']);
         final user = User.fromJson(data['body']['user']);
         final accessToken = data['body']['accessToken'];
         ref.read(userStoreProvider.notifier).setUser(user, accessToken);
         ref.watch(userStoreProvider);
-        if (user.accountStatus == AccountStatus.PENDING) {
-          if (onLogin) {
-            Navigator.pushNamed(context, '/policy', arguments: {"goKyc": true});
-          } else {
-            Navigator.pushReplacementNamed(context, '/kyc-id-ocr');
-          }
-        } else if (user.accountStatus == AccountStatus.ACTIVE) {
-          Navigator.pushReplacementNamed(context, '/discovery');
-        } else {
-          throw Exception('เบอร์ดังกล่าวถูกระงับไว้');
-        }
+        final authController = ref.read(authControllerProvider);
+        final result = authController.determineRoute(user, onLogin);
+        Navigator.pushNamed(context, result.route, arguments: result.arguments);
         //ตัวอย่างการ log ดูข้อมูล---------------------------
         // final store = ref.watch(userStoreProvider);
         // print("USER: ${store['user']}");

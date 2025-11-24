@@ -22,10 +22,10 @@ class AuthController {
     final userMap = await auth.signInWithGoogle();
     final user = User.fromJson(userMap);
 
-    return _determineRoute(user, onLogin);
+    return determineRoute(user, onLogin);
   }
 
-  NavigationResult _determineRoute(User user, bool onLogin) {
+  NavigationResult determineRoute(User user, bool onLogin) {
     switch (user.accountStatus) {
       case AccountStatus.PENDING:
         if (onLogin) {
