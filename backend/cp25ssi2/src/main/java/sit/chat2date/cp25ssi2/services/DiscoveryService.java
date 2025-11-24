@@ -58,36 +58,27 @@ public class DiscoveryService {
             String userId,
             int minDistance,
             int maxDistance
-            ) {
-        Integer limit = 10;
-
+    ) {
+        int limit = 10;
+        System.out.println("pref = " + userId);
         PreferenceMatch pref = preferenceRepository.findByUser_UserId(userId);
+        System.out.println("pref = " + pref); // null?
+
         UserLocation myLocation = locationRepository.findFirstByUser_UserId(userId);
 
         List<String> userTravelStyles = travelStyleRepository.findTravelStylesByUserId(userId);
         List<String> userLifestyles = lifestyleRepository.findLifeStylesByUserId(userId);
         List<String> userInterests = interestRepository.findInterestsByUserId(userId);
 
-        System.out.println("\n========================================");
-        System.out.println("🔍 DISCOVERY QUERY DEBUG");
-        System.out.println("========================================");
-        System.out.println("Current User ID: " + userId);
-        System.out.println("My Location: LAT=" + myLocation.getLatitude() + ", LON=" + myLocation.getLongtitude());
-        System.out.println("Distance Range: " + minDistance + " - " + maxDistance + " km");
-        System.out.println("Age Range: " + pref.getInterestedAgeMin() + " - " + pref.getInterestedAgeMax());
-        System.out.println("Interested Gender: " + pref.getInterestedGender());
-        System.out.println("========================================\n");
-
-        // ... rest of your code
         boolean allUnnecessary =
-                        "UNNECESSARY".equals(pref.getInterestedTravelStyle().name()) &&
+                "UNNECESSARY".equals(pref.getInterestedTravelStyle().name()) &&
                         "UNNECESSARY".equals(pref.getInterestedLifeStyle().name()) &&
                         "UNNECESSARY".equals(pref.getInterestedInterest().name());
 
         List<User> candidates;
 
-        if(allUnnecessary){
-            System.out.println("Using BASIC query (all UNNECESSARY)");
+        if (allUnnecessary) {
+            // ไม่ filter attribute อื่นเลย
             candidates = userRepository.findCandidatesBasic(
                     userId,
                     myLocation.getLatitude().doubleValue(),
@@ -99,11 +90,8 @@ public class DiscoveryService {
                     pref.getInterestedGender().name(),
                     limit
             );
-            System.out.println("✅ Found " + candidates.size() + " candidates");
-            System.out.println("Candidate IDs: " + candidates.stream()
-                    .map(User::getUserId));
-
-        }else{
+        } else {
+            // Filter ตาม attribute
             candidates = userRepository.findCandidatesWithPreference(
                     userId,
                     myLocation.getLatitude().doubleValue(),
@@ -123,39 +111,42 @@ public class DiscoveryService {
             );
         }
 
-        // Batch fetch attribute mappings for candidates here (not shown for brevity)
-
-        return candidates.stream().map(candidate -> {
+        // map ไปเป็น DiscoveryResponse พร้อม score และเรียงตาม logic ที่ตอบไว้
+        return candidates.stream()
+                .map(candidate -> {
                     List<String> candidateTravelStyles = travelStyleRepository.findTravelStylesByUserId(candidate.getUserId());
                     List<String> candidateLifestyles = lifestyleRepository.findLifeStylesByUserId(candidate.getUserId());
                     List<String> candidateInterests = interestRepository.findInterestsByUserId(candidate.getUserId());
                     List<String> candidatePhotos = getPhotoUrls(candidate.getUserId());
                     List<String> candidateTags = tagRepository.findTagsByUserId(candidate.getUserId());
 
-
                     double distance = calculateDistance(myLocation, locationRepository.findFirstByUser_UserId(candidate.getUserId()));
                     int score = compatibilityCalculator.calculateCompatibilityWithPreference(
                             userTravelStyles, candidateTravelStyles, pref.getInterestedTravelStyle().name(),
                             userLifestyles, candidateLifestyles, pref.getInterestedLifeStyle().name(),
-                            userInterests, candidateInterests, pref.getInterestedInterest().name());
+                            userInterests, candidateInterests, pref.getInterestedInterest().name()
+                    );
 
                     return new DiscoveryResponse(
                             candidate.getUserId(),
                             candidate.getNickname(),
                             calculateAge(candidate.getBirthday()),
-                            candidate.getSex().toString(),  // แปลงเป็น String
-                            candidatePhotos,                // List<String> photos
-                            candidateTags,                  // List<String> tags
+                            candidate.getSex().toString(),
+                            candidatePhotos,
+                            candidateTags,
                             candidateTravelStyles,
                             candidateInterests,
                             candidateLifestyles,
                             distance,
                             score
                     );
-
-                }).sorted(Comparator.comparingInt(DiscoveryResponse::getCompatibilityScore).reversed())
+                })
+                .sorted(Comparator
+                        .comparingInt(DiscoveryResponse::getCompatibilityScore).reversed()
+                        .thenComparingDouble(DiscoveryResponse::getDistance))
                 .collect(Collectors.toList());
     }
+
 
     private List<String> getPhotoUrls(String userId) {
         String jsonString = userPhotoRepository.findAttributesJsonByUser_UserId(userId);

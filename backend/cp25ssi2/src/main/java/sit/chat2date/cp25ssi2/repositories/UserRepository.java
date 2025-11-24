@@ -31,7 +31,6 @@ public interface UserRepository extends JpaRepository<User, String> {
         )
       ) BETWEEN :minDistance AND :maxDistance
       AND TIMESTAMPDIFF(YEAR, u.birthday, CURDATE()) BETWEEN :minAge AND :maxAge
-    ORDER BY RAND()
     LIMIT :limit
 """, nativeQuery = true)
     List<User> findCandidatesBasic(
