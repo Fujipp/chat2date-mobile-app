@@ -62,7 +62,7 @@ dev_dependencies:
 
   # === Splash & App Icon ===
   flutter_native_splash: ^2.4.7
-  flutter_launcher_icons: ^0.14.1
+  flutter_launcher_icons: ^0.14.4
 
 flutter:
   uses-material-design: true
@@ -151,7 +151,15 @@ flutter_native_splash:
 flutter_launcher_icons:
   android: true
   ios: true
-  image_path: assets/images/logo_chat2date.png
-  remove_alpha_ios: true
+  image_path: "assets/images/icon_chat2date.png"
   min_sdk_android: 21
+
+  # iOS: ให้ lib ช่วยลบ alpha ทิ้ง (ตามที่ Dev ตั้งไว้)
+  remove_alpha_ios: true
+  background_color_ios: "#FFFFFF"
+
+  # (ออปชัน) เผื่อ Dev อยากรองรับ Adaptive Icon สวย ๆ บน Android
+  # adaptive_icon_background: "#FFFFFF"
+  # adaptive_icon_foreground: "assets/images/icon_chat2date_foreground.png"
+  # adaptive_icon_monochrome: "assets/images/icon_chat2date_mono.png"
   
