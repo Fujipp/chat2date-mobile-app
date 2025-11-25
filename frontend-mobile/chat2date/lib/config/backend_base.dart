@@ -20,4 +20,32 @@ class ApiBase {
     // เครื่องจริง (ตั้งค่าตามแลนของ Dev ทีหลัง)
     return 'http://localhost:8080';
   }
+
+  static String get websocketBase {
+    if (_defined.startsWith('http')) {
+      final uri = Uri.parse(_defined);
+      final scheme = uri.scheme == 'https' ? 'wss' : 'ws';
+      return Uri(
+        scheme: scheme,
+        host: uri.host,
+        port: uri.hasPort ? uri.port : null,
+      ).toString();
+    }
+
+    if (kIsWeb) {
+      final base = Uri.base;
+      if (base.host.isNotEmpty) {
+        final scheme = base.scheme == 'https' ? 'wss' : 'ws';
+        return Uri(
+          scheme: scheme,
+          host: base.host,
+          port: base.hasPort ? base.port : null,
+        ).toString();
+      }
+      return 'ws://127.0.0.1:8080';
+    }
+    if (Platform.isAndroid) return 'ws://10.0.2.2:8080';
+    if (Platform.isIOS) return 'ws://127.0.0.1:8080';
+    return 'ws://localhost:8080';
+  }
 }

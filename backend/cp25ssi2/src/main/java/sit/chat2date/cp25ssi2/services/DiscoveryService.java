@@ -57,6 +57,9 @@ public class DiscoveryService {
     @Autowired
     private NotificationService notificationService;
 
+    @Autowired
+    private MatchSocketService matchSocketService;
+
     public List<DiscoveryResponse> getCandidates(
             String userId,
             int minDistance,
@@ -309,6 +312,7 @@ public class DiscoveryService {
                             targetUser.getUserId(),
                             currentUser.getNickname()
                     );
+                    matchSocketService.broadcastMatch(currentUser, targetUser);
                 } catch (Exception e) {
                     System.out.println("[Discovery] Failed to send match notifications: " + e.getMessage());
                 }

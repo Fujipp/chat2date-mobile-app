@@ -1,0 +1,98 @@
+import 'dart:async';
+import 'dart:convert';
+
+import 'package:chat2date/config/backend_base.dart';
+import 'package:chat2date/models/dto/match_event_dto.dart';
+import 'package:chat2date/stores/user_store.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:stomp_dart_client/stomp.dart';
+import 'package:stomp_dart_client/stomp_config.dart';
+import 'package:stomp_dart_client/stomp_frame.dart';
+
+class MatchSocketService {
+  final String userId;
+  final String? accessToken;
+
+  MatchSocketService({
+    required this.userId,
+    this.accessToken,
+  });
+
+  final _controller = StreamController<MatchEventDto>.broadcast();
+  StompClient? _client;
+  bool _connecting = false;
+
+  Stream<MatchEventDto> get stream => _controller.stream;
+
+  void connect() {
+    if (_client != null || _connecting) return;
+    _connecting = true;
+
+    final wsUrl = '${ApiBase.websocketBase}/ws';
+    final headers = <String, String>{
+      if (accessToken?.isNotEmpty == true) 'Authorization': 'Bearer $accessToken',
+    };
+
+    _client = StompClient(
+      config: StompConfig(
+        url: wsUrl,
+        onConnect: _onConnect,
+        beforeConnect: () async {
+          await Future.delayed(const Duration(milliseconds: 50));
+        },
+        onWebSocketError: (err) {
+          _connecting = false;
+          print('[MatchSocket] websocket error: $err');
+        },
+        onStompError: (frame) {
+          _connecting = false;
+          print('[MatchSocket] stomp error: ${frame.body}');
+        },
+        onDisconnect: (_) {
+          _connecting = false;
+          _client = null;
+        },
+        stompConnectHeaders: headers,
+        webSocketConnectHeaders: headers,
+      ),
+    );
+
+    _client?.activate();
+  }
+
+  void _onConnect(StompFrame frame) {
+    _connecting = false;
+    _client?.subscribe(
+      destination: '/topic/matches/$userId',
+      callback: (frame) {
+        final body = frame.body;
+        if (body == null) return;
+        try {
+          final json = jsonDecode(body) as Map<String, dynamic>;
+          final event = MatchEventDto.fromJson(json);
+          _controller.add(event);
+        } catch (e) {
+          print('[MatchSocket] failed to handle frame: $e');
+        }
+      },
+    );
+  }
+
+  void dispose() {
+    _client?.deactivate();
+    _client = null;
+    _controller.close();
+  }
+}
+
+final matchSocketStreamProvider =
+    StreamProvider.family.autoDispose<MatchEventDto, String>((ref, userId) {
+  final userState = ref.watch(userStoreProvider);
+  final accessToken = userState['accessToken'] as String?;
+  final service = MatchSocketService(userId: userId, accessToken: accessToken);
+
+  service.connect();
+  ref.onDispose(service.dispose);
+
+  return service.stream;
+});

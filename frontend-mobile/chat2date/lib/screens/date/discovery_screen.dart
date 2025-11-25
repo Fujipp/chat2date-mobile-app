@@ -9,9 +9,12 @@ import 'package:chat2date/components/inputs/ds_label.dart';
 import 'package:chat2date/components/layout/header.dart';
 import 'package:chat2date/components/layout/menu_bar.dart';
 import 'package:chat2date/models/dto/discovery_dto.dart';
+import 'package:chat2date/models/dto/match_event_dto.dart';
+import 'package:chat2date/screens/match/match_success_screen.dart';
 import 'package:chat2date/services/discovery_service.dart';
 import 'package:chat2date/services/fcm_token_service.dart';
 import 'package:chat2date/services/location_service.dart';
+import 'package:chat2date/services/match_socket_service.dart';
 import 'package:chat2date/stores/user_store.dart';
 import 'package:chat2date/theme/app_colors.dart';
 import 'package:flutter/material.dart';
@@ -180,6 +183,7 @@ class _DiscoveryScreenState extends ConsumerState<DiscoveryScreen>
           setState(() {
             _userId = userId;
           });
+          _listenMatchStream();
 
           await ref.read(locationServiceProvider).tryUpdateLocationSilently();
 
@@ -332,6 +336,28 @@ class _DiscoveryScreenState extends ConsumerState<DiscoveryScreen>
 
     overlay.insert(_settingsOverlay!);
     _isSettingsOpen = true;
+  }
+
+  void _listenMatchStream() {
+    if (_userId == null || _matchStreamSub != null) return;
+
+    _matchStreamSub = ref.listen<AsyncValue<MatchEventDto>>(
+      matchSocketStreamProvider(_userId!),
+      (previous, next) {
+        final event = next.valueOrNull;
+        if (event == null || !mounted) return;
+
+        Navigator.of(context).pushNamed(
+          MatchSuccessScreen.routeName,
+          arguments: MatchSuccessArgs(
+            myName: event.selfName,
+            partnerName: event.partnerName,
+            myAvatarUrl: event.selfAvatarUrl,
+            partnerAvatarUrl: event.partnerAvatarUrl,
+          ),
+        );
+      },
+    );
   }
 
   @override
