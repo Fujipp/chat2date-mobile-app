@@ -135,6 +135,7 @@ public class SmsmktClient {
                         .email(user.getEmail())
                         .phoneNumber(user.getPhoneNumber())
                         .accountStatus(user.getAccountStatus() != null ? user.getAccountStatus().toString() : null)
+                        .version(user.getVersion())
                         .build();
                 response.put("user", userDto);
             } else {
@@ -146,6 +147,7 @@ public class SmsmktClient {
                             .email(userOptional.get().getEmail())
                             .phoneNumber(userOptional.get().getPhoneNumber())
                             .accountStatus(userOptional.get().getAccountStatus() != null ? userOptional.get().getAccountStatus().toString() : null)
+                            .version(userOptional.get().getVersion())
                             .build();
                     response.put("user", userDto);
                 }

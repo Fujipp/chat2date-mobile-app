@@ -67,6 +67,7 @@ public class AuthService {
                 .id(user.getUserId())
                 .email(user.getEmail())
                 .accountStatus(user.getAccountStatus().toString())
+                .version(user.getVersion())
                 .build();
 
         return AuthenticationResponse.builder()
