@@ -55,8 +55,10 @@
 		<key>NSPhotoLibraryUsageDescription</key>
 		<string>ขอสิทธิ์เพื่อเลือกภาพจากคลังรูป</string>
 		<key>UIStatusBarHidden</key>
-		<false/>
+		<true/>
 		<key>NSLocationWhenInUseUsageDescription</key>
 		<string>Chat2Date ต้องการใช้ตำแหน่งของคุณเพื่อแนะนำคู่ที่อยู่ใกล้คุณ</string>
+		<key>UIViewControllerBasedStatusBarAppearance</key>
+		<false/>
 	</dict>
 </plist>

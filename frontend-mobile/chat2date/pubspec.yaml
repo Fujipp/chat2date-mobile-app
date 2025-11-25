@@ -61,7 +61,7 @@ dev_dependencies:
   riverpod_generator: ^2.6.1
 
   # === Splash & App Icon ===
-  flutter_native_splash: ^2.4.6
+  flutter_native_splash: ^2.4.7
   flutter_launcher_icons: ^0.14.1
 
 flutter:
@@ -88,18 +88,62 @@ flutter:
 #   CONFIG: Splash Screen
 # ==============================
 flutter_native_splash:
-  color: "#FFFFFF"
-  image: assets/images/logo_chat2date_splash.png
+  #======================================================================
+  #  BASIC CONFIG (ทุกแพลตฟอร์ม ยกเว้น Android 12+)
+  #======================================================================
 
+  # เปิดใช้บน platform ไหนบ้าง
+  android: true
+  ios: true
+  web: false
+
+  # ⚪ พื้นหลัง (เลือกอย่างใดอย่างหนึ่งระหว่าง color vs background_image)
+  # ถ้าใช้ color ห้ามใช้ background_image พร้อมกัน
+  color: "#FFFFFF"   # พื้นหลังขาว (เหมือนที่ Dev ตั้งไว้ก่อนหน้า)
+  # color_dark: "#FFFFFF"
+
+  # ถ้าจะใช้เป็นรูป background แทนสี ให้ comment color ด้านบน แล้วมาใช้อันนี้
+  # background_image: "assets/images/splash_bg.png"
+  # background_image_dark: "assets/images/splash_bg_dark.png"
+
+  # 🎯 โลโก้ตรงกลาง (ทุก platform)
+  # ใช้โลโก้หลักของแอป
+  image: assets/images/logo_chat2date_android12.png
+  # image_dark: assets/images/logo_chat2date.png
+
+  # ตำแหน่งรูปบนแต่ละ platform
   android_gravity: center
   ios_content_mode: scaleAspectFit
+  web_image_mode: contain
+
+  # ซ่อนแถบสถานะตอน splash (Android), iOS จะซ่อนให้อยู่แล้ว
   fullscreen: true
 
-  android_12:
-    color: "#FFFFFF"
-    image: assets/images/logo_chat2date_splash.png
+  #======================================================================
+  #  ANDROID 12+ CONFIG
+  #======================================================================
 
-  web: false
+  android_12:
+    # พื้นหลังตอน splash
+    color: "#FFFFFF"
+    # color_dark: "#FFFFFF"
+
+    # โลโก้ตรงกลางของ Android 12+
+    # *ถ้าไม่กำหนด image ตรงนี้ Android จะใช้ app icon แทน*
+    # ระวัง: Android 12 จะ clip เป็นวงกลม
+    # แนะนำให้ใช้ไฟล์ PNG พื้นหลังโปร่ง (transparent) เช่น โลโก้เดี่ยว ๆ
+    image: assets/images/logo_chat2date_android12.png
+    # image_dark: assets/images/logo_chat2date.png
+
+    # สีพื้นหลังของวงกลมด้านหลังโลโก้ (ถ้าอยากให้มีวงกลม)
+    # ถ้าอยากให้โลโก้ลอย ๆ ไม่ต้องตั้งก็ได้
+    # icon_background_color: "#FFFFFF"
+    # icon_background_color_dark: "#FFFFFF"
+
+    # ถ้าอยากมี branding ล่าง ๆ ให้ใส่ตรงนี้ (ขนาดต้อง 800x320 px)
+    # branding: assets/images/branding.png
+    # branding_dark: assets/images/branding_dark.png
+
 
 # ==============================
 #   CONFIG: App Icon
