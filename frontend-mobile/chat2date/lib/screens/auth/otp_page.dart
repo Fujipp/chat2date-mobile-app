@@ -131,12 +131,7 @@ class _OtpPageState extends ConsumerState<OtpPage> {
         );
       }
 
-      final data = await BackendOtpService.validateOtp(
-        token: _token,
-        code: code,
-        phone: _phone,
-        onLogin: onLogin,
-      );
+      final data = await ref.read(backendOtpServiceProvider).validateOtp(token: _token, code: code, phone: _phone, onLogin: onLogin);
       if (!mounted) return;
       if (data['statusCode'] == 200) {
         final user = User.fromJson(data['body']['user']);
@@ -146,11 +141,6 @@ class _OtpPageState extends ConsumerState<OtpPage> {
         final authController = ref.read(authControllerProvider);
         final result = authController.determineRoute(user, onLogin);
         Navigator.pushNamed(context, result.route, arguments: result.arguments);
-        //ตัวอย่างการ log ดูข้อมูล---------------------------
-        // final store = ref.watch(userStoreProvider);
-        // print("USER: ${store['user']}");
-        // print("TOKEN: ${store['accessToken']}");
-        // -----------------------------------------------------
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('รหัสไม่ถูกต้อง กรุณาลองใหม่')),

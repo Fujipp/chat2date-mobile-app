@@ -54,7 +54,10 @@ class UserService {
     }
 
     final data = jsonDecode(response.body);
-    return User.fromJson(data);
+    final updatedUser = User.fromJson(data);
+    final userStoreNotifier = ref.read(userStoreProvider.notifier);
+    userStoreNotifier.setUser(updatedUser, accessToken);
+    return updatedUser;
   }
 
   Future<Map<String, dynamic>> addPreferenceUser(
@@ -127,11 +130,15 @@ class UserService {
     );
   }
 
-  Future<Map<String, dynamic>> getProfile(String id) async {
+  Future<Map<String, dynamic>> getProfile() async {
     final userState = ref.read(userStoreProvider);
+     final userStore = ref.read(userStoreProvider) as Map<String, dynamic>?;
+    final user = userStore?['user'] as User;
+    final userId = user.userId;
+
     final accessToken = "${userState['accessToken']}";
     final response = await http.get(
-      Uri.parse('${ApiBase.baseUrl}/users/$id/profile'),
+      Uri.parse('${ApiBase.baseUrl}/users/$userId/profile'),
       headers: {
         'Content-Type': 'application/json',
         'Authorization': 'Bearer $accessToken',
@@ -140,7 +147,8 @@ class UserService {
 
     if (response.statusCode == 200) {
       final data = jsonDecode(response.body);
-      return data; 
+      ref.read(userStoreProvider.notifier).setProfile(data);
+      return data;
     }
 
     // error อื่นที่ไม่คาดคิด

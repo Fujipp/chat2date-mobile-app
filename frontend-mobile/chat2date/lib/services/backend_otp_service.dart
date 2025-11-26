@@ -1,15 +1,24 @@
 import 'dart:convert';
 import 'dart:io';
+import 'package:chat2date/services/preference_service.dart';
 import 'package:http/http.dart' as http;
 import 'package:chat2date/config/backend_base.dart'; // << เพิ่มบรรทัดนี้
 import 'package:device_info_plus/device_info_plus.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:uuid/uuid.dart';
 
+final backendOtpServiceProvider = Provider(
+  (ref) => BackendOtpService(ref),
+);
+
 class BackendOtpService {
+  final Ref ref;
   static String get _base => ApiBase.baseUrl; // << ใช้จากไฟล์ใหม่
   static const _headers = {'Content-Type': 'application/json'};
   static const _timeout = Duration(seconds: 15);
+
+  BackendOtpService(this.ref);
 
   static Future<String> getDeviceId() async {
     final deviceInfoPlugin = DeviceInfoPlugin();
@@ -59,11 +68,11 @@ class BackendOtpService {
     //return "true";
   }
 
-  static Future<Map<String, dynamic>> validateOtp({
+  Future<Map<String, dynamic>> validateOtp({
     required String token,
     required String code,
     required String phone,
-    required bool onLogin
+    required bool onLogin,
   }) async {
     final uri = Uri.parse('$_base/auth/verify-otp');
     final res = await http
@@ -74,10 +83,11 @@ class BackendOtpService {
             'token': token,
             'otpCode': code,
             'phoneNumber': phone,
-            'onLogin': onLogin
+            'onLogin': onLogin,
           }),
         )
         .timeout(_timeout);
+    await ref.read(preferenceServiceProvider).getPreference();
     return {'statusCode': res.statusCode, 'body': jsonDecode(res.body)};
   }
 }

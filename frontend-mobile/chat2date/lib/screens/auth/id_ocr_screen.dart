@@ -234,7 +234,7 @@ class _IdOcrScreenState extends ConsumerState<IdOcrScreen> {
       // 4. สร้าง User object ใหม่ โดยรวมข้อมูลเดิม + ข้อมูลจาก OCR
       final userToUpdate = User(
         userId: currentUser.userId,
-        version: currentUser.version, // ใช้ version ล่าสุด
+        version: currentUser.version ?? 0, // ใช้ version ล่าสุด
         firstname: _ocrResult!.thFname,
         lastname: _ocrResult!.thLname,
         birthday: _dob,
@@ -253,8 +253,6 @@ class _IdOcrScreenState extends ConsumerState<IdOcrScreen> {
       print('✅ User updated: ${updatedUser}');
  
       // 6. อัปเดต userStore และ SecureStorage
-      userStoreNotifier.setUser(updatedUser, accessToken);
- 
       final storage = const FlutterSecureStorage();
       await storage.write(key: 'userId', value: updatedUser.userId);
       await storage.write(

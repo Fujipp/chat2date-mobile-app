@@ -15,6 +15,7 @@ import 'package:chat2date/services/discovery_service.dart';
 import 'package:chat2date/services/fcm_token_service.dart';
 import 'package:chat2date/services/location_service.dart';
 import 'package:chat2date/services/match_socket_service.dart';
+import 'package:chat2date/services/user_service.dart';
 import 'package:chat2date/stores/user_store.dart';
 import 'package:chat2date/theme/app_colors.dart';
 import 'package:flutter/material.dart';
@@ -134,6 +135,7 @@ class _DiscoveryScreenState extends ConsumerState<DiscoveryScreen>
       debugPrint('[Discovery] location done, start FCM');
       await ref.read(fcmTokenServiceProvider).registerDeviceTokenSilently();
       debugPrint('[Discovery] FCM call done');
+      await ref.read(userServiceProvider).getProfile();
     });
     _selectedIndex = widget.selectedIndex;
 
@@ -339,25 +341,25 @@ class _DiscoveryScreenState extends ConsumerState<DiscoveryScreen>
   }
 
   void _listenMatchStream() {
-     if (_userId == null) return;
-     
-    ref.listen<AsyncValue<MatchEventDto>>(
-      matchSocketStreamProvider(_userId!),
-      (previous, next) {
-        final event = next.valueOrNull;
-        if (event == null || !mounted) return;
+    if (_userId == null) return;
 
-        Navigator.of(context).pushNamed(
-          MatchSuccessScreen.routeName,
-          arguments: MatchSuccessArgs(
-            myName: event.selfName,
-            partnerName: event.partnerName,
-            myAvatarUrl: event.selfAvatarUrl,
-            partnerAvatarUrl: event.partnerAvatarUrl,
-          ),
-        );
-      },
-    );
+    ref.listen<AsyncValue<MatchEventDto>>(matchSocketStreamProvider(_userId!), (
+      previous,
+      next,
+    ) {
+      final event = next.valueOrNull;
+      if (event == null || !mounted) return;
+
+      Navigator.of(context).pushNamed(
+        MatchSuccessScreen.routeName,
+        arguments: MatchSuccessArgs(
+          myName: event.selfName,
+          partnerName: event.partnerName,
+          myAvatarUrl: event.selfAvatarUrl,
+          partnerAvatarUrl: event.partnerAvatarUrl,
+        ),
+      );
+    });
   }
 
   @override
@@ -378,7 +380,20 @@ class _DiscoveryScreenState extends ConsumerState<DiscoveryScreen>
             const Expanded(child: _DiscoveryLoadingWidget()),
           ],
         ),
-        bottomNavigationBar: CustomBottomNavBar(selectedIndex: _selectedIndex),
+        bottomNavigationBar: CustomBottomNavBar(
+          selectedIndex: _selectedIndex,
+          onTap: (index) {
+            // <-- เพิ่ม onTap
+            setState(() {
+              _selectedIndex = index;
+            });
+
+            if (index == 2) {
+              // Navigator.pushReplacementNamed เพื่อเปลี่ยนไปหน้า Profile
+              Navigator.pushReplacementNamed(context, '/profile');
+            }
+          },
+        ),
       );
     }
 
@@ -406,7 +421,20 @@ class _DiscoveryScreenState extends ConsumerState<DiscoveryScreen>
             const Expanded(child: _DiscoveryLoadingWidget()),
           ],
         ),
-        bottomNavigationBar: CustomBottomNavBar(selectedIndex: _selectedIndex),
+        bottomNavigationBar: CustomBottomNavBar(
+          selectedIndex: _selectedIndex,
+          onTap: (index) {
+            // <-- เพิ่ม onTap
+            setState(() {
+              _selectedIndex = index;
+            });
+
+            if (index == 2) {
+              // Navigator.pushReplacementNamed เพื่อเปลี่ยนไปหน้า Profile
+              Navigator.pushReplacementNamed(context, '/profile');
+            }
+          },
+        ),
       );
     }
 

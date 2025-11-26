@@ -51,16 +51,13 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
   }
 
   void _loadInitialData() async {
-    final prefs = await PreferenceService.getPreference();
-    print('TravelStyles: ${prefs.travelStyles}');
-    print('LifeStyles: ${prefs.lifeStyles}');
-    print('Interests: ${prefs.interests}');
-    print('Tags: ${prefs.tags}');
+    final userStore = ref.read(userStoreProvider) as Map<String, dynamic>?;
+    final prefs = userStore?['preferences'];
     setState(() {
-      _travelStyles = prefs.travelStyles;
-      _lifeStyles = prefs.lifeStyles;
-      _interests = prefs.interests;
-      _tags = prefs.tags;
+      _travelStyles = prefs['travelStyles'];
+      _lifeStyles = prefs['lifeStyles'];
+      _interests = prefs['interests'];
+      _tags = prefs['tags'];
     });
   }
 

@@ -9,7 +9,6 @@ import 'package:chat2date/components/inputs/ds_text_field/ds_text_field.dart';
 import 'package:chat2date/components/layout/header.dart';
 import 'package:chat2date/components/layout/menu_bar.dart';
 import 'package:chat2date/components/layout/responsive_container.dart';
-import 'package:chat2date/models/dto/preference_dto.dart';
 import 'package:chat2date/models/interest.dart';
 import 'package:chat2date/models/lifestyle.dart';
 import 'package:chat2date/models/tag.dart';
@@ -38,18 +37,29 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
   final _interestsCtrl = TextEditingController();
   final _tagsCtrl = TextEditingController();
   final ScrollController _scrollController = ScrollController();
+  //ค่าที่อัพเดท
   String? nickname = "";
   String? _selectedGenderPreference = null;
-  double behaviorScore = 0;
   List<int> user_has_interest = [];
   List<int> user_has_lifestyle = [];
   List<int> user_has_travelstyle = [];
   List<int> user_has_tag = [];
+  List<String> photoUrls = [];
+  //ค่าเก่า
+  String? _oldNickname;
+  String? _oldGenderPref;
+  List<int> _oldInterests = [];
+  List<int> _oldLifeStyles = [];
+  List<int> _oldTravelStyles = [];
+  List<int> _oldTags = [];
+  List<String> _oldPhotos = [];
+
+  //ค่าคงที่
+  double behaviorScore = 0;
   List<Travelstyle> _travelStyles = [];
   List<Lifestyle> _lifeStyles = [];
   List<Interest> _interests = [];
   List<Tag> _tags = [];
-  List<String> photoUrls = [];
   int _selectedIndex = 2;
 
   @override
@@ -60,40 +70,18 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
 
   void _loadInitialData() async {
     final userStore = ref.read(userStoreProvider) as Map<String, dynamic>?;
-
-    if (userStore?['profile'] != null && userStore?['user'] != null) {
-      final prefs = userStore?['preferences'];
-      await _setDataFromStore(
-        userStore?['profile'],
-        userStore?['user'],
-        prefs: prefs,
-      );
-      return;
-    }
-    final prefs = await PreferenceService.getPreference();
-    final user = userStore?['user'] as User;
-    final userId = user.userId;
-    final userService = ref.read(userServiceProvider);
-    final userProfile = await userService.getProfile(userId);
-
-    ref.read(userStoreProvider.notifier).setProfile(userProfile);
-    ref.read(userStoreProvider.notifier).setPreferences({
-      'travelStyles': prefs.travelStyles,
-      'lifeStyles': prefs.lifeStyles,
-      'interests': prefs.interests,
-      'tags': prefs.tags,
-    });
-
+    final prefs = userStore?['preferences'] as Map<String, dynamic>?;
     await _setDataFromStore(
-      userProfile,
-      user,
+      userStore?['profile'],
+      userStore?['user'],
       prefs: {
-        'travelStyles': prefs.travelStyles,
-        'lifeStyles': prefs.lifeStyles,
-        'interests': prefs.interests,
-        'tags': prefs.tags,
+        'travelStyles': prefs?['travelStyles'],
+        'lifeStyles': prefs?['lifeStyles'],
+        'interests': prefs?['interests'],
+        'tags': prefs?['tags'],
       },
     );
+    return;
   }
 
   Future<void> _setDataFromStore(
@@ -146,11 +134,20 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
 
       final photoPath = userProfile['photos'];
       final photoMap = jsonDecode(photoPath) as Map<String, dynamic>;
+
       photoUrls = (photoMap['urls'] as List<dynamic>)
           .map((e) => e.toString())
           .toList();
-
+      print(photoMap['urls']);
       print(photoUrls);
+      _oldNickname = nickname;
+      _oldGenderPref = _selectedGenderPreference;
+
+      _oldInterests = List.from(user_has_interest);
+      _oldLifeStyles = List.from(user_has_lifestyle);
+      _oldTravelStyles = List.from(user_has_travelstyle);
+      _oldTags = List.from(user_has_tag);
+      _oldPhotos = List.from(photoUrls);
     });
   }
 
@@ -365,488 +362,561 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     }
   }
 
+  bool _isListChanged(List oldList, List newList) {
+    if (oldList.length != newList.length) return true;
+
+    for (int i = 0; i < oldList.length; i++) {
+      if (oldList[i] != newList[i]) return true;
+    }
+    return false;
+  }
+
+  Future<void> _submitEdit() async {
+    final userStore = ref.read(userStoreProvider) as Map<String, dynamic>?;
+    final userService = ref.read(userServiceProvider);
+    final currentUser = userStore?['user'] as User;
+
+    List<Future> tasks = [];
+
+    try {
+      if (nickname != _oldNickname) {
+        final user = User(
+          userId: currentUser.userId,
+          nickname: _nicknameCtrl.text,
+          version: currentUser.version,
+        );
+        tasks.add(userService.updateUser(user));
+      }
+
+      if (_selectedGenderPreference != _oldGenderPref) {
+        final Map<String, Object> preferenceMatch = {
+          "interestedGender": _selectedGenderPreference!,
+        };
+        tasks.add(userService.addPreferenceMatchUser(preferenceMatch));
+      }
+
+      if (_isListChanged(_oldInterests, user_has_interest) ||
+          _isListChanged(_oldLifeStyles, user_has_lifestyle) ||
+          _isListChanged(_oldTravelStyles, user_has_travelstyle) ||
+          _isListChanged(_oldTags, user_has_tag)) {
+        final incrementedInterests = user_has_interest
+            .map((id) => id + 1)
+            .toList();
+        final incrementedLifestyles = user_has_lifestyle
+            .map((id) => id + 1)
+            .toList();
+        final incrementedTravelStyles = user_has_travelstyle
+            .map((id) => id + 1)
+            .toList();
+        final incrementedTag = user_has_tag.map((id) => id + 1).toList();
+
+        final preference = {
+          "interests": incrementedInterests,
+          "lifeStyles": incrementedLifestyles,
+          "tags": incrementedTag,
+          "travelStyles": incrementedTravelStyles,
+        };
+
+        tasks.add(userService.addPreferenceUser(preference));
+      }
+
+      if (_isListChanged(_oldPhotos, photoUrls)) {
+        _handleSubmit();
+      }
+      await Future.wait(tasks);
+      //tasks.add(userService.updateNickname(nickname!));
+    } catch (e) {
+      throw new Exception(e);
+    }
+  }
+
+  // แทนที่ส่วน build method ทั้งหมด
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: Column(
+      body: Stack(
         children: [
-          SafeArea(
-            child: ChatToDateHeaderWhite(
-              leftIconPath: 'assets/images/logo_chat2date_text.png',
-              rightIconPath: 'assets/icons/icon_menu.svg',
-              iconColor: const Color(0xFF5ce1e6),
-              onBack: () {},
-              onSettings: () {},
-            ),
-          ),
-          Expanded(
-            child: ScrollbarTheme(
-              // <--- 1. เพิ่ม ScrollbarTheme เพื่อกำหนดสี
-              data: ScrollbarThemeData(
-                // ---- นี่คือส่วนที่เพิ่มสีครับ ----
-                // สีของแท่ง Scrollbar (thumb)
-                thumbColor: WidgetStateProperty.all(
-                  const Color(0xFF5ce1e6).withOpacity(
-                    0.7,
-                  ), // สีฟ้าอมเขียว (สีเดียวกับไอคอน) แบบโปร่งแสง
+          Column(
+            children: [
+              SafeArea(
+                child: ChatToDateHeaderWhite(
+                  leftIconPath: 'assets/icons/icon_chat2date_full.svg',
+                  rightIconPath: 'assets/icons/icon_menu.svg',
+                  iconColor: const Color(0xFF5ce1e6),
+                  onBack: () {},
+                  onSettings: () {},
                 ),
-                // สีของราง (track)
-                trackColor: WidgetStateProperty.all(Colors.grey.shade300),
-                // สีขอบของราง (ถ้าต้องการ)
-                trackBorderColor: WidgetStateProperty.all(Colors.grey.shade400),
               ),
-              child: Scrollbar(
-                controller: _scrollController,
-                thumbVisibility: true,
-                thickness: 8,
-                radius: const Radius.circular(8),
-                interactive:
-                    true, // <--- 2. เพิ่มตัวนี้เพื่อให้ Scrollbar เลื่อนได้!
-                child: SingleChildScrollView(
-                  controller: _scrollController,
-                  child: ResponsiveContainer.form(
-                    children: [
-                      DsTextField(
-                        label: 'ชื่อเล่น',
-                        labelFontSize: 20,
-                        controller: TextEditingController(text: nickname),
-                      ),
+              Expanded(
+                child: ScrollbarTheme(
+                  data: ScrollbarThemeData(
+                    thumbColor: WidgetStateProperty.all(
+                      const Color(0xFF5ce1e6).withOpacity(0.7),
+                    ),
+                    trackColor: WidgetStateProperty.all(Colors.grey.shade300),
+                    trackBorderColor: WidgetStateProperty.all(
+                      Colors.grey.shade400,
+                    ),
+                  ),
+                  child: Scrollbar(
+                    controller: _scrollController,
+                    thumbVisibility: true,
+                    thickness: 8,
+                    radius: const Radius.circular(8),
+                    interactive: true,
+                    child: SingleChildScrollView(
+                      controller: _scrollController,
+                      child: ResponsiveContainer.form(
+                        children: [
+                          DsTextField(
+                            label: 'ชื่อเล่น',
+                            labelFontSize: 20,
+                            controller: _nicknameCtrl,
+                          ),
 
-                      // DsTextField(
-                      //   label: 'เพศที่สนใจ',
-                      //   labelFontSize: 20,
-                      //   suffixIcon: Icons.keyboard_arrow_down_rounded,
-                      // ),
-                      DropdownButtonFormField2<String>(
-                        value: _selectedGenderPreference,
-                        decoration: InputDecoration(
-                          label: RichText(
-                            text: TextSpan(
-                              children: [
-                                const TextSpan(
-                                  text: 'เพศที่สนใจ',
-                                  style: TextStyle(
-                                    fontSize: 20,
-                                    color: AppColors.textMuted,
-                                  ),
+                          DropdownButtonFormField2<String>(
+                            value: _selectedGenderPreference,
+                            decoration: InputDecoration(
+                              label: RichText(
+                                text: TextSpan(
+                                  children: [
+                                    const TextSpan(
+                                      text: 'เพศที่สนใจ',
+                                      style: TextStyle(
+                                        fontSize: 20,
+                                        color: AppColors.textMuted,
+                                      ),
+                                    ),
+                                    TextSpan(
+                                      text: ' *',
+                                      style: TextStyle(
+                                        fontSize: 20,
+                                        color: Colors.red,
+                                      ),
+                                    ),
+                                  ],
                                 ),
-                                TextSpan(
-                                  text: ' *',
-                                  style: TextStyle(
-                                    fontSize: 20,
-                                    color: Colors.red, // สีแดงของ *
-                                  ),
+                              ),
+                              enabledBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(16),
+                                borderSide: BorderSide(
+                                  color: AppColors.inputBorderHover,
+                                  width: 1.5,
+                                ),
+                              ),
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(16),
+                                borderSide: BorderSide.none,
+                              ),
+                              contentPadding: const EdgeInsets.symmetric(
+                                horizontal: 12,
+                                vertical: 12,
+                              ),
+                            ),
+                            isExpanded: true,
+                            buttonStyleData: const ButtonStyleData(
+                              padding: EdgeInsets.symmetric(horizontal: 12),
+                            ),
+                            dropdownStyleData: const DropdownStyleData(
+                              offset: Offset(0, 0),
+                              direction: DropdownDirection.textDirection,
+                            ),
+                            items: const [
+                              DropdownMenuItem(
+                                value: 'MALE',
+                                child: Text('ผู้ชาย'),
+                              ),
+                              DropdownMenuItem(
+                                value: 'FEMALE',
+                                child: Text('ผู้หญิง'),
+                              ),
+                              DropdownMenuItem(
+                                value: 'BOTH',
+                                child: Text('ได้ทั้งคู่'),
+                              ),
+                            ],
+                            onChanged: (value) {
+                              setState(() {
+                                _selectedGenderPreference = value;
+                              });
+                            },
+                          ),
+
+                          DsLabel(
+                            label: 'แก้ไขรูปภาพที่แสดง',
+                            labelFontSize: 20,
+                          ),
+                          ImageUploadGrid(
+                            key: ValueKey(photoUrls.join(',')),
+                            imageUser: photoUrls,
+                            onImagesChanged: (images) {
+                              setState(() {
+                                _selectedImages = images
+                                    .map((xFile) => File(xFile.path))
+                                    .toList();
+                              });
+                              print('จำนวนรูปที่เลือก: ${images.length}');
+                            },
+                          ),
+
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              DsLabel(
+                                label: 'สไตล์การท่องเที่ยว',
+                                labelFontSize: 20,
+                              ),
+                              const SizedBox(height: 0),
+                              TagSelection(
+                                key: ValueKey(user_has_travelstyle.join(',')),
+                                items: _travelStyles
+                                    .map((t) => t.travelstyle)
+                                    .toList(),
+                                initialSelected: user_has_travelstyle,
+                                onChanged: (newSelected) {
+                                  setState(() {
+                                    user_has_travelstyle = newSelected;
+                                  });
+                                },
+                              ),
+                            ],
+                          ),
+
+                          DsTextField(
+                            label: 'ไลฟ์สไตล์',
+                            controller: _lifestyleCtrl,
+                            required: true,
+                            readOnly: true,
+                            suffixIcon: Icons.arrow_circle_right_rounded,
+                            onSuffixTap: () async {
+                              final result = await Navigator.pushNamed(
+                                context,
+                                '/lifestylesSelection',
+                                arguments: {
+                                  'items': _lifeStyles,
+                                  'selected': user_has_lifestyle,
+                                },
+                              );
+                              if (result != null && result is List<int>) {
+                                setState(() {
+                                  user_has_lifestyle = result;
+                                  _lifestyleCtrl.text = _getSelectedText(
+                                    result,
+                                    _lifeStyles
+                                        .map((l) => l.lifestyle)
+                                        .toList(),
+                                  );
+                                });
+                                print('เลือกความสนใจ: $user_has_lifestyle');
+                              }
+                            },
+                            labelFontSize: 20,
+                          ),
+
+                          DsTextField(
+                            label: 'สิ่งที่สนใจ',
+                            controller: _interestsCtrl,
+                            required: true,
+                            readOnly: true,
+                            suffixIcon: Icons.arrow_circle_right_rounded,
+                            onSuffixTap: () async {
+                              final result = await Navigator.pushNamed(
+                                context,
+                                '/interestsSelection',
+                                arguments: {
+                                  'items': _interests,
+                                  'selected': user_has_interest,
+                                },
+                              );
+                              if (result != null && result is List<int>) {
+                                setState(() {
+                                  user_has_interest = result;
+                                  _interestsCtrl.text = _getSelectedText(
+                                    result,
+                                    _interests.map((l) => l.interest).toList(),
+                                  );
+                                });
+                                print('เลือกความสนใจ: $user_has_interest');
+                              }
+                            },
+                            labelFontSize: 20,
+                          ),
+
+                          GestureDetector(
+                            behavior: HitTestBehavior.translucent,
+                            onTap: () {
+                              FocusScope.of(context).unfocus();
+                            },
+                            child: Column(
+                              children: [
+                                TagAutocomplete(
+                                  key: ValueKey(user_has_tag.join(',')),
+                                  allTags: _tags.map((t) => t.tag).toList(),
+                                  selectedTags: user_has_tag
+                                      .map((i) => _tags[i].tag)
+                                      .toList(),
+                                  onChanged: (newList) {
+                                    setState(() {
+                                      user_has_tag = newList
+                                          .map(
+                                            (tag) => _tags.indexWhere(
+                                              (t) => t.tag == tag,
+                                            ),
+                                          )
+                                          .toList();
+                                    });
+                                  },
                                 ),
                               ],
                             ),
                           ),
-                          enabledBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(16),
-                            borderSide: BorderSide(
-                              color: AppColors.inputBorderHover,
-                              width: 1.5,
+
+                          DsLabel(label: 'คะแนนความประพฤติ', labelFontSize: 20),
+                          CircularLoading(percent: behaviorScore),
+                          Card(
+                            elevation: 2,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
                             ),
-                          ),
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(16),
-                            borderSide: BorderSide.none,
-                          ),
-                          contentPadding: const EdgeInsets.symmetric(
-                            horizontal: 12,
-                            vertical: 12,
-                          ),
-                        ),
-
-                        isExpanded: true,
-
-                        buttonStyleData: const ButtonStyleData(
-                          padding: EdgeInsets.symmetric(horizontal: 12),
-                        ),
-
-                        // 👇👇 เพิ่มส่วนนี้เพื่อให้เมนูอยู่ล่างเสมอ
-                        dropdownStyleData: const DropdownStyleData(
-                          offset: Offset(0, 0), // เมนูเริ่มล่างช่อง
-                          direction: DropdownDirection
-                              .textDirection, // บังคับอยู่ด้านล่าง
-                        ),
-
-                        items: const [
-                          DropdownMenuItem(
-                            value: 'MALE',
-                            child: Text('ผู้ชาย'),
-                          ),
-                          DropdownMenuItem(
-                            value: 'FEMALE',
-                            child: Text('ผู้หญิง'),
-                          ),
-                          DropdownMenuItem(
-                            value: 'BOTH',
-                            child: Text('ได้ทั้งคู่'),
-                          ),
-                        ],
-
-                        onChanged: (value) {
-                          setState(() {
-                            _selectedGenderPreference = value;
-                          });
-                        },
-                      ),
-
-                      DsLabel(label: 'แก้ไขรูปภาพที่แสดง', labelFontSize: 20),
-                      ImageUploadGrid(
-                        key: ValueKey(photoUrls.join(',')),
-                        imageUser: photoUrls,
-                        onImagesChanged: (images) {
-                          setState(() {
-                            _selectedImages = images
-                                .map((xFile) => File(xFile.path))
-                                .toList();
-                          });
-                          print('จำนวนรูปที่เลือก: ${images.length}');
-                        },
-                      ),
-
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          DsLabel(
-                            label: 'สไตล์การท่องเที่ยว',
-                            labelFontSize: 20,
-                          ),
-                          const SizedBox(height: 0),
-                          TagSelection(
-                            key: ValueKey(user_has_travelstyle.join(',')),
-                            items: _travelStyles
-                                .map((t) => t.travelstyle)
-                                .toList(),
-                            initialSelected: user_has_travelstyle,
-                            onChanged: (newSelected) {
-                              setState(() {
-                                user_has_travelstyle = newSelected;
-                              });
-                            },
-                          ),
-                        ],
-                      ),
-
-                      // ไลฟ์สไตล์
-                      DsTextField(
-                        label: 'ไลฟ์สไตล์',
-                        controller: _lifestyleCtrl,
-                        required: true,
-                        readOnly: true,
-                        suffixIcon: Icons.arrow_circle_right_rounded,
-                        onSuffixTap: () async {
-                          final result = await Navigator.pushNamed(
-                            context,
-                            '/lifestylesSelection',
-                            arguments: {
-                              'items': _lifeStyles,
-                              'selected': user_has_lifestyle,
-                            },
-                          );
-                          if (result != null && result is List<int>) {
-                            setState(() {
-                              user_has_lifestyle = result;
-                              _lifestyleCtrl.text = _getSelectedText(
-                                result,
-                                _lifeStyles.map((l) => l.lifestyle).toList(),
-                              );
-                            });
-                            print('เลือกความสนใจ: $user_has_lifestyle');
-                          }
-                        },
-                        labelFontSize: 20,
-                      ),
-
-                      // สิ่งที่สนใจ
-                      DsTextField(
-                        label: 'สิ่งที่สนใจ',
-                        controller: _interestsCtrl,
-                        required: true,
-                        readOnly: true,
-                        suffixIcon: Icons.arrow_circle_right_rounded,
-                        onSuffixTap: () async {
-                          final result = await Navigator.pushNamed(
-                            context,
-                            '/interestsSelection',
-                            arguments: {
-                              'items': _interests,
-                              'selected': user_has_interest,
-                            },
-                          );
-                          if (result != null && result is List<int>) {
-                            setState(() {
-                              user_has_interest = result;
-                              _interestsCtrl.text = _getSelectedText(
-                                result,
-                                _interests.map((l) => l.interest).toList(),
-                              );
-                            });
-                            print('เลือกความสนใจ: $user_has_interest');
-                          }
-                        },
-                        labelFontSize: 20,
-                      ),
-
-                      // Tags
-                      GestureDetector(
-                        behavior: HitTestBehavior.translucent,
-                        onTap: () {
-                          FocusScope.of(
-                            context,
-                          ).unfocus(); // จะทำให้ทุก FocusNode หาย
-                        },
-                        child: Column(
-                          children: [
-                            TagAutocomplete(
-                              key: ValueKey(
-                                user_has_tag.join(','),
-                              ), // บังคับ rebuild
-                              allTags: _tags.map((t) => t.tag).toList(),
-                              selectedTags: user_has_tag
-                                  .map((i) => _tags[i].tag)
-                                  .toList(),
-                              onChanged: (newList) {
-                                setState(() {
-                                  user_has_tag = newList
-                                      .map(
-                                        (tag) => _tags.indexWhere(
-                                          (t) => t.tag == tag,
-                                        ),
-                                      )
-                                      .toList();
-                                });
-                              },
-                            ),
-                          ],
-                        ),
-                      ),
-
-                      DsLabel(label: 'คะแนนความประพฤติ', labelFontSize: 20),
-                      CircularLoading(percent: behaviorScore),
-                      Card(
-                        elevation: 2,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: Padding(
-                          padding: const EdgeInsets.all(16.0),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              // หัวข้ออยู่ใน card เลย
-                              DsLabel(
-                                label: 'เกณฑ์คะแนนความประพฤติ',
-                                labelFontSize: 16,
-                              ),
-
-                              const SizedBox(height: 12),
-
-                              // เงื่อนไขเป็นบรรทัดย่อย (ใช้ Text.rich เพื่อเน้นตัวหนา)
-                              Text.rich(
-                                TextSpan(
-                                  children: [
-                                    const TextSpan(
-                                      text: 'ถ้าคะแนน ≤ 50 : ',
-                                      style: TextStyle(
-                                        fontWeight: FontWeight.bold,
-                                      ),
-                                    ),
-                                    TextSpan(
-                                      text:
-                                          'บัญชีจะถูกจำกัดฟีเจอร์ 3 วัน และปัดได้ไม่เกิน 10 ครั้ง/วัน',
-                                    ),
-                                  ],
-                                  style: const TextStyle(
-                                    fontSize: 12,
-                                    height: 1.4,
-                                  ),
-                                ),
-                              ),
-
-                              const SizedBox(height: 12),
-
-                              Text.rich(
-                                TextSpan(
-                                  children: [
-                                    const TextSpan(
-                                      text: 'ถ้าคะแนน < 30 : ',
-                                      style: TextStyle(
-                                        fontWeight: FontWeight.bold,
-                                      ),
-                                    ),
-                                    TextSpan(
-                                      text:
-                                          'บัญชีจะถูกแบนถาวร และถูกใส่ใน Blacklist (ห้ามกลับมาใช้งาน)',
-                                    ),
-                                  ],
-                                  style: const TextStyle(
-                                    fontSize: 12,
-                                    height: 1.4,
-                                  ),
-                                ),
-                              ),
-
-                              const SizedBox(height: 16),
-
-                              const Divider(),
-
-                              const SizedBox(height: 12),
-
-                              const Text(
-                                'วิธีได้คะแนนเพิ่ม',
-                                style: TextStyle(
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.w600,
-                                ),
-                              ),
-
-                              const SizedBox(height: 10),
-
-                              // รายการวิธีได้คะแนน (แสดงเป็นบูลเล็ตหรือ arrow)
-                              Row(
+                            child: Padding(
+                              padding: const EdgeInsets.all(16.0),
+                              child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
-                                children: const [
-                                  Text('• ', style: TextStyle(fontSize: 16)),
-                                  Expanded(
-                                    child: Text(
-                                      'อยู่ครบ 30 วันโดยไม่มีใครรายงาน ➜ เพิ่ม 15 คะแนนความประพฤติ',
-                                      style: TextStyle(
+                                children: [
+                                  DsLabel(
+                                    label: 'เกณฑ์คะแนนความประพฤติ',
+                                    labelFontSize: 16,
+                                  ),
+                                  const SizedBox(height: 12),
+                                  Text.rich(
+                                    TextSpan(
+                                      children: [
+                                        const TextSpan(
+                                          text: 'ถ้าคะแนน ≤ 50 : ',
+                                          style: TextStyle(
+                                            fontWeight: FontWeight.bold,
+                                          ),
+                                        ),
+                                        TextSpan(
+                                          text:
+                                              'บัญชีจะถูกจำกัดฟีเจอร์ 3 วัน และปัดได้ไม่เกิน 10 ครั้ง/วัน',
+                                        ),
+                                      ],
+                                      style: const TextStyle(
                                         fontSize: 12,
                                         height: 1.4,
                                       ),
                                     ),
                                   ),
+                                  const SizedBox(height: 12),
+                                  Text.rich(
+                                    TextSpan(
+                                      children: [
+                                        const TextSpan(
+                                          text: 'ถ้าคะแนน < 30 : ',
+                                          style: TextStyle(
+                                            fontWeight: FontWeight.bold,
+                                          ),
+                                        ),
+                                        TextSpan(
+                                          text:
+                                              'บัญชีจะถูกแบนถาวร และถูกใส่ใน Blacklist (ห้ามกลับมาใช้งาน)',
+                                        ),
+                                      ],
+                                      style: const TextStyle(
+                                        fontSize: 12,
+                                        height: 1.4,
+                                      ),
+                                    ),
+                                  ),
+                                  const SizedBox(height: 16),
+                                  const Divider(),
+                                  const SizedBox(height: 12),
+                                  const Text(
+                                    'วิธีได้คะแนนเพิ่ม',
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 10),
+                                  Row(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: const [
+                                      Text(
+                                        '• ',
+                                        style: TextStyle(fontSize: 16),
+                                      ),
+                                      Expanded(
+                                        child: Text(
+                                          'อยู่ครบ 30 วันโดยไม่มีใครรายงาน ➜ เพิ่ม 15 คะแนนความประพฤติ',
+                                          style: TextStyle(
+                                            fontSize: 12,
+                                            height: 1.4,
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
                                 ],
                               ),
-                            ],
+                            ),
                           ),
-                        ),
+
+                          // เพิ่มพื้นที่ว่างด้านล่างเพื่อไม่ให้ปุ่มบังเนื้อหา
+                          const SizedBox(height: 100),
+                        ],
                       ),
-                      DsButton(
-                        label: 'บันทึกข้อมูล',
-                        onPressed: () async {
-                          // ตรวจสอบข้อมูลก่อนส่ง
-                          if (_nicknameCtrl.text.isEmpty) {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                content: Text('กรุณากรอกชื่อเล่น'),
-                              ),
-                            );
-                            return;
-                          }
-
-                          if (user_has_travelstyle.length < 2 ||
-                              user_has_travelstyle.length > 3) {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                content: Text(
-                                  'กรุณาเลือกสไตล์การท่องเที่ยว 2–3 ข้อ',
-                                ),
-                              ),
-                            );
-                            return;
-                          }
-
-                          if (user_has_lifestyle.length < 3 ||
-                              user_has_lifestyle.length > 5) {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                content: Text('กรุณาเลือกไลฟ์สไตล์ 3–5 ข้อ'),
-                              ),
-                            );
-                            return;
-                          }
-
-                          // ตรวจสอบ Interests
-                          if (user_has_interest.length < 3 ||
-                              user_has_interest.length > 5) {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                content: Text('กรุณาเลือกความสนใจ 3–5 ข้อ'),
-                              ),
-                            );
-                            return;
-                          }
-
-                          // ตรวจสอบ Tags สูงสุด 5 (ไม่บังคับเลือก)
-                          if (user_has_tag.length > 5) {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                content: Text('สามารถเลือก Tag สูงสุด 5 ข้อ'),
-                              ),
-                            );
-                            return;
-                          }
-
-                          final incrementedInterests = user_has_interest
-                              .map((id) => id + 1)
-                              .toList();
-                          final incrementedLifestyles = user_has_lifestyle
-                              .map((id) => id + 1)
-                              .toList();
-                          final incrementedTravelStyles = user_has_travelstyle
-                              .map((id) => id + 1)
-                              .toList();
-                          final incrementedTag = user_has_tag
-                              .map((id) => id + 1)
-                              .toList();
-
-                          try {
-                            final userStore =
-                                ref.read(userStoreProvider)
-                                    as Map<String, dynamic>?;
-
-                            final oldUser = userStore?['user'] as User;
-
-                            if (oldUser.userId == null ||
-                                oldUser.version == null)
-                              return;
-
-                            // สร้าง Map ของ user ที่ต้องการส่งไปอัปเดต
-                            final user = User(
-                              userId: oldUser.userId,
-                              nickname: _nicknameCtrl.text,
-                              version: oldUser.version,
-                            );
-                            final preference = {
-                              "interests": incrementedInterests,
-                              "lifeStyles": incrementedLifestyles,
-                              "tags": incrementedTag,
-                              "travelStyles": incrementedTravelStyles,
-                            };
-                            final userService = ref.read(userServiceProvider);
-
-                            final update = await userService.updateUser(user);
-
-                            final addPreference = await userService
-                                .addPreferenceUser(preference);
-                          } catch (e) {
-                            throw Exception(e);
-                          }
-                          final Map<String, Object> preferenceMatch = {
-                            "interestedGender": _selectedGenderPreference!,
-                          };
-
-                          final updatedUser = ref
-                              .read(userServiceProvider)
-                              .addPreferenceMatchUser(preferenceMatch);
-                          _handleSubmit();
-                          // // ส่งข้อมูลไปหน้าถัดไป
-                          // print('===== ข้อมูล Profile =====');
-                          // print('ชื่อเล่น: ${_nicknameCtrl.text}');
-                          // print('ไลฟ์สไตล์: $_selectedLifestyles');
-                          // print('ความสนใจ: $_selectedInterests');
-                          // print('Tags: $_selectedTags');
-
-                          // // TODO: บันทึกข้อมูลหรือไปหน้าถัดไป
-                        },
-                        variant: DsButtonVariant.primary,
-                        size: DsButtonSize.md,
-                      ),
-                    ],
+                    ),
                   ),
+                ),
+              ),
+            ],
+          ),
+
+          // ปุ่ม Submit แบบลอย - อยู่ขวาล่างเสมอ
+          Positioned(
+            right: 20,
+            bottom: 30,
+            child: GestureDetector(
+              onTap: _isLoading
+                  ? null
+                  : () async {
+                      // Validation
+                      if (_nicknameCtrl.text.isEmpty) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text('กรุณากรอกชื่อเล่น'),
+                            backgroundColor: Colors.red,
+                          ),
+                        );
+                        return;
+                      }
+
+                      if (_selectedGenderPreference == null) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text('กรุณาเลือกเพศที่สนใจ'),
+                            backgroundColor: Colors.red,
+                          ),
+                        );
+                        return;
+                      }
+
+                      if (user_has_travelstyle.length < 2 ||
+                          user_has_travelstyle.length > 3) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text(
+                              'กรุณาเลือกสไตล์การท่องเที่ยว 2–3 ข้อ',
+                            ),
+                            backgroundColor: Colors.orange,
+                          ),
+                        );
+                        return;
+                      }
+
+                      if (user_has_lifestyle.length < 3 ||
+                          user_has_lifestyle.length > 5) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text('กรุณาเลือกไลฟ์สไตล์ 3–5 ข้อ'),
+                            backgroundColor: Colors.orange,
+                          ),
+                        );
+                        return;
+                      }
+
+                      if (user_has_interest.length < 3 ||
+                          user_has_interest.length > 5) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text('กรุณาเลือกความสนใจ 3–5 ข้อ'),
+                            backgroundColor: Colors.orange,
+                          ),
+                        );
+                        return;
+                      }
+
+                      if (user_has_tag.length > 5) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text('สามารถเลือก Tag สูงสุด 5 ข้อ'),
+                            backgroundColor: Colors.orange,
+                          ),
+                        );
+                        return;
+                      }
+
+                      // Submit
+                      try {
+                        await _submitEdit();
+
+                        if (mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text('✓ บันทึกข้อมูลสำเร็จ'),
+                              backgroundColor: Colors.green,
+                              duration: Duration(seconds: 2),
+                            ),
+                          );
+                        }
+                      } catch (e) {
+                        if (mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text('เกิดข้อผิดพลาด: $e'),
+                              backgroundColor: Colors.red,
+                            ),
+                          );
+                        }
+                      }
+                    },
+              child: Container(
+                width: 64,
+                height: 64,
+                decoration: BoxDecoration(
+                  gradient: _isLoading
+                      ? LinearGradient(
+                          colors: [AppColors.neutral400, AppColors.neutral500],
+                          begin: Alignment.topCenter,
+                          end: Alignment.bottomCenter,
+                        )
+                      : const LinearGradient(
+                          colors: [
+                            AppColors.btnPrimary,
+                            AppColors.btnHoverPrimary,
+                          ],
+                          begin: Alignment.topCenter,
+                          end: Alignment.bottomCenter,
+                        ),
+                  borderRadius: BorderRadius.circular(20),
+                  boxShadow: _isLoading
+                      ? []
+                      : [
+                          BoxShadow(
+                            color: AppColors.btnPrimary.withOpacity(0.4),
+                            blurRadius: 16,
+                            offset: const Offset(0, 4),
+                          ),
+                        ],
+                ),
+                child: Center(
+                  child: _isLoading
+                      ? const SizedBox(
+                          width: 24,
+                          height: 24,
+                          child: CircularProgressIndicator(
+                            color: Colors.white,
+                            strokeWidth: 2.5,
+                          ),
+                        )
+                      : const Icon(
+                          Icons.check_rounded,
+                          color: Colors.white,
+                          size: 32,
+                        ),
                 ),
               ),
             ),
@@ -857,10 +927,9 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
         selectedIndex: _selectedIndex,
         onTap: (index) {
           setState(() {
-            _selectedIndex = index; // อัปเดต selectedIndex
+            _selectedIndex = index;
           });
 
-          // ตรวจสอบ index
           if (index == 0) {
             Navigator.pushReplacementNamed(context, '/discovery');
           }

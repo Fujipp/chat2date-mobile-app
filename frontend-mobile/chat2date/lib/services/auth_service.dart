@@ -3,6 +3,7 @@ import 'dart:developer' as developer;
 
 import 'package:chat2date/config/backend_base.dart';
 import 'package:chat2date/models/user.dart';
+import 'package:chat2date/services/preference_service.dart';
 import 'package:chat2date/stores/user_store.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
@@ -103,6 +104,8 @@ class AuthService {
             value: data['refreshToken'],
           );
         }
+
+        await ref.read(preferenceServiceProvider).getPreference();
 
         return {
           'userId': userId,
