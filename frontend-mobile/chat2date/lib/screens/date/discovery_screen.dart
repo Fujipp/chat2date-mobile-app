@@ -339,9 +339,9 @@ class _DiscoveryScreenState extends ConsumerState<DiscoveryScreen>
   }
 
   void _listenMatchStream() {
-    if (_userId == null || _matchStreamSub != null) return;
-
-    _matchStreamSub = ref.listen<AsyncValue<MatchEventDto>>(
+     if (_userId == null) return;
+     
+    ref.listen<AsyncValue<MatchEventDto>>(
       matchSocketStreamProvider(_userId!),
       (previous, next) {
         final event = next.valueOrNull;
