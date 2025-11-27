@@ -172,10 +172,7 @@ class _DiscoveryScreenState extends ConsumerState<DiscoveryScreen>
 
     if (_userId == null) {
       WidgetsBinding.instance.addPostFrameCallback((_) async {
-        if (!mounted) return;
-
         try {
-          // 1️⃣ ดึง userId
           final userStore = ref.read(userStoreProvider.notifier);
           final user = userStore.user;
           final userId = user?.userId;
@@ -185,36 +182,17 @@ class _DiscoveryScreenState extends ConsumerState<DiscoveryScreen>
             return;
           }
 
-          if (!mounted) return;
-
           setState(() {
             _userId = userId;
           });
 
-          debugPrint('[Discovery] postFrame: start location + FCM');
-
-          // 2️⃣ โหลด location
           await ref.read(locationServiceProvider).tryUpdateLocationSilently();
-          debugPrint('[Discovery] location done, start FCM');
 
-          if (!mounted) return;
-
-          // 3️⃣ ลงทะเบียน FCM token
-          await ref.read(fcmTokenServiceProvider).registerDeviceTokenSilently();
-          debugPrint('[Discovery] FCM call done');
-
-          if (!mounted) return;
-
-          // 4️⃣ โหลด profile
-          await ref.read(userServiceProvider).getProfile();
-
-          if (!mounted) return;
-
-          // 5️⃣ โหลด candidates (ครั้งเดียว)
-          debugPrint('[Discovery] Loading candidates...');
-          await ref.read(discoveryProvider(userId).notifier).loadCandidates();
-
-          debugPrint('[Discovery] Initialization complete');
+          if (mounted && _userId != null) {
+            await ref
+                .read(discoveryProvider(_userId!).notifier)
+                .loadCandidates();
+          }
         } catch (e) {
           print('❌ Error initializing discovery: $e');
         }
@@ -757,7 +735,7 @@ class _CandidateViewState extends ConsumerState<_CandidateView> {
         });
       },
     );
-
+    
     // ✅ ใช้ FutureBuilder รอให้รูปโหลดเสร็จก่อนแสดง
     return FutureBuilder<void>(
       future: _imagePrecacheFuture,
@@ -792,69 +770,72 @@ class _CandidateViewState extends ConsumerState<_CandidateView> {
         // รูปโหลดเสร็จแล้ว - แสดงข้อมูล candidate
         final images = widget.candidate.photos;
 
-        // ✅ กรณีไม่มีรูปเลย → ใช้ placeholder แทน
-        final bool hasImages = images.isNotEmpty;
+      // ✅ กรณีไม่มีรูปเลย → ใช้ placeholder แทน
+      final bool hasImages = images.isNotEmpty;
 
-        final headerTop = [
-          {'title': 'สไตล์การเที่ยว', 'style': widget.candidate.travelStyles},
-          {'title': 'ระยะห่าง', 'range': widget.candidate.distance},
-        ];
+      final headerTop = [
+        {'title': 'สไตล์การเที่ยว', 'style': widget.candidate.travelStyles},
+        {'title': 'ระยะห่าง', 'range': widget.candidate.distance},
+      ];
 
-        final headerBottom = [
-          {'title': 'ความสนใจ', 'style': widget.candidate.interests},
-          {'title': 'ไลฟ์สไตล์', 'style': widget.candidate.lifestyles},
-        ];
+      final headerBottom = [
+        {'title': 'ความสนใจ', 'style': widget.candidate.interests},
+        {'title': 'ไลฟ์สไตล์', 'style': widget.candidate.lifestyles},
+      ];
 
-        final t = Curves.easeOutCubic.transform(widget.cardCtrl.value);
-        final dx =
-            widget.startPos.dx + (widget.targetPos.dx - widget.startPos.dx) * t;
-        final dy =
-            widget.startPos.dy + (widget.targetPos.dy - widget.startPos.dy) * t;
-        final rot = widget.startRot + (widget.targetRot - widget.startRot) * t;
+      final t = Curves.easeOutCubic.transform(widget.cardCtrl.value);
+      final dx = widget.startPos.dx +
+          (widget.targetPos.dx - widget.startPos.dx) * t;
+      final dy = widget.startPos.dy +
+          (widget.targetPos.dy - widget.startPos.dy) * t;
+      final rot =
+          widget.startRot + (widget.targetRot - widget.startRot) * t;
 
         return Scaffold(
-          body: Column(
-            children: [
-              const SizedBox(height: 25),
-              ChatToDateHeaderWhite(
-                leftIconPath: 'assets/icons/icon_chat2date_full.svg',
-                rightIconPath: 'assets/icons/icon_menu.svg',
-                iconColor: const Color(0xFF5ce1e6),
-                onBack: () {},
-                onSettings: () async {
-                  await ref
-                      .read(locationServiceProvider)
-                      .tryUpdateLocationSilently();
-                  widget.onTogglePanel();
-                },
-              ),
+        body: Column(
+          children: [
+            const SizedBox(height: 25),
+            ChatToDateHeaderWhite(
+              leftIconPath: 'assets/icons/icon_chat2date_full.svg',
+              rightIconPath: 'assets/icons/icon_menu.svg',
+              iconColor: const Color(0xFF5ce1e6),
+              onBack: () {},
+              onSettings: () async {
+                await ref
+                    .read(locationServiceProvider)
+                    .tryUpdateLocationSilently();
+                widget.onTogglePanel();
+              },
+            ),
 
               // ===== Canvas (ภาพ + Panels + Overlay) =====
               SizedBox(
-                width: double.infinity,
-                height: 585,
-                child: Stack(
-                  clipBehavior: Clip.none,
-                  children: [
-                    // --- Profile image (with animation) ---
-                    Opacity(
-                      opacity: widget.opacity,
-                      child: Transform.translate(
-                        offset: Offset(dx, dy),
-                        child: Transform.rotate(
-                          angle: rot,
-                          child: hasImages
-                              ? Image.network(
-                                  images[widget
-                                      .index], // ✅ ใช้ได้เพราะเช็คแล้วว่าไม่ว่าง
-                                  width: double.infinity,
-                                  height: 585,
-                                  fit: BoxFit.cover,
-                                  errorBuilder: (context, error, stackTrace) {
-                                    return _buildImageFallback();
-                                  },
-                                )
-                              : _buildImageFallback(),
+              width: double.infinity,
+              height: 585,
+              child: Stack(
+                clipBehavior: Clip.none,
+                children: [
+                  // --- Profile image (with animation) ---
+                  Opacity(
+                    opacity: widget.opacity,
+                    child: Transform.translate(
+                      offset: Offset(dx, dy),
+                      child: Transform.rotate(
+                        angle: rot,
+                        child: hasImages
+                            ? Image.network(
+                                images[widget.index],   // ✅ ใช้ได้เพราะเช็คแล้วว่าไม่ว่าง
+                                width: double.infinity,
+                                height: 585,
+                                fit: BoxFit.cover,
+                                errorBuilder:
+                              (context, error, stackTrace) {
+                                  return _buildImageFallback();
+                                },)
+                            : _buildImageFallback(),
+                              
+                            
+                          
                         ),
                       ),
                     ),
