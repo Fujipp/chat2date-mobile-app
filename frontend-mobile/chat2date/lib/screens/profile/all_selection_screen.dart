@@ -23,6 +23,23 @@ class LifestyleCategory {
   });
 }
 
+// ในไฟล์ที่คุณมี LifestyleCategory
+const List<List<int>> mutuallyExclusiveLifestyleIndices = [
+  [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11],
+  // 👶 แผนการมีครอบครัว (Indices 19-23)
+  [19, 20, 21, 22, 23],
+  // 🍺 ดื่มเหล้า (Indices 48-53)
+  [48, 49, 50, 51, 52, 53],
+  // 🚬 สูบบุหรี่ (Indices 54-58)
+  [54, 55, 56, 57, 58],
+  // 🍃 กัญชา (Indices 59-62)
+  [59, 60, 61, 62],
+  // 🍽 ตัวเลือกอาหาร (Indices 67-74)
+  [67, 68, 69, 70, 71, 72, 73, 74],
+  // 😴 รูทีนการนอน (Indices 79-81)
+  [79, 80, 81],
+];
+
 // Hard-coded categories based on the SQL data
 const List<LifestyleCategory> lifestyleCategories = [
   LifestyleCategory(
@@ -437,6 +454,21 @@ class _LifestylesSelectionScreenState extends State<LifestylesSelectionScreen> {
     _searchController.addListener(_onSearchChanged);
   }
 
+  void _handleExclusivity(int newSelectedIndex) {
+    for (var group in mutuallyExclusiveLifestyleIndices) {
+      if (group.contains(newSelectedIndex)) {
+        // ถ้า index ใหม่เป็นส่วนหนึ่งของกลุ่มที่ขัดแย้ง
+        for (var conflictingIndex in group) {
+          // ลบรายการอื่นทั้งหมดในกลุ่มออก ยกเว้นรายการที่เพิ่งเลือกเข้ามาใหม่
+          if (conflictingIndex != newSelectedIndex) {
+            _selected.remove(conflictingIndex);
+          }
+        }
+        break;
+      }
+    }
+  }
+
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
@@ -466,9 +498,23 @@ class _LifestylesSelectionScreenState extends State<LifestylesSelectionScreen> {
   void _toggleSelection(int index) {
     setState(() {
       if (_selected.contains(index)) {
+        // อนุญาตให้ยกเลิกการเลือกได้เสมอ
         _selected.remove(index);
       } else {
-        _selected.add(index);
+        // 1. ตรวจสอบจำนวนสูงสุด (5) ก่อนเพิ่มรายการใหม่
+        if (_selected.length < 5) {
+          _selected.add(index);
+          // 2. จัดการความขัดแย้งทันที
+          _handleExclusivity(index);
+        } else {
+          // TODO: แสดง SnackBar/Dialog แจ้งเตือน: "เลือกได้สูงสุด 5 รายการ"
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('คุณเลือกได้สูงสุดเพียง 5 รายการเท่านั้น'),
+              duration: Duration(seconds: 2),
+            ),
+          );
+        }
       }
     });
   }
@@ -724,46 +770,94 @@ class _LifestylesSelectionScreenState extends State<LifestylesSelectionScreen> {
           Positioned(
             bottom: 20,
             right: 20,
-            child: InkWell(
-              onTap: () => Navigator.pop(context, _selected),
-              child: Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 20,
-                  vertical: 12,
-                ),
-                decoration: BoxDecoration(
-                  color: AppColors.brandSecondary,
+            // ใช้ Builder เพื่อให้สามารถเข้าถึง context ใหม่สำหรับการแสดง SnackBar
+            child: Builder(
+              builder: (context) {
+                final int selectedCount = _selected.length;
+                // กฎ: ต้องเลือก 3, 4, หรือ 5 รายการ
+                final bool isValid = selectedCount >= 3 && selectedCount <= 5;
+                // กำหนดสี: สีหลักถ้าถูกต้อง / สีแดงถ้าไม่ถูกต้อง
+                final Color buttonColor = isValid
+                    ? AppColors.brandSecondary
+                    : Colors.red.shade700;
+
+                String buttonText;
+                if (selectedCount < 3) {
+                  // แสดงจำนวนที่ต้องเลือกเพิ่ม
+                  buttonText = 'เลือกเพิ่มอีก ${3 - selectedCount} รายการ';
+                } else if (selectedCount > 5) {
+                  // แสดงการแจ้งเตือนเมื่อเกิน
+                  buttonText = 'เลือกเกิน 5 รายการ! กรุณาลบออก';
+                } else {
+                  // แสดงสถานะที่เลือกสำเร็จ
+                  buttonText = 'เลือกแล้ว $selectedCount รายการ • ยืนยัน';
+                }
+
+                return InkWell(
+                  onTap: isValid
+                      ? () =>
+                            Navigator.pop(
+                              context,
+                              _selected,
+                            ) // อนุญาตให้ยืนยันเมื่อถูกต้อง
+                      : () {
+                          // ป้องกันการยืนยันเมื่อเลือกไม่ครบ 3 หรือเกิน 5
+                          ScaffoldMessenger.of(context).hideCurrentSnackBar();
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text(
+                                selectedCount < 3
+                                    ? 'กรุณาเลือกอย่างน้อย 3 รายการ'
+                                    : 'คุณเลือกเกิน 5 รายการ กรุณาลบออกก่อนยืนยัน',
+                              ),
+                              duration: const Duration(seconds: 2),
+                              backgroundColor: Colors.red.shade700,
+                            ),
+                          );
+                        },
                   borderRadius: BorderRadius.circular(30),
-                  boxShadow: [
-                    BoxShadow(
-                      color: AppColors.brandSecondary.withOpacity(0.4),
-                      blurRadius: 12,
-                      offset: const Offset(0, 4),
+                  child: AnimatedContainer(
+                    duration: const Duration(milliseconds: 200),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 20,
+                      vertical: 12,
                     ),
-                  ],
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    const Icon(
-                      Icons.check_circle,
-                      color: Colors.white,
-                      size: 20,
+                    decoration: BoxDecoration(
+                      // ใช้สีที่คำนวณไว้
+                      color: buttonColor,
+                      borderRadius: BorderRadius.circular(30),
+                      boxShadow: [
+                        BoxShadow(
+                          color: buttonColor.withOpacity(0.4),
+                          blurRadius: 12,
+                          offset: const Offset(0, 4),
+                        ),
+                      ],
                     ),
-                    const SizedBox(width: 8),
-                    Text(
-                      _selected.isEmpty
-                          ? 'ยืนยัน'
-                          : 'เลือกแล้ว ${_selected.length} รายการ • ยืนยัน',
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 14,
-                      ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          // เปลี่ยน Icon ตามสถานะ (ถูกต้อง/แจ้งเตือน)
+                          isValid ? Icons.check_circle : Icons.warning_rounded,
+                          color: Colors.white,
+                          size: 20,
+                        ),
+                        const SizedBox(width: 8),
+                        Text(
+                          // ใช้ข้อความที่คำนวณไว้
+                          buttonText,
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 14,
+                          ),
+                        ),
+                      ],
                     ),
-                  ],
-                ),
-              ),
+                  ),
+                );
+              },
             ),
           ),
         ],
@@ -838,9 +932,22 @@ class _InterestsSelectionScreenWidgetState
   void _toggleSelection(int index) {
     setState(() {
       if (_selected.contains(index)) {
+        // อนุญาตให้ยกเลิกการเลือกได้เสมอ
         _selected.remove(index);
       } else {
-        _selected.add(index);
+        // 1. ตรวจสอบจำนวนสูงสุด (5) ก่อนเพิ่มรายการใหม่
+        if (_selected.length < 5) {
+          _selected.add(index);
+          // * ถ้าไม่มีความขัดแย้งใน Interest ก็ไม่ต้องเรียก _handleExclusivity()
+        } else {
+          // TODO: แสดง SnackBar/Dialog แจ้งเตือน: "เลือกได้สูงสุด 5 รายการ"
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('คุณเลือกได้สูงสุดเพียง 5 รายการเท่านั้น'),
+              duration: Duration(seconds: 2),
+            ),
+          );
+        }
       }
     });
   }
@@ -1087,76 +1194,97 @@ class _InterestsSelectionScreenWidgetState
               ),
             ],
           ),
-          // Positioned(
-          //   top: 50,
-          //   left: 16,
-          //   child: InkWell(
-          //     onTap: () => Navigator.pop(context, []),
-          //     child: Container(
-          //       width: 40,
-          //       height: 40,
-          //       decoration: BoxDecoration(
-          //         color: Colors.white.withOpacity(0.9),
-          //         shape: BoxShape.circle,
-          //         boxShadow: [
-          //           BoxShadow(
-          //             color: Colors.black.withOpacity(0.1),
-          //             blurRadius: 8,
-          //             offset: const Offset(0, 2),
-          //           ),
-          //         ],
-          //       ),
-          //       child: const Icon(
-          //         Icons.arrow_back,
-          //         color: AppColors.brandSecondary,
-          //         size: 20,
-          //       ),
-          //     ),
-          //   ),
-          // ),
           Positioned(
             bottom: 20,
             right: 20,
-            child: InkWell(
-              onTap: () => Navigator.pop(context, _selected),
-              child: Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 20,
-                  vertical: 12,
-                ),
-                decoration: BoxDecoration(
-                  color: AppColors.brandSecondary,
+            // ใช้ Builder เพื่อให้สามารถเข้าถึง context ใหม่สำหรับการแสดง SnackBar
+            child: Builder(
+              builder: (context) {
+                final int selectedCount = _selected.length;
+                // กฎ: ต้องเลือก 3, 4, หรือ 5 รายการ
+                final bool isValid = selectedCount >= 3 && selectedCount <= 5;
+                // กำหนดสี: สีหลักถ้าถูกต้อง / สีแดงถ้าไม่ถูกต้อง
+                final Color buttonColor = isValid
+                    ? AppColors.brandSecondary
+                    : Colors.red.shade700;
+
+                String buttonText;
+                if (selectedCount < 3) {
+                  // แสดงจำนวนที่ต้องเลือกเพิ่ม
+                  buttonText = 'เลือกเพิ่มอีก ${3 - selectedCount} รายการ';
+                } else if (selectedCount > 5) {
+                  // แสดงการแจ้งเตือนเมื่อเกิน
+                  buttonText = 'เลือกเกิน 5 รายการ! กรุณาลบออก';
+                } else {
+                  // แสดงสถานะที่เลือกสำเร็จ
+                  buttonText = 'เลือกแล้ว $selectedCount รายการ • ยืนยัน';
+                }
+
+                return InkWell(
+                  onTap: isValid
+                      ? () =>
+                            Navigator.pop(
+                              context,
+                              _selected,
+                            ) // อนุญาตให้ยืนยันเมื่อถูกต้อง
+                      : () {
+                          // ป้องกันการยืนยันเมื่อเลือกไม่ครบ 3 หรือเกิน 5
+                          ScaffoldMessenger.of(context).hideCurrentSnackBar();
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text(
+                                selectedCount < 3
+                                    ? 'กรุณาเลือกอย่างน้อย 3 รายการ'
+                                    : 'คุณเลือกเกิน 5 รายการ กรุณาลบออกก่อนยืนยัน',
+                              ),
+                              duration: const Duration(seconds: 2),
+                              backgroundColor: Colors.red.shade700,
+                            ),
+                          );
+                        },
                   borderRadius: BorderRadius.circular(30),
-                  boxShadow: [
-                    BoxShadow(
-                      color: AppColors.brandSecondary.withOpacity(0.4),
-                      blurRadius: 12,
-                      offset: const Offset(0, 4),
+                  child: AnimatedContainer(
+                    duration: const Duration(milliseconds: 200),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 20,
+                      vertical: 12,
                     ),
-                  ],
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    const Icon(
-                      Icons.check_circle,
-                      color: Colors.white,
-                      size: 20,
+                    decoration: BoxDecoration(
+                      // ใช้สีที่คำนวณไว้
+                      color: buttonColor,
+                      borderRadius: BorderRadius.circular(30),
+                      boxShadow: [
+                        BoxShadow(
+                          color: buttonColor.withOpacity(0.4),
+                          blurRadius: 12,
+                          offset: const Offset(0, 4),
+                        ),
+                      ],
                     ),
-                    const SizedBox(width: 8),
-                    Text(
-                      _selected.isEmpty
-                          ? 'ยืนยัน'
-                          : 'เลือกแล้ว ${_selected.length} รายการ • ยืนยัน',
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 14,
-                      ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          // เปลี่ยน Icon ตามสถานะ (ถูกต้อง/แจ้งเตือน)
+                          isValid ? Icons.check_circle : Icons.warning_rounded,
+                          color: Colors.white,
+                          size: 20,
+                        ),
+                        const SizedBox(width: 8),
+                        Text(
+                          // ใช้ข้อความที่คำนวณไว้
+                          buttonText,
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 14,
+                          ),
+                        ),
+                      ],
                     ),
-                  ],
-                ),
-              ),
+                  ),
+                );
+              },
             ),
           ),
         ],

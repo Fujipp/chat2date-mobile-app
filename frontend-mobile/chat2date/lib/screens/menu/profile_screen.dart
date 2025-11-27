@@ -15,7 +15,6 @@ import 'package:chat2date/models/tag.dart';
 import 'package:chat2date/models/travelstyle.dart';
 import 'package:chat2date/models/user.dart';
 import 'package:chat2date/services/photo_verification_service.dart';
-import 'package:chat2date/services/preference_service.dart';
 import 'package:chat2date/services/user_service.dart';
 import 'package:chat2date/stores/user_store.dart';
 import 'package:flutter/material.dart';

@@ -28,6 +28,31 @@ class _MatchPreferenceScreenState extends ConsumerState<MatchPreferenceScreen> {
   String? _selectedGenderPreference;
 
   @override
+  void initState() {
+    super.initState();
+
+    final userStore = ref.read(userStoreProvider) as Map<String, dynamic>?;
+    final profile = userStore?['profile'] as Map<String, dynamic>?;
+
+    // ถ้า profile ไม่มี → ใช้ default
+    setState(() {
+      _selectedGenderPreference = profile?['interestedGender'] ?? 'BOTH';
+      _selectedRange = RangeValues(
+        (profile?['interestedAgeMin'] as num?)?.toDouble() ?? 18,
+        (profile?['interestedAgeMax'] as num?)?.toDouble() ?? 100,
+      );
+
+      _travelStylePreference =
+          profile?['interestedTravelStyle'] ?? null; // ให้ผู้ใช้เลือกเอง
+      _lifeStylePreference = profile?['interestedLifeStyle'] ?? null;
+      _interestPreference = profile?['interestedInterest'] ?? null;
+
+      // ถ้ามี flag สนใจเฉพาะเพศ/อายุ (แล้วแต่คุณเก็บอะไร)
+      _isGenderAgeSpecific = (_interestPreference == "UNNECESSARY" && _lifeStylePreference == "UNNECESSARY" && _travelStylePreference == "UNNECESSARY") ? true : false;
+    });
+  }
+
+  @override
   Widget build(BuildContext context) {
     return Scaffold(
       body: SingleChildScrollView(
