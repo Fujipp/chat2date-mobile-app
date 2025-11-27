@@ -185,7 +185,6 @@ class _DiscoveryScreenState extends ConsumerState<DiscoveryScreen>
           setState(() {
             _userId = userId;
           });
-          _listenMatchStream();
 
           await ref.read(locationServiceProvider).tryUpdateLocationSilently();
 
@@ -338,28 +337,6 @@ class _DiscoveryScreenState extends ConsumerState<DiscoveryScreen>
 
     overlay.insert(_settingsOverlay!);
     _isSettingsOpen = true;
-  }
-
-  void _listenMatchStream() {
-    if (_userId == null) return;
-
-    ref.listen<AsyncValue<MatchEventDto>>(matchSocketStreamProvider(_userId!), (
-      previous,
-      next,
-    ) {
-      final event = next.valueOrNull;
-      if (event == null || !mounted) return;
-
-      Navigator.of(context).pushNamed(
-        MatchSuccessScreen.routeName,
-        arguments: MatchSuccessArgs(
-          myName: event.selfName,
-          partnerName: event.partnerName,
-          myAvatarUrl: event.selfAvatarUrl,
-          partnerAvatarUrl: event.partnerAvatarUrl,
-        ),
-      );
-    });
   }
 
   @override
@@ -737,6 +714,28 @@ class _CandidateViewState extends ConsumerState<_CandidateView> {
 
   @override
   Widget build(BuildContext context) {
+     ref.listen<AsyncValue<MatchEventDto>>(
+      matchSocketStreamProvider(widget.userId),
+      (previous, next) {
+        final event = next.valueOrNull;
+        if (event == null) return;
+
+        // กันไม่ให้ push route ระหว่าง build โดยตรง
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (!mounted) return;
+          Navigator.of(context).pushNamed(
+            MatchSuccessScreen.routeName,
+            arguments: MatchSuccessArgs(
+              myName: event.selfName,
+              partnerName: event.partnerName,
+              myAvatarUrl: event.selfAvatarUrl,
+              partnerAvatarUrl: event.partnerAvatarUrl,
+            ),
+          );
+        });
+      },
+    );
+    
     // ✅ ใช้ FutureBuilder รอให้รูปโหลดเสร็จก่อนแสดง
     return FutureBuilder<void>(
       future: _imagePrecacheFuture,
@@ -771,70 +770,72 @@ class _CandidateViewState extends ConsumerState<_CandidateView> {
         // รูปโหลดเสร็จแล้ว - แสดงข้อมูล candidate
         final images = widget.candidate.photos;
 
-        final headerTop = [
-          {'title': 'สไตล์การเที่ยว', 'style': widget.candidate.travelStyles},
-          {'title': 'ระยะห่าง', 'range': widget.candidate.distance},
-        ];
+      // ✅ กรณีไม่มีรูปเลย → ใช้ placeholder แทน
+      final bool hasImages = images.isNotEmpty;
 
-        final headerBottom = [
-          {'title': 'ความสนใจ', 'style': widget.candidate.interests},
-          {'title': 'ไลฟ์สไตล์', 'style': widget.candidate.lifestyles},
-        ];
+      final headerTop = [
+        {'title': 'สไตล์การเที่ยว', 'style': widget.candidate.travelStyles},
+        {'title': 'ระยะห่าง', 'range': widget.candidate.distance},
+      ];
 
-        final t = Curves.easeOutCubic.transform(widget.cardCtrl.value);
-        final dx =
-            widget.startPos.dx + (widget.targetPos.dx - widget.startPos.dx) * t;
-        final dy =
-            widget.startPos.dy + (widget.targetPos.dy - widget.startPos.dy) * t;
-        final rot = widget.startRot + (widget.targetRot - widget.startRot) * t;
+      final headerBottom = [
+        {'title': 'ความสนใจ', 'style': widget.candidate.interests},
+        {'title': 'ไลฟ์สไตล์', 'style': widget.candidate.lifestyles},
+      ];
+
+      final t = Curves.easeOutCubic.transform(widget.cardCtrl.value);
+      final dx = widget.startPos.dx +
+          (widget.targetPos.dx - widget.startPos.dx) * t;
+      final dy = widget.startPos.dy +
+          (widget.targetPos.dy - widget.startPos.dy) * t;
+      final rot =
+          widget.startRot + (widget.targetRot - widget.startRot) * t;
 
         return Scaffold(
-          body: Column(
-            children: [
-              const SizedBox(height: 25),
-              ChatToDateHeaderWhite(
-                leftIconPath: 'assets/icons/icon_chat2date_full.svg',
-                rightIconPath: 'assets/icons/icon_menu.svg',
-                iconColor: const Color(0xFF5ce1e6),
-                onBack: () {},
-                onSettings: () async {
-                  await ref
-                      .read(locationServiceProvider)
-                      .tryUpdateLocationSilently();
-                  widget.onTogglePanel();
-                },
-              ),
+        body: Column(
+          children: [
+            const SizedBox(height: 25),
+            ChatToDateHeaderWhite(
+              leftIconPath: 'assets/icons/icon_chat2date_full.svg',
+              rightIconPath: 'assets/icons/icon_menu.svg',
+              iconColor: const Color(0xFF5ce1e6),
+              onBack: () {},
+              onSettings: () async {
+                await ref
+                    .read(locationServiceProvider)
+                    .tryUpdateLocationSilently();
+                widget.onTogglePanel();
+              },
+            ),
 
               // ===== Canvas (ภาพ + Panels + Overlay) =====
               SizedBox(
-                width: double.infinity,
-                height: 585,
-                child: Stack(
-                  clipBehavior: Clip.none,
-                  children: [
-                    // --- Profile image (with animation) ---
-                    Opacity(
-                      opacity: widget.opacity,
-                      child: Transform.translate(
-                        offset: Offset(dx, dy),
-                        child: Transform.rotate(
-                          angle: rot,
-                          child: Image.network(
-                            images[widget.index],
-                            width: double.infinity,
-                            height: 585,
-                            fit: BoxFit.cover,
-                            errorBuilder: (context, error, stackTrace) {
-                              return Container(
+              width: double.infinity,
+              height: 585,
+              child: Stack(
+                clipBehavior: Clip.none,
+                children: [
+                  // --- Profile image (with animation) ---
+                  Opacity(
+                    opacity: widget.opacity,
+                    child: Transform.translate(
+                      offset: Offset(dx, dy),
+                      child: Transform.rotate(
+                        angle: rot,
+                        child: hasImages
+                            ? Image.network(
+                                images[widget.index],   // ✅ ใช้ได้เพราะเช็คแล้วว่าไม่ว่าง
                                 width: double.infinity,
                                 height: 585,
-                                color: Colors.grey[300],
-                                child: const Center(
-                                  child: Icon(Icons.person, size: 100),
-                                ),
-                              );
-                            },
-                          ),
+                                fit: BoxFit.cover,
+                                errorBuilder:
+                              (context, error, stackTrace) {
+                                  return _buildImageFallback();
+                                },)
+                            : _buildImageFallback(),
+                              
+                            
+                          
                         ),
                       ),
                     ),
@@ -1130,6 +1131,18 @@ class _CandidateViewState extends ConsumerState<_CandidateView> {
       },
     );
   }
+}
+
+/// ✅ สร้าง fallback widget สำหรับเวลารูปหาย
+Widget _buildImageFallback() {
+  return Container(
+    width: double.infinity,
+    height: 585,
+    color: Colors.grey[300],
+    child: const Center(
+      child: Icon(Icons.person, size: 100, color: Colors.white70),
+    ),
+  );
 }
 
 // ✨ Beautiful Loading Widget (เหมือนเดิม)

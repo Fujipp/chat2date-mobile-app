@@ -1,0 +1,5 @@
+# Ignore iOS-only duplicate project
+frontend-mobile/chat2date-ios/
+frontend-mobile/chat2date-ios/**
+
+# ...existing rules...
