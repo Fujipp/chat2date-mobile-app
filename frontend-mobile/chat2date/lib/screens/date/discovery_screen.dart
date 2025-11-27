@@ -129,14 +129,14 @@ class _DiscoveryScreenState extends ConsumerState<DiscoveryScreen>
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) async {
-      debugPrint('[Discovery] postFrame: start location + FCM');
-      await ref.read(locationServiceProvider).tryUpdateLocationSilently();
-      debugPrint('[Discovery] location done, start FCM');
-      await ref.read(fcmTokenServiceProvider).registerDeviceTokenSilently();
-      debugPrint('[Discovery] FCM call done');
-      await ref.read(userServiceProvider).getProfile();
-    });
+    // WidgetsBinding.instance.addPostFrameCallback((_) async {
+    //   debugPrint('[Discovery] postFrame: start location + FCM');
+    //   await ref.read(locationServiceProvider).tryUpdateLocationSilently();
+    //   debugPrint('[Discovery] location done, start FCM');
+    //   await ref.read(fcmTokenServiceProvider).registerDeviceTokenSilently();
+    //   debugPrint('[Discovery] FCM call done');
+    //   await ref.read(userServiceProvider).getProfile();
+    // });
     _selectedIndex = widget.selectedIndex;
 
     _cardCtrl =
@@ -170,9 +170,15 @@ class _DiscoveryScreenState extends ConsumerState<DiscoveryScreen>
   void didChangeDependencies() {
     super.didChangeDependencies();
 
+    // ✅ โหลดครั้งเดียวเมื่อได้ userId แล้ว
     if (_userId == null) {
       WidgetsBinding.instance.addPostFrameCallback((_) async {
+        if (!mounted) return;
+
         try {
+          debugPrint('[Discovery] 🚀 Starting initialization...');
+
+          // 1️⃣ ดึง userId
           final userStore = ref.read(userStoreProvider.notifier);
           final user = userStore.user;
           final userId = user?.userId;
@@ -182,17 +188,40 @@ class _DiscoveryScreenState extends ConsumerState<DiscoveryScreen>
             return;
           }
 
+          if (!mounted) return;
+
+          debugPrint('[Discovery] 📝 Got userId: $userId');
           setState(() {
             _userId = userId;
           });
 
+          // 2️⃣ โหลด location (ครั้งเดียว)
+          debugPrint('[Discovery] 📍 Updating location...');
           await ref.read(locationServiceProvider).tryUpdateLocationSilently();
 
-          if (mounted && _userId != null) {
-            await ref
-                .read(discoveryProvider(_userId!).notifier)
-                .loadCandidates();
-          }
+          if (!mounted) return;
+          debugPrint('[Discovery] ✅ Location updated');
+
+          // 3️⃣ ลงทะเบียน FCM token
+          debugPrint('[Discovery] 🔔 Registering FCM...');
+          await ref.read(fcmTokenServiceProvider).registerDeviceTokenSilently();
+
+          if (!mounted) return;
+          debugPrint('[Discovery] ✅ FCM registered');
+
+          // 4️⃣ โหลด profile
+          debugPrint('[Discovery] 👤 Loading profile...');
+          await ref.read(userServiceProvider).getProfile();
+
+          if (!mounted) return;
+          debugPrint('[Discovery] ✅ Profile loaded');
+
+          // 5️⃣ โหลด candidates (สุดท้าย - ครั้งเดียว)
+          debugPrint('[Discovery] 💝 Loading candidates...');
+          await ref.read(discoveryProvider(userId).notifier).loadCandidates();
+
+          if (!mounted) return;
+          debugPrint('[Discovery] 🎉 Initialization complete!');
         } catch (e) {
           print('❌ Error initializing discovery: $e');
         }
@@ -202,6 +231,7 @@ class _DiscoveryScreenState extends ConsumerState<DiscoveryScreen>
 
   @override
   void dispose() {
+    debugPrint('[Discovery] 🔴 Disposing screen...');
     _cardCtrl.dispose();
     _settingsOverlay?.remove();
     super.dispose();
@@ -693,28 +723,37 @@ class _CandidateView extends ConsumerStatefulWidget {
 
 class _CandidateViewState extends ConsumerState<_CandidateView> {
   Future<void>? _imagePrecacheFuture;
+  bool _hasPreloaded = false;
 
   @override
   void initState() {
     super.initState();
-    // ✅ Preload รูปแรกของ candidate
-    if (widget.candidate.photos.isNotEmpty) {
+    // ✅ ไม่ทำอะไรเลย
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+
+    if (!_hasPreloaded && widget.candidate.photos.isNotEmpty) {
+      _hasPreloaded = true;
       _imagePrecacheFuture =
           precacheImage(
             NetworkImage(widget.candidate.photos.first),
             context,
           ).catchError((e) {
             print('⚠️ Failed to precache image: $e');
-            return null; // อย่าให้ error block UI
+            return null;
           });
-    } else {
+    } else if (!_hasPreloaded) {
       _imagePrecacheFuture = Future.value();
+      _hasPreloaded = true;
     }
   }
 
   @override
   Widget build(BuildContext context) {
-     ref.listen<AsyncValue<MatchEventDto>>(
+    ref.listen<AsyncValue<MatchEventDto>>(
       matchSocketStreamProvider(widget.userId),
       (previous, next) {
         final event = next.valueOrNull;
@@ -735,7 +774,7 @@ class _CandidateViewState extends ConsumerState<_CandidateView> {
         });
       },
     );
-    
+
     // ✅ ใช้ FutureBuilder รอให้รูปโหลดเสร็จก่อนแสดง
     return FutureBuilder<void>(
       future: _imagePrecacheFuture,
@@ -770,72 +809,69 @@ class _CandidateViewState extends ConsumerState<_CandidateView> {
         // รูปโหลดเสร็จแล้ว - แสดงข้อมูล candidate
         final images = widget.candidate.photos;
 
-      // ✅ กรณีไม่มีรูปเลย → ใช้ placeholder แทน
-      final bool hasImages = images.isNotEmpty;
+        // ✅ กรณีไม่มีรูปเลย → ใช้ placeholder แทน
+        final bool hasImages = images.isNotEmpty;
 
-      final headerTop = [
-        {'title': 'สไตล์การเที่ยว', 'style': widget.candidate.travelStyles},
-        {'title': 'ระยะห่าง', 'range': widget.candidate.distance},
-      ];
+        final headerTop = [
+          {'title': 'สไตล์การเที่ยว', 'style': widget.candidate.travelStyles},
+          {'title': 'ระยะห่าง', 'range': widget.candidate.distance},
+        ];
 
-      final headerBottom = [
-        {'title': 'ความสนใจ', 'style': widget.candidate.interests},
-        {'title': 'ไลฟ์สไตล์', 'style': widget.candidate.lifestyles},
-      ];
+        final headerBottom = [
+          {'title': 'ความสนใจ', 'style': widget.candidate.interests},
+          {'title': 'ไลฟ์สไตล์', 'style': widget.candidate.lifestyles},
+        ];
 
-      final t = Curves.easeOutCubic.transform(widget.cardCtrl.value);
-      final dx = widget.startPos.dx +
-          (widget.targetPos.dx - widget.startPos.dx) * t;
-      final dy = widget.startPos.dy +
-          (widget.targetPos.dy - widget.startPos.dy) * t;
-      final rot =
-          widget.startRot + (widget.targetRot - widget.startRot) * t;
+        final t = Curves.easeOutCubic.transform(widget.cardCtrl.value);
+        final dx =
+            widget.startPos.dx + (widget.targetPos.dx - widget.startPos.dx) * t;
+        final dy =
+            widget.startPos.dy + (widget.targetPos.dy - widget.startPos.dy) * t;
+        final rot = widget.startRot + (widget.targetRot - widget.startRot) * t;
 
         return Scaffold(
-        body: Column(
-          children: [
-            const SizedBox(height: 25),
-            ChatToDateHeaderWhite(
-              leftIconPath: 'assets/icons/icon_chat2date_full.svg',
-              rightIconPath: 'assets/icons/icon_menu.svg',
-              iconColor: const Color(0xFF5ce1e6),
-              onBack: () {},
-              onSettings: () async {
-                await ref
-                    .read(locationServiceProvider)
-                    .tryUpdateLocationSilently();
-                widget.onTogglePanel();
-              },
-            ),
+          body: Column(
+            children: [
+              const SizedBox(height: 25),
+              ChatToDateHeaderWhite(
+                leftIconPath: 'assets/icons/icon_chat2date_full.svg',
+                rightIconPath: 'assets/icons/icon_menu.svg',
+                iconColor: const Color(0xFF5ce1e6),
+                onBack: () {},
+                onSettings: () async {
+                  await ref
+                      .read(locationServiceProvider)
+                      .tryUpdateLocationSilently();
+                  widget.onTogglePanel();
+                },
+              ),
 
               // ===== Canvas (ภาพ + Panels + Overlay) =====
               SizedBox(
-              width: double.infinity,
-              height: 585,
-              child: Stack(
-                clipBehavior: Clip.none,
-                children: [
-                  // --- Profile image (with animation) ---
-                  Opacity(
-                    opacity: widget.opacity,
-                    child: Transform.translate(
-                      offset: Offset(dx, dy),
-                      child: Transform.rotate(
-                        angle: rot,
-                        child: hasImages
-                            ? Image.network(
-                                images[widget.index],   // ✅ ใช้ได้เพราะเช็คแล้วว่าไม่ว่าง
-                                width: double.infinity,
-                                height: 585,
-                                fit: BoxFit.cover,
-                                errorBuilder:
-                              (context, error, stackTrace) {
-                                  return _buildImageFallback();
-                                },)
-                            : _buildImageFallback(),
-                              
-                            
-                          
+                width: double.infinity,
+                height: 585,
+                child: Stack(
+                  clipBehavior: Clip.none,
+                  children: [
+                    // --- Profile image (with animation) ---
+                    Opacity(
+                      opacity: widget.opacity,
+                      child: Transform.translate(
+                        offset: Offset(dx, dy),
+                        child: Transform.rotate(
+                          angle: rot,
+                          child: hasImages
+                              ? Image.network(
+                                  images[widget
+                                      .index], // ✅ ใช้ได้เพราะเช็คแล้วว่าไม่ว่าง
+                                  width: double.infinity,
+                                  height: 585,
+                                  fit: BoxFit.cover,
+                                  errorBuilder: (context, error, stackTrace) {
+                                    return _buildImageFallback();
+                                  },
+                                )
+                              : _buildImageFallback(),
                         ),
                       ),
                     ),

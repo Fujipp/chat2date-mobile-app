@@ -12,7 +12,6 @@ class DiscoveryService {
 
   DiscoveryService({this.accessToken});
 
-  /// ดึงรายชื่อ candidates สำหรับ discovery
   Future<List<DiscoveryResponse>> getCandidates({
     required String userId,
     int minDistance = 1,
@@ -57,7 +56,7 @@ class DiscoveryService {
   Future<FeedbackResponseDto> submitFeedback({
     required String userId,
     required String targetUserId,
-    required String action, // "LIKE" / "DISLIKE"
+    required String action,
   }) async {
     final uri = Uri.parse(
       '${ApiBase.baseUrl}/discovery/feedback',
@@ -87,7 +86,6 @@ class DiscoveryService {
       throw Exception('Feedback failed: ${res.statusCode} ${res.body}');
     }
 
-    // ✅ แปลง body เป็น DTO แล้ว return
     final Map<String, dynamic> json = jsonDecode(res.body);
     return FeedbackResponseDto.fromJson(json);
   }
@@ -110,7 +108,7 @@ class DiscoveryState {
   final String? error;
   final int currentIndex;
   final bool hasLoadedOnce;
-  final bool isInitializing; // ✅ เพิ่ม flag สำหรับ first load
+  final bool isInitializing;
 
   DiscoveryState({
     this.candidates = const [],
@@ -118,7 +116,7 @@ class DiscoveryState {
     this.error,
     this.currentIndex = 0,
     this.hasLoadedOnce = false,
-    this.isInitializing = true, // ✅ เริ่มต้นเป็น true
+    this.isInitializing = true,
   });
 
   DiscoveryState copyWith({
@@ -154,6 +152,9 @@ class DiscoveryNotifier extends StateNotifier<DiscoveryState> {
   final DiscoveryService _service;
   final String userId;
 
+  // ✅ เพิ่ม flag เพื่อป้องกันการเรียก API ซ้ำซ้อน
+  bool _isLoadingInProgress = false;
+
   DiscoveryNotifier(this._service, this.userId) : super(DiscoveryState());
 
   /// โหลด candidates ใหม่
@@ -161,6 +162,19 @@ class DiscoveryNotifier extends StateNotifier<DiscoveryState> {
     int minDistance = 1,
     int maxDistance = 1800,
   }) async {
+    // ✅ ถ้ากำลังโหลดอยู่แล้ว ข้ามไป
+    if (_isLoadingInProgress) {
+      print('⚠️ Load already in progress, skipping...');
+      return;
+    }
+
+    // ✅ เช็คว่า notifier ยัง mount อยู่หรือไม่
+    if (!mounted) {
+      print('⚠️ Notifier disposed, skipping load');
+      return;
+    }
+
+    _isLoadingInProgress = true;
     state = state.copyWith(isLoading: true, error: null);
 
     try {
@@ -169,6 +183,12 @@ class DiscoveryNotifier extends StateNotifier<DiscoveryState> {
         minDistance: minDistance,
         maxDistance: maxDistance,
       );
+
+      // ✅ เช็คอีกครั้งหลัง await
+      if (!mounted) {
+        print('⚠️ Notifier disposed after load, discarding results');
+        return;
+      }
 
       print('✅ Loaded ${candidates.length} candidates');
 
@@ -181,17 +201,27 @@ class DiscoveryNotifier extends StateNotifier<DiscoveryState> {
       );
     } catch (e) {
       print('❌ Error in loadCandidates: $e');
+
+      if (!mounted) {
+        print('⚠️ Notifier disposed during error handling');
+        return;
+      }
+
       state = state.copyWith(
         isLoading: false,
         error: e.toString(),
         hasLoadedOnce: true,
         isInitializing: false, // ✅ เซ็ต false แม้จะ error
       );
+    } finally {
+      _isLoadingInProgress = false;
     }
   }
 
   /// ไปหน้า candidate ถัดไป
   void nextCandidate() {
+    if (!mounted) return;
+
     if (state.hasMore) {
       state = state.copyWith(currentIndex: state.currentIndex + 1);
       print(
@@ -204,6 +234,8 @@ class DiscoveryNotifier extends StateNotifier<DiscoveryState> {
 
   /// Like candidate ปัจจุบัน
   Future<FeedbackResponseDto?> likeCurrentCandidate() async {
+    if (!mounted) return null;
+
     final candidate = state.currentCandidate;
     if (candidate == null) return null;
 
@@ -213,9 +245,11 @@ class DiscoveryNotifier extends StateNotifier<DiscoveryState> {
         targetUserId: candidate.userId,
         action: 'LIKE',
       );
-      print('👍 Liked: ${candidate.nickname}');
 
-      nextCandidate(); // ขยับไปคนถัดไปหลังจากกดแล้ว
+      if (!mounted) return null;
+
+      print('👍 Liked: ${candidate.nickname}');
+      nextCandidate();
 
       return feedback; // ✅ คืน feedback ออกไปให้ UI ใช้เช็ค matched
     } catch (e) {
@@ -226,6 +260,8 @@ class DiscoveryNotifier extends StateNotifier<DiscoveryState> {
 
   /// Unlike candidate ปัจจุบัน
   Future<void> unlikeCurrentCandidate() async {
+    if (!mounted) return;
+
     final candidate = state.currentCandidate;
     if (candidate == null) return;
 
@@ -235,6 +271,9 @@ class DiscoveryNotifier extends StateNotifier<DiscoveryState> {
         targetUserId: candidate.userId,
         action: 'DISLIKE',
       );
+
+      if (!mounted) return;
+
       print('👎 Unliked: ${candidate.nickname}');
     } catch (e) {
       print('❌ Unlike error: $e');
@@ -245,6 +284,8 @@ class DiscoveryNotifier extends StateNotifier<DiscoveryState> {
 
   /// Refresh candidates
   Future<void> refresh({int minDistance = 1, int maxDistance = 1800}) async {
+    if (!mounted) return;
+
     print('🔄 Refreshing candidates...');
     await loadCandidates(minDistance: minDistance, maxDistance: maxDistance);
   }
