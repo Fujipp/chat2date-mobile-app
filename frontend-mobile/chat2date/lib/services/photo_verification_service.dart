@@ -49,4 +49,31 @@ class PhotoVerificationService {
 
     return jsonDecode(response.body);
   }
+
+  Future<void> removePhoto({
+    required String userId,
+    required List<String> imageUrls,
+  }) async {
+    final userState = ref.read(userStoreProvider);
+    final accessToken = userState['accessToken'] as String?;
+
+    if (accessToken == null) {
+      throw Exception("User not logged in");
+    }
+
+    final uri = Uri.parse('${ApiBase.baseUrl}/users/$userId/photo').replace(
+      queryParameters: {
+        "imageUrl": imageUrls, // ⚡ ส่งหลายค่าแบบ array
+      },
+    );
+
+    final response = await http.delete(
+      uri,
+      headers: {"Authorization": "Bearer $accessToken"},
+    );
+
+    if (response.statusCode != 204) {
+      throw Exception('Delete failed: ${response.body}');
+    }
+  }
 }
