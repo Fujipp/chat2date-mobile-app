@@ -1,4 +1,4 @@
-    package sit.chat2date.cp25ssi2.services;
+    package sit.chat2date.cp25ssi2.clients;
 
     import com.cloudinary.Cloudinary;
     import com.cloudinary.utils.ObjectUtils;
@@ -12,7 +12,7 @@
     import java.util.Map;
 
     @Service
-    public class CloudinaryService {
+    public class CloudinaryClient {
 
         @Value("${cloudinary.cloud-name}")
         private String cloudName;
@@ -43,6 +43,14 @@
 
             } catch (IOException e) {
                 throw new RuntimeException("Cloudinary upload failed: " + e.getMessage());
+            }
+        }
+
+        public void delete(String publicId) {
+            try {
+                cloudinary.uploader().destroy(publicId, ObjectUtils.emptyMap());
+            } catch (Exception e) {
+                throw new RuntimeException("Failed to delete image from Cloudinary: " + publicId, e);
             }
         }
     }
