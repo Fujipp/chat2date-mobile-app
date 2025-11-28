@@ -17,6 +17,8 @@ import 'package:flutter_svg/flutter_svg.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
 import 'package:permission_handler/permission_handler.dart';
+import 'package:chat2date/components/toasts/toast.dart';
+
  
 class IdOcrScreen extends ConsumerStatefulWidget {
   const IdOcrScreen({super.key});
@@ -46,6 +48,19 @@ class _IdOcrScreenState extends ConsumerState<IdOcrScreen> {
   ThaiIdOcrResult? _ocrResult;
  
   final _fmt = DateFormat('dd/MM/yyyy');
+
+  // === Toast state ===
+  ToastType? _toastType;
+  String? _toastTitle;
+  String? _toastMessage;
+
+  void _showToast(ToastType type, String title, String message) {
+    setState(() {
+      _toastType = type;
+      _toastTitle = title;
+      _toastMessage = message;
+    });
+  }
  
   @override
   void initState() {
@@ -189,6 +204,26 @@ class _IdOcrScreenState extends ConsumerState<IdOcrScreen> {
       );
       return;
     }
+
+    // 🔐 เช็คอายุก่อน
+  if (_dob == null) {
+    _showToast(
+      ToastType.error,
+      'ไม่พบวันเกิด',
+      'กรุณาสแกนบัตรให้สำเร็จ เพื่อดึงข้อมูลวันเกิดก่อนดำเนินการต่อ',
+    );
+    return;
+  }
+
+  final age = _calcAgeForDisplay(_dob!);
+  if (age < 18) {
+    _showToast(
+      ToastType.error,
+      'อายุไม่ถึงเกณฑ์',
+      'ต้องมีอายุอย่างน้อย 18 ปีจึงจะสามารถใช้งานส่วนนี้ได้',
+    );
+    return; // ❌ ไปต่อไม่ได้
+  }
  
     setState(() => _busy = true);
  
