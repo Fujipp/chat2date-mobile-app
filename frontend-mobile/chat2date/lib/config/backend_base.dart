@@ -7,7 +7,7 @@ class ApiBase {
   // อนุญาต override จาก --dart-define=API_BASE=http://...
   static const String _defined = String.fromEnvironment(
     'API_BASE',
-    defaultValue: 'http://192.168.1.38:8080/api/v1',
+    defaultValue: '/api/v1',
   );
 
   static String get baseUrl {
