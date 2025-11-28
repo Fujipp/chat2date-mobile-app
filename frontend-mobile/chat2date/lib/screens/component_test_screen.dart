@@ -18,6 +18,7 @@ import 'package:chat2date/components/layout/responsive_container.dart';
 import 'package:chat2date/components/status_bar/gps_alert.dart';
 // Status Bar components
 import 'package:chat2date/components/status_bar/score_row.dart';
+import 'package:chat2date/components/toasts/toast.dart';
 import 'package:chat2date/theme/app_colors.dart';
 import 'package:flutter/material.dart';
 
@@ -101,6 +102,17 @@ class _ComponentTestScreenState extends State<ComponentTestScreen> {
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
+          const SizedBox(height: 16),
+
+          Toast(
+            type: ToastType.info,
+            title: 'fuck',
+            message: "you",
+            onClose: () {},
+          ),
+          Toast(type: ToastType.success, title: 'fuck', message: "you"),
+          Toast(type: ToastType.warning, title: 'fuck', message: "you"),
+          Toast(type: ToastType.error, title: 'fuck', message: "you"),
           // Generic Cards
           const Text(
             'Generic_card',
