@@ -19,7 +19,11 @@ public interface UserRepository extends JpaRepository<User, String> {
     SELECT DISTINCT u.*
     FROM user u
     JOIN userlocation loc ON u.userId = loc.userId
+    LEFT JOIN action a
+               ON a.userId       = :currentUserId
+              AND a.targetUserId = u.userId
     WHERE u.userId != :currentUserId
+      AND a.actionId IS NULL
       AND u.accountStatus = 'ACTIVE'
       AND u.isBlacklist = 0
       AND (:interestedGender = 'BOTH' OR u.sex = :interestedGender)
@@ -50,6 +54,9 @@ public interface UserRepository extends JpaRepository<User, String> {
         SELECT DISTINCT u.*
         FROM user u
         JOIN userlocation loc ON u.userId = loc.userId
+        LEFT JOIN action a
+              ON a.userId        = :currentUserId
+             AND a.targetUserId  = u.userId
         LEFT JOIN (
             SELECT uht.user_userId AS userId, COUNT(*) AS commonTravelStyles
             FROM user_has_travelstyle uht
@@ -82,6 +89,7 @@ public interface UserRepository extends JpaRepository<User, String> {
         ) interest ON interest.userId = u.userId
         WHERE u.userId != :currentUserId
           AND u.accountStatus = 'ACTIVE'
+          AND a.actionId IS NULL
           AND u.isBlacklist = 0
           AND (:interestedGender = 'BOTH' OR u.sex = :interestedGender)
           AND (
