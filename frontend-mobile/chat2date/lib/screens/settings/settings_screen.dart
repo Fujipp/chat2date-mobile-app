@@ -41,7 +41,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     title: 'ตั้งค่าคู่ของคุณ',
                     subtitle: 'กำหนดความชอบและเงื่อนไขของคู่ที่ต้องการ',
                     onTap: () {
-                      Navigator.pushNamed(context, '/partner-preferences');
+                      Navigator.pushNamed(context, '/matchPreference', arguments: {"onUpdate": true});
                     },
                   ),
                   const SizedBox(height: 12),

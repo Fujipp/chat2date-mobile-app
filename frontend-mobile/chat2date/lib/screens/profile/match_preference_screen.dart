@@ -33,6 +33,7 @@ class _MatchPreferenceScreenState extends ConsumerState<MatchPreferenceScreen> {
 
     final userStore = ref.read(userStoreProvider) as Map<String, dynamic>?;
     final profile = userStore?['profile'] as Map<String, dynamic>?;
+    print(profile);
 
     // ถ้า profile ไม่มี → ใช้ default
     setState(() {
@@ -48,12 +49,23 @@ class _MatchPreferenceScreenState extends ConsumerState<MatchPreferenceScreen> {
       _interestPreference = profile?['interestedInterest'] ?? null;
 
       // ถ้ามี flag สนใจเฉพาะเพศ/อายุ (แล้วแต่คุณเก็บอะไร)
-      _isGenderAgeSpecific = (_interestPreference == "UNNECESSARY" && _lifeStylePreference == "UNNECESSARY" && _travelStylePreference == "UNNECESSARY") ? true : false;
+      _isGenderAgeSpecific =
+          (_interestPreference == "UNNECESSARY" &&
+              _lifeStylePreference == "UNNECESSARY" &&
+              _travelStylePreference == "UNNECESSARY")
+          ? true
+          : false;
     });
   }
 
   @override
   Widget build(BuildContext context) {
+    final args = ModalRoute.of(context)?.settings.arguments;
+    bool onUpdate = false;
+    if (args is Map<String, dynamic>) {
+      onUpdate = args['onUpdate'] as bool? ?? false;
+    }
+
     return Scaffold(
       body: SingleChildScrollView(
         child: ResponsiveContainer.form(
@@ -296,7 +308,7 @@ class _MatchPreferenceScreenState extends ConsumerState<MatchPreferenceScreen> {
             ),
 
             DsButton(
-              label: 'ถัดไป',
+              label: onUpdate ? 'บันทึก' :'ถัดไป',
               onPressed: () {
                 if (_selectedGenderPreference == null) {
                   ScaffoldMessenger.of(context).showSnackBar(
@@ -332,21 +344,38 @@ class _MatchPreferenceScreenState extends ConsumerState<MatchPreferenceScreen> {
                       ref.read(userStoreProvider) as Map<String, dynamic>?;
 
                   // สร้าง Map ของ user ที่ต้องการส่งไปอัปเดต
-                  final Map<String, Object> preferenceMatch = {
-                    "interestedGender": _selectedGenderPreference!,
-                    "interestedAgeMax": _selectedRange.end,
-                    "interestedAgeMin": _selectedRange.start,
-                    "interestedTravelStyle": _travelStylePreference!,
-                    "interestedLifeStyle": _lifeStylePreference!,
-                    "interestedInterest": _interestPreference!,
-                    "interestedDistanceMin": 0,
-                    "interestedDistanceMax": 0,
-                  };
+                  final Map<String, Object> preferenceMatch;
+
+                  if (!onUpdate) {
+                    preferenceMatch = {
+                      "interestedGender": _selectedGenderPreference!,
+                      "interestedAgeMax": _selectedRange.end,
+                      "interestedAgeMin": _selectedRange.start,
+                      "interestedTravelStyle": _travelStylePreference!,
+                      "interestedLifeStyle": _lifeStylePreference!,
+                      "interestedInterest": _interestPreference!,
+                      "interestedDistanceMin": 0,
+                      "interestedDistanceMax": 0,
+                    };
+                  } else {
+                    preferenceMatch = {
+                      "interestedGender": _selectedGenderPreference!,
+                      "interestedAgeMax": _selectedRange.end,
+                      "interestedAgeMin": _selectedRange.start,
+                      "interestedTravelStyle": _travelStylePreference!,
+                      "interestedLifeStyle": _lifeStylePreference!,
+                      "interestedInterest": _interestPreference!,
+                    };
+                  }
 
                   final updatedUser = ref
                       .read(userServiceProvider)
                       .addPreferenceMatchUser(preferenceMatch);
-                  Navigator.pushNamed(context, '/userPicture');
+                  if (!onUpdate) {
+                    Navigator.pushNamed(context, '/userPicture');
+                  } else {
+                    Navigator.pushNamed(context, '/settings');
+                  }
                 } catch (e) {
                   throw Exception(e);
                 }
