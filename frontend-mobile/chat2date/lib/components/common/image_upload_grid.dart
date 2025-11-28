@@ -65,7 +65,7 @@ class _ImageUploadGridState extends State<ImageUploadGrid> {
 
   void _notifyParent() {
     final List<XFile> currentImages = _images
-        .where((img) => img != null)
+        .where((img) => img is XFile)
         .cast<XFile>()
         .toList();
     widget.onImagesChanged?.call(currentImages);

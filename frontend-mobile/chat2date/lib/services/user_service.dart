@@ -147,6 +147,7 @@ class UserService {
 
     if (response.statusCode == 200) {
       final data = jsonDecode(response.body);
+      ref.read(userStoreProvider.notifier).setCardFaceBytes(data?['base64Card']);
       ref.read(userStoreProvider.notifier).setProfile(data);
       return data;
     }

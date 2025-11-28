@@ -1,6 +1,6 @@
 import 'dart:convert';
 import 'dart:io';
-
+import 'package:image_picker/image_picker.dart';
 import 'package:chat2date/components/buttons/ds_button.dart';
 import 'package:chat2date/components/common/image_upload_grid.dart';
 import 'package:chat2date/components/common/loading_component.dart';
@@ -68,11 +68,19 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
   }
 
   void _loadInitialData() async {
-    final userStore = ref.read(userStoreProvider) as Map<String, dynamic>?;
+    final userStore = ref.read(userStoreProvider);
+    final userStoreMap = userStore as Map<String, dynamic>?;
+
+    if (userStoreMap == null ||
+        userStoreMap['profile'] == null ||
+        userStoreMap['user'] == null) {
+      return;
+    }
+
     final prefs = userStore?['preferences'] as Map<String, dynamic>?;
     await _setDataFromStore(
-      userStore?['profile'],
-      userStore?['user'],
+      userStoreMap['profile'] as Map<String, dynamic>,
+      userStoreMap['user'] as User,
       prefs: {
         'travelStyles': prefs?['travelStyles'],
         'lifeStyles': prefs?['lifeStyles'],
@@ -137,8 +145,6 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
       photoUrls = (photoMap['urls'] as List<dynamic>)
           .map((e) => e.toString())
           .toList();
-      print(photoMap['urls']);
-      print(photoUrls);
       _oldNickname = nickname;
       _oldGenderPref = _selectedGenderPreference;
 
@@ -335,11 +341,12 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
         idCardBase64: cardFaceBytes,
       );
 
-      // if (mounted) {
-      //   Navigator.pushReplacementNamed(context, '/discovery');
-      // }
+      if (mounted) {
+        Navigator.pushReplacementNamed(context, '/discovery');
+      }
     } catch (e) {
       if (mounted) {
+        print(e.toString().toLowerCase());
         // ตรวจสอบว่า error เป็นเรื่องใบหน้าไม่ตรงหรือไม่
         final errorMessage = e.toString().toLowerCase();
         if (errorMessage.contains('face') ||
@@ -419,7 +426,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
         tasks.add(userService.addPreferenceUser(preference));
       }
 
-      if (_isListChanged(_oldPhotos, photoUrls)) {
+      if (_isListChanged(_oldPhotos, _selectedImages)) {
         _handleSubmit();
       }
       await Future.wait(tasks);

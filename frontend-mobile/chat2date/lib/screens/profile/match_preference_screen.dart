@@ -33,7 +33,6 @@ class _MatchPreferenceScreenState extends ConsumerState<MatchPreferenceScreen> {
 
     final userStore = ref.read(userStoreProvider) as Map<String, dynamic>?;
     final profile = userStore?['profile'] as Map<String, dynamic>?;
-    print(profile);
 
     // ถ้า profile ไม่มี → ใช้ default
     setState(() {
