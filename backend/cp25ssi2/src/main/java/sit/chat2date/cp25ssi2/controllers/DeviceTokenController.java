@@ -18,7 +18,7 @@ public class DeviceTokenController {
     @PostMapping("/register")
     public ResponseEntity<?> register(@RequestBody DeviceTokenRequest request) {
         deviceTokenService.registerToken(request);
-        return ResponseEntity.ok(Map.of("status", "OK"));
+        return ResponseEntity.status(201).body(Map.of("status", "CREATED"));
     }
 
     @PostMapping("/remove")

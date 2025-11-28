@@ -40,8 +40,9 @@ public class UserController {
     }
 
     @PostMapping("/users")
-    public User createUser(@RequestBody User user) {
-        return userService.createUser(user);
+    public ResponseEntity<User> createUser(@RequestBody User user) {
+        User created = userService.createUser(user);
+        return ResponseEntity.status(201).body(created);
     }
 
     @DeleteMapping("/users/{id}")

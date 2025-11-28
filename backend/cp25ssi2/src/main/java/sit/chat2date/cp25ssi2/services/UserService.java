@@ -149,7 +149,7 @@ public class UserService {
                 .toList();
         pref.setTravelStyles(travelStyles);
 
-        return ResponseEntity.ok(pref);
+        return ResponseEntity.status(HttpStatus.CREATED).body(pref);
     }
 
     @Transactional
@@ -242,7 +242,7 @@ public class UserService {
                 userHasTravelstyleRepository::deleteAllByUser
         );
 
-        return ResponseEntity.ok(pref);
+        return ResponseEntity.status(HttpStatus.CREATED).body(pref);
     }
 
     public ResponseEntity<PreferenceMatchUserDTO> createUserPreferenceMatch(
