@@ -989,6 +989,7 @@ class _CandidateViewState extends ConsumerState<_CandidateView> {
                       ),
 
                     // --- Action buttons ---
+                    // UNLIKE (ซ้าย)
                     ValueListenableBuilder<ActivePanel>(
                       valueListenable: widget.activePanel,
                       builder: (context, value, _) {
@@ -999,16 +1000,19 @@ class _CandidateViewState extends ConsumerState<_CandidateView> {
                           left: 75,
                           bottom: -30,
                           child: DsSvgSwapButton(
-                            assetA: 'assets/icons/icon_unlike.svg',
-                            assetB: 'assets/icons/icon_unlike_hover.svg',
+                            assetA: 'assets/icons/icon_unlike.svg', // 60 x 60
+                            assetB:
+                                'assets/icons/icon_unlike_active.svg', // 80 x 80
                             iconSize: 60,
-                            glowColor: const Color(0x33FF6B6B),
-                            glowBlur: 20,
+                            activeIconSize: 80,
+                            padding: 0,
                             onPressed: widget.onUnlike,
                           ),
                         );
                       },
                     ),
+
+                    // LIKE (ขวา)
                     ValueListenableBuilder<ActivePanel>(
                       valueListenable: widget.activePanel,
                       builder: (context, value, _) {
@@ -1019,11 +1023,12 @@ class _CandidateViewState extends ConsumerState<_CandidateView> {
                           right: 75,
                           bottom: -30,
                           child: DsSvgSwapButton(
-                            assetA: 'assets/icons/icon_like.svg',
-                            assetB: 'assets/icons/icon_like_hover.svg',
+                            assetA: 'assets/icons/icon_heart.svg', // 60 x 60
+                            assetB:
+                                'assets/icons/icon_heart_active.svg', // 77 x 77
                             iconSize: 60,
-                            glowColor: const Color(0x33FF6B6B),
-                            glowBlur: 20,
+                            activeIconSize: 77,
+                            padding: 0,
                             onPressed: widget.onLike,
                           ),
                         );

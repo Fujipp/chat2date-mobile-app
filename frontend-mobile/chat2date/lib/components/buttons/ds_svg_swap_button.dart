@@ -1,28 +1,38 @@
+import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 
-/// ปุ่ม SVG ที่สลับ asset ได้ (A/B) และมี Glow ตอน hover/กดค้าง
+/// ปุ่ม SVG ที่สลับ asset (normal / active) พร้อม animation ลื่น ๆ
+/// - assetA = icon ปกติ  (60x60)
+/// - assetB = icon active (77x77 / 80x80 + glow ในไฟล์)
 class DsSvgSwapButton extends StatefulWidget {
-  /// asset ปกติ (เช่น 'assets/icons/ic_heart.svg')
   final String assetA;
-
-  /// asset สลับสี/hover (เช่น 'assets/icons/ic_heart_hover.svg')
   final String assetB;
 
-  /// ขนาดกรอบกด (กดง่าย) — ถ้าอยากให้ “เห็นเฉพาะ SVG” ให้ตั้งเป็น 0
-  final double padding; // default 8 = มีพื้นที่กด
-
-  /// ขนาดตัว SVG
+  /// ขนาด SVG ปกติ (จากไฟล์)
   final double iconSize;
 
-  /// สถานะพรีวิว (เช่นโชว์ภาพ B ตลอด) ใช้ในจอเดโม
+  /// ขนาด SVG ตอน active (จากไฟล์)
+  final double activeIconSize;
+
+  /// ขนาดกล่อง hit area (ถ้าไม่ส่ง จะ auto = activeIconSize + 20)
+  final double? hitSize;
+
+  /// padding เพิ่มรอบ ๆ icon ภายในกล่อง (ปกติใช้ 0 ก็ได้)
+  final double padding;
+
+  /// ให้โชว์ state active ตลอด (ใช้ในหน้า demo)
   final bool previewHoverLook;
 
-  /// Glow ตอน hover/กด
-  final double glowBlur;
+  /// ระยะเวลา animation
+  final Duration duration;
+
+  /// สี glow เพิ่มเติม (นอกเหนือจากที่อยู่ใน SVG)
   final Color glowColor;
 
-  /// Callback
+  /// ความฟุ้งของ glow
+  final double glowBlur;
+
   final VoidCallback? onPressed;
 
   const DsSvgSwapButton({
@@ -30,11 +40,14 @@ class DsSvgSwapButton extends StatefulWidget {
     required this.assetA,
     required this.assetB,
     this.onPressed,
-    this.padding = 8,
-    this.iconSize = 28,
+    this.iconSize = 60,
+    this.activeIconSize = 60,
+    this.hitSize,
+    this.padding = 0,
     this.previewHoverLook = false,
-    this.glowBlur = 20,
+    this.duration = const Duration(milliseconds: 200),
     this.glowColor = const Color(0x33000000),
+    this.glowBlur = 24,
   });
 
   @override
@@ -59,26 +72,68 @@ class _DsSvgSwapButtonState extends State<DsSvgSwapButton> {
   Widget build(BuildContext context) {
     final disabled = widget.onPressed == null;
 
-    // ใช้ assetB เมื่อ (กด/hover) หรือ previewHoverLook = true
-    final useHoverLook =
-        !disabled && (widget.previewHoverLook || _hovered || _pressed);
-    final asset = useHoverLook ? widget.assetB : widget.assetA;
+    // mobile จะมีแค่ pressed, web/desktop มี hover ด้วย
+    final bool isActive = widget.previewHoverLook ||
+        (!disabled && (_hovered || _pressed));
 
-    final glow = (!disabled && (useHoverLook || _hovered))
-        ? [BoxShadow(blurRadius: widget.glowBlur, color: widget.glowColor)]
-        : const <BoxShadow>[];
+    final double normalSize = widget.iconSize;
+    final double activeSize = widget.activeIconSize;
 
-    final core = AnimatedContainer(
-      duration: const Duration(milliseconds: 120),
-      curve: Curves.easeOut,
-      padding: EdgeInsets.all(widget.padding),
-      decoration: BoxDecoration(boxShadow: glow),
-      child: SvgPicture.asset(
-        asset,
-        width: widget.iconSize,
-        height: widget.iconSize,
-        // ไม่ใส่ colorFilter เพื่อ “คงสีจากไฟล์ SVG ตรงเป๊ะ”
-      ),
+    // กล่อง hit area ใหญ่กว่าหน่อย เพื่อให้กดติดง่าย
+    final double outerSize =
+        widget.hitSize ?? (widget.activeIconSize + 20);
+
+    final core = TweenAnimationBuilder<double>(
+      tween: Tween<double>(begin: 0, end: isActive ? 1 : 0),
+      duration: widget.duration,
+      curve: Curves.easeOutCubic,
+      builder: (context, t, _) {
+        // t: 0 = normal, 1 = active
+        final double innerSize = ui.lerpDouble(normalSize, activeSize, t)!;
+
+        // glow ยิ่ง active ยิ่งแรง
+        final double blur = widget.glowBlur * t;
+        final Color glowColor =
+            widget.glowColor.withOpacity(widget.glowColor.opacity * t);
+
+        return SizedBox(
+          width: outerSize,
+          height: outerSize,
+          child: Center(
+            child: Container(
+              width: innerSize,
+              height: innerSize,
+              padding: EdgeInsets.all(widget.padding),
+              decoration: BoxDecoration(
+                // extra glow นอกเหนือจาก glow ที่อยู่ใน SVG
+                boxShadow: t > 0
+                    ? [
+                        BoxShadow(
+                          color: glowColor,
+                          blurRadius: blur,
+                        ),
+                      ]
+                    : const [],
+              ),
+              child: Stack(
+                fit: StackFit.expand,
+                children: [
+                  // normal SVG ค่อย ๆ จาง
+                  Opacity(
+                    opacity: 1 - t,
+                    child: SvgPicture.asset(widget.assetA),
+                  ),
+                  // active SVG ค่อย ๆ โผล่
+                  Opacity(
+                    opacity: t,
+                    child: SvgPicture.asset(widget.assetB),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+      },
     );
 
     final gesture = MouseRegion(
@@ -94,8 +149,11 @@ class _DsSvgSwapButtonState extends State<DsSvgSwapButton> {
       ),
     );
 
-    return widget.onPressed == null
-        ? Opacity(opacity: 0.6, child: core)
-        : gesture;
+    // ถ้า disabled + ไม่ได้ preview ให้จางลงเฉย ๆ
+    if (disabled && !widget.previewHoverLook) {
+      return Opacity(opacity: 0.6, child: core);
+    }
+
+    return gesture;
   }
 }

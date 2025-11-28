@@ -1061,7 +1061,7 @@ class _ComponentTestScreenState extends State<ComponentTestScreen> {
           ),
           const SizedBox(height: 8),
 
-          // --- กล่อง HEART (171x100) ---
+          // กล่อง HEART
           Container(
             width: 171,
             height: 100,
@@ -1078,12 +1078,11 @@ class _ComponentTestScreenState extends State<ComponentTestScreen> {
                   left: 20,
                   top: 20,
                   child: DsSvgSwapButton(
-                    assetA: 'assets/icons/icon_heart.svg',
-                    assetB: 'assets/icons/icon_heart_hover.svg',
-                    iconSize: 60,
+                    assetA: 'assets/icons/heart_normal.svg',
+                    assetB: 'assets/icons/heart_active.svg',
+                    iconSize: 60, // จาก SVG ปกติ
+                    activeIconSize: 77, // จาก SVG active
                     padding: 0,
-                    glowColor: const Color(0x33FF6B81),
-                    glowBlur: 20,
                     onPressed: () {},
                   ),
                 ),
@@ -1091,21 +1090,20 @@ class _ComponentTestScreenState extends State<ComponentTestScreen> {
                   left: 91,
                   top: 20,
                   child: DsSvgSwapButton(
-                    assetA: 'assets/icons/icon_heart.svg',
-                    assetB: 'assets/icons/icon_heart_hover.svg',
+                    assetA: 'assets/icons/heart_normal.svg',
+                    assetB: 'assets/icons/heart_active.svg',
                     iconSize: 60,
+                    activeIconSize: 77,
                     padding: 0,
-                    glowColor: const Color(0x33FF6B81),
-                    glowBlur: 20,
-                    previewHoverLook: true,
-                    onPressed: () {},
+                    previewHoverLook: true, // โชว์ภาพแบบ active ตลอด
+                    onPressed: null,
                   ),
                 ),
               ],
             ),
           ),
 
-          // --- กล่อง CLOSE (171x100) ---
+          // กล่อง UNLIKE
           Container(
             width: 171,
             height: 100,
@@ -1122,12 +1120,11 @@ class _ComponentTestScreenState extends State<ComponentTestScreen> {
                   left: 20,
                   top: 20,
                   child: DsSvgSwapButton(
-                    assetA: 'assets/icons/icon_like.svg',
-                    assetB: 'assets/icons/icon_like_hover.svg',
-                    iconSize: 60,
+                    assetA: 'assets/icons/unlike_normal.svg',
+                    assetB: 'assets/icons/unlike_active.svg',
+                    iconSize: 60, // จาก SVG ปกติ
+                    activeIconSize: 80, // จาก SVG active
                     padding: 0,
-                    glowColor: const Color(0x33FF6B6B),
-                    glowBlur: 20,
                     onPressed: () {},
                   ),
                 ),
@@ -1135,14 +1132,13 @@ class _ComponentTestScreenState extends State<ComponentTestScreen> {
                   left: 91,
                   top: 20,
                   child: DsSvgSwapButton(
-                    assetA: 'assets/icons/icon_close.svg',
-                    assetB: 'assets/icons/icon_close_hover.svg',
+                    assetA: 'assets/icons/unlike_normal.svg',
+                    assetB: 'assets/icons/unlike_active.svg',
                     iconSize: 60,
+                    activeIconSize: 80,
                     padding: 0,
-                    glowColor: const Color(0x33FF6B6B),
-                    glowBlur: 20,
                     previewHoverLook: true,
-                    onPressed: () {},
+                    onPressed: null,
                   ),
                 ),
               ],
