@@ -25,11 +25,16 @@ class ApiBase {
     if (_defined.startsWith('http')) {
       final uri = Uri.parse(_defined);
       final scheme = uri.scheme == 'https' ? 'wss' : 'ws';
-      return Uri(
-        scheme: scheme,
-        host: uri.host,
-        port: uri.hasPort ? uri.port : null,
-      ).toString();
+      final wsUri = Uri(
+      scheme: scheme,
+      host: uri.host,
+      port: uri.hasPort ? uri.port : null,
+      path: uri.path, // <--- จุดสำคัญ
+    );
+
+      // ตัด '/' ท้ายออกถ้ามี
+      final base = wsUri.toString();
+      return base.endsWith('/') ? base.substring(0, base.length - 1) : base;
     }
 
     if (kIsWeb) {

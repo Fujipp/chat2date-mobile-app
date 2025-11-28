@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:math';
 
 import 'package:chat2date/config/backend_base.dart';
 import 'package:chat2date/models/dto/match_event_dto.dart';
@@ -21,6 +22,8 @@ class MatchSocketService {
   final _controller = StreamController<MatchEventDto>.broadcast();
   StompClient? _client;
   bool _connecting = false;
+  bool _disposed = false;
+  int _reconnectAttempts = 0;
 
   Stream<MatchEventDto> get stream => _controller.stream;
 
@@ -29,6 +32,7 @@ class MatchSocketService {
     _connecting = true;
 
     final wsUrl = '${ApiBase.websocketBase}/ws';
+    print('[MatchSocket] connecting to $wsUrl');
     final headers = <String, String>{
       if (accessToken?.isNotEmpty == true) 'Authorization': 'Bearer $accessToken',
     };
@@ -43,14 +47,17 @@ class MatchSocketService {
         onWebSocketError: (err) {
           _connecting = false;
           print('[MatchSocket] websocket error: $err');
+          _scheduleReconnect();
         },
         onStompError: (frame) {
           _connecting = false;
           print('[MatchSocket] stomp error: ${frame.body}');
+          _scheduleReconnect();
         },
         onDisconnect: (_) {
           _connecting = false;
           _client = null;
+          if (!_disposed) _scheduleReconnect();
         },
         stompConnectHeaders: headers,
         webSocketConnectHeaders: headers,
@@ -62,26 +69,54 @@ class MatchSocketService {
 
   void _onConnect(StompFrame frame) {
     _connecting = false;
+    _reconnectAttempts = 0;
+    print('[MatchSocket] connected, subscribing to /topic/matches/$userId');
     _client?.subscribe(
       destination: '/topic/matches/$userId',
       callback: (frame) {
         final body = frame.body;
+        print('[MatchSocket] received frame: ${body?.substring(0, body.length > 200 ? 200 : body.length)}');
         if (body == null) return;
         try {
           final json = jsonDecode(body) as Map<String, dynamic>;
           final event = MatchEventDto.fromJson(json);
           _controller.add(event);
-        } catch (e) {
+        } catch (e, st) {
           print('[MatchSocket] failed to handle frame: $e');
+          print(st);
         }
       },
     );
   }
 
+  void _scheduleReconnect() {
+    if (_disposed) return;
+    _reconnectAttempts = (_reconnectAttempts + 1).clamp(0, 10);
+    // exponential backoff capped at 30s
+    final int seconds = min(30, 1 << (_reconnectAttempts - 1 >= 0 ? _reconnectAttempts - 1 : 0));
+    final delay = Duration(seconds: max(1, seconds));
+    print('[MatchSocket] scheduling reconnect in ${delay.inSeconds}s (attempt=$_reconnectAttempts)');
+    Future.delayed(delay, () {
+      if (_disposed) return;
+      // clear any previous client and try reconnect
+      try {
+        _client?.deactivate();
+      } catch (_) {}
+      _client = null;
+      _connecting = false;
+      connect();
+    });
+  }
+
   void dispose() {
-    _client?.deactivate();
+    _disposed = true;
+    try {
+      _client?.deactivate();
+    } catch (_) {}
     _client = null;
-    _controller.close();
+    try {
+      _controller.close();
+    } catch (_) {}
   }
 }
 

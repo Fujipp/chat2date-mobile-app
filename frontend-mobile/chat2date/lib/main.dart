@@ -51,7 +51,6 @@ class MyApp extends StatelessWidget {
         '/discovery': (context) => DiscoveryScreen(),
 
         //Fuji
-        '/splash': (context) => const SplashPage(),
         '/home': (context) => const HomeLoginPage(),
         '/policy': (context) => const PolicyPage(),
         '/phone': (context) => const PhonePage(),
