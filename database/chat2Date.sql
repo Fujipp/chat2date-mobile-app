@@ -221,6 +221,7 @@ CREATE TABLE IF NOT EXISTS `chat2date`.`userphoto` (
   `userId` VARCHAR(36) NOT NULL,
   `attributes` JSON NOT NULL,
   `base64Card` LONGTEXT, 
+  `isVerified` BOOLEAN NOT NULL DEFAULT 0
   PRIMARY KEY (`photoId`),
   INDEX `userId` (`userId` ASC) VISIBLE,
   CONSTRAINT `userphoto_ibfk_1`
