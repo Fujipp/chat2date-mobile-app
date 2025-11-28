@@ -1,11 +1,11 @@
+import 'package:chat2date/screens/match/match_success_screen.dart';
 import 'package:chat2date/theme/app_theme.dart';
+import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:firebase_core/firebase_core.dart';
-import 'firebase_options.dart';
-import 'package:chat2date/screens/match/match_success_screen.dart';
 
+import 'firebase_options.dart';
 import 'screens/index.dart';
 
 final GlobalKey<NavigatorState> rootNavigatorKey = GlobalKey<NavigatorState>();
@@ -16,9 +16,7 @@ Future<void> main() async {
 
   // โหลด .env
   await dotenv.load(fileName: ".env");
-  await Firebase.initializeApp(
-    options: DefaultFirebaseOptions.currentPlatform,
-  );
+  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
 
   runApp(const ProviderScope(child: MyApp()));
 }
@@ -47,6 +45,7 @@ class MyApp extends StatelessWidget {
         '/matchPreference': (context) => MatchPreferenceScreen(),
         '/userPicture': (context) => const UserPictureScreen(),
         '/profile': (context) => const ProfileScreen(),
+        '/settings': (context) => const SettingsScreen(),
 
         //Hutch
         '/discovery': (context) => DiscoveryScreen(),
@@ -63,8 +62,9 @@ class MyApp extends StatelessWidget {
         '/kyc-result-success': (context) => const KycResultSuccessScreen(),
         '/kyc-result-fail': (context) => const KycResultFailScreen(),
 
-              MatchSuccessScreen.routeName: (context) {
-          final args = ModalRoute.of(context)!.settings.arguments as MatchSuccessArgs;
+        MatchSuccessScreen.routeName: (context) {
+          final args =
+              ModalRoute.of(context)!.settings.arguments as MatchSuccessArgs;
           return MatchSuccessScreen(args: args);
         },
       },
