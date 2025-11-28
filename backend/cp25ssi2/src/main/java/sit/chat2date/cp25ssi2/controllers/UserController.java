@@ -84,7 +84,7 @@ public class UserController {
     @DeleteMapping("/users/{id}/photo")
     public ResponseEntity<Void> deletePhoto(
             @PathVariable String id,
-            @RequestParam String imageUrl
+            @RequestParam List<String> imageUrl
     ) {
         identityService.deleteUserPhoto(id, imageUrl);
         return ResponseEntity.noContent().build();

@@ -213,7 +213,7 @@ public class IdentityService {
         userPhotoRepository.save(userPhoto);
     }
 
-    public void deleteUserPhoto(String userId, String imageUrl) {
+    public void deleteUserPhoto(String userId, List<String> imageUrl) {
         // 1) หา UserPhoto ตาม userId
         UserPhoto userPhoto = userPhotoRepository.findByUser_UserId(userId);
         if (userPhoto == null) {
@@ -229,20 +229,29 @@ public class IdentityService {
         @SuppressWarnings("unchecked")
         List<String> urls = (List<String>) attributes.get("urls");
 
-        // 3) เช็กว่ามี url นี้ไหม
-        if (!urls.contains(imageUrl)) {
-            throw new RuntimeException("Image url not found in user photos");
+        List<String> publicIdsToDelete = new ArrayList<>();
+
+        for (String imgUrl : imageUrl) {
+            if (urls.contains(imgUrl)) {
+                throw new RuntimeException("Image url not found in user photos");
+            }
+
+
+
+            publicIdsToDelete.add(extractPublicIdFromUrl(imgUrl));
+            urls.remove(imgUrl);
+
         }
 
         // 4) ลบออกจาก list แล้ว save กลับ
-        urls.remove(imageUrl);
         attributes.put("urls", urls);
         userPhoto.setAttributes(attributes);
         userPhotoRepository.save(userPhoto);
 
         // 5) แปลง URL → publicId แล้วสั่งลบที่ Cloudinary
-        String publicId = extractPublicIdFromUrl(imageUrl);
-        cloudinaryService.delete(publicId);
+        for (String publicId : publicIdsToDelete) {
+            cloudinaryService.delete(publicId);
+        }
     }
 
     private String extractPublicIdFromUrl(String url) {
