@@ -30,34 +30,52 @@ public class IdentityService {
     @Autowired
     private UserPhotoRepository userPhotoRepository;
 
-    // Thread Pool สำหรับทำงานแบบ Parallel (ปรับขนาดตามเซิร์ฟเวอร์)
     private final ExecutorService executorService = Executors.newFixedThreadPool(10);
 
-    public List<String> verifyAndUpload(String userId, List<MultipartFile> profileImages, String idCardBase64) {
+    // Thread Pool สำหรับทำงานแบบ Parallel (ปรับขนาดตามเซิร์ฟเวอร์)
+    public List<String> verifyAndUpload(String userId,
+                                        List<MultipartFile> profileImages,
+                                        String idCardBase64) {
 
-        // 1. เตรียมรูปบัตรประชาชนครั้งเดียว
         if (idCardBase64.contains(",")) {
             idCardBase64 = idCardBase64.split(",")[1];
         }
         byte[] idCardBytes = Base64.getDecoder().decode(idCardBase64);
 
-        // 2. ✨ Verify แบบ Parallel - หยุดทันทีที่เจอรูปแรกที่ Match
+        boolean hadVerifiedBefore = hasVerifiedPhotos(userId);
         boolean isVerified = verifyFacesParallel(profileImages, idCardBytes);
 
-        if (!isVerified) {
+        // ถ้าไม่เคยผ่านมาก่อนเลย -> รอบนี้ต้องผ่าน
+        if (!hadVerifiedBefore && !isVerified) {
             throw new IllegalArgumentException("ใบหน้าในรูปโปรไฟล์ไม่ตรงกับบัตรประชาชน");
         }
 
-        // 3. ✨ Upload แบบ Parallel - อัปโหลดพร้อมกันทุกรูป
-        List<String> uploadedUrls = uploadImagesParallel(profileImages);
+        // ถ้ารอบนี้มีรูปผ่าน → อัปเดต flag
         User user = userRepository.findUsersByUserId(userId);
+        UserPhoto userPhoto = userPhotoRepository.findByUser_UserId(userId);
 
-        // 4. บันทึกลง Database
-        user.setAccountStatus(AccountStatus.ACTIVE);
+        if (isVerified) {
+            if (userPhoto == null) {
+                userPhoto = new UserPhoto();
+                userPhoto.setUser(user);
+            }
+            userPhoto.setIsVerified(true);
+            user.setAccountStatus(AccountStatus.ACTIVE);
+            userPhotoRepository.save(userPhoto);
+        } else if (!hadVerifiedBefore) {
+            throw new IllegalArgumentException("ใบหน้าในรูปโปรไฟล์ไม่ตรงกับบัตรประชาชน");
+        }
+
+
+        // อัปโหลดรูปใหม่
+        List<String> uploadedUrls = uploadImagesParallel(profileImages);
+
         saveUserPhotos(userId, uploadedUrls, idCardBase64);
 
         return uploadedUrls;
     }
+
+
 
     /**
      * Verify ใบหน้าแบบ Parallel - หยุดทันทีที่เจอรูปแรกที่ตรง
@@ -143,6 +161,13 @@ public class IdentityService {
         }
     }
 
+    private boolean hasVerifiedPhotos(String userId) {
+        UserPhoto userPhoto = userPhotoRepository.findByUser_UserId(userId);
+        return userPhoto != null && Boolean.TRUE.equals(userPhoto.getIsVerified());
+    }
+
+
+
     /**
      * บันทึกข้อมูลรูปภาพลง Database
      */
@@ -167,17 +192,22 @@ public class IdentityService {
             attributes = new HashMap<>();
         }
 
-        // ดึง urls เดิม ถ้ามี
         List<String> urls;
-        if (attributes.containsKey("urls")) {
-            urls = (List<String>) attributes.get("urls");
+        if (attributes.containsKey("urls") && attributes.get("urls") != null) {
+            urls = new ArrayList<>((List<String>) attributes.get("urls"));
         } else {
             urls = new ArrayList<>();
         }
-        System.out.println(urls);
 
-        urls.addAll(uploadedUrls);
-        attributes.put("urls", uploadedUrls);
+        // เพิ่ม URL ใหม่ (กันซ้ำ)
+        for (String newUrl : uploadedUrls) {
+            if (!urls.contains(newUrl)) {
+                urls.add(newUrl);
+            }
+        }
+
+        // ไม่ต้อง addAll/upsert ซ้ำ ไม่ต้อง put uploadedUrls
+        attributes.put("urls", urls);
 
         userPhoto.setAttributes(attributes);
         userPhotoRepository.save(userPhoto);

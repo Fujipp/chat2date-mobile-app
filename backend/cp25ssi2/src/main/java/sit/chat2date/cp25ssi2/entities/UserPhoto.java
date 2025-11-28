@@ -25,6 +25,9 @@ public class UserPhoto {
     @JoinColumn(name = "userId", nullable = false)
     private User user;
 
+    @Column(name = "isVerified", nullable = false)
+    private Boolean isVerified = false;
+
     @Column(name = "attributes", nullable = false)
     @JdbcTypeCode(SqlTypes.JSON)
     private Map<String, Object> attributes;

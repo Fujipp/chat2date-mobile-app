@@ -202,38 +202,6 @@ public class DiscoveryService {
         return Period.between(birthday, LocalDate.now()).getYears();
     }
 
-//    // === mock candidate ไว้ก่อน เผื่อ Dev ยังใช้ getCandidate อยู่ ===
-//    private static final Map<String, UserSummaryDto> USERS = new HashMap<>();
-//    static {
-//        USERS.put("u_1", new UserSummaryDto("u_1", "08xxxxxxx"));
-//        USERS.put("u_2", new UserSummaryDto("u_2", "09xxxxxxx"));
-//        USERS.put("u_3", new UserSummaryDto("u_3", "06xxxxxxx"));
-//    }
-
-//    public DiscoveryService(
-//            UserRepository userRepository,
-//            ActionRepository actionRepository,
-//            MatchRepository matchRepository
-//    ) {
-//        this.userRepository = userRepository;
-//        this.actionRepository = actionRepository;
-//        this.matchRepository = matchRepository;
-//    }
-
-//    // ถ้า Dev ยังใช้ /discovery/distance อยู่ ก็ปล่อยตัวนี้ไว้ก่อนได้
-//    public UserSummaryDto getCandidate(String userId, int minDistance, int maxDistance) {
-//        if (minDistance > maxDistance) {
-//            throw new BadRequestException("minDistance must be <= maxDistance");
-//        }
-//        if (!USERS.containsKey(userId)) {
-//            throw new NotFoundException("user not found: " + userId);
-//        }
-//        for (UserSummaryDto u : USERS.values()) {
-//            if (!Objects.equals(u.getId(), userId)) return u;
-//        }
-//        throw new ServiceException("no candidate available");
-//    }
-
     /**
      * ใช้ตอน user กด like/dislike
      * - บันทึก action ลง actiontable
