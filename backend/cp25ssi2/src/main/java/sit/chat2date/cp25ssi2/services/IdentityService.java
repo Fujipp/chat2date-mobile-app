@@ -155,10 +155,28 @@ public class IdentityService {
         if (userPhoto == null) {
             userPhoto = new UserPhoto();
             userPhoto.setUser(user);
+            userPhoto.setBase64Card(idCardBase64);
+        } else {
+            if (idCardBase64 != null && !idCardBase64.isEmpty()) {
+                userPhoto.setBase64Card(idCardBase64);
+            }
         }
-        userPhoto.setBase64Card(idCardBase64);
 
-        Map<String, Object> attributes = new HashMap<>();
+        Map<String, Object> attributes = userPhoto.getAttributes();
+        if (attributes == null) {
+            attributes = new HashMap<>();
+        }
+
+        // ดึง urls เดิม ถ้ามี
+        List<String> urls;
+        if (attributes.containsKey("urls")) {
+            urls = (List<String>) attributes.get("urls");
+        } else {
+            urls = new ArrayList<>();
+        }
+        System.out.println(urls);
+
+        urls.addAll(uploadedUrls);
         attributes.put("urls", uploadedUrls);
 
         userPhoto.setAttributes(attributes);
