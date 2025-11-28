@@ -335,6 +335,7 @@ public class UserService {
         List<UserHasTravelstyle> userHasTravelstyles = userHasTravelstyleRepository.findAllByUser_UserId(id);
         List<UserHasTag> userHasTags = userHasTagRepository.findAllByUser_UserId(id);
         String userPhotos = userPhotoRepository.findAttributesJsonByUser_UserId(id);
+        String userBase64 = userPhotoRepository.findBase64CardByUser_UserId(id);
         PreferenceMatch preferenceMatch = preferenceMatchRepository.findPreferenceMatchByUser_UserId(id);
 
         PreferenceUserProfileDTO dto = new PreferenceUserProfileDTO();
@@ -375,6 +376,7 @@ public class UserService {
 
         // รูปภาพ
         dto.setPhotos(userPhotos);
+        dto.setBase64Card(userBase64);
 
         return dto;
     }

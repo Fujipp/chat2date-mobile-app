@@ -13,4 +13,7 @@ public interface UserPhotoRepository extends JpaRepository<UserPhoto, Integer> {
     @Query(value = "SELECT attributes FROM userphoto WHERE userId = :userId LIMIT 1", nativeQuery = true)
     String findAttributesJsonByUser_UserId(@Param("userId") String userId);
 
+    @Query(value = "SELECT base64Card FROM userphoto WHERE userId = :userId LIMIT 1", nativeQuery = true)
+    String findBase64CardByUser_UserId(@Param("userId") String userId);
+
 }

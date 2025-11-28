@@ -29,4 +29,7 @@ public class UserPhoto {
     @JdbcTypeCode(SqlTypes.JSON)
     private Map<String, Object> attributes;
 
+    @Column(name = "base64Card", nullable = false)
+    private String base64Card;
+
 }

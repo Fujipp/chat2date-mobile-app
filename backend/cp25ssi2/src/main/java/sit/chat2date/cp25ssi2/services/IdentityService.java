@@ -53,7 +53,7 @@ public class IdentityService {
 
         // 4. บันทึกลง Database
         user.setAccountStatus(AccountStatus.ACTIVE);
-        saveUserPhotos(userId, uploadedUrls);
+        saveUserPhotos(userId, uploadedUrls, idCardBase64);
 
         return uploadedUrls;
     }
@@ -145,7 +145,7 @@ public class IdentityService {
     /**
      * บันทึกข้อมูลรูปภาพลง Database
      */
-    private void saveUserPhotos(String userId, List<String> uploadedUrls) {
+    private void saveUserPhotos(String userId, List<String> uploadedUrls, String idCardBase64) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new RuntimeException("User not found: " + userId));
 
@@ -155,6 +155,7 @@ public class IdentityService {
             userPhoto = new UserPhoto();
             userPhoto.setUser(user);
         }
+        userPhoto.setBase64Card(idCardBase64);
 
         Map<String, Object> attributes = new HashMap<>();
         attributes.put("urls", uploadedUrls);

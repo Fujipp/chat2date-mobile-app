@@ -23,4 +23,5 @@ public class PreferenceUserProfileDTO {
     private String interestedLifeStyle;
     private String interestedInterest;
     private String photos;
+    private String base64Card;
 }
