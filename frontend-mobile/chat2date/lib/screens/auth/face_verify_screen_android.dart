@@ -322,6 +322,7 @@ class _FaceVerifyScreenAndroidState
 
       bool correct = false;
       String hint = _hint;
+      bool instantComplete = false;
 
       switch (_currentStep) {
         case PoseStep.center:
@@ -358,6 +359,7 @@ class _FaceVerifyScreenAndroidState
                 (rightEye != null && rightEye <= blinkEyeClosedMax);
 
             correct = nearCenter && eyeClosed;
+            instantComplete = correct;
             hint = correct
                 ? 'ดีมาก… ค้างหลับตาไว้สักครู่'
                 : 'หันหน้าตรงแล้วลองหลับตาหนึ่งที';
@@ -388,11 +390,22 @@ class _FaceVerifyScreenAndroidState
           }
       }
 
-      if (correct) {
-        _stepHoldSeconds += dt.clamp(0.0, 0.25);
+            if (_currentStep == PoseStep.blink) {
+        // ✅ ท่ากระพริบตา: ถ้าตรงเงื่อนไขครั้งเดียว ให้ผ่านทันที
+        if (instantComplete) {
+          _stepHoldSeconds = _stepSecondsRequired;
+        } else {
+          _stepHoldSeconds = 0;
+        }
       } else {
-        _stepHoldSeconds = 0;
+        // ท่าอื่นยังใช้ระบบ "ค้างท่า" เหมือนเดิม
+        if (correct) {
+          _stepHoldSeconds += dt.clamp(0.0, 0.25);
+        } else {
+          _stepHoldSeconds = 0;
+        }
       }
+
 
       final stepRatio = (_stepHoldSeconds / _stepSecondsRequired).clamp(
         0.0,
