@@ -150,14 +150,7 @@ class _DiscoveryScreenState extends ConsumerState<DiscoveryScreen>
   @override
   void initState() {
     super.initState();
-    // WidgetsBinding.instance.addPostFrameCallback((_) async {
-    //   debugPrint('[Discovery] postFrame: start location + FCM');
-    //   await ref.read(locationServiceProvider).tryUpdateLocationSilently();
-    //   debugPrint('[Discovery] location done, start FCM');
-    //   await ref.read(fcmTokenServiceProvider).registerDeviceTokenSilently();
-    //   debugPrint('[Discovery] FCM call done');
-    //   await ref.read(userServiceProvider).getProfile();
-    // });
+
     _selectedIndex = widget.selectedIndex;
 
     _cardCtrl =
@@ -1046,7 +1039,7 @@ class _CandidateViewState extends ConsumerState<_CandidateView> {
                             if (panelsClosed) ...[
                               Padding(
                                 padding: const EdgeInsets.symmetric(
-                                  vertical: 50,
+                                  vertical: 65,
                                   horizontal: 16,
                                 ),
                                 child: Column(
@@ -1172,6 +1165,7 @@ Widget _buildImageFallback() {
 }
 
 // ✨ Beautiful Loading Widget (เหมือนเดิม)
+
 class _DiscoveryLoadingWidget extends StatefulWidget {
   const _DiscoveryLoadingWidget();
 
@@ -1181,28 +1175,35 @@ class _DiscoveryLoadingWidget extends StatefulWidget {
 }
 
 class _DiscoveryLoadingWidgetState extends State<_DiscoveryLoadingWidget>
-    with SingleTickerProviderStateMixin {
+    with TickerProviderStateMixin {
   late AnimationController _shimmerController;
+  late AnimationController _pulseController;
 
   @override
   void initState() {
     super.initState();
     _shimmerController = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 1500),
+      duration: const Duration(milliseconds: 2000),
     )..repeat();
+
+    _pulseController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1500),
+    )..repeat(reverse: true);
   }
 
   @override
   void dispose() {
     _shimmerController.dispose();
+    _pulseController.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
     return AnimatedBuilder(
-      animation: _shimmerController,
+      animation: Listenable.merge([_shimmerController, _pulseController]),
       builder: (context, child) {
         return Container(
           width: double.infinity,
@@ -1212,99 +1213,189 @@ class _DiscoveryLoadingWidgetState extends State<_DiscoveryLoadingWidget>
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
               colors: [
-                const Color(0xFF5ce1e6).withOpacity(0.1),
-                const Color(0xFF5ce1e6).withOpacity(0.2),
-                const Color(0xFF5ce1e6).withOpacity(0.1),
+                const Color(0xFFFFF5F8).withOpacity(0.3),
+                const Color(0xFFFFE5ED).withOpacity(0.5),
+                const Color(0xFFFFF0F5).withOpacity(0.4),
               ],
               stops: [
-                _shimmerController.value - 0.3,
-                _shimmerController.value,
-                _shimmerController.value + 0.3,
-              ].map((s) => s.clamp(0.0, 1.0)).toList(),
+                (_shimmerController.value - 0.2).clamp(0.0, 1.0),
+                _shimmerController.value.clamp(0.0, 1.0),
+                (_shimmerController.value + 0.3).clamp(0.0, 1.0),
+              ],
             ),
           ),
           child: Stack(
             children: [
+              // Subtle background card
               Positioned.fill(
                 child: Container(
-                  margin: const EdgeInsets.all(16),
+                  margin: const EdgeInsets.all(20),
                   decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(20),
+                    color: Colors.white.withOpacity(0.6),
+                    borderRadius: BorderRadius.circular(24),
+                    border: Border.all(
+                      color: const Color(0xFFFFB3C6).withOpacity(0.3),
+                      width: 1,
+                    ),
+                    boxShadow: [
+                      BoxShadow(
+                        color: const Color(0xFFFFB3C6).withOpacity(0.1),
+                        blurRadius: 30,
+                        spreadRadius: 0,
+                      ),
+                    ],
                   ),
                 ),
               ),
+
+              // Center content
               Center(
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    TweenAnimationBuilder<double>(
-                      tween: Tween(begin: 0.8, end: 1.2),
-                      duration: const Duration(milliseconds: 800),
-                      curve: Curves.easeInOut,
-                      builder: (context, scale, child) {
-                        return Transform.scale(
-                          scale: scale,
-                          child: Container(
-                            padding: const EdgeInsets.all(24),
-                            decoration: BoxDecoration(
-                              shape: BoxShape.circle,
-                              color: const Color(0xFF5ce1e6).withOpacity(0.2),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: const Color(
-                                    0xFF5ce1e6,
-                                  ).withOpacity(0.3),
-                                  blurRadius: 30,
-                                  spreadRadius: 10,
+                    // Heart with pulse effect
+                    Stack(
+                      alignment: Alignment.center,
+                      children: [
+                        // Pulse ring
+                        AnimatedBuilder(
+                          animation: _pulseController,
+                          builder: (context, child) {
+                            final scale = 1.0 + (_pulseController.value * 0.3);
+                            final opacity =
+                                (1.0 - _pulseController.value) * 0.5;
+                            return Transform.scale(
+                              scale: scale,
+                              child: Container(
+                                width: 130,
+                                height: 130,
+                                decoration: BoxDecoration(
+                                  shape: BoxShape.circle,
+                                  border: Border.all(
+                                    color: const Color(
+                                      0xFFFF8FB3,
+                                    ).withOpacity(opacity),
+                                    width: 2,
+                                  ),
                                 ),
-                              ],
-                            ),
-                            child: const Icon(
-                              Icons.favorite,
-                              size: 60,
-                              color: Color(0xFF5ce1e6),
-                            ),
-                          ),
-                        );
-                      },
-                      onEnd: () {
-                        if (mounted) {
-                          setState(() {});
-                        }
-                      },
+                              ),
+                            );
+                          },
+                        ),
+
+                        // Main heart
+                        TweenAnimationBuilder<double>(
+                          tween: Tween(begin: 0.95, end: 1.05),
+                          duration: const Duration(milliseconds: 800),
+                          curve: Curves.easeInOut,
+                          builder: (context, scale, child) {
+                            return Transform.scale(
+                              scale: scale,
+                              child: Container(
+                                padding: const EdgeInsets.all(28),
+                                decoration: BoxDecoration(
+                                  shape: BoxShape.circle,
+                                  gradient: const LinearGradient(
+                                    begin: Alignment.topLeft,
+                                    end: Alignment.bottomRight,
+                                    colors: [
+                                      Color(0xFFFFE5EE),
+                                      Color(0xFFFFCCDD),
+                                    ],
+                                  ),
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: const Color(
+                                        0xFFFF8FB3,
+                                      ).withOpacity(0.3),
+                                      blurRadius: 35,
+                                      spreadRadius: 5,
+                                    ),
+                                  ],
+                                ),
+                                child: const Icon(
+                                  Icons.favorite,
+                                  size: 64,
+                                  color: Color(0xFFFF8FB3),
+                                ),
+                              ),
+                            );
+                          },
+                          onEnd: () {
+                            if (mounted) {
+                              setState(() {});
+                            }
+                          },
+                        ),
+                      ],
                     ),
-                    const SizedBox(height: 32),
-                    const Text(
-                      'กำลังค้นหาคนที่ใช่สำหรับคุณ',
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.w600,
-                        color: Color(0xFF5ce1e6),
-                        fontFamily: 'Inter',
+
+                    const SizedBox(height: 40),
+
+                    // Text
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 24,
+                        vertical: 12,
+                      ),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withOpacity(0.7),
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(
+                          color: const Color(0xFFFFB3C6).withOpacity(0.3),
+                          width: 1,
+                        ),
+                      ),
+                      child: const Text(
+                        'กำลังค้นหาคนที่ใช่สำหรับคุณ',
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.w600,
+                          color: Color(0xFFFF8FB3),
+                          fontFamily: 'Inter',
+                          letterSpacing: 0.2,
+                        ),
                       ),
                     ),
-                    const SizedBox(height: 12),
+
+                    const SizedBox(height: 16),
+
+                    // Animated dots
                     Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: List.generate(3, (index) {
                         return AnimatedBuilder(
                           animation: _shimmerController,
                           builder: (context, child) {
-                            final delay = index * 0.2;
+                            final delay = index * 0.15;
                             final progress =
                                 (_shimmerController.value + delay) % 1.0;
                             final opacity = (sin(progress * pi * 2) + 1) / 2;
+                            final scale = 0.7 + (opacity * 0.3);
 
-                            return Container(
-                              margin: const EdgeInsets.symmetric(horizontal: 4),
-                              width: 8,
-                              height: 8,
-                              decoration: BoxDecoration(
-                                shape: BoxShape.circle,
-                                color: const Color(
-                                  0xFF5ce1e6,
-                                ).withOpacity(opacity),
+                            return Transform.scale(
+                              scale: scale,
+                              child: Container(
+                                margin: const EdgeInsets.symmetric(
+                                  horizontal: 5,
+                                ),
+                                width: 10,
+                                height: 10,
+                                decoration: BoxDecoration(
+                                  shape: BoxShape.circle,
+                                  color: const Color(
+                                    0xFFFF8FB3,
+                                  ).withOpacity(opacity),
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: const Color(
+                                        0xFFFF8FB3,
+                                      ).withOpacity(opacity * 0.4),
+                                      blurRadius: 8,
+                                      spreadRadius: 1,
+                                    ),
+                                  ],
+                                ),
                               ),
                             );
                           },
@@ -1314,6 +1405,8 @@ class _DiscoveryLoadingWidgetState extends State<_DiscoveryLoadingWidget>
                   ],
                 ),
               ),
+
+              // Bottom shimmer bars
               Positioned(
                 bottom: 80,
                 left: 32,
@@ -1373,20 +1466,26 @@ class _ShimmerBar extends StatelessWidget {
       width: width,
       height: height,
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: BorderRadius.circular(10),
         gradient: LinearGradient(
           begin: Alignment.centerLeft,
           end: Alignment.centerRight,
           colors: [
-            Colors.white.withOpacity(0.1),
-            Colors.white.withOpacity(0.3),
-            Colors.white.withOpacity(0.1),
+            const Color(0xFFFFE5EE).withOpacity(0.3),
+            const Color(0xFFFFB3C6).withOpacity(0.4),
+            const Color(0xFFFFCCDD).withOpacity(0.35),
+            const Color(0xFFFFE5EE).withOpacity(0.3),
           ],
           stops: [
             (animation.value - 0.3).clamp(0.0, 1.0),
-            animation.value.clamp(0.0, 1.0),
+            (animation.value - 0.05).clamp(0.0, 1.0),
+            (animation.value + 0.05).clamp(0.0, 1.0),
             (animation.value + 0.3).clamp(0.0, 1.0),
           ],
+        ),
+        border: Border.all(
+          color: const Color(0xFFFFB3C6).withOpacity(0.25),
+          width: 1,
         ),
       ),
     );
