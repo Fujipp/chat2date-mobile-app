@@ -3,6 +3,7 @@ package sit.chat2date.cp25ssi2.services;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
+import sit.chat2date.cp25ssi2.clients.CloudinaryClient;
 import sit.chat2date.cp25ssi2.clients.FaceVerificationClient;
 import sit.chat2date.cp25ssi2.entities.User;
 import sit.chat2date.cp25ssi2.entities.UserPhoto;
@@ -21,7 +22,7 @@ public class IdentityService {
     private FaceVerificationClient faceVerificationClient;
 
     @Autowired
-    private CloudinaryService cloudinaryService;
+    private CloudinaryClient cloudinaryService;
 
     @Autowired
     private UserRepository userRepository;
