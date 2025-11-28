@@ -5,6 +5,7 @@ import 'package:chat2date/config/backend_base.dart';
 import 'package:chat2date/models/user.dart';
 import 'package:chat2date/services/preference_service.dart';
 import 'package:chat2date/stores/user_store.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:google_sign_in/google_sign_in.dart';
@@ -37,7 +38,7 @@ class AuthService {
     _isInitialized = true;
   }
 
-  Future<Map<String, dynamic>> signInWithGoogle() async {
+  Future<Map<String, dynamic>> loginWithGoogle() async {
     try {
       await _initializeGoogleSignIn();
 
@@ -64,8 +65,6 @@ class AuthService {
         final email = data['user']?['email'];
         final accountStatus = data['user']?['accountStatus'];
         final version = data['user']?['version']?.toString() ?? '0';
-        // final name = data['user']?['name'];
-        // final accountStatus = data['user']?['accountStatus'] ?? 'PENDING';
 
         if (userId != null) {
           await _storage.write(key: 'userId', value: userId);
@@ -76,26 +75,15 @@ class AuthService {
           await _storage.write(key: 'email', value: email);
         }
 
-        // if (accountStatus != null) {
-        //   await _storage.write(key: 'accountStatus', value: accountStatus);
-        // }
         developer.log('DATA: $data', name: 'AuthService');
 
-        final user = User(
-          userId: userId,
-          version: int.parse(version), // แปลง String เป็น int
-        );
+        final user = User(userId: userId, version: int.parse(version));
 
         if (data['accessToken'] != null) {
-          //await _storage.write(key: 'accessToken', value: data['accessToken']);
           ref
               .read(userStoreProvider.notifier)
               .setUser(user, data['accessToken']);
           final userState = ref.watch(userStoreProvider);
-          // print("                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       ${userState['accessToken']}");
-          // ref
-          //     .read(userStoreProvider.notifier)
-          //     .setUser(user, data['accessToken']);
         }
 
         if (data['refreshToken'] != null) {
@@ -126,6 +114,48 @@ class AuthService {
   }
 
   Future<void> signOut() async {
-    await _googleSignIn.signOut();
+    try {
+      final accessToken = ref.read(userStoreProvider.notifier).accessToken;
+      final refreshToken = await _storage.read(key: 'refresh_token');
+
+      if (accessToken != null) {
+        await http.post(
+          Uri.parse('${ApiBase.baseUrl}/auth/logout'),
+          headers: {
+            'Authorization': 'Bearer $accessToken',
+            'Content-Type': 'application/json',
+          },
+          body: jsonEncode({'refreshToken': refreshToken}),
+        );
+      }
+
+      await _storage.delete(key: 'refreshToken');
+      await _storage.deleteAll();
+
+      ref.read(userStoreProvider.notifier).state = {
+        'user': null,
+        'accessToken': null,
+        'cardFaceBytes': null,
+        'profile': null,
+        'preferences': null,
+      };
+
+      debugPrint('✅ Signed out successfully');
+    } catch (e) {
+      debugPrint('❌ Sign out error: $e');
+
+      await _storage.delete(key: 'refreshToken');
+      await _storage.deleteAll();
+
+      ref.read(userStoreProvider.notifier).state = {
+        'user': null,
+        'accessToken': null,
+        'cardFaceBytes': null,
+        'profile': null,
+        'preferences': null,
+      };
+
+      rethrow;
+    }
   }
 }

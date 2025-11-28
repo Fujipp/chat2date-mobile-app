@@ -74,7 +74,7 @@ class HomeLoginPage extends ConsumerWidget {
                                   authServiceProvider,
                                 );
                                 // final userId = await authService
-                                //     .signInWithGoogle();
+                                //     .loginWithGoogle();
 
                                 final authController = ref.read(
                                   authControllerProvider,

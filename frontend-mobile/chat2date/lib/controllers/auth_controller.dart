@@ -1,6 +1,5 @@
 import 'package:chat2date/models/user.dart';
 import 'package:chat2date/services/auth_service.dart';
-import 'package:chat2date/services/preference_service.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart' as riverpod;
 
 final authControllerProvider = riverpod.Provider<AuthController>(
@@ -20,7 +19,7 @@ class AuthController {
 
   Future<NavigationResult> handleGoogleLogin({required bool onLogin}) async {
     final auth = ref.read(authServiceProvider);
-    final userMap = await auth.signInWithGoogle();
+    final userMap = await auth.loginWithGoogle();
     final user = User.fromJson(userMap);
 
     return determineRoute(user, onLogin);

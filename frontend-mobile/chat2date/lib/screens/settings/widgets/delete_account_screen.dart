@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart' as ref;
 
-void showDeleteAccountModal(BuildContext context) {
+void showDeleteAccountModal(BuildContext context, ref.WidgetRef ref) {
   showDialog(
     context: context,
     barrierDismissible: true,

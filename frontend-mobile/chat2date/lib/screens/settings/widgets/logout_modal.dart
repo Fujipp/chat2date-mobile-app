@@ -1,6 +1,9 @@
+import 'package:chat2date/components/toasts/toast.dart';
+import 'package:chat2date/services/auth_service.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart' as ref;
 
-void showLogoutModal(BuildContext context) {
+void showLogoutModal(BuildContext context, ref.WidgetRef ref) {
   showDialog(
     context: context,
     barrierDismissible: true,
@@ -97,12 +100,26 @@ void showLogoutModal(BuildContext context) {
                     width: 100,
                     height: 40,
                     child: ElevatedButton(
-                      onPressed: () {
+                      onPressed: () async {
                         Navigator.pop(context);
-                        // TODO: Handle logout logic here
-                        // Example:
-                        // ref.read(authProvider.notifier).logout();
-                        // Navigator.pushReplacementNamed(context, '/login');
+
+                        try {
+                          await ref.read(authServiceProvider).signOut();
+                          if (context.mounted) {
+                            Navigator.of(context).pushNamedAndRemoveUntil(
+                              '/home',
+                              (route) => false,
+                            );
+                          }
+                        } catch (e) {
+                          if (context.mounted) {
+                            Toast(
+                              title: 'เกิดข้อผิดพลาด',
+                              message: 'ไม่สามารถออกจากระบบได้ โปรดลองอีกครั้ง',
+                              type: ToastType.error,
+                            );
+                          }
+                        }
                       },
                       style: ElevatedButton.styleFrom(
                         backgroundColor: const Color(0xFF98FB98),

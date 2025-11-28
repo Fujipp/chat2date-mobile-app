@@ -1,18 +1,20 @@
 import 'package:chat2date/components/layout/header.dart';
 import 'package:chat2date/screens/settings/widgets/delete_account_screen.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../components/layout/menu_bar.dart';
 import 'widgets/logout_modal.dart';
 
-class SettingsScreen extends StatefulWidget {
+// ✅ เปลี่ยนจาก StatefulWidget เป็น ConsumerStatefulWidget
+class SettingsScreen extends ConsumerStatefulWidget {
   const SettingsScreen({super.key});
 
   @override
-  State<SettingsScreen> createState() => _SettingsScreenState();
+  ConsumerState<SettingsScreen> createState() => _SettingsScreenState();
 }
 
-class _SettingsScreenState extends State<SettingsScreen> {
+class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   int _selectedIndex = 3;
 
   @override
@@ -41,7 +43,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     title: 'ตั้งค่าคู่ของคุณ',
                     subtitle: 'กำหนดความชอบและเงื่อนไขของคู่ที่ต้องการ',
                     onTap: () {
-                      Navigator.pushNamed(context, '/matchPreference', arguments: {"onUpdate": true});
+                      Navigator.pushNamed(
+                        context,
+                        '/matchPreference',
+                        arguments: {"onUpdate": true},
+                      );
                     },
                   ),
                   const SizedBox(height: 12),
@@ -102,12 +108,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
                   const SizedBox(height: 32),
 
-                  // Logout Button
+                  // ✅ Logout Button - ใช้ ref ได้แล้ว
                   _ActionButton(
                     label: 'ออกจากระบบ',
                     color: const Color(0xFFFF6B6B),
                     onTap: () {
-                      showLogoutModal(context);
+                      showLogoutModal(context, ref);
                     },
                   ),
                   const SizedBox(height: 12),
@@ -117,7 +123,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     label: 'ลบบัญชี',
                     color: const Color(0xFFEF4444),
                     onTap: () {
-                      showDeleteAccountModal(context);
+                      showDeleteAccountModal(context, ref);
                     },
                   ),
                   const SizedBox(height: 16),
