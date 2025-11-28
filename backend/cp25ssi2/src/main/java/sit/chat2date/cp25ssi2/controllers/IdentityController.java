@@ -4,11 +4,10 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
+import sit.chat2date.cp25ssi2.entities.UserPhoto;
+import sit.chat2date.cp25ssi2.repositories.UserPhotoRepository;
 import sit.chat2date.cp25ssi2.services.IdentityService;
 
 import java.util.List;
@@ -21,6 +20,8 @@ public class IdentityController {
 
         @Autowired
         private IdentityService identityService;
+        @Autowired
+        private UserPhotoRepository userPhotoRepository;
 
         @PostMapping("/verify-face")
         public ResponseEntity<?> verifyAndUpload(
@@ -51,4 +52,5 @@ public class IdentityController {
                 return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(Map.of("message", "Internal Server Error"));
             }
         }
+
     }

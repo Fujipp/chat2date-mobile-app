@@ -10,6 +10,7 @@ import sit.chat2date.cp25ssi2.dto.PreferenceUserProfileDTO;
 import sit.chat2date.cp25ssi2.entities.User;
 import sit.chat2date.cp25ssi2.exceptions.NotFoundException;
 import sit.chat2date.cp25ssi2.repositories.UserRepository;
+import sit.chat2date.cp25ssi2.services.IdentityService;
 import sit.chat2date.cp25ssi2.services.UserService;
 
 import java.util.List;
@@ -23,6 +24,9 @@ public class UserController {
 
     @Autowired
     private UserService userService;
+
+    @Autowired
+    private IdentityService identityService;
 
     @GetMapping("/users")
     public List<User> getAllUsers() {
@@ -75,6 +79,15 @@ public class UserController {
     @GetMapping("/users/{id}/profile")
     public PreferenceUserProfileDTO getUserProfile(@PathVariable String id) {
         return userService.getUserProfile(id);
+    }
+
+    @DeleteMapping("/users/{id}/photo")
+    public ResponseEntity<Void> deletePhoto(
+            @PathVariable String id,
+            @RequestParam String imageUrl
+    ) {
+        identityService.deleteUserPhoto(id, imageUrl);
+        return ResponseEntity.noContent().build();
     }
 
 }

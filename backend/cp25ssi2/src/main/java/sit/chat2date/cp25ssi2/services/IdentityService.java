@@ -165,15 +165,69 @@ public class IdentityService {
         userPhotoRepository.save(userPhoto);
     }
 
-    // ✨ Cleanup เมื่อ Service ปิด
-    public void shutdown() {
-        executorService.shutdown();
-        try {
-            if (!executorService.awaitTermination(60, TimeUnit.SECONDS)) {
-                executorService.shutdownNow();
-            }
-        } catch (InterruptedException e) {
-            executorService.shutdownNow();
+    public void deleteUserPhoto(String userId, String imageUrl) {
+        // 1) หา UserPhoto ตาม userId
+        UserPhoto userPhoto = userPhotoRepository.findByUser_UserId(userId);
+        if (userPhoto == null) {
+            throw new RuntimeException("User photo not found for userId: " + userId);
         }
+
+        // 2) ดึง attributes (map) และ list ของ urls
+        Map<String, Object> attributes = userPhoto.getAttributes();
+        if (attributes == null || !attributes.containsKey("urls")) {
+            throw new RuntimeException("No urls found for userId: " + userId);
+        }
+
+        @SuppressWarnings("unchecked")
+        List<String> urls = (List<String>) attributes.get("urls");
+
+        // 3) เช็กว่ามี url นี้ไหม
+        if (!urls.contains(imageUrl)) {
+            throw new RuntimeException("Image url not found in user photos");
+        }
+
+        // 4) ลบออกจาก list แล้ว save กลับ
+        urls.remove(imageUrl);
+        attributes.put("urls", urls);
+        userPhoto.setAttributes(attributes);
+        userPhotoRepository.save(userPhoto);
+
+        // 5) แปลง URL → publicId แล้วสั่งลบที่ Cloudinary
+        String publicId = extractPublicIdFromUrl(imageUrl);
+        cloudinaryService.delete(publicId);
     }
+
+    private String extractPublicIdFromUrl(String url) {
+        // ตัด query string ถ้ามี
+        String clean = url.split("\\?")[0];
+
+        // ดึงส่วนหลัง /upload/
+        int uploadIndex = clean.indexOf("/upload/");
+        if (uploadIndex == -1) {
+            throw new IllegalArgumentException("Invalid Cloudinary URL: " + url);
+        }
+
+        String afterUpload = clean.substring(uploadIndex + "/upload/".length());
+        // afterUpload = v1763908238/chat2date_users/hq0aknxpkb87dawkjx9l.jpg
+
+        // ตัดเวอร์ชัน (v1763908238/)
+        String[] parts = afterUpload.split("/");
+        int startIdx = 0;
+        if (parts[0].startsWith("v") && parts[0].length() > 1) {
+            startIdx = 1;
+        }
+
+        StringBuilder sb = new StringBuilder();
+        for (int i = startIdx; i < parts.length; i++) {
+            if (i > startIdx) sb.append("/");
+            sb.append(parts[i]);
+        }
+
+        // ตัดนามสกุลไฟล์
+        String withExt = sb.toString();
+        int dotIndex = withExt.lastIndexOf('.');
+        return (dotIndex == -1) ? withExt : withExt.substring(0, dotIndex);
+    }
+
+
 }
