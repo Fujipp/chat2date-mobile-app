@@ -21,6 +21,23 @@ class UserPictureScreen extends ConsumerStatefulWidget {
 class _UserPictureScreenState extends ConsumerState<UserPictureScreen> {
   List<File> _selectedImages = [];
   bool _isLoading = false;
+  Key _imageGridKey = UniqueKey(); // ✅ เพิ่ม key สำหรับ force rebuild
+
+  @override
+  void initState() {
+    super.initState();
+    _selectedImages = [];
+    _imageGridKey = UniqueKey();
+    debugPrint('🎨 UserPictureScreen initialized - images cleared');
+  }
+
+  // ✅ เพิ่ม method สำหรับ reset ทุกอย่าง
+  void _resetState() {
+    setState(() {
+      _selectedImages = [];
+      _imageGridKey = UniqueKey(); // สร้าง key ใหม่เพื่อ rebuild widget
+    });
+  }
 
   // แสดง Dialog แจ้งเตือนเมื่อใบหน้าไม่ตรงกับบัตร
   void _showFaceVerificationDialog() {
@@ -229,6 +246,7 @@ class _UserPictureScreenState extends ConsumerState<UserPictureScreen> {
           Center(child: DsLabel(label: 'เพิ่มรูปภาพของคุณ', labelFontSize: 32)),
 
           ImageUploadGrid(
+            key: _imageGridKey, // ✅ ใช้ key เพื่อ force rebuild
             onImagesChanged: (images) {
               setState(() {
                 _selectedImages = images
