@@ -42,7 +42,7 @@ class HeadersWithStyles extends StatelessWidget {
                     borderRadius: BorderRadius.circular(10),
                   ),
                 ),
-                constraints: const BoxConstraints(minWidth: 90, maxHeight: 48),
+                constraints: BoxConstraints(minWidth: title == "สไตล์การท่องเที่ยว" ? 170 : 90, maxHeight: 48),
                 child: Text(
                   title,
                   style: const TextStyle(

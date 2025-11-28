@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'dart:io';
+import 'package:chat2date/components/toasts/toast.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:chat2date/components/buttons/ds_button.dart';
 import 'package:chat2date/components/common/image_upload_grid.dart';
@@ -332,6 +333,8 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
 
     setState(() => _isLoading = true);
 
+    
+
     try {
       final service = ref.read(photoVerificationServiceProvider);
 
@@ -346,7 +349,6 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
       }
     } catch (e) {
       if (mounted) {
-        print(e.toString().toLowerCase());
         // ตรวจสอบว่า error เป็นเรื่องใบหน้าไม่ตรงหรือไม่
         final errorMessage = e.toString().toLowerCase();
         if (errorMessage.contains('face') ||

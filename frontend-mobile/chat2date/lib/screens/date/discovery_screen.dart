@@ -331,7 +331,7 @@ class _DiscoveryScreenState extends ConsumerState<DiscoveryScreen>
                         CustomRangeSlider(
                           values: _selectedRange,
                           min: 1,
-                          max: 1900,
+                          max: 1800,
                           divisions: 82,
                           onChanged: (RangeValues values) {
                             setStateOverlay(() {
@@ -357,6 +357,15 @@ class _DiscoveryScreenState extends ConsumerState<DiscoveryScreen>
                                       minDistance: _selectedRange.start.round(),
                                       maxDistance: _selectedRange.end.round(),
                                     );
+                                final Map<String, Object> preferenceMatch = {
+                                  "interestedDistanceMin": _selectedRange.start
+                                      .round(),
+                                  "interestedDistanceMax": _selectedRange.end
+                                      .round(),
+                                };
+                                await ref
+                                    .read(userServiceProvider)
+                                    .addPreferenceMatchUser(preferenceMatch);
 
                                 // ✅ สร้าง key ใหม่หลัง refresh
                                 setState(() {
@@ -785,7 +794,10 @@ class _CandidateViewState extends ConsumerState<_CandidateView> {
         final bool hasImages = images.isNotEmpty;
 
         final headerTop = [
-          {'title': 'สไตล์การเที่ยว', 'style': widget.candidate.travelStyles},
+          {
+            'title': 'สไตล์การท่องเที่ยว',
+            'style': widget.candidate.travelStyles,
+          },
           {'title': 'ระยะห่าง', 'range': widget.candidate.distance},
         ];
 

@@ -192,13 +192,23 @@ class DiscoveryNotifier extends StateNotifier<DiscoveryState> {
 
       print('✅ Loaded ${candidates.length} candidates');
 
-      state = state.copyWith(
-        candidates: candidates,
-        isLoading: false,
-        currentIndex: 0,
-        hasLoadedOnce: true,
-        isInitializing: false, // ✅ เซ็ต false เมื่อโหลดเสร็จ
-      );
+      if (candidates.isEmpty) {
+        state = state.copyWith(
+          candidates: candidates,
+          currentIndex: 0,
+          hasLoadedOnce: true,
+          isLoading: false,
+          isInitializing: false,
+        );
+      } else {
+        state = state.copyWith(
+          candidates: candidates,
+          isLoading: false,
+          currentIndex: 0,
+          hasLoadedOnce: true,
+          isInitializing: false,
+        );
+      }
     } catch (e) {
       print('❌ Error in loadCandidates: $e');
 

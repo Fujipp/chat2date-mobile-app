@@ -15,4 +15,3 @@ export 'profile/match_preference_screen.dart';
 export 'profile/profile_setup_screen.dart';
 export 'profile/user_picture_screen.dart';
 export 'settings/settings_screen.dart';
-export 'splash/splash_page.dart';
