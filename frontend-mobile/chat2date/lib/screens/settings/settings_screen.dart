@@ -136,7 +136,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
           switch (index) {
             case 0:
-              Navigator.pushReplacementNamed(context, '/home');
+              Navigator.pushReplacementNamed(context, '/discovery');
               break;
             case 1:
               Navigator.pushReplacementNamed(context, '/chat');

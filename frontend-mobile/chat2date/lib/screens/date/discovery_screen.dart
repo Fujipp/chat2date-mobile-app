@@ -43,7 +43,7 @@ class _DiscoveryScreenState extends ConsumerState<DiscoveryScreen>
 
     switch (index) {
       case 0:
-        Navigator.pushReplacementNamed(context, '/home');
+        Navigator.pushReplacementNamed(context, '/discovery');
         break;
       case 1:
         Navigator.pushReplacementNamed(context, '/chat');
