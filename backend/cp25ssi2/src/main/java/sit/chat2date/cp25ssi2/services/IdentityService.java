@@ -11,6 +11,9 @@ import sit.chat2date.cp25ssi2.enums.AccountStatus;
 import sit.chat2date.cp25ssi2.repositories.UserPhotoRepository;
 import sit.chat2date.cp25ssi2.repositories.UserRepository;
 
+import java.io.IOException;
+import java.io.InputStream;
+import java.net.URL;
 import java.util.*;
 import java.util.concurrent.*;
 import java.util.stream.Collectors;
@@ -213,7 +216,7 @@ public class IdentityService {
         userPhotoRepository.save(userPhoto);
     }
 
-    public void deleteUserPhoto(String userId, List<String> imageUrl) {
+    public void deleteUserPhoto(String userId, List<String> imageUrl) throws IOException {
         // 1) หา UserPhoto ตาม userId
         UserPhoto userPhoto = userPhotoRepository.findByUser_UserId(userId);
         if (userPhoto == null) {
@@ -227,17 +230,38 @@ public class IdentityService {
         }
 
         @SuppressWarnings("unchecked")
-        List<String> urls = (List<String>) attributes.get("urls");
+        List<String> urls = new ArrayList<>((List<String>) attributes.get("urls"));
+
+        if (urls.isEmpty()) {
+            throw new RuntimeException("No photos to delete.");
+        }
+
+        byte[] idCardBytes = downloadImageAsBytes(userPhoto.getBase64Card());
+
+        int totalFaceCount = 0;
+        Map<String, Boolean> isFaceMap = new HashMap<>();
+        for (String url : urls) {
+            byte[] profileBytes = downloadImageAsBytes(url);
+            boolean match = faceVerificationClient.verify(idCardBytes, profileBytes);
+            isFaceMap.put(url, match);
+            if (match) totalFaceCount++;
+        }
 
         List<String> publicIdsToDelete = new ArrayList<>();
 
         for (String imgUrl : imageUrl) {
-            if (urls.contains(imgUrl)) {
+            if (!urls.contains(imgUrl)) {
                 throw new RuntimeException("Image url not found in user photos");
             }
 
+            boolean isFace = isFaceMap.getOrDefault(imgUrl, false);
 
-
+            if (isFace) {
+                if (totalFaceCount <= 1) {
+                    throw new RuntimeException("Cannot delete all face photos. At least one must remain.");
+                }
+                totalFaceCount--;
+            }
             publicIdsToDelete.add(extractPublicIdFromUrl(imgUrl));
             urls.remove(imgUrl);
 
@@ -248,10 +272,33 @@ public class IdentityService {
         userPhoto.setAttributes(attributes);
         userPhotoRepository.save(userPhoto);
 
-        // 5) แปลง URL → publicId แล้วสั่งลบที่ Cloudinary
+        // ลบที่ Cloudinary
         for (String publicId : publicIdsToDelete) {
             cloudinaryService.delete(publicId);
         }
+    }
+
+    public byte[] downloadImageAsBytes(String imageSource) throws IOException {
+        if (isBase64(imageSource)) {
+            // ถ้าเป็น Base64
+            if (imageSource.contains(",")) {
+                // ลบ prefix เช่น "data:image/jpeg;base64,"
+                imageSource = imageSource.split(",")[1];
+            }
+            return Base64.getDecoder().decode(imageSource);
+        } else {
+            // ถือว่าเป็น URL
+            URL url = new URL(imageSource);
+            try (InputStream in = url.openStream()) {
+                return in.readAllBytes();
+            }
+        }
+    }
+
+    // ฟังก์ชันตรวจว่าเป็น Base64 ง่ายๆ
+    private boolean isBase64(String str) {
+        return str.startsWith("data:image/") ||
+                (str.length() > 100 && str.matches("^[A-Za-z0-9+/=\\s]+$"));
     }
 
     private String extractPublicIdFromUrl(String url) {

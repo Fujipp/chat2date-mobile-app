@@ -13,6 +13,7 @@ import sit.chat2date.cp25ssi2.repositories.UserRepository;
 import sit.chat2date.cp25ssi2.services.IdentityService;
 import sit.chat2date.cp25ssi2.services.UserService;
 
+import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 
@@ -85,7 +86,7 @@ public class UserController {
     public ResponseEntity<Void> deletePhoto(
             @PathVariable String id,
             @RequestParam List<String> imageUrl
-    ) {
+    ) throws IOException {
         identityService.deleteUserPhoto(id, imageUrl);
         return ResponseEntity.noContent().build();
     }
