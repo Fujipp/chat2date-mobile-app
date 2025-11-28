@@ -1,6 +1,6 @@
+import 'package:chat2date/theme/app_colors.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
-import 'package:chat2date/theme/app_colors.dart'; // เปลี่ยนเป็น path ของคุณ
 
 class HeadersWithStyles extends StatelessWidget {
   final List<Map<String, dynamic>> headers;
@@ -15,7 +15,11 @@ class HeadersWithStyles extends StatelessWidget {
       children: List.generate(headers.length, (headerIndex) {
         final header = headers[headerIndex];
         final title = header['title'] as String;
-        final style = List<String>.from((header['style'] ?? []) as List);
+
+        final allStyle = List<String>.from((header['style'] ?? []) as List);
+
+        final style = allStyle.take(5).toList();
+
         final range = (header['range'] ?? 0.0) as double;
 
         return SingleChildScrollView(
@@ -55,18 +59,18 @@ class HeadersWithStyles extends StatelessWidget {
                 Padding(
                   padding: const EdgeInsets.symmetric(
                     horizontal: 16,
-                    vertical: 12,
+                    vertical: 8,
                   ),
                   child: Wrap(
-                    spacing: 20,
-                    runSpacing: 20,
+                    spacing: 8,
+                    runSpacing: 8,
                     children: List.generate(style.length, (tagIndex) {
                       final styleName = style[tagIndex];
 
                       return Container(
                         padding: const EdgeInsets.symmetric(
                           horizontal: 10,
-                          vertical: 4,
+                          vertical: 6,
                         ),
                         decoration: ShapeDecoration(
                           color: AppColors.surfaceMuted,
@@ -75,26 +79,23 @@ class HeadersWithStyles extends StatelessWidget {
                               width: 2,
                               color: AppColors.nonSelected,
                             ),
-                            borderRadius: BorderRadius.circular(12),
+                            borderRadius: BorderRadius.circular(20),
                           ),
                         ),
-                        constraints: const BoxConstraints(
-                          minWidth: 60,
-                          maxHeight: 36,
-                        ),
+                        constraints: const BoxConstraints(minWidth: 40),
                         child: Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
                             SvgPicture.asset(
                               'assets/icons/icon_tag.svg',
-                              width: 24,
-                              height: 24,
+                              width: 2,
+                              height: 2,
                             ),
-                            const SizedBox(width: 4),
+                            const SizedBox(width: 6),
                             Text(
                               styleName,
                               style: const TextStyle(
-                                fontSize: 12,
+                                fontSize: 10,
                                 color: AppColors.textPrimary,
                                 fontFamily: 'Inter',
                                 fontWeight: FontWeight.w400,
@@ -137,10 +138,10 @@ class HeadersWithStyles extends StatelessWidget {
                             fontWeight: FontWeight.w400,
                           ),
                         ),
-                        Spacer(),
-                        Text(
+                        const Spacer(),
+                        const Text(
                           "km.",
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontSize: 12,
                             color: AppColors.textMuted,
                             fontFamily: 'Inter',

@@ -797,8 +797,14 @@ class _CandidateViewState extends ConsumerState<_CandidateView> {
         ];
 
         final headerBottom = [
-          {'title': 'ความสนใจ', 'style': widget.candidate.interests},
-          {'title': 'ไลฟ์สไตล์', 'style': widget.candidate.lifestyles},
+          {
+            'title': 'ความสนใจ',
+            'style': widget.candidate.interests.take(5).toList(), // ไม่เกิน 5
+          },
+          {
+            'title': 'ไลฟ์สไตล์',
+            'style': widget.candidate.lifestyles.take(5).toList(), // ไม่เกิน 5
+          },
         ];
 
         final t = Curves.easeOutCubic.transform(widget.cardCtrl.value);
