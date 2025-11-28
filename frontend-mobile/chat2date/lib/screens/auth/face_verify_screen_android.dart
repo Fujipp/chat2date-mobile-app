@@ -371,7 +371,7 @@ class _FaceVerifyScreenAndroidState
 
             // แก้ mapping: หันขวาจริง ๆ (จากที่ลองแล้ว yaw เป็นค่าลบ)
             correct = eyesOk && y <= -yawSideMin;
-            hint = correct ? 'ดีมาก… ค้างไว้' : 'หันหน้าไปทางขวาเล็กน้อย';
+            hint = correct ? 'ดีมาก… ค้างไว้' : 'หันหน้าไปทางซ้ายเล็กน้อย';
             break;
           }
 
@@ -383,7 +383,7 @@ class _FaceVerifyScreenAndroidState
 
             // หันซ้ายจริง ๆ = yaw เป็นค่าบวก
             correct = eyesOk && y >= yawSideMin;
-            hint = correct ? 'ดีมาก… ค้างไว้' : 'หันหน้าไปทางซ้ายเล็กน้อย';
+            hint = correct ? 'ดีมาก… ค้างไว้' : 'หันหน้าไปทางขวาเล็กน้อย';
             break;
           }
       }
