@@ -4,7 +4,6 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-import sit.chat2date.cp25ssi2.entities.*;
 
 import java.util.List;
 
@@ -18,5 +17,10 @@ public class PreferenceUserProfileDTO {
     private List<Integer> tags;
     private List<Integer> travelStyles;
     private String interestedGender;
+    private Integer interestedAgeMax;
+    private Integer interestedAgeMin;
+    private String interestedTravelStyle;
+    private String interestedLifeStyle;
+    private String interestedInterest;
     private String photos;
 }

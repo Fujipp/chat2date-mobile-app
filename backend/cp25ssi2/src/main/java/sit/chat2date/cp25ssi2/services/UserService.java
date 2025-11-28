@@ -367,6 +367,12 @@ public class UserService {
                         .toList()
         );
 
+        dto.setInterestedAgeMin(preferenceMatch.getInterestedAgeMin());
+        dto.setInterestedAgeMax(preferenceMatch.getInterestedAgeMax());
+        dto.setInterestedInterest(String.valueOf(preferenceMatch.getInterestedInterest()));
+        dto.setInterestedLifeStyle(String.valueOf(preferenceMatch.getInterestedLifeStyle()));
+        dto.setInterestedTravelStyle(String.valueOf(preferenceMatch.getInterestedTravelStyle()));
+
         // รูปภาพ
         dto.setPhotos(userPhotos);
 
