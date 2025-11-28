@@ -36,6 +36,27 @@ enum ActivePanel { none, top, bottom }
 
 class _DiscoveryScreenState extends ConsumerState<DiscoveryScreen>
     with SingleTickerProviderStateMixin {
+  void _handleBottomNavTap(int index) {
+    setState(() {
+      _selectedIndex = index;
+    });
+
+    switch (index) {
+      case 0:
+        Navigator.pushReplacementNamed(context, '/home');
+        break;
+      case 1:
+        Navigator.pushReplacementNamed(context, '/chat');
+        break;
+      case 2:
+        Navigator.pushReplacementNamed(context, '/profile');
+        break;
+      case 3:
+        Navigator.pushReplacementNamed(context, '/settings');
+        break;
+    }
+  }
+
   // --- Panel state ---
   final _topCtrl = PanelController();
   final _bottomCtrl = PanelController();
@@ -389,17 +410,7 @@ class _DiscoveryScreenState extends ConsumerState<DiscoveryScreen>
         ),
         bottomNavigationBar: CustomBottomNavBar(
           selectedIndex: _selectedIndex,
-          onTap: (index) {
-            // <-- เพิ่ม onTap
-            setState(() {
-              _selectedIndex = index;
-            });
-
-            if (index == 2) {
-              // Navigator.pushReplacementNamed เพื่อเปลี่ยนไปหน้า Profile
-              Navigator.pushReplacementNamed(context, '/profile');
-            }
-          },
+          onTap: _handleBottomNavTap,
         ),
       );
     }
@@ -430,17 +441,7 @@ class _DiscoveryScreenState extends ConsumerState<DiscoveryScreen>
         ),
         bottomNavigationBar: CustomBottomNavBar(
           selectedIndex: _selectedIndex,
-          onTap: (index) {
-            // <-- เพิ่ม onTap
-            setState(() {
-              _selectedIndex = index;
-            });
-
-            if (index == 2) {
-              // Navigator.pushReplacementNamed เพื่อเปลี่ยนไปหน้า Profile
-              Navigator.pushReplacementNamed(context, '/profile');
-            }
-          },
+          onTap: _handleBottomNavTap,
         ),
       );
     }
@@ -495,15 +496,7 @@ class _DiscoveryScreenState extends ConsumerState<DiscoveryScreen>
         ),
         bottomNavigationBar: CustomBottomNavBar(
           selectedIndex: _selectedIndex,
-          onTap: (index) {
-            setState(() {
-              _selectedIndex = index;
-            });
-
-            if (index == 2) {
-              Navigator.pushReplacementNamed(context, '/profile');
-            }
-          },
+          onTap: _handleBottomNavTap,
         ),
       );
     }
@@ -578,15 +571,7 @@ class _DiscoveryScreenState extends ConsumerState<DiscoveryScreen>
         ),
         bottomNavigationBar: CustomBottomNavBar(
           selectedIndex: _selectedIndex,
-          onTap: (index) {
-            setState(() {
-              _selectedIndex = index;
-            });
-
-            if (index == 2) {
-              Navigator.pushReplacementNamed(context, '/profile');
-            }
-          },
+          onTap: _handleBottomNavTap,
         ),
       );
     }
@@ -644,14 +629,7 @@ class _DiscoveryScreenState extends ConsumerState<DiscoveryScreen>
           }
         });
       },
-      onBottomNavTap: (index) {
-        setState(() {
-          _selectedIndex = index;
-        });
-        if (index == 2) {
-          Navigator.pushReplacementNamed(context, '/profile');
-        }
-      },
+      onBottomNavTap: _handleBottomNavTap,
     );
   }
 }
@@ -802,6 +780,7 @@ class _CandidateViewState extends ConsumerState<_CandidateView> {
             ),
             bottomNavigationBar: CustomBottomNavBar(
               selectedIndex: widget.selectedIndex,
+              onTap: widget.onBottomNavTap,
             ),
           );
         }

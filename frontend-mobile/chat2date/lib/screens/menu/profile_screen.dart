@@ -6,6 +6,7 @@ import 'package:chat2date/components/common/image_upload_grid.dart';
 import 'package:chat2date/components/common/loading_component.dart';
 import 'package:chat2date/components/inputs/ds_label.dart';
 import 'package:chat2date/components/inputs/ds_text_field/ds_text_field.dart';
+import 'package:chat2date/components/inputs/ds_text_field/tag_autocomplete.dart';
 import 'package:chat2date/components/layout/header.dart';
 import 'package:chat2date/components/layout/menu_bar.dart';
 import 'package:chat2date/components/layout/responsive_container.dart';
@@ -17,11 +18,10 @@ import 'package:chat2date/models/user.dart';
 import 'package:chat2date/services/photo_verification_service.dart';
 import 'package:chat2date/services/user_service.dart';
 import 'package:chat2date/stores/user_store.dart';
+import 'package:chat2date/theme/app_colors.dart';
+import 'package:dropdown_button2/dropdown_button2.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:dropdown_button2/dropdown_button2.dart';
-import 'package:chat2date/theme/app_colors.dart';
-import 'package:chat2date/components/inputs/ds_text_field/tag_autocomplete.dart';
 
 class ProfileScreen extends ConsumerStatefulWidget {
   const ProfileScreen({super.key});
@@ -929,8 +929,22 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
             _selectedIndex = index;
           });
 
-          if (index == 0) {
-            Navigator.pushReplacementNamed(context, '/discovery');
+          switch (index) {
+            case 0: // Home (Discovery)
+              Navigator.pushReplacementNamed(context, '/discovery');
+              break;
+
+            case 1: // Chat
+              Navigator.pushReplacementNamed(context, '/chat');
+              break;
+
+            case 2: // Profile
+              Navigator.pushReplacementNamed(context, '/profile');
+              break;
+
+            case 3: // Setting
+              Navigator.pushReplacementNamed(context, '/settings');
+              break;
           }
         },
       ),
