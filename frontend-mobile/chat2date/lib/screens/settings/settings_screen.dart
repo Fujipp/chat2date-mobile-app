@@ -24,7 +24,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
           const SizedBox(height: 25),
           ChatToDateHeaderWhite(
             leftIconPath: 'assets/icons/icon_chat2date_full.svg',
-            rightIconPath: 'assets/icons/icon_menu.svg',
+            rightIconPath: '',
             iconColor: const Color(0xFF5ce1e6),
             onBack: () {},
           ),

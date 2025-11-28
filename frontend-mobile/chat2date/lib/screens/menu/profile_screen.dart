@@ -440,7 +440,6 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
               SafeArea(
                 child: ChatToDateHeaderWhite(
                   leftIconPath: 'assets/icons/icon_chat2date_full.svg',
-                  rightIconPath: 'assets/icons/icon_menu.svg',
                   iconColor: const Color(0xFF5ce1e6),
                   onBack: () {},
                   onSettings: () {},
