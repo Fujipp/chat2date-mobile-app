@@ -9,6 +9,7 @@ import 'package:chat2date/theme/app_colors.dart';
 import 'package:flutter/material.dart';
 import 'package:dropdown_button2/dropdown_button2.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:chat2date/components/toasts/toast.dart';
 
 class MatchPreferenceScreen extends ConsumerStatefulWidget {
   const MatchPreferenceScreen({super.key});
@@ -309,31 +310,41 @@ class _MatchPreferenceScreenState extends ConsumerState<MatchPreferenceScreen> {
                   label: onUpdate ? 'บันทึก' : 'ถัดไป',
                   onPressed: () {
                     if (_selectedGenderPreference == null) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('กรุณาเลือกเพศที่สนใจ')),
+                      Toast.show(
+                        context,
+                        type: ToastType.warning,
+                        title: 'ข้อมูลไม่ครบ',
+                        message: 'กรุณาเลือกเพศที่สนใจ',
                       );
                       return;
                     }
 
                     if (_travelStylePreference == null) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text('กรุณาเลือกสไตล์การท่องเที่ยว'),
-                        ),
+                      Toast.show(
+                        context,
+                        type: ToastType.warning,
+                        title: 'ข้อมูลไม่ครบ',
+                        message: 'กรุณาเลือกสไตล์การท่องเที่ยว',
                       );
                       return;
                     }
 
                     if (_lifeStylePreference == null) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('กรุณาเลือกไลฟ์สไตล์')),
+                      Toast.show(
+                        context,
+                        type: ToastType.warning,
+                        title: 'ข้อมูลไม่ครบ',
+                        message: 'กรุณาเลือกไลฟ์สไตล์',
                       );
                       return;
                     }
 
                     if (_interestPreference == null) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('กรุณาเลือกสิ่งที่สนใจ')),
+                      Toast.show(
+                        context,
+                        type: ToastType.warning,
+                        title: 'ข้อมูลไม่ครบ',
+                        message: 'กรุณาเลือกสิ่งที่สนใจ',
                       );
                       return;
                     }

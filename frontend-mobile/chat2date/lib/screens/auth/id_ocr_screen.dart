@@ -49,18 +49,7 @@ class _IdOcrScreenState extends ConsumerState<IdOcrScreen> {
  
   final _fmt = DateFormat('dd/MM/yyyy');
 
-  // === Toast state ===
-  ToastType? _toastType;
-  String? _toastTitle;
-  String? _toastMessage;
-
-  void _showToast(ToastType type, String title, String message) {
-    setState(() {
-      _toastType = type;
-      _toastTitle = title;
-      _toastMessage = message;
-    });
-  }
+  // ใช้ Toast.show จาก components/toasts/toast.dart โดยตรง
  
   @override
   void initState() {
@@ -117,8 +106,11 @@ class _IdOcrScreenState extends ConsumerState<IdOcrScreen> {
  
       if (!ph.isGranted) {
         if (!mounted) return;
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('ไม่ได้รับสิทธิ์เข้าถึงรูปภาพ')),
+        Toast.show(
+          context,
+          type: ToastType.error,
+          title: 'ไม่ได้รับสิทธิ์',
+          message: 'กรุณาอนุญาตการเข้าถึงคลังรูปหรือกล้องในระบบ',
         );
         return;
       }
@@ -140,9 +132,12 @@ class _IdOcrScreenState extends ConsumerState<IdOcrScreen> {
     final size = await f.length();
     if (size > _maxFileBytes) {
       if (!mounted) return;
-      ScaffoldMessenger.of(
+      Toast.show(
         context,
-      ).showSnackBar(const SnackBar(content: Text('ไฟล์ใหญ่เกิน 10MB')));
+        type: ToastType.error,
+        title: 'ไฟล์ใหญ่เกิน',
+        message: 'ขนาดไฟล์ต้องไม่เกิน 10MB กรุณาเลือกรูปใหม่',
+      );
       return;
     }
  
@@ -188,10 +183,14 @@ class _IdOcrScreenState extends ConsumerState<IdOcrScreen> {
       //   const SnackBar(content: Text('สแกนสำเร็จ เติมข้อมูลอัตโนมัติแล้ว')),
       // );
     } catch (e) {
-      // if (!mounted) return;
-      // ScaffoldMessenger.of(
-      //   context,
-      // ).showSnackBar(SnackBar(content: Text('OCR ล้มเหลว: $e')));
+      if (!mounted) return;
+      Toast.show(
+        context,
+        type: ToastType.error,
+        title: 'สแกนบัตรไม่สำเร็จ',
+        message:
+            'กรุณาลองใหม่อีกครั้ง โดยถ่ายให้เห็นบัตรชัดเจน ไม่สะท้อนแสง และอยู่ในกรอบ',
+      );
     } finally {
       if (mounted) setState(() => _busy = false);
     }
@@ -199,28 +198,33 @@ class _IdOcrScreenState extends ConsumerState<IdOcrScreen> {
  
   Future<void> _submit() async {
     if (_ocrResult == null || _image == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('กรุณาแนบ/ถ่ายรูปบัตรและสแกนก่อน')),
+      Toast.show(
+        context,
+        type: ToastType.warning,
+        title: 'ยังไม่ได้สแกน',
+        message: 'กรุณาแนบหรือถ่ายรูปบัตร แล้วสแกนก่อนดำเนินการต่อ',
       );
       return;
     }
 
     // 🔐 เช็คอายุก่อน
   if (_dob == null) {
-    _showToast(
-      ToastType.error,
-      'ไม่พบวันเกิด',
-      'กรุณาสแกนบัตรให้สำเร็จ เพื่อดึงข้อมูลวันเกิดก่อนดำเนินการต่อ',
+    Toast.show(
+      context,
+      type: ToastType.error,
+      title: 'ไม่พบวันเกิด',
+      message: 'กรุณาสแกนบัตรให้สำเร็จ เพื่อดึงข้อมูลวันเกิดก่อนดำเนินการต่อ',
     );
     return;
   }
 
   final age = _calcAgeForDisplay(_dob!);
   if (age < 18) {
-    _showToast(
-      ToastType.error,
-      'อายุไม่ถึงเกณฑ์',
-      'ต้องมีอายุอย่างน้อย 18 ปีจึงจะสามารถใช้งานส่วนนี้ได้',
+    Toast.show(
+      context,
+      type: ToastType.error,
+      title: 'อายุไม่ถึงเกณฑ์',
+      message: 'ต้องมีอายุอย่างน้อย 18 ปีจึงจะสามารถใช้งานส่วนนี้ได้',
     );
     return; // ❌ ไปต่อไม่ได้
   }
@@ -317,11 +321,11 @@ class _IdOcrScreenState extends ConsumerState<IdOcrScreen> {
       print('Stack trace: $stackTrace');
  
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('อัปเดตผู้ใช้ล้มเหลว: $e'),
-          duration: const Duration(seconds: 5),
-        ),
+      Toast.show(
+        context,
+        type: ToastType.error,
+        title: 'อัปเดตไม่สำเร็จ',
+        message: 'เกิดข้อผิดพลาด: ${e.toString()}',
       );
     } finally {
       if (mounted) setState(() => _busy = false);

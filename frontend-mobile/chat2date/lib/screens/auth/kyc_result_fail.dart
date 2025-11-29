@@ -74,7 +74,7 @@ class KycResultFailScreen extends StatelessWidget {
                       const Padding(
                         padding: EdgeInsets.symmetric(horizontal: 4),
                         child: Text(
-                          'กรุณาตรวจสอบว่าบัตรประชาชนของคุณชัดเจนและรูปเซลฟี่ชัดเจน',
+                          'กรุณาตรวจสอบว่าบัตรประชาชนของคุณชัดเจนและใบหน้าของคุณตรงกับบัตรประชาชน จากนั้นลองสแกนอีกครั้ง',
                           textAlign: TextAlign.center,
                           softWrap: true,
                           style: TextStyle(

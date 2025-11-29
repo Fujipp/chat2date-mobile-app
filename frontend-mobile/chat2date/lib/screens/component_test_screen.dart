@@ -81,9 +81,12 @@ class _ComponentTestScreenState extends State<ComponentTestScreen> {
     } catch (e, st) {
       debugPrint('Verify OTP error: $e\n$st');
       if (!mounted) return;
-      ScaffoldMessenger.of(
+      Toast.show(
         context,
-      ).showSnackBar(const SnackBar(content: Text('Verify failed')));
+        type: ToastType.error,
+        title: 'ผิดพลาด',
+        message: 'ยืนยันรหัสล้มเหลว กรุณาลองอีกครั้ง',
+      );
     } finally {
       if (mounted) setState(() => _submitting = false);
     }
@@ -756,9 +759,13 @@ class _ComponentTestScreenState extends State<ComponentTestScreen> {
             controller: _nextCtrl,
             suffixIcon: Icons.arrow_forward_rounded,
             onSuffixTap: () {
-              ScaffoldMessenger.of(
+              Toast.show(
                 context,
-              ).showSnackBar(const SnackBar(content: Text('Go next')));
+                type: ToastType.info,
+                title: 'ไปต่อ',
+                message: 'กำลังไปยังขั้นตอนถัดไป',
+                durationSeconds: 6,
+              );
             },
           ),
           const SizedBox(height: 12),
@@ -814,10 +821,11 @@ class _ComponentTestScreenState extends State<ComponentTestScreen> {
             accentColor: const Color(0xFFFF6B81),
             onClose: () => Navigator.of(context).maybePop(),
             onSave: (date, time) {
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Text('Saved: $date (${time.format(context)})'),
-                ),
+              Toast.show(
+                context,
+                type: ToastType.success,
+                title: 'บันทึกสำเร็จ',
+                message: 'Saved: $date (${time.format(context)})',
               );
             },
           ),
@@ -829,15 +837,20 @@ class _ComponentTestScreenState extends State<ComponentTestScreen> {
             onClose: () => Navigator.of(context).maybePop(),
             onTrash: () {
               // TODO: เคลียร์ค่าที่ Dev อยากลบ เช่น วันที่/เวลา/สถานที่
-              ScaffoldMessenger.of(
+              Toast.show(
                 context,
-              ).showSnackBar(const SnackBar(content: Text('Cleared')));
+                type: ToastType.info,
+                title: 'เคลียร์แล้ว',
+                message: 'ลบค่าที่เลือกเรียบร้อย',
+                durationSeconds: 6,
+              );
             },
             onSave: (date, time) {
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Text('Saved: $date (${time.format(context)})'),
-                ),
+              Toast.show(
+                context,
+                type: ToastType.success,
+                title: 'บันทึกสำเร็จ',
+                message: 'Saved: $date (${time.format(context)})',
               );
             },
           ),

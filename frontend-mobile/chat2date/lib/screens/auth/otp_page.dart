@@ -9,6 +9,7 @@ import 'package:flutter_svg/flutter_svg.dart';
 import 'package:chat2date/components/buttons/index.dart'; // DsButton / enums
 import 'package:chat2date/services/backend_otp_service.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:chat2date/components/toasts/toast.dart';
 
 class OtpPage extends ConsumerStatefulWidget {
   const OtpPage({super.key});
@@ -114,8 +115,11 @@ class _OtpPageState extends ConsumerState<OtpPage> {
   Future<void> _verify() async {
     final code = _code();
     if (code.length != _length) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('กรุณากรอก OTP ให้ครบ 6 หลัก')),
+      Toast.show(
+        context,
+        type: ToastType.warning,
+        title: 'OTP ไม่ครบ',
+        message: 'กรุณากรอก OTP ให้ครบ 6 หลัก',
       );
       return;
     }
@@ -142,15 +146,21 @@ class _OtpPageState extends ConsumerState<OtpPage> {
         final result = authController.determineRoute(user, onLogin);
         Navigator.pushNamed(context, result.route, arguments: result.arguments);
       } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('รหัสไม่ถูกต้อง กรุณาลองใหม่')),
+        Toast.show(
+          context,
+          type: ToastType.error,
+          title: 'ยืนยันไม่สำเร็จ',
+          message: 'รหัสไม่ถูกต้อง กรุณาลองใหม่',
         );
       }
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(
+      Toast.show(
         context,
-      ).showSnackBar(SnackBar(content: Text('ยืนยันไม่สำเร็จ: $e')));
+        type: ToastType.error,
+        title: 'ยืนยันไม่สำเร็จ',
+        message: 'เกิดข้อผิดพลาด: ${e.toString()}',
+      );
     } finally {
       if (mounted) setState(() => _verifying = false);
     }
@@ -164,14 +174,20 @@ class _OtpPageState extends ConsumerState<OtpPage> {
       if (!mounted) return;
       _token = newToken;
       _startTimer();
-      ScaffoldMessenger.of(
+      Toast.show(
         context,
-      ).showSnackBar(const SnackBar(content: Text('ส่ง OTP ใหม่แล้ว')));
+        type: ToastType.info,
+        title: 'ส่ง OTP ใหม่แล้ว',
+        message: 'กรุณาตรวจสอบข้อความหรืออีเมลของคุณ',
+      );
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(
+      Toast.show(
         context,
-      ).showSnackBar(SnackBar(content: Text('ส่งใหม่ไม่สำเร็จ: $e')));
+        type: ToastType.error,
+        title: 'ส่งใหม่ไม่สำเร็จ',
+        message: 'เกิดข้อผิดพลาด: ${e.toString()}',
+      );
     } finally {
       if (mounted) setState(() => _resending = false);
     }

@@ -4,6 +4,7 @@ import 'package:chat2date/components/buttons/ds_button.dart';
 import 'package:chat2date/components/common/image_upload_grid.dart';
 import 'package:chat2date/components/inputs/ds_label.dart';
 import 'package:chat2date/components/layout/responsive_container.dart';
+import 'package:chat2date/components/toasts/toast.dart';
 import 'package:chat2date/models/user.dart';
 import 'package:chat2date/services/photo_verification_service.dart';
 import 'package:chat2date/stores/user_store.dart';
@@ -184,17 +185,21 @@ class _UserPictureScreenState extends ConsumerState<UserPictureScreen> {
 
     // Validation
     if (_selectedImages.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('กรุณาเลือกรูปภาพอย่างน้อย 1 รูป')),
+      Toast.show(
+        context,
+        type: ToastType.warning,
+        title: 'รูปภาพไม่พอ',
+        message: 'กรุณาเลือกรูปภาพอย่างน้อย 1 รูป',
       );
       return;
     }
 
     if (user == null || cardFaceBytes == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('ไม่พบข้อมูลผู้ใช้ หรือยังไม่ได้ถ่ายรูปบัตรประชาชน'),
-        ),
+      Toast.show(
+        context,
+        type: ToastType.error,
+        title: 'ข้อมูลไม่ครบ',
+        message: 'ไม่พบข้อมูลผู้ใช้ หรือยังไม่ได้ถ่ายรูปบัตรประชาชน',
       );
       return;
     }
@@ -220,13 +225,14 @@ class _UserPictureScreenState extends ConsumerState<UserPictureScreen> {
         if (errorMessage.contains('face') ||
             errorMessage.contains('ใบหน้า') ||
             errorMessage.contains('upload failed')) {
-          // แสดง Dialog แทน SnackBar
           _showFaceVerificationDialog();
         } else {
-          // Error อื่นๆ แสดง SnackBar ปกติ
-          ScaffoldMessenger.of(
+          Toast.show(
             context,
-          ).showSnackBar(SnackBar(content: Text('เกิดข้อผิดพลาด: $e')));
+            type: ToastType.error,
+            title: 'ผิดพลาด',
+            message: 'เกิดข้อผิดพลาด: ${e.toString()}',
+          );
         }
       }
     } finally {

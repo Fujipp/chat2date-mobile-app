@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:chat2date/models/interest.dart';
 import 'package:chat2date/models/lifestyle.dart';
 import 'package:chat2date/models/tag.dart';
+import 'package:chat2date/components/toasts/toast.dart';
 
 // Category configuration
 class LifestyleCategory {
@@ -508,11 +509,11 @@ class _LifestylesSelectionScreenState extends State<LifestylesSelectionScreen> {
           _handleExclusivity(index);
         } else {
           // TODO: แสดง SnackBar/Dialog แจ้งเตือน: "เลือกได้สูงสุด 5 รายการ"
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('คุณเลือกได้สูงสุดเพียง 5 รายการเท่านั้น'),
-              duration: Duration(seconds: 2),
-            ),
+          Toast.show(
+            context,
+            type: ToastType.warning,
+            title: 'จำนวนเกิน',
+            message: 'เลือกได้สูงสุด 5 รายการ',
           );
         }
       }
@@ -802,17 +803,17 @@ class _LifestylesSelectionScreenState extends State<LifestylesSelectionScreen> {
                             ) // อนุญาตให้ยืนยันเมื่อถูกต้อง
                       : () {
                           // ป้องกันการยืนยันเมื่อเลือกไม่ครบ 3 หรือเกิน 5
-                          ScaffoldMessenger.of(context).hideCurrentSnackBar();
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
-                              content: Text(
-                                selectedCount < 3
-                                    ? 'กรุณาเลือกอย่างน้อย 3 รายการ'
-                                    : 'คุณเลือกเกิน 5 รายการ กรุณาลบออกก่อนยืนยัน',
-                              ),
-                              duration: const Duration(seconds: 2),
-                              backgroundColor: Colors.red.shade700,
-                            ),
+                          Toast.show(
+                            context,
+                            type: selectedCount < 3
+                                ? ToastType.warning
+                                : ToastType.error,
+                            title: selectedCount < 3
+                                ? 'ข้อมูลไม่ครบ'
+                                : 'จำนวนเกิน',
+                            message: selectedCount < 3
+                                ? 'กรุณาเลือกอย่างน้อย 3 รายการ'
+                                : 'คุณเลือกเกิน 5 รายการ กรุณาลบออกก่อนยืนยัน',
                           );
                         },
                   borderRadius: BorderRadius.circular(30),

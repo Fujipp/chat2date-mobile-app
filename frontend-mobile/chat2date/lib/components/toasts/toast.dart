@@ -24,6 +24,50 @@ class Toast extends StatelessWidget {
     this.showCountdown = true,
   });
 
+  /// Convenience helper to show a toast via Overlay at bottom-center
+  static void show(
+    BuildContext context, {
+    required ToastType type,
+    required String title,
+    required String message,
+    int durationSeconds = 10,
+    bool showCountdown = true,
+  }) {
+    final overlay = Overlay.of(context);
+
+    late OverlayEntry entry;
+    entry = OverlayEntry(
+      builder: (_) => SafeArea(
+        child: Align(
+          alignment: Alignment.bottomCenter,
+          child: Padding(
+            padding: const EdgeInsets.only(bottom: 24),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: Material(
+                color: Colors.transparent,
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 340),
+                  child: Toast(
+                    type: type,
+                    title: title,
+                    message: message,
+                    durationSeconds: durationSeconds,
+                    autoDismiss: true,
+                    showCountdown: showCountdown,
+                    onClose: () => entry.remove(),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+
+    overlay.insert(entry);
+  }
+
   Color _backgroundColor(ToastType type) {
     switch (type) {
       case ToastType.info:
@@ -66,7 +110,8 @@ class Toast extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      constraints: const BoxConstraints(minHeight: 56),
       decoration: ShapeDecoration(
         color: _backgroundColor(type),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
@@ -125,28 +170,31 @@ class Toast extends StatelessWidget {
               ],
             ),
           ),
-          const SizedBox(width: 16),
+          const SizedBox(width: 12),
 
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
               children: [
-                Text(
-                  title,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    color: Color(0xFF0F172A),
-                    fontSize: 12,
-                    fontFamily: 'Inter',
-                    fontWeight: FontWeight.w700,
+                if (title.isNotEmpty)
+                  Text(
+                    title,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      color: Color(0xFF0F172A),
+                      fontSize: 12,
+                      fontFamily: 'Inter',
+                      fontWeight: FontWeight.w700,
+                    ),
                   ),
-                ),
-                const SizedBox(height: 4),
+                if (title.isNotEmpty) const SizedBox(height: 2),
                 Text(
                   message,
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
+                  softWrap: true,
+                  maxLines: 3,
+                  overflow: TextOverflow.clip,
                   style: const TextStyle(
                     color: AppColors.textPrimary,
                     fontSize: 12,
@@ -159,7 +207,7 @@ class Toast extends StatelessWidget {
               ],
             ),
           ),
-          const SizedBox(width: 16),
+          const SizedBox(width: 12),
 
           Row(
             mainAxisSize: MainAxisSize.min,
@@ -174,10 +222,7 @@ class Toast extends StatelessWidget {
                   builder: (context, value, child) {
                     final remaining = value.ceil();
                     return Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 8,
-                        vertical: 4,
-                      ),
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                       decoration: BoxDecoration(
                         color: Colors.black.withOpacity(0.12),
                         borderRadius: BorderRadius.circular(12),
