@@ -552,7 +552,7 @@ class _FaceVerifyScreenIosState extends ConsumerState<FaceVerifyScreenIos>
       const bool livenessPass = true;
 
       if (livenessPass && selfieBytes64 != null && idFaceBase64 != null) {
-        final vr = await kyc.verifyFaceBytesVsIdFaceBase642(
+        final vr = await kyc.verifyFaceBytesVsIdFaceBase64(
           selfieBytes: selfieBytes64,
           idFaceBase64: idFaceBase64,
         );

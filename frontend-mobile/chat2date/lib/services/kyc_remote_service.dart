@@ -5,7 +5,6 @@ import 'dart:typed_data';
 import 'package:chat2date/config/backend_base.dart';
 import 'package:chat2date/stores/user_store.dart';
 import 'package:flutter/foundation.dart' show debugPrint;
-import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:http/http.dart' as http;
 
@@ -48,50 +47,7 @@ class KycRemoteService {
     return json;
   }
 
-  /// เรียก BE: /kyc/verify-face → ใช้ Azure เทียบ selfie vs idFaceBase64
   Future<Map<String, dynamic>> verifyFaceBytesVsIdFaceBase64({
-    required Uint8List? selfieBytes,
-    required String idFaceBase64,
-  }) async {
-    if (selfieBytes == null) {
-      throw 'selfieBytes is null';
-    }
-
-    final uri = Uri.parse('${ApiBase.baseUrl}/kyc/verify-face');
-    final selfieB64 = base64Encode(selfieBytes);
-
-    final userState = ref.read(userStoreProvider);
-    final accessToken = "${userState['accessToken']}";
-
-    debugPrint('[KYC] POST $uri');
-    debugPrint(
-      '[KYC] selfieB64.length=${selfieB64.length}, idFace.length=${idFaceBase64.length}',
-    );
-
-    final res = await http.post(
-      uri,
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': accessToken,
-      },
-      body: jsonEncode({
-        'selfieBase64': selfieB64,
-        'idFaceBase64': idFaceBase64,
-      }),
-    );
-
-    debugPrint('[KYC] status=${res.statusCode} body=${res.body}');
-
-    if (res.statusCode != 200) {
-      throw 'Verify face failed: HTTP ${res.statusCode} ${res.body}';
-    }
-
-    final json = jsonDecode(res.body) as Map<String, dynamic>;
-    // backend ส่ง VerifyFaceResponse { match, score }
-    return json;
-  }
-
-  Future<Map<String, dynamic>> verifyFaceBytesVsIdFaceBase642({
     required String selfieBytes,
     required String idFaceBase64,
   }) async {

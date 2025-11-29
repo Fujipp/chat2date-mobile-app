@@ -390,7 +390,7 @@ class _FaceVerifyScreenAndroidState
           }
       }
 
-            if (_currentStep == PoseStep.blink) {
+      if (_currentStep == PoseStep.blink) {
         // ✅ ท่ากระพริบตา: ถ้าตรงเงื่อนไขครั้งเดียว ให้ผ่านทันที
         if (instantComplete) {
           _stepHoldSeconds = _stepSecondsRequired;
@@ -405,7 +405,6 @@ class _FaceVerifyScreenAndroidState
           _stepHoldSeconds = 0;
         }
       }
-
 
       final stepRatio = (_stepHoldSeconds / _stepSecondsRequired).clamp(
         0.0,
@@ -550,7 +549,7 @@ class _FaceVerifyScreenAndroidState
       const bool livenessPass = true;
 
       if (livenessPass && selfieBytes64 != null && idFaceBase64 != null) {
-        final vr = await kyc.verifyFaceBytesVsIdFaceBase642(
+        final vr = await kyc.verifyFaceBytesVsIdFaceBase64(
           selfieBytes: selfieBytes64,
           idFaceBase64: idFaceBase64,
         );
@@ -562,7 +561,7 @@ class _FaceVerifyScreenAndroidState
         final double apiThreshold =
             (vr['threshold'] as num?)?.toDouble() ?? 0.0;
 
-        matched = apiMatched && apiScore >= apiThreshold;
+        matched = apiMatched;
         score = apiScore;
 
         debugPrint(
@@ -587,7 +586,7 @@ class _FaceVerifyScreenAndroidState
 
       final resultArgs = {'matched': matched, 'score': score, 'raw': raw};
 
-      if (livenessPass && matched) {
+      if (matched) {
         Navigator.pushReplacementNamed(
           context,
           '/kyc-result-success',
