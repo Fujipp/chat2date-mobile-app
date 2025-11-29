@@ -169,6 +169,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
   }
 
   List<File> _selectedImages = [];
+  List<String> _deletedImages = [];
   bool _isLoading = false;
 
   // แสดง Dialog แจ้งเตือนเมื่อใบหน้าไม่ตรงกับบัตร
@@ -315,9 +316,9 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     final cardFaceBytes = userState['cardFaceBytes'] as String?;
 
     // Validation
-    if (_selectedImages.isEmpty) {
+    if (_selectedImages.isEmpty && _deletedImages.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('กรุณาเลือกรูปภาพอย่างน้อย 1 รูป')),
+        const SnackBar(content: Text('กรุณาแก้ไข/เพิ่มรูปภาพอย่างน้อย 1 รูป')),
       );
       return;
     }
@@ -333,20 +334,31 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
 
     setState(() => _isLoading = true);
 
-    
-
     try {
       final service = ref.read(photoVerificationServiceProvider);
 
-      await service.verifyAndUpload(
-        userId: user.userId,
-        profileImages: _selectedImages,
-        idCardBase64: cardFaceBytes,
-      );
-
-      if (mounted) {
-        Navigator.pushReplacementNamed(context, '/discovery');
+      if (_deletedImages.isNotEmpty) {
+        try {
+          await service.removePhoto(
+            userId: user.userId,
+            imageUrls: _deletedImages,
+          );
+        } catch (e) {
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(SnackBar(content: Text('ไม่สามารถลบรูป ไม่ให้เหลือใบหน้าได้')));
+        }
       }
+
+      if (_selectedImages.isNotEmpty) {
+        await service.verifyAndUpload(
+          userId: user.userId,
+          profileImages: _selectedImages,
+          idCardBase64: cardFaceBytes,
+        );
+      }
+
+      if (mounted) {}
     } catch (e) {
       if (mounted) {
         // ตรวจสอบว่า error เป็นเรื่องใบหน้าไม่ตรงหรือไม่
@@ -429,7 +441,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
       }
 
       if (_isListChanged(_oldPhotos, _selectedImages)) {
-        _handleSubmit();
+        await _handleSubmit();
       }
       await Future.wait(tasks);
       //tasks.add(userService.updateNickname(nickname!));
@@ -564,6 +576,19 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                                     .toList();
                               });
                               print('จำนวนรูปที่เลือก: ${images.length}');
+                            },
+                            onImageRemoved: (index, removed) {
+                              // รูปจาก server (String)
+                              if (removed is String) {
+                                setState(() {
+                                  _deletedImages.add(removed);
+                                  photoUrls.remove(removed); // เอาออกจาก UI
+                                });
+
+                                print("ลบรูปจาก server => $removed");
+                              }
+
+                              // ถ้าเป็นรูปใหม่ (XFile) — จะเข้ามาเป็น File ตอน submit
                             },
                           ),
 
@@ -860,16 +885,17 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                       // Submit
                       try {
                         await _submitEdit();
+                        
 
-                        if (mounted) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              content: Text('✓ บันทึกข้อมูลสำเร็จ'),
-                              backgroundColor: Colors.green,
-                              duration: Duration(seconds: 2),
-                            ),
-                          );
-                        }
+                        // if (mounted) {
+                        //   ScaffoldMessenger.of(context).showSnackBar(
+                        //     const SnackBar(
+                        //       content: Text('✓ บันทึกข้อมูลสำเร็จ'),
+                        //       backgroundColor: Colors.green,
+                        //       duration: Duration(seconds: 2),
+                        //     ),
+                        //   );
+                        // }
                       } catch (e) {
                         if (mounted) {
                           ScaffoldMessenger.of(context).showSnackBar(

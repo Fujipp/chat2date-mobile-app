@@ -5,6 +5,7 @@ import 'package:image_picker/image_picker.dart';
 
 class ImageUploadGrid extends StatefulWidget {
   final Function(List<XFile> images)? onImagesChanged;
+  final Function(int index, dynamic removedItem)? onImageRemoved;
   final double spacing;
   final double runSpacing;
   final List<String> imageUser;
@@ -15,6 +16,7 @@ class ImageUploadGrid extends StatefulWidget {
     this.spacing = 12.0,
     this.runSpacing = 50.0,
     this.imageUser = const [],
+    this.onImageRemoved,
   });
 
   @override
@@ -58,8 +60,21 @@ class _ImageUploadGridState extends State<ImageUploadGrid> {
     }
   }
 
+  // void _removeImage(int index) {
+  //   setState(() => _images[index] = null);
+  //   _notifyParent();
+  // }
+
   void _removeImage(int index) {
-    setState(() => _images[index] = null);
+    final removedItem = _images[index]; // <--- เก็บค่าก่อนลบ
+
+    setState(() {
+      _images[index] = null;
+    });
+
+    // ส่งไปให้ parent
+    widget.onImageRemoved?.call(index, removedItem);
+
     _notifyParent();
   }
 
