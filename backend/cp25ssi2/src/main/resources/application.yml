@@ -1,8 +1,3 @@
-smsmkt:
-  apiKey: "f6fa786eabdb337cb324c56b091c2788"
-  secretKey: "gp8dxiYyvqEkd3rg"
-  projectKey: "6a1937bbc1"
-
 server:
   address: 0.0.0.0
   port: 8080

@@ -40,7 +40,7 @@ public class JwtTokenUtil implements Serializable {
     @Value("${JWT_REFRESH_SECRET}")
     private String refresh_secret_key;
     @Value("${jwt.max-refresh-token-interval-hour}")
-    private int jwt_refresh_token_time;
+    private long jwt_refresh_token_time;
     private long jwt_refresh_token_time_millis;
 
     SignatureAlgorithm signatureAlgorithm = SignatureAlgorithm.HS256;
