@@ -55,10 +55,10 @@ public class UserController {
         return userService.deleteUser(id);
     }
 
-    @GetMapping("/users/{id}/preference")
-    public ResponseEntity<PreferenceUserDTO> UserPreferenceById(@PathVariable String id) {
-        return userService.UserPreferenceById(id);
-    }
+//    @GetMapping("/users/{id}/preference")
+//    public ResponseEntity<PreferenceUserDTO> UserPreferenceById(@PathVariable String id) {
+//        return userService.UserPreferenceById(id);
+//    }
 
     @PostMapping("/users/preference")
     public ResponseEntity<PreferenceUserDTO> createUserPreference(@RequestHeader("Authorization") String accessToken, @RequestBody PreferenceUserDTO preferenceUser) {

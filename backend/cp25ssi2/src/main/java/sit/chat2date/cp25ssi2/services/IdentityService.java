@@ -61,6 +61,8 @@ public class IdentityService {
             if (userPhoto == null) {
                 userPhoto = new UserPhoto();
                 userPhoto.setUser(user);
+                // ✅ สร้าง attributes ตั้งแต่ตอนนี้เลย
+                userPhoto.setAttributes(new HashMap<>());
             }
             userPhoto.setIsVerified(true);
             user.setAccountStatus(AccountStatus.ACTIVE);
@@ -69,7 +71,6 @@ public class IdentityService {
             throw new IllegalArgumentException("ใบหน้าในรูปโปรไฟล์ไม่ตรงกับบัตรประชาชน");
         }
 
-
         // อัปโหลดรูปใหม่
         List<String> uploadedUrls = uploadImagesParallel(profileImages);
 
@@ -77,7 +78,6 @@ public class IdentityService {
 
         return uploadedUrls;
     }
-
 
 
     /**
@@ -181,38 +181,40 @@ public class IdentityService {
         UserPhoto userPhoto = userPhotoRepository.findByUser_UserId(userId);
 
         if (userPhoto == null) {
+            // ✅ สร้างพร้อม attributes และ urls เลย
             userPhoto = new UserPhoto();
             userPhoto.setUser(user);
             userPhoto.setBase64Card(idCardBase64);
+
+            Map<String, Object> attributes = new HashMap<>();
+            attributes.put("urls", new ArrayList<>(uploadedUrls));
+            userPhoto.setAttributes(attributes);
         } else {
+            // อัพเดทข้อมูลเดิม
             if (idCardBase64 != null && !idCardBase64.isEmpty()) {
                 userPhoto.setBase64Card(idCardBase64);
             }
-        }
 
-        Map<String, Object> attributes = userPhoto.getAttributes();
-        if (attributes == null) {
-            attributes = new HashMap<>();
-        }
-
-        List<String> urls;
-        if (attributes.containsKey("urls") && attributes.get("urls") != null) {
-            urls = new ArrayList<>((List<String>) attributes.get("urls"));
-        } else {
-            urls = new ArrayList<>();
-        }
-
-        // เพิ่ม URL ใหม่ (กันซ้ำ)
-        for (String newUrl : uploadedUrls) {
-            if (!urls.contains(newUrl)) {
-                urls.add(newUrl);
+            Map<String, Object> attributes = userPhoto.getAttributes();
+            if (attributes == null) {
+                attributes = new HashMap<>();
             }
+
+            @SuppressWarnings("unchecked")
+            List<String> urls = attributes.containsKey("urls") && attributes.get("urls") instanceof List
+                    ? new ArrayList<>((List<String>) attributes.get("urls"))
+                    : new ArrayList<>();
+
+            // เพิ่ม URL ใหม่ (ป้องกันซ้ำ)
+            uploadedUrls.stream()
+                    .filter(url -> !urls.contains(url))
+                    .forEach(urls::add);
+
+            attributes.put("urls", urls);
+            userPhoto.setAttributes(attributes);
         }
 
-        // ไม่ต้อง addAll/upsert ซ้ำ ไม่ต้อง put uploadedUrls
-        attributes.put("urls", urls);
-
-        userPhoto.setAttributes(attributes);
+        // บันทึก
         userPhotoRepository.save(userPhoto);
     }
 
