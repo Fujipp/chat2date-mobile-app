@@ -231,14 +231,14 @@ class DiscoveryNotifier extends StateNotifier<DiscoveryState> {
   /// ไปหน้า candidate ถัดไป
   void nextCandidate() {
     if (!mounted) return;
-
+    print(state.hasMore);
     if (state.hasMore) {
       state = state.copyWith(currentIndex: state.currentIndex + 1);
       print(
         '📍 Current index: ${state.currentIndex}/${state.candidates.length - 1}',
       );
     } else {
-      print('⚠️ No more candidates');
+      state = state.copyWith(currentIndex: 0, candidates: []);
     }
   }
 

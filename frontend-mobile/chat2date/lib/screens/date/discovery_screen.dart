@@ -96,6 +96,7 @@ class _DiscoveryScreenState extends ConsumerState<DiscoveryScreen>
   }
 
   void _nextImage(int maxLength) {
+    print(_index);
     setState(() => _index = (_index + 1) % maxLength);
   }
 

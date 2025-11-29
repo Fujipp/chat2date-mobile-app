@@ -344,9 +344,9 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
             imageUrls: _deletedImages,
           );
         } catch (e) {
-          ScaffoldMessenger.of(
-            context,
-          ).showSnackBar(SnackBar(content: Text('ไม่สามารถลบรูป ไม่ให้เหลือใบหน้าได้')));
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('ไม่สามารถลบรูป ไม่ให้เหลือใบหน้าได้')),
+          );
         }
       }
 
@@ -444,6 +444,14 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
         await _handleSubmit();
       }
       await Future.wait(tasks);
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('✓ บันทึกข้อมูลสำเร็จ'),
+          backgroundColor: Colors.green,
+          duration: Duration(seconds: 2),
+        ),
+      );
       //tasks.add(userService.updateNickname(nickname!));
     } catch (e) {
       throw new Exception(e);
@@ -885,7 +893,6 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                       // Submit
                       try {
                         await _submitEdit();
-                        
 
                         // if (mounted) {
                         //   ScaffoldMessenger.of(context).showSnackBar(
