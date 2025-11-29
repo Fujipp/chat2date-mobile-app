@@ -5,6 +5,7 @@ import 'dart:typed_data';
 import 'package:chat2date/config/backend_base.dart';
 import 'package:chat2date/stores/user_store.dart';
 import 'package:flutter/foundation.dart' show debugPrint;
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:http/http.dart' as http;
 
@@ -104,7 +105,7 @@ class KycRemoteService {
 
       // ดึง API Key จาก header
       final userState = ref.read(userStoreProvider);
-      request.headers['apikey'] = 'z53PcjJ9ZILYulxeLQqGWZhe848sluPY';
+      request.headers['apikey'] = dotenv.env['IAPP_FACE_VERIFY_API_KEY'] ?? '';
 
       // แปลง selfieBytes และ idFaceBase64 จาก Base64 string เป็น Uint8List
       final selfieDecoded = base64Decode(selfieBytes);
