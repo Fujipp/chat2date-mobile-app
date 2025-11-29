@@ -8,10 +8,9 @@ import 'package:chat2date/models/lifestyle.dart';
 import 'package:chat2date/models/tag.dart';
 import 'package:chat2date/models/travelstyle.dart';
 import 'package:chat2date/models/user.dart';
-import 'package:chat2date/services/preference_service.dart';
 import 'package:chat2date/services/user_service.dart';
-import 'package:flutter/material.dart';
 import 'package:chat2date/stores/user_store.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 class ProfileSetupScreen extends ConsumerStatefulWidget {
@@ -36,7 +35,7 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
   List<int> _selectedTags = [];
   List<int> _selectedTravelStyles = [];
   List<int> get selectedTravelStyleIds =>
-      _selectedTravelStyles.map((i) => _travelStyles[i].id!).toList();
+      _selectedTravelStyles.map((i) => _travelStyles[i].id).toList();
 
   // ข้อมูลสำหรับแสดงใน TextField
   String _getSelectedText(List<int> selected, List<String> allItems) {
@@ -224,7 +223,6 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
                   return;
                 }
 
-                // ตรวจสอบ Interests
                 if (_selectedInterests.length < 3 ||
                     _selectedInterests.length > 5) {
                   ScaffoldMessenger.of(context).showSnackBar(
@@ -233,7 +231,6 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
                   return;
                 }
 
-                // ตรวจสอบ Tags สูงสุด 5 (ไม่บังคับเลือก)
                 if (_selectedTags.length > 5) {
                   ScaffoldMessenger.of(context).showSnackBar(
                     const SnackBar(
@@ -256,46 +253,98 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
                     .map((id) => id + 1)
                     .toList();
 
+                print('===== เริ่มบันทึกข้อมูล =====');
+
                 try {
                   final userStore =
                       ref.read(userStoreProvider) as Map<String, dynamic>?;
 
-                  final oldUser = userStore?['user'] as User;
+                  if (userStore == null) {
+                    print('❌ userStore is null');
+                    if (mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('ไม่พบข้อมูลผู้ใช้')),
+                      );
+                    }
+                    return;
+                  }
 
-                  if (oldUser.userId == null || oldUser.version == null) return;
+                  final oldUser = userStore['user'] as User?;
 
-                  // สร้าง Map ของ user ที่ต้องการส่งไปอัปเดต
+                  if (oldUser == null) {
+                    print('❌ oldUser is null');
+                    if (mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('ไม่พบข้อมูลผู้ใช้')),
+                      );
+                    }
+                    return;
+                  }
+
+                  if (oldUser.version == null) {
+                    print('❌ userId or version is null');
+                    if (mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('ข้อมูลผู้ใช้ไม่ครบถ้วน')),
+                      );
+                    }
+                    return;
+                  }
+
+                  print('✅ userId: ${oldUser.userId}');
+                  print('✅ nickname: ${_nicknameCtrl.text}');
+                  print('✅ version: ${oldUser.version}');
+
                   final user = User(
                     userId: oldUser.userId,
                     nickname: _nicknameCtrl.text,
                     version: oldUser.version,
                   );
+
                   final preference = {
                     "interests": incrementedInterests,
                     "lifeStyles": incrementedLifestyles,
                     "tags": incrementedTag,
                     "travelStyles": incrementedTravelStyles,
                   };
+
+                  print('📦 preference: $preference');
+
                   final userService = ref.read(userServiceProvider);
 
+                  print('🔄 Calling updateUser...');
                   final update = await userService.updateUser(user);
+                  print('✅ updateUser result: $update');
 
+                  print('🔄 Calling addPreferenceUser...');
                   final addPreference = await userService.addPreferenceUser(
                     preference,
                   );
-                } catch (e) {
-                  throw Exception(e);
+                  print('✅ addPreferenceUser result: $addPreference');
+
+                  print('🎉 บันทึกสำเร็จ กำลัง Navigate...');
+
+                  // ✅ Navigate หลังจาก API สำเร็จ
+                  if (mounted) {
+                    Navigator.pushReplacementNamed(context, '/matchPreference');
+                    print('✅ Navigate สำเร็จ');
+                  }
+                } catch (e, stackTrace) {
+                  print('❌ ===== ERROR =====');
+                  print('Error: $e');
+                  print('StackTrace: $stackTrace');
+
+                  if (mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text('เกิดข้อผิดพลาด: ${e.toString()}'),
+                        backgroundColor: Colors.red,
+                        duration: const Duration(seconds: 5),
+                      ),
+                    );
+                  }
+                  // ⚠️ ไม่ throw exception ออกไป
                 }
-
-                // // ส่งข้อมูลไปหน้าถัดไป
-                // print('===== ข้อมูล Profile =====');
-                // print('ชื่อเล่น: ${_nicknameCtrl.text}');
-                // print('ไลฟ์สไตล์: $_selectedLifestyles');
-                // print('ความสนใจ: $_selectedInterests');
-                // print('Tags: $_selectedTags');
-
-                // // TODO: บันทึกข้อมูลหรือไปหน้าถัดไป
-                Navigator.pushNamed(context, '/matchPreference');
               },
               variant: DsButtonVariant.primary,
               size: DsButtonSize.md,

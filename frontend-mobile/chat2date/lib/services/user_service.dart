@@ -1,10 +1,12 @@
 import 'dart:convert';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
+
 import 'package:chat2date/config/backend_base.dart';
 import 'package:chat2date/models/user.dart';
 import 'package:chat2date/stores/user_store.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:http/http.dart' as http;
 import 'package:riverpod_annotation/riverpod_annotation.dart';
+
 part 'user_service.g.dart';
 
 @riverpod
@@ -75,7 +77,7 @@ class UserService {
       body: jsonEncode(preference),
     );
 
-    if (response.statusCode != 200) {
+    if (response.statusCode != 201) {
       throw Exception('Update failed: ${response.body}');
     }
 
@@ -132,7 +134,7 @@ class UserService {
 
   Future<Map<String, dynamic>> getProfile() async {
     final userState = ref.read(userStoreProvider);
-     final userStore = ref.read(userStoreProvider) as Map<String, dynamic>?;
+    final userStore = ref.read(userStoreProvider) as Map<String, dynamic>?;
     final user = userStore?['user'] as User;
     final userId = user.userId;
 
@@ -147,7 +149,9 @@ class UserService {
 
     if (response.statusCode == 200) {
       final data = jsonDecode(response.body);
-      ref.read(userStoreProvider.notifier).setCardFaceBytes(data?['base64Card']);
+      ref
+          .read(userStoreProvider.notifier)
+          .setCardFaceBytes(data?['base64Card']);
       ref.read(userStoreProvider.notifier).setProfile(data);
       return data;
     }
