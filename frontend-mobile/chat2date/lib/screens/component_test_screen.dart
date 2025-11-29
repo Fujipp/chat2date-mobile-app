@@ -113,6 +113,54 @@ class _ComponentTestScreenState extends State<ComponentTestScreen> {
           Toast(type: ToastType.success, title: 'fuck', message: "you"),
           Toast(type: ToastType.warning, title: 'fuck', message: "you"),
           Toast(type: ToastType.error, title: 'fuck', message: "you"),
+          const SizedBox(height: 12),
+          const Text(
+            'Toast (Real Usage)',
+            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+          ),
+          const SizedBox(height: 8),
+          Wrap(
+            spacing: 12,
+            runSpacing: 12,
+            children: [
+              DsButton(
+                label: 'Show Info Toast (10s)',
+                variant: DsButtonVariant.primary,
+                onPressed: () => _showOverlayToast(
+                  ToastType.info,
+                  'ข้อมูล',
+                  'ตัวอย่าง Toast แบบ overlay ปิดเองใน 10 วินาที',
+                ),
+              ),
+              DsButton(
+                label: 'Show Success Toast',
+                variant: DsButtonVariant.secondary,
+                onPressed: () => _showOverlayToast(
+                  ToastType.success,
+                  'สำเร็จ',
+                  'บันทึกข้อมูลเรียบร้อย',
+                ),
+              ),
+              DsButton(
+                label: 'Show Warning Toast',
+                variant: DsButtonVariant.outlinePrimary,
+                onPressed: () => _showOverlayToast(
+                  ToastType.warning,
+                  'คำเตือน',
+                  'โปรดตรวจสอบข้อมูลให้ถูกต้อง',
+                ),
+              ),
+              DsButton(
+                label: 'Show Error Toast',
+                variant: DsButtonVariant.error,
+                onPressed: () => _showOverlayToast(
+                  ToastType.error,
+                  'ผิดพลาด',
+                  'เกิดข้อผิดพลาดในการบันทึกข้อมูล',
+                ),
+              ),
+            ],
+          ),
           // Generic Cards
           const Text(
             'Generic_card',
@@ -1183,6 +1231,41 @@ class _ComponentTestScreenState extends State<ComponentTestScreen> {
         onTap: _onItemTapped,
       ),
     );
+  }
+
+  void _showOverlayToast(ToastType type, String title, String message) {
+    final overlay = Overlay.of(context);
+
+    late OverlayEntry entry;
+    entry = OverlayEntry(
+      builder: (_) => SafeArea(
+        child: Stack(
+          children: [
+            Positioned(
+              left: 16,
+              right: 16,
+              bottom: 20,
+              child: Material(
+                color: Colors.transparent,
+                child: Toast(
+                  type: type,
+                  title: title,
+                  message: message,
+                  durationSeconds: 10,
+                  autoDismiss: true,
+                  showCountdown: true,
+                  onClose: () {
+                    entry.remove();
+                  },
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+
+    overlay.insert(entry);
   }
 
   @override
