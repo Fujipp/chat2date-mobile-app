@@ -7,12 +7,11 @@ import io.jsonwebtoken.SignatureAlgorithm;
 import io.jsonwebtoken.security.Keys;
 import io.jsonwebtoken.security.SignatureException;
 import jakarta.annotation.PostConstruct;
-import org.hibernate.boot.model.naming.Identifier;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
-import sit.chat2date.cp25ssi2.dto.RefreshTokenResponse;
 import sit.chat2date.cp25ssi2.entities.User;
+import sit.chat2date.cp25ssi2.exceptions.NotFoundException;
 import sit.chat2date.cp25ssi2.exceptions.RefreshTokenExpiredException;
 import sit.chat2date.cp25ssi2.repositories.UserRepository;
 
@@ -91,7 +90,7 @@ public class JwtTokenUtil implements Serializable {
 
         // ตรวจสอบว่ามี user จริง ๆ หรือไม่
         User user = userById.orElseThrow(() ->
-                new IllegalArgumentException("User not found for identifier: " + identifier)
+                new NotFoundException("User not found for identifier: " + identifier)
         );
 
         if (user.getPhoneNumber() != null) {
@@ -134,10 +133,6 @@ public class JwtTokenUtil implements Serializable {
     }
 
     public Boolean validateTokenExceptions(String token) {
-//        if (tokenBlacklistService.isTokenBlacklisted(token)) {
-//            throw new IllegalArgumentException("Token has been revoked");
-//        }
-
         try {
             Jwts.parserBuilder()
                     .setSigningKey(key)
@@ -189,10 +184,6 @@ public class JwtTokenUtil implements Serializable {
     }
 
     public Boolean validateRefreshToken(String token) {
-//        if (tokenBlacklistService.isRefreshTokenBlacklisted(token)) {
-//            throw new IllegalArgumentException("Refresh token has been revoked");
-//        }
-
         try {
             Jwts.parserBuilder()
                     .setSigningKey(refreshKey)

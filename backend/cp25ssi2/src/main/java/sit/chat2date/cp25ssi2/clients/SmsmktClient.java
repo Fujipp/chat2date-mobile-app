@@ -51,38 +51,36 @@ public class SmsmktClient {
      * ส่ง OTP -> คืน token
      */
     public String send(String phone08, String refCode, String deviceId) {
-//        String phone = normalizePhone(phone08);
-//
-//        // 1) ถ้ามีอยู่ใน Redis แปลว่ายังไม่ครบ 60 วินาที
-//        String key = "otp:lock:" + phone + ":" + deviceId;
-//        if (redis.hasKey(key)) {
-//            long waitSec = Optional.ofNullable(redis.getExpire(key, TimeUnit.SECONDS)).orElse(60L);
-//            throw new TooManyRequestException("กรุณารออีก " + waitSec + " วินาที ก่อนขอ OTP ใหม่");
-//        }
-//        redis.opsForValue().set(key, "1", 60, TimeUnit.SECONDS);
-//        var url = "https://portal-otp.smsmkt.com/api/otp-send";
-//        var payload = new HashMap<String, Object>();
-//        payload.put("project_key", projectKey);
-//        payload.put("phone", normalizePhone(phone08));  // 08xxxxxxxx
-//        if (refCode != null && !refCode.isBlank()) payload.put("ref_code", refCode);
-//
-//        var req = new HttpEntity<>(payload, headersJson());
-//        ResponseEntity<Map> res = restTemplate.postForEntity(url, req, Map.class);
-//
-//        if (res.getStatusCode() != HttpStatus.OK) {
-//            throw new RuntimeException("SMSMKT HTTP " + res.getStatusCode());
-//        }
-//        Map<?, ?> m = res.getBody();
-//        if (m == null || !"000".equals(m.get("code"))) {
-//            throw new RuntimeException("SMSMKT error: " + (m != null ? m.get("detail") : "null"));
-//        }
-//        Map<?, ?> result = (Map<?, ?>) m.get("result");
-//        var token = result != null ? String.valueOf(result.get("token")) : null;
-//        if (token == null || token.isBlank()) {
-//            throw new RuntimeException("No token from SMSMKT");
-//        }
-//        return token;
-        return "true";
+        String phone = normalizePhone(phone08);
+
+        String key = "otp:lock:" + phone + ":" + deviceId;
+        if (redis.hasKey(key)) {
+            long waitSec = Optional.ofNullable(redis.getExpire(key, TimeUnit.SECONDS)).orElse(60L);
+            throw new TooManyRequestException("กรุณารออีก " + waitSec + " วินาที ก่อนขอ OTP ใหม่");
+        }
+        redis.opsForValue().set(key, "1", 60, TimeUnit.SECONDS);
+        var url = "https://portal-otp.smsmkt.com/api/otp-send";
+        var payload = new HashMap<>();
+        payload.put("project_key", projectKey);
+        payload.put("phone", normalizePhone(phone08));  // 08xxxxxxxx
+        if (refCode != null && !refCode.isBlank()) payload.put("ref_code", refCode);
+
+        var req = new HttpEntity<>(payload, headersJson());
+        ResponseEntity<Map> res = restTemplate.postForEntity(url, req, Map.class);
+
+        if (res.getStatusCode() != HttpStatus.OK) {
+            throw new RuntimeException("SMSMKT HTTP " + res.getStatusCode());
+        }
+        Map<?, ?> m = res.getBody();
+        if (m == null || !"000".equals(m.get("code"))) {
+            throw new RuntimeException("SMSMKT error: " + (m != null ? m.get("detail") : "null"));
+        }
+        Map<?, ?> result = (Map<?, ?>) m.get("result");
+        var token = result != null ? String.valueOf(result.get("token")) : null;
+        if (token == null || token.isBlank()) {
+            throw new RuntimeException("No token from SMSMKT");
+        }
+        return token;
     }
 
     /**
@@ -90,30 +88,30 @@ public class SmsmktClient {
      */
     public Map<String, Object> validate(String token, String otpCode, String refCode, String phoneNumber, boolean onLogin) {
         // URL ของ OTP validate API
-//        String url = "https://portal-otp.smsmkt.com/api/otp-validate";
-//
-//        // สร้าง payload
-//        Map<String, Object> payload = new HashMap<>();
-//        payload.put("token", token);
-//        payload.put("otp_code", otpCode);
-//        if (refCode != null && !refCode.isBlank()) {
-//            payload.put("ref_code", refCode);
-//        }
-//
-//        // ส่ง request ไปยัง OTP API
-//        HttpEntity<Map<String, Object>> req = new HttpEntity<>(payload, headersJson());
-//        ResponseEntity<Map> res = restTemplate.postForEntity(url, req, Map.class);
-//
+        String url = "https://portal-otp.smsmkt.com/api/otp-validate";
+
+        // สร้าง payload
+        Map<String, Object> payload = new HashMap<>();
+        payload.put("token", token);
+        payload.put("otp_code", otpCode);
+        if (refCode != null && !refCode.isBlank()) {
+            payload.put("ref_code", refCode);
+        }
+
+        // ส่ง request ไปยัง OTP API
+        HttpEntity<Map<String, Object>> req = new HttpEntity<>(payload, headersJson());
+        ResponseEntity<Map> res = restTemplate.postForEntity(url, req, Map.class);
+
 //        // ตรวจสอบ response
-        boolean valid = true;
-//        if (res.getStatusCode() == HttpStatus.OK && res.getBody() != null) {
-//            Map<?, ?> body = res.getBody();
-//            if ("000".equals(body.get("code"))) {
-//                Map<?, ?> result = (Map<?, ?>) body.get("result");
-//                Object status = (result != null) ? result.get("status") : null;
-//                valid = (status instanceof Boolean) ? (Boolean) status : true;
-//            }
-//        }
+        boolean valid = false;
+        if (res.getStatusCode() == HttpStatus.OK && res.getBody() != null) {
+            Map<?, ?> body = res.getBody();
+            if ("000".equals(body.get("code"))) {
+                Map<?, ?> result = (Map<?, ?>) body.get("result");
+                Object status = (result != null) ? result.get("status") : null;
+                valid = (status instanceof Boolean) ? (Boolean) status : true;
+            }
+        }
 
         Optional<User> userOptional = userRepository.findByPhoneNumber(phoneNumber);
         User user = new User();

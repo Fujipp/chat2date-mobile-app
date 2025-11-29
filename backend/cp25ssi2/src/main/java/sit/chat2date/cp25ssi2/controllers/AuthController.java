@@ -11,11 +11,9 @@ import org.springframework.web.bind.annotation.*;
 
 import sit.chat2date.cp25ssi2.clients.SmsmktClient;
 import sit.chat2date.cp25ssi2.dto.*;
-import sit.chat2date.cp25ssi2.repositories.UserRepository;
 import sit.chat2date.cp25ssi2.services.AuthService;
 import sit.chat2date.cp25ssi2.services.JwtTokenUtil;
 import sit.chat2date.cp25ssi2.services.TokenBlacklistService;
-import sit.chat2date.cp25ssi2.services.UserService;
 
 @RestController
 @RequestMapping("/auth")
