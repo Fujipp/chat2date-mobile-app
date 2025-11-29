@@ -3,7 +3,6 @@
   <component name="ProjectModuleManager">
     <modules>
       <module fileurl="file://$PROJECT_DIR$/.idea/Capstone-Project-Chat-To-Date.iml" filepath="$PROJECT_DIR$/.idea/Capstone-Project-Chat-To-Date.iml" />
-      <module fileurl="file://$PROJECT_DIR$/backend/cp25ssi2/cp25ssi2.iml" filepath="$PROJECT_DIR$/backend/cp25ssi2/cp25ssi2.iml" />
     </modules>
   </component>
 </project>

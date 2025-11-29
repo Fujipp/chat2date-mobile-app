@@ -124,15 +124,19 @@ public class JwtTokenUtil implements Serializable {
     }
 
     public Boolean validateToken(String token, String subject) {
-//        if (tokenBlacklistService.isTokenBlacklisted(token)) {
-//            throw new IllegalArgumentException("Token has been revoked");
-//        }
+        if (tokenBlacklistService.isTokenBlacklisted(token)) {
+            throw new IllegalArgumentException("Token has been revoked");
+        }
 
         final String subjectToken = getSubjectFromToken(token);
         return (subjectToken.equals(subject) && !isTokenExpired(token));
     }
 
     public Boolean validateTokenExceptions(String token) {
+        if (tokenBlacklistService.isTokenBlacklisted(token)) {
+            throw new IllegalArgumentException("Token has been revoked");
+        }
+
         try {
             Jwts.parserBuilder()
                     .setSigningKey(key)
@@ -184,6 +188,10 @@ public class JwtTokenUtil implements Serializable {
     }
 
     public Boolean validateRefreshToken(String token) {
+        if (tokenBlacklistService.isRefreshTokenBlacklisted(token)) {
+            throw new IllegalArgumentException("Refresh token has been revoked");
+        }
+
         try {
             Jwts.parserBuilder()
                     .setSigningKey(refreshKey)
