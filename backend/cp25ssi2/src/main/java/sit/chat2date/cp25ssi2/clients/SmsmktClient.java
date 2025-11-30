@@ -71,7 +71,7 @@ public class SmsmktClient {
 //
 //        var token = getString(res);
 //        return token;
-        return "";
+        return "k";
     }
 
     private static String getString(ResponseEntity<Map> res) {
