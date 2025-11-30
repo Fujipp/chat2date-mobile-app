@@ -5,7 +5,8 @@ class CustomRangeSlider extends StatelessWidget {
   final ValueChanged<RangeValues> onChanged;
   final double min;
   final double max;
-  final int? divisions;
+  final double step; // กำหนดขนาดการกระโดดของค่า (เช่น 1)
+  final bool snapToStep; // บังคับปัดค่าให้ตรง step
 
   const CustomRangeSlider({
     super.key,
@@ -13,8 +14,9 @@ class CustomRangeSlider extends StatelessWidget {
     required this.onChanged,
     this.min = 0.0,
     this.max = 1.0,
-    this.divisions,
-  });
+    this.step = 1.0,
+    this.snapToStep = true,
+  }) : assert(step > 0, 'step must be > 0');
 
   @override
   Widget build(BuildContext context) {
@@ -33,8 +35,24 @@ class CustomRangeSlider extends StatelessWidget {
         values: values,
         min: min,
         max: max,
-        divisions: divisions,
-        onChanged: onChanged,
+        // กำหนด divisions เพื่อให้ RangeSlider แสดง tick ตาม step
+        divisions: ((max - min) / step).round(),
+        onChanged: (r) {
+          if (!snapToStep) {
+            onChanged(r);
+            return;
+          }
+          double snap(double v) {
+            final snapped = (v / step).round() * step;
+            // ป้องกันเลยขอบ
+            if (snapped < min) return min;
+            if (snapped > max) return max;
+            return snapped;
+          }
+          final newStart = snap(r.start);
+            final newEnd = snap(r.end);
+          onChanged(RangeValues(newStart, newEnd));
+        },
       ),
     );
   }
