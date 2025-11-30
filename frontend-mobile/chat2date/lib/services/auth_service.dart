@@ -33,6 +33,8 @@ class AuthService {
     await _googleSignIn.initialize(
       serverClientId:
           '51433966587-33hhoi1ungemr3b6p3nkn7p3tt130jop.apps.googleusercontent.com',
+      clientId:
+          '51433966587-87atkaev4sogi1k7rcq2fluhflo6ap11.apps.googleusercontent.com',
     );
 
     _isInitialized = true;
