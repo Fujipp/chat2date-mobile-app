@@ -322,6 +322,13 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
 
     try {
       final service = ref.read(photoVerificationServiceProvider);
+      if (_selectedImages.isNotEmpty) {
+        await service.verifyAndUpload(
+          userId: user.userId,
+          profileImages: _selectedImages,
+          idCardBase64: cardFaceBytes,
+        );
+      }
 
       if (_deletedImages.isNotEmpty) {
         try {
@@ -337,14 +344,6 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
             message: 'ไม่สามารถลบรูป ไม่ให้เหลือใบหน้าได้',
           );
         }
-      }
-
-      if (_selectedImages.isNotEmpty) {
-        await service.verifyAndUpload(
-          userId: user.userId,
-          profileImages: _selectedImages,
-          idCardBase64: cardFaceBytes,
-        );
       }
 
       if (mounted) {}
