@@ -80,7 +80,7 @@ class DsButton extends StatelessWidget {
       case DsButtonSize.md: // 231px | font 16 | h=40
         return (
           231,
-          40,
+          45,
           16,
           const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
         );

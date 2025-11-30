@@ -48,7 +48,6 @@ class HomeLoginPage extends ConsumerWidget {
                       children: [
                         SizedBox(
                           width: double.infinity,
-                          height: 40,
                           child: DsButton(
                             label: 'เข้าสู่ระบบด้วยเบอร์โทร',
                             size: DsButtonSize.md, // 231×40, font 16
@@ -63,7 +62,6 @@ class HomeLoginPage extends ConsumerWidget {
                         const SizedBox(height: 25),
                         SizedBox(
                           width: double.infinity,
-                          height: 40,
                           child: DsButton(
                             label: 'ดำเนินการต่อด้วย Google',
                             size: DsButtonSize.md,
@@ -120,7 +118,6 @@ class HomeLoginPage extends ConsumerWidget {
                         const SizedBox(height: 25),
                         SizedBox(
                           width: double.infinity,
-                          height: 40,
                           child: DsButton(
                             label: 'ลงทะเบียน',
                             size: DsButtonSize.md,
