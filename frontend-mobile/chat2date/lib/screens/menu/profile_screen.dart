@@ -1,7 +1,5 @@
 import 'dart:convert';
 import 'dart:io';
-import 'package:chat2date/components/toasts/toast.dart';
-import 'package:image_picker/image_picker.dart';
 import 'package:chat2date/components/buttons/ds_button.dart';
 import 'package:chat2date/components/common/image_upload_grid.dart';
 import 'package:chat2date/components/common/loading_component.dart';
@@ -11,6 +9,7 @@ import 'package:chat2date/components/inputs/ds_text_field/tag_autocomplete.dart'
 import 'package:chat2date/components/layout/header.dart';
 import 'package:chat2date/components/layout/menu_bar.dart';
 import 'package:chat2date/components/layout/responsive_container.dart';
+import 'package:chat2date/components/toasts/toast.dart';
 import 'package:chat2date/models/interest.dart';
 import 'package:chat2date/models/lifestyle.dart';
 import 'package:chat2date/models/tag.dart';
@@ -20,7 +19,6 @@ import 'package:chat2date/services/photo_verification_service.dart';
 import 'package:chat2date/services/user_service.dart';
 import 'package:chat2date/stores/user_store.dart';
 import 'package:chat2date/theme/app_colors.dart';
-import 'package:dropdown_button2/dropdown_button2.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -39,7 +37,6 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
   final ScrollController _scrollController = ScrollController();
   //ค่าที่อัพเดท
   String? nickname = "";
-  String? _selectedGenderPreference = null;
   List<int> user_has_interest = [];
   List<int> user_has_lifestyle = [];
   List<int> user_has_travelstyle = [];
@@ -47,7 +44,6 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
   List<String> photoUrls = [];
   //ค่าเก่า
   String? _oldNickname;
-  String? _oldGenderPref;
   List<int> _oldInterests = [];
   List<int> _oldLifeStyles = [];
   List<int> _oldTravelStyles = [];
@@ -118,8 +114,6 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
       user_has_travelstyle = (userProfile['travelStyles'] as List)
           .map((e) => (e as int) - 1)
           .toList();
-
-      _selectedGenderPreference = userProfile['interestedGender'];
       nickname = user.nickname;
       behaviorScore = (user.behaviorScore!) / 100;
 
@@ -147,7 +141,6 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
           .map((e) => e.toString())
           .toList();
       _oldNickname = nickname;
-      _oldGenderPref = _selectedGenderPreference;
 
       _oldInterests = List.from(user_has_interest);
       _oldLifeStyles = List.from(user_has_lifestyle);
@@ -315,19 +308,12 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     final user = userState['user'] as User?;
     final cardFaceBytes = userState['cardFaceBytes'] as String?;
 
-    // Validation
-    if (_selectedImages.isEmpty && _deletedImages.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('กรุณาแก้ไข/เพิ่มรูปภาพอย่างน้อย 1 รูป')),
-      );
-      return;
-    }
-
     if (user == null || cardFaceBytes == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('ไม่พบข้อมูลผู้ใช้ หรือยังไม่ได้ถ่ายรูปบัตรประชาชน'),
-        ),
+      Toast.show(
+        context,
+        type: ToastType.error,
+        title: 'ข้อผิดพลาด',
+        message: 'ไม่พบข้อมูลผู้ใช้ หรือยังไม่ได้ถ่ายรูปบัตรประชาชน',
       );
       return;
     }
@@ -344,8 +330,11 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
             imageUrls: _deletedImages,
           );
         } catch (e) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('ไม่สามารถลบรูป ไม่ให้เหลือใบหน้าได้')),
+          Toast.show(
+            context,
+            type: ToastType.warning,
+            title: 'คำเตือน',
+            message: 'ไม่สามารถลบรูป ไม่ให้เหลือใบหน้าได้',
           );
         }
       }
@@ -370,9 +359,12 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
           _showFaceVerificationDialog();
         } else {
           // Error อื่นๆ แสดง SnackBar ปกติ
-          ScaffoldMessenger.of(
+          Toast.show(
             context,
-          ).showSnackBar(SnackBar(content: Text('เกิดข้อผิดพลาด: $e')));
+            type: ToastType.error,
+            title: 'ผิดพลาด',
+            message: 'เกิดข้อผิดพลาด: ${e.toString()}',
+          );
         }
       }
     } finally {
@@ -408,13 +400,6 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
         tasks.add(userService.updateUser(user));
       }
 
-      if (_selectedGenderPreference != _oldGenderPref) {
-        final Map<String, Object> preferenceMatch = {
-          "interestedGender": _selectedGenderPreference!,
-        };
-        tasks.add(userService.addPreferenceMatchUser(preferenceMatch));
-      }
-
       if (_isListChanged(_oldInterests, user_has_interest) ||
           _isListChanged(_oldLifeStyles, user_has_lifestyle) ||
           _isListChanged(_oldTravelStyles, user_has_travelstyle) ||
@@ -445,14 +430,12 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
       }
       await Future.wait(tasks);
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('✓ บันทึกข้อมูลสำเร็จ'),
-          backgroundColor: Colors.green,
-          duration: Duration(seconds: 2),
-        ),
+      Toast.show(
+        context,
+        type: ToastType.success,
+        title: 'สำเร็จ',
+        message: 'บันทึกข้อมูลส่วนตัวสำเร็จ',
       );
-      //tasks.add(userService.updateNickname(nickname!));
     } catch (e) {
       throw new Exception(e);
     }
@@ -502,74 +485,6 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                             controller: _nicknameCtrl,
                           ),
 
-                          DropdownButtonFormField2<String>(
-                            value: _selectedGenderPreference,
-                            decoration: InputDecoration(
-                              label: RichText(
-                                text: TextSpan(
-                                  children: [
-                                    const TextSpan(
-                                      text: 'เพศที่สนใจ',
-                                      style: TextStyle(
-                                        fontSize: 20,
-                                        color: AppColors.textMuted,
-                                      ),
-                                    ),
-                                    TextSpan(
-                                      text: ' *',
-                                      style: TextStyle(
-                                        fontSize: 20,
-                                        color: Colors.red,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                              enabledBorder: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(16),
-                                borderSide: BorderSide(
-                                  color: AppColors.inputBorderHover,
-                                  width: 1.5,
-                                ),
-                              ),
-                              border: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(16),
-                                borderSide: BorderSide.none,
-                              ),
-                              contentPadding: const EdgeInsets.symmetric(
-                                horizontal: 12,
-                                vertical: 12,
-                              ),
-                            ),
-                            isExpanded: true,
-                            buttonStyleData: const ButtonStyleData(
-                              padding: EdgeInsets.symmetric(horizontal: 12),
-                            ),
-                            dropdownStyleData: const DropdownStyleData(
-                              offset: Offset(0, 0),
-                              direction: DropdownDirection.textDirection,
-                            ),
-                            items: const [
-                              DropdownMenuItem(
-                                value: 'MALE',
-                                child: Text('ผู้ชาย'),
-                              ),
-                              DropdownMenuItem(
-                                value: 'FEMALE',
-                                child: Text('ผู้หญิง'),
-                              ),
-                              DropdownMenuItem(
-                                value: 'BOTH',
-                                child: Text('ได้ทั้งคู่'),
-                              ),
-                            ],
-                            onChanged: (value) {
-                              setState(() {
-                                _selectedGenderPreference = value;
-                              });
-                            },
-                          ),
-
                           DsLabel(
                             label: 'แก้ไขรูปภาพที่แสดง',
                             labelFontSize: 20,
@@ -583,7 +498,6 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                                     .map((xFile) => File(xFile.path))
                                     .toList();
                               });
-                              print('จำนวนรูปที่เลือก: ${images.length}');
                             },
                             onImageRemoved: (index, removed) {
                               // รูปจาก server (String)
@@ -592,8 +506,6 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                                   _deletedImages.add(removed);
                                   photoUrls.remove(removed); // เอาออกจาก UI
                                 });
-
-                                print("ลบรูปจาก server => $removed");
                               }
 
                               // ถ้าเป็นรูปใหม่ (XFile) — จะเข้ามาเป็น File ตอน submit
@@ -826,90 +738,68 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                   : () async {
                       // Validation
                       if (_nicknameCtrl.text.isEmpty) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Text('กรุณากรอกชื่อเล่น'),
-                            backgroundColor: Colors.red,
-                          ),
-                        );
-                        return;
-                      }
-
-                      if (_selectedGenderPreference == null) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Text('กรุณาเลือกเพศที่สนใจ'),
-                            backgroundColor: Colors.red,
-                          ),
+                        Toast.show(
+                          context,
+                          type: ToastType.warning,
+                          title: 'คำเตือน',
+                          message: 'กรุณากรอกชื่อเล่น',
                         );
                         return;
                       }
 
                       if (user_has_travelstyle.length < 2 ||
                           user_has_travelstyle.length > 3) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Text(
-                              'กรุณาเลือกสไตล์การท่องเที่ยว 2–3 ข้อ',
-                            ),
-                            backgroundColor: Colors.orange,
-                          ),
+                        Toast.show(
+                          context,
+                          type: ToastType.warning,
+                          title: 'คำเตือน',
+                          message:
+                              'กรุณาเลือกสไตล์การท่องเที่ยวอย่างน้อย 2–3 ข้อ',
                         );
                         return;
                       }
 
                       if (user_has_lifestyle.length < 3 ||
                           user_has_lifestyle.length > 5) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Text('กรุณาเลือกไลฟ์สไตล์ 3–5 ข้อ'),
-                            backgroundColor: Colors.orange,
-                          ),
+                        Toast.show(
+                          context,
+                          type: ToastType.warning,
+                          title: 'คำเตือน',
+                          message: 'กรุณาเลือกไลฟ์สไตล์ 3–5 ข้อ',
                         );
                         return;
                       }
 
                       if (user_has_interest.length < 3 ||
                           user_has_interest.length > 5) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Text('กรุณาเลือกความสนใจ 3–5 ข้อ'),
-                            backgroundColor: Colors.orange,
-                          ),
+                        Toast.show(
+                          context,
+                          type: ToastType.warning,
+                          title: 'คำเตือน',
+                          message: 'กรุณาเลือกความสนใจ 3–5 ข้อ',
                         );
                         return;
                       }
 
                       if (user_has_tag.length > 5) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Text('สามารถเลือก Tag สูงสุด 5 ข้อ'),
-                            backgroundColor: Colors.orange,
-                          ),
+                        Toast.show(
+                          context,
+                          type: ToastType.warning,
+                          title: 'คำเตือน',
+                          message: 'สามารถเลือก Tag ได้สูงสุด 5 ข้อ',
                         );
                         return;
                       }
 
-                      // Submit
                       try {
                         await _submitEdit();
-
-                        // if (mounted) {
-                        //   ScaffoldMessenger.of(context).showSnackBar(
-                        //     const SnackBar(
-                        //       content: Text('✓ บันทึกข้อมูลสำเร็จ'),
-                        //       backgroundColor: Colors.green,
-                        //       duration: Duration(seconds: 2),
-                        //     ),
-                        //   );
-                        // }
                       } catch (e) {
                         if (mounted) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
-                              content: Text('เกิดข้อผิดพลาด: $e'),
-                              backgroundColor: Colors.red,
-                            ),
+                          Toast.show(
+                            context,
+                            type: ToastType.error,
+                            title: 'คำเตือน',
+                            message: 'เกิดข้อผิดพลาด: $e',
                           );
                         }
                       }
