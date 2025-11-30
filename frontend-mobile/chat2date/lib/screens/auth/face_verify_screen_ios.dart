@@ -7,9 +7,9 @@ import 'dart:typed_data';
 
 import 'package:camera/camera.dart';
 import 'package:chat2date/models/face_scan_args.dart';
-import 'package:chat2date/models/user.dart';
+// import 'package:chat2date/models/user.dart'; // removed: unused
 import 'package:chat2date/services/kyc_remote_service.dart';
-import 'package:chat2date/stores/user_store.dart';
+// import 'package:chat2date/stores/user_store.dart'; // removed: unused
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_mlkit_face_detection/google_mlkit_face_detection.dart';
@@ -36,6 +36,7 @@ class _FaceVerifyScreenIosState extends ConsumerState<FaceVerifyScreenIos>
   bool _started = false;
   bool _navigating = false;
   bool _processingFrame = false;
+  Uint8List? _selfieBytesCaptured; // ถ่ายภาพระหว่างทำท่าสุดท้าย (มองตรง)
 
   static const double _stepSecondsRequired = 1.0;
   final List<PoseStep> _sequence = [];
@@ -312,9 +313,7 @@ class _FaceVerifyScreenIosState extends ConsumerState<FaceVerifyScreenIos>
       final rightEye = f.rightEyeOpenProbability;
       final smileProb = f.smilingProbability ?? 0.0;
 
-      final eyesOpen = (leftEye == null || rightEye == null)
-          ? true
-          : (leftEye >= eyeOpenMin && rightEye >= eyeOpenMin);
+        // ตรวจตาเปิดสำหรับบางเงื่อนไข (ใช้แบบ inline ในแต่ละท่า)
 
       if (_sequence.isEmpty) {
         _buildRandomSequence();
@@ -322,7 +321,7 @@ class _FaceVerifyScreenIosState extends ConsumerState<FaceVerifyScreenIos>
 
       bool correct = false;
       String hint = _hint;
-      bool instantComplete = false; // ✅ ใช้สำหรับท่ากระพริบตา
+      bool instantComplete = false; // ✅ ใช้สำหรับท่ากระพริบตาและท่ายิ้ม
 
       switch (_currentStep) {
         case PoseStep.center:
@@ -335,6 +334,28 @@ class _FaceVerifyScreenIosState extends ConsumerState<FaceVerifyScreenIos>
 
             correct = nearCenter && neutralEyes && neutralSmile;
             hint = correct ? 'ดีมาก… ค้างมองตรงไว้' : 'หันหน้ามองตรงกลางจอ';
+
+            // ✅ ถ่ายภาพระหว่างทำท่าสุดท้ายที่เป็นมองตรง
+            final isFinalCenter =
+                _totalSteps > 0 &&
+                _currentIndex == _totalSteps - 1 &&
+                _currentStep == PoseStep.center;
+            if (isFinalCenter && correct && _selfieBytesCaptured == null) {
+              try {
+                if (_cam != null &&
+                    _cam!.value.isInitialized &&
+                    _cam!.value.isStreamingImages) {
+                  await _cam!.stopImageStream();
+                  await Future.delayed(const Duration(milliseconds: 80));
+                }
+                final x = await _cam!.takePicture();
+                final file = File(x.path);
+                _selfieBytesCaptured = await file.readAsBytes();
+                await _cam!.startImageStream(_onFrame);
+              } catch (e, s) {
+                debugPrint('❌ capture during final center (iOS) failed: $e\n$s');
+              }
+            }
             break;
           }
         case PoseStep.smile:
@@ -346,8 +367,10 @@ class _FaceVerifyScreenIosState extends ConsumerState<FaceVerifyScreenIos>
                 (rightEye == null || rightEye >= eyeOpenMin);
 
             correct = nearCenter && smiling && eyesOk;
+            // ✅ ยิ้มครั้งเดียวให้ผ่านทันที ไม่ต้องค้าง
+            instantComplete = correct;
             hint = correct
-                ? 'ดีมาก… ค้างยิ้มไว้เลย'
+                ? 'เยี่ยม! ยิ้มผ่านแล้ว'
                 : 'หันหน้าตรงแล้วลองยิ้มให้กล้อง 😄';
             break;
           }
@@ -391,8 +414,8 @@ class _FaceVerifyScreenIosState extends ConsumerState<FaceVerifyScreenIos>
           }
       }
 
-      if (_currentStep == PoseStep.blink) {
-        // ✅ ท่ากระพริบตา: ถ้าตรงเงื่อนไขครั้งเดียว ให้ผ่านทันที
+      if (_currentStep == PoseStep.blink || _currentStep == PoseStep.smile) {
+        // ✅ ท่ากระพริบตาและท่ายิ้ม: ถ้าตรงเงื่อนไขครั้งเดียว ให้ผ่านทันที
         if (instantComplete) {
           _stepHoldSeconds = _stepSecondsRequired;
         } else {
@@ -525,7 +548,8 @@ class _FaceVerifyScreenIosState extends ConsumerState<FaceVerifyScreenIos>
     Map<String, dynamic>? raw;
 
     try {
-      final selfieBytes = await _captureSelfieBytes();
+      // ใช้ภาพที่ถ่ายระหว่างท่าสุดท้าย ถ้ามี; ไม่เช่นนั้นถ่ายตอนนี้
+      final selfieBytes = _selfieBytesCaptured ?? await _captureSelfieBytes();
       debugPrint('[KYC iOS] selfieBytes is null? ${selfieBytes == null}');
 
       await _teardownCamera();
@@ -533,9 +557,9 @@ class _FaceVerifyScreenIosState extends ConsumerState<FaceVerifyScreenIos>
       if (!mounted) return;
 
       final Uint8List? idCardFaceBytes = faceArgs?.cardFaceBytes;
-      final userState = ref.read(userStoreProvider);
-      final user = userState['user'] as User?;
-      final cardFaceBytes = userState['cardFaceBytes'] as String?;
+      // final userState = ref.read(userStoreProvider); // ไม่ได้ใช้
+      // final user = userState['user'] as User?; // ไม่ได้ใช้
+      // final cardFaceBytes = userState['cardFaceBytes'] as String?; // ไม่ได้ใช้
       debugPrint(
         '[KYC iOS] idCardFaceBytes is null? ${idCardFaceBytes == null}',
       );
@@ -671,8 +695,8 @@ class _FaceVerifyScreenIosState extends ConsumerState<FaceVerifyScreenIos>
       previewRatio = 1 / previewRatio;
     }
 
-    final isFront =
-        _cam!.description.lensDirection == CameraLensDirection.front;
+    // final isFront =
+    //     _cam!.description.lensDirection == CameraLensDirection.front; // ไม่ได้ใช้ใน UI
 
     return Center(
       child: Transform.scale(
