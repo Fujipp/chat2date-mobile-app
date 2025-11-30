@@ -384,6 +384,8 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
   }
 
   Future<void> _submitEdit() async {
+    if (!mounted) return;
+
     final userStore = ref.read(userStoreProvider) as Map<String, dynamic>?;
     final userService = ref.read(userServiceProvider);
     final currentUser = userStore?['user'] as User;
@@ -427,9 +429,12 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
 
       if (_isListChanged(_oldPhotos, _selectedImages)) {
         await _handleSubmit();
+
+        if (!mounted) return;
       }
       await Future.wait(tasks);
 
+      if (!mounted) return;
       Toast.show(
         context,
         type: ToastType.success,
