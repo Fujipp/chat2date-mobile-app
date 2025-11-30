@@ -16,6 +16,7 @@ import org.springframework.web.client.RestTemplate;
 import sit.chat2date.cp25ssi2.dto.UserDTO;
 import sit.chat2date.cp25ssi2.enums.AccountStatus;
 import sit.chat2date.cp25ssi2.exceptions.TooManyRequestException;
+import sit.chat2date.cp25ssi2.exceptions.UnprocessableEntityException;
 import sit.chat2date.cp25ssi2.utils.UserFactory;
 import sit.chat2date.cp25ssi2.entities.User;
 import sit.chat2date.cp25ssi2.repositories.UserRepository;
@@ -68,17 +69,23 @@ public class SmsmktClient {
         var req = new HttpEntity<>(payload, headersJson());
         ResponseEntity<Map> res = restTemplate.postForEntity(url, req, Map.class);
 
+        var token = getString(res);
+        return token;
+    }
+
+    private static String getString(ResponseEntity<Map> res) {
         if (res.getStatusCode() != HttpStatus.OK) {
-            throw new RuntimeException("SMSMKT HTTP " + res.getStatusCode());
+            throw new UnprocessableEntityException("SMSMKT HTTP " + res.getStatusCode());
         }
+
         Map<?, ?> m = res.getBody();
         if (m == null || !"000".equals(m.get("code"))) {
-            throw new RuntimeException("SMSMKT error: " + (m != null ? m.get("detail") : "null"));
+            throw new UnprocessableEntityException("SMSMKT error: " + (m != null ? m.get("detail") : "null"));
         }
         Map<?, ?> result = (Map<?, ?>) m.get("result");
         var token = result != null ? String.valueOf(result.get("token")) : null;
         if (token == null || token.isBlank()) {
-            throw new RuntimeException("No token from SMSMKT");
+            throw new UnprocessableEntityException("No token from SMSMKT");
         }
         return token;
     }
@@ -101,6 +108,10 @@ public class SmsmktClient {
         // ส่ง request ไปยัง OTP API
         HttpEntity<Map<String, Object>> req = new HttpEntity<>(payload, headersJson());
         ResponseEntity<Map> res = restTemplate.postForEntity(url, req, Map.class);
+
+        if (res.getStatusCode() != HttpStatus.OK || res.getBody() == null) {
+            throw new UnprocessableEntityException("SMSMKT HTTP " + res.getStatusCode());
+        }
 
 //        // ตรวจสอบ response
         boolean valid = false;

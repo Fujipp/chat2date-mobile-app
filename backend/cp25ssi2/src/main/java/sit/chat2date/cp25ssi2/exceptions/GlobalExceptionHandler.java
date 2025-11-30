@@ -150,6 +150,17 @@ public class GlobalExceptionHandler {
         return new ResponseEntity<>(body, ex.getStatusCode());
     }
 
+    @ExceptionHandler(UnprocessableEntityException.class)
+    public ResponseEntity<Map<String, Object>> handleUnprocessableException(SignatureException ex, WebRequest request) {
+        Map<String, Object> body = Map.of(
+                "status", HttpStatus.UNPROCESSABLE_ENTITY.value(),
+                "error", "Unprocessable Entity",
+                "message", "request body data not correct",
+                "path", request.getDescription(false).substring(4)
+        );
+        return new ResponseEntity<>(body, HttpStatus.UNAUTHORIZED);
+    }
+
     @ExceptionHandler(IllegalArgumentException.class)
     public ResponseEntity<Map<String, Object>> handleIllegalArgumentException(
             IllegalArgumentException ex,
