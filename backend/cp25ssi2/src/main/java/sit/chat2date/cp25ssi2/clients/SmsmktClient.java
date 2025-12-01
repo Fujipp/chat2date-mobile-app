@@ -15,6 +15,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestTemplate;
 import sit.chat2date.cp25ssi2.dto.UserDTO;
 import sit.chat2date.cp25ssi2.enums.AccountStatus;
+import sit.chat2date.cp25ssi2.exceptions.PreconditionFailedException;
 import sit.chat2date.cp25ssi2.exceptions.TooManyRequestException;
 import sit.chat2date.cp25ssi2.exceptions.UnprocessableEntityException;
 import sit.chat2date.cp25ssi2.utils.UserFactory;
@@ -52,14 +53,14 @@ public class SmsmktClient {
      * ส่ง OTP -> คืน token
      */
     public String send(String phone08, String refCode, String deviceId) {
-//        String phone = normalizePhone(phone08);
-//
-//        String key = "otp:lock:" + phone + ":" + deviceId;
-//        if (redis.hasKey(key)) {
-//            long waitSec = Optional.ofNullable(redis.getExpire(key, TimeUnit.SECONDS)).orElse(60L);
-//            throw new TooManyRequestException("กรุณารออีก " + waitSec + " วินาที ก่อนขอ OTP ใหม่");
-//        }
-//        redis.opsForValue().set(key, "1", 60, TimeUnit.SECONDS);
+        String phone = normalizePhone(phone08);
+
+        String key = "otp:lock:" + phone + ":" + deviceId;
+        if (redis.hasKey(key)) {
+            long waitSec = Optional.ofNullable(redis.getExpire(key, TimeUnit.SECONDS)).orElse(60L);
+            throw new TooManyRequestException("กรุณารออีก " + waitSec + " วินาที ก่อนขอ OTP ใหม่");
+        }
+        redis.opsForValue().set(key, "1", 60, TimeUnit.SECONDS);
 //        var url = "https://portal-otp.smsmkt.com/api/otp-send";
 //        var payload = new HashMap<>();
 //        payload.put("project_key", projectKey);
@@ -76,17 +77,17 @@ public class SmsmktClient {
 
     private static String getString(ResponseEntity<Map> res) {
         if (res.getStatusCode() != HttpStatus.OK) {
-            throw new UnprocessableEntityException("SMSMKT HTTP " + res.getStatusCode());
+            throw new UnprocessableEntityException("SMSMKT HTTP ", res.getStatusCode().toString());
         }
 
         Map<?, ?> m = res.getBody();
         if (m == null || !"000".equals(m.get("code"))) {
-            throw new UnprocessableEntityException("SMSMKT error: " + (m != null ? m.get("detail") : "null"));
+            throw new UnprocessableEntityException("SMSMKT error: ", res.getStatusCode().toString());
         }
         Map<?, ?> result = (Map<?, ?>) m.get("result");
         var token = result != null ? String.valueOf(result.get("token")) : null;
         if (token == null || token.isBlank()) {
-            throw new UnprocessableEntityException("No token from SMSMKT");
+            throw new UnprocessableEntityException("No token from SMSMKT", res.getStatusCode().toString());
         }
         return token;
     }
@@ -110,8 +111,8 @@ public class SmsmktClient {
 //        HttpEntity<Map<String, Object>> req = new HttpEntity<>(payload, headersJson());
 //        ResponseEntity<Map> res = restTemplate.postForEntity(url, req, Map.class);
 //
-//        if (res.getStatusCode() != HttpStatus.OK || res.getBody() == null) {
-//            throw new UnprocessableEntityException("SMSMKT HTTP " + res.getStatusCode());
+//        if (true) {
+//            throw new UnprocessableEntityException("UnprocessableEntityException: ", HttpStatus.UNPROCESSABLE_ENTITY.toString());
 //        }
 
 //        // ตรวจสอบ response

@@ -151,14 +151,10 @@ public class GlobalExceptionHandler {
     }
 
     @ExceptionHandler(UnprocessableEntityException.class)
-    public ResponseEntity<Map<String, Object>> handleUnprocessableException(SignatureException ex, WebRequest request) {
-        Map<String, Object> body = Map.of(
-                "status", HttpStatus.UNPROCESSABLE_ENTITY.value(),
-                "error", "Unprocessable Entity",
-                "message", "request body data not correct",
-                "path", request.getDescription(false).substring(4)
-        );
-        return new ResponseEntity<>(body, HttpStatus.UNAUTHORIZED);
+    @ResponseStatus(HttpStatus.UNPROCESSABLE_ENTITY)
+    public ResponseEntity<ErrorResponse> handleUnprocessableException(Exception e, WebRequest request) {
+        ErrorResponse error = new ErrorResponse(HttpStatus.UNPROCESSABLE_ENTITY.value(), "otp wrong", request.getDescription(false));
+        return ResponseEntity.status(HttpStatus.UNPROCESSABLE_ENTITY).body(error);
     }
 
     @ExceptionHandler(IllegalArgumentException.class)
