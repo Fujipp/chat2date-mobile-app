@@ -19,7 +19,7 @@ class UserService {
   final Ref ref;
   UserService(this.ref);
 
-  Future<User> getUser(String id) async {
+  Future<User?> getUser(String id) async {
     final userState = ref.read(userStoreProvider);
     final accessToken = "${userState['accessToken']}";
 

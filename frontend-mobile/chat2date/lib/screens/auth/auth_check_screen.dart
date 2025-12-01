@@ -109,6 +109,10 @@ class _AuthCheckPageState extends ConsumerState<AuthCheckPage> {
 
     // STEP 3 — load user จาก backend
     final user = await ref.read(userServiceProvider).getUser(userId);
+    if (user == null) {
+      _goLogin();
+      return;
+    }
 
     // STEP 4 — เก็บ user ลง Riverpod store
     ref
