@@ -307,7 +307,7 @@ class _MatchPreferenceScreenState extends ConsumerState<MatchPreferenceScreen> {
 
                 DsButton(
                   label: onUpdate ? 'บันทึก' : 'ถัดไป',
-                  onPressed: () {
+                  onPressed: () async {
                     if (_selectedGenderPreference == null) {
                       Toast.show(
                         context,
@@ -375,12 +375,13 @@ class _MatchPreferenceScreenState extends ConsumerState<MatchPreferenceScreen> {
                         };
                       }
 
-                      final updatedUser = ref
+                      final updatedUser = await ref
                           .read(userServiceProvider)
                           .addPreferenceMatchUser(preferenceMatch);
                       if (!onUpdate) {
                         Navigator.pushNamed(context, '/userPicture');
                       } else {
+                        await ref.read(userServiceProvider).getProfile();
                         Navigator.pushNamed(context, '/settings');
                       }
                     } catch (e) {
