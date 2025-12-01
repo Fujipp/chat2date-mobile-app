@@ -268,8 +268,14 @@ class _DiscoveryScreenState extends ConsumerState<DiscoveryScreen>
 
           // 1️⃣ ดึง userId
           final userStore = ref.read(userStoreProvider);
-          final userStoreMap = userStore as Map<String, dynamic>?;
-          final user = userStoreMap?['user'] as User;
+
+          debugPrint(userStore.toString());
+          final user = userStore['user'] as User?;
+
+          if (user == null) {
+            debugPrint('❌ User not found in store');
+            return;
+          }
           final String userId = user.userId;
 
           if (!mounted) return;
@@ -630,36 +636,221 @@ class _DiscoveryScreenState extends ConsumerState<DiscoveryScreen>
               },
             ),
             Expanded(
-              child: Center(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    const Icon(
-                      Icons.person_search,
-                      size: 64,
-                      color: Colors.grey,
+              child: Container(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    colors: [
+                      const Color(0xFFFFF5F8).withOpacity(0.3),
+                      const Color(0xFFFFE5ED).withOpacity(0.5),
+                    ],
+                  ),
+                ),
+                child: Center(
+                  child: SingleChildScrollView(
+                    padding: const EdgeInsets.all(24),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        // Icon with gradient background
+                        Container(
+                          padding: const EdgeInsets.all(32),
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            gradient: const LinearGradient(
+                              begin: Alignment.topLeft,
+                              end: Alignment.bottomRight,
+                              colors: [Color(0xFFFFE5EE), Color(0xFFFFCCDD)],
+                            ),
+                            boxShadow: [
+                              BoxShadow(
+                                color: const Color(0xFFFF8FB3).withOpacity(0.3),
+                                blurRadius: 30,
+                                spreadRadius: 5,
+                              ),
+                            ],
+                          ),
+                          child: const Icon(
+                            Icons.person_search,
+                            size: 80,
+                            color: Color(0xFFFF8FB3),
+                          ),
+                        ),
+
+                        const SizedBox(height: 32),
+
+                        const Text(
+                          'ไม่พบคนที่เหมาะสมในขณะนี้',
+                          style: TextStyle(
+                            fontSize: 24,
+                            fontWeight: FontWeight.bold,
+                            color: Color(0xFF333333),
+                            fontFamily: 'Inter',
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
+
+                        const SizedBox(height: 12),
+
+                        Text(
+                          'ไม่ต้องกังวล! เรามีคำแนะนำให้คุณ',
+                          style: TextStyle(
+                            fontSize: 16,
+                            color: Colors.grey[600],
+                            fontFamily: 'Inter',
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
+
+                        const SizedBox(height: 32),
+
+                        // Suggestions card
+                        Container(
+                          padding: const EdgeInsets.all(20),
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(16),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withOpacity(0.05),
+                                blurRadius: 20,
+                                offset: const Offset(0, 4),
+                              ),
+                            ],
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Text(
+                                '💡 ลองปรับเปลี่ยน',
+                                style: TextStyle(
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.bold,
+                                  color: Color(0xFF333333),
+                                  fontFamily: 'Inter',
+                                ),
+                              ),
+                              const SizedBox(height: 16),
+
+                              _SuggestionItem(
+                                icon: Icons.location_on,
+                                text: 'เพิ่มระยะทางการค้นหา',
+                                color: const Color(0xFFFF8FB3),
+                              ),
+                              const SizedBox(height: 12),
+
+                              _SuggestionItem(
+                                icon: Icons.favorite,
+                                text: 'ปรับประเภทคู่เดทที่สนใจ',
+                                color: const Color(0xFFFF8FB3),
+                              ),
+                              const SizedBox(height: 12),
+
+                              _SuggestionItem(
+                                icon: Icons.refresh,
+                                text: 'ลองค้นหาใหม่อีกครั้ง',
+                                color: const Color(0xFFFF8FB3),
+                              ),
+                            ],
+                          ),
+                        ),
+
+                        const SizedBox(height: 32),
+
+                        // Action buttons
+                        Column(
+                          children: [
+                            SizedBox(
+                              width: double.infinity,
+                              height: 56,
+                              child: ElevatedButton(
+                                onPressed: () async {
+                                  await ref
+                                      .read(
+                                        discoveryProvider(_userId!).notifier,
+                                      )
+                                      .refresh(
+                                        minDistance: _selectedRange.start
+                                            .round(),
+                                        maxDistance: _selectedRange.end.round(),
+                                      );
+                                  setState(() {
+                                    _candidateKey = UniqueKey();
+                                  });
+                                },
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: const Color(0xFFFF8FB3),
+                                  foregroundColor: Colors.white,
+                                  elevation: 0,
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(16),
+                                  ),
+                                ),
+                                child: Row(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: const [
+                                    Icon(Icons.refresh, size: 24),
+                                    SizedBox(width: 8),
+                                    Text(
+                                      'ค้นหาใหม่',
+                                      style: TextStyle(
+                                        fontSize: 18,
+                                        fontWeight: FontWeight.w600,
+                                        fontFamily: 'Inter',
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+
+                            const SizedBox(height: 12),
+
+                            SizedBox(
+                              width: double.infinity,
+                              height: 56,
+                              child: OutlinedButton(
+                                onPressed: () async {
+                                  await ref
+                                      .read(locationServiceProvider)
+                                      .tryUpdateLocationSilently();
+                                  if (context.mounted) {
+                                    _togglePanel(context);
+                                  }
+                                },
+                                style: OutlinedButton.styleFrom(
+                                  foregroundColor: const Color(0xFFFF8FB3),
+                                  side: const BorderSide(
+                                    color: Color(0xFFFF8FB3),
+                                    width: 2,
+                                  ),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(16),
+                                  ),
+                                ),
+                                child: Row(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: const [
+                                    Icon(Icons.tune, size: 24),
+                                    SizedBox(width: 8),
+                                    Text(
+                                      'ปรับการตั้งค่า',
+                                      style: TextStyle(
+                                        fontSize: 18,
+                                        fontWeight: FontWeight.w600,
+                                        fontFamily: 'Inter',
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
                     ),
-                    const SizedBox(height: 16),
-                    const Text(
-                      'ไม่มีคนที่เหมาะสมในขณะนี้',
-                      style: TextStyle(fontSize: 18),
-                    ),
-                    const SizedBox(height: 16),
-                    ElevatedButton(
-                      onPressed: () async {
-                        await ref
-                            .read(discoveryProvider(_userId!).notifier)
-                            .refresh(
-                              minDistance: _selectedRange.start.round(),
-                              maxDistance: _selectedRange.end.round(),
-                            );
-                        setState(() {
-                          _candidateKey = UniqueKey();
-                        });
-                      },
-                      child: const Text('ค้นหาใหม่'),
-                    ),
-                  ],
+                  ),
                 ),
               ),
             ),
@@ -1621,6 +1812,45 @@ class _ArrowButton extends StatelessWidget {
           ),
         ),
       ),
+    );
+  }
+}
+
+class _SuggestionItem extends StatelessWidget {
+  final IconData icon;
+  final String text;
+  final Color color;
+
+  const _SuggestionItem({
+    required this.icon,
+    required this.text,
+    required this.color,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        Container(
+          padding: const EdgeInsets.all(8),
+          decoration: BoxDecoration(
+            color: color.withOpacity(0.1),
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: Icon(icon, size: 20, color: color),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Text(
+            text,
+            style: const TextStyle(
+              fontSize: 15,
+              color: Color(0xFF666666),
+              fontFamily: 'Inter',
+            ),
+          ),
+        ),
+      ],
     );
   }
 }

@@ -100,33 +100,39 @@ void showLogoutModal(BuildContext context, ref.WidgetRef ref) {
                     width: 100,
                     height: 40,
                     child: ElevatedButton(
-                      // ส่วน onPressed ของปุ่ม "ยืนยัน"
                       onPressed: () async {
-                        Navigator.pop(context); // ปิด dialog ก่อน
+                        try {
+                          // ออกจากระบบก่อน
+                          await ref.read(authServiceProvider).signOut();
 
-                        // ให้ dialog ปิดเสร็จเรียบร้อยก่อน แล้วค่อย navigate
-                        Future.delayed(Duration(milliseconds: 50), () async {
-                          try {
-                            await ref.read(authServiceProvider).signOut();
-
-                            if (context.mounted) {
-                              Navigator.of(context).pushNamedAndRemoveUntil(
-                                '/home',
-                                (route) => false,
-                              );
-                            }
-                          } catch (e) {
-                            if (context.mounted) {
-                              Toast.show(
-                                context,
-                                type: ToastType.error,
-                                title: 'เกิดข้อผิดพลาด',
-                                message:
-                                    'ไม่สามารถออกจากระบบได้ โปรดลองอีกครั้ง',
-                              );
-                            }
+                          // ปิด dialog
+                          if (context.mounted) {
+                            Navigator.pop(context);
                           }
-                        });
+
+                          // Navigate ไปหน้า home
+                          if (context.mounted) {
+                            Navigator.of(context).pushNamedAndRemoveUntil(
+                              '/home',
+                              (route) => false,
+                            );
+                          }
+                        } catch (e) {
+                          // ถ้า error ให้ปิด dialog ก่อน
+                          if (context.mounted) {
+                            Navigator.pop(context);
+                          }
+
+                          // แสดง error toast
+                          if (context.mounted) {
+                            Toast.show(
+                              context,
+                              type: ToastType.error,
+                              title: 'เกิดข้อผิดพลาด',
+                              message: 'ไม่สามารถออกจากระบบได้ โปรดลองอีกครั้ง',
+                            );
+                          }
+                        }
                       },
                       style: ElevatedButton.styleFrom(
                         backgroundColor: const Color(0xFF98FB98),

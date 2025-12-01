@@ -1,9 +1,9 @@
 import 'dart:convert';
 
-import 'package:chat2date/components/dialogs/restore_account_dialog.dart';
 import 'package:chat2date/config/backend_base.dart';
 import 'package:chat2date/screens/date/discovery_screen.dart';
 import 'package:chat2date/screens/home/home_login_page.dart';
+import 'package:chat2date/services/user_service.dart';
 import 'package:chat2date/stores/user_store.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -13,12 +13,8 @@ import 'package:http/http.dart' as http;
 /// ---- Refresh Token Function ----
 Future<Map<String, dynamic>> tryRefresh(WidgetRef ref) async {
   final storage = const FlutterSecureStorage();
-
-  // โหลด refresh token จาก storage
   final refreshToken = await storage.read(key: "refreshToken");
-  if (refreshToken == null) {
-    return {'success': false};
-  }
+  if (refreshToken == null) return {'success': false};
 
   try {
     final res = await http.post(
@@ -29,24 +25,17 @@ Future<Map<String, dynamic>> tryRefresh(WidgetRef ref) async {
 
     if (res.statusCode == 200) {
       final data = jsonDecode(res.body);
-
       final newAccessToken = data["accessToken"];
-      if (newAccessToken == null) return {'success': false};
 
-      // เก็บ access token ใหม่ลง storage
       await storage.write(key: "access_token", value: newAccessToken);
-
-      // อัปเดต accessToken ลง Riverpod UserStore
       ref.read(userStoreProvider.notifier).setAccessToken(newAccessToken);
 
-      return {'success': true};
+      return {'success': true, 'accessToken': newAccessToken};
     }
 
-    // ✅ เช็คว่าถูกลบหรือไม่ (403 Forbidden)
     if (res.statusCode == 403) {
       final data = jsonDecode(res.body);
 
-      // ถ้ามี error และเป็นบัญชีที่ถูกลบ
       if (data['error'] == 'ACCOUNT_DELETED') {
         return {
           'success': false,
@@ -58,10 +47,7 @@ Future<Map<String, dynamic>> tryRefresh(WidgetRef ref) async {
         };
       }
 
-      // ลบ tokens ออก
-      await storage.delete(key: "refreshToken");
-      await storage.delete(key: "access_token");
-      return {'success': false};
+      return {'success': false, 'accountDeleted': false};
     }
 
     return {'success': false};
@@ -90,30 +76,47 @@ class _AuthCheckPageState extends ConsumerState<AuthCheckPage> {
 
   Future<void> _checkAuth() async {
     final refreshToken = await storage.read(key: 'refreshToken');
-    print('refreshToken: $refreshToken');
 
     if (refreshToken == null) {
       _goLogin();
       return;
     }
 
-    final result = await tryRefresh(ref);
+    // STEP 1 — Refresh token
+    final refreshResult = await tryRefresh(ref);
 
-    // ✅ เช็คว่าบัญชีถูกลบหรือไม่
-    if (result['accountDeleted'] == true) {
-      await RestoreAccountDialog.show(
-        context,
-        userId: result['userId'],
-        daysRemaining: result['daysRemaining'],
+    // บัญชีถูกลบ → popup
+    if (refreshResult['accountDeleted'] == true) {
+      _showRestoreDialog(
+        userId: refreshResult['userId'],
+        daysRemaining: refreshResult['daysRemaining'],
       );
       return;
     }
 
-    if (result['success'] == true) {
-      _goHome();
-    } else {
+    // Refresh fail → กลับไป login
+    if (refreshResult['success'] != true) {
       _goLogin();
+      return;
     }
+
+    // STEP 2 — load userId จาก storage
+    final userId = await storage.read(key: "userId");
+    if (userId == null) {
+      _goLogin();
+      return;
+    }
+
+    // STEP 3 — load user จาก backend
+    final user = await ref.read(userServiceProvider).getUser(userId);
+
+    // STEP 4 — เก็บ user ลง Riverpod store
+    ref
+        .read(userStoreProvider.notifier)
+        .setUser(user, refreshResult['accessToken']);
+
+    // STEP 5 — เข้าบ้าน
+    _goHome();
   }
 
   void _showRestoreDialog({

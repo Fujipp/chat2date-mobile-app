@@ -34,7 +34,7 @@ CREATE TABLE IF NOT EXISTS `chat2date`.`user` (
   `version` INT NOT NULL,
   `role` ENUM('USER', 'ADMIN') NOT NULL,
   `deleted_at` TIMESTAMP NULL,
-  `delete_flag` BOOLEAN  NOT NULL DEFAULT FALSE,
+  `delete_flag` BOOLEAN  NULL DEFAULT FALSE,
   PRIMARY KEY (`userId`),
   UNIQUE INDEX `Email` (`email` ASC) VISIBLE,
   UNIQUE INDEX `PhoneNumber` (`phoneNumber` ASC) VISIBLE,
