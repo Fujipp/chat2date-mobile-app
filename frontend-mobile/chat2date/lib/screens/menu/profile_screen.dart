@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'dart:io';
+
 import 'package:chat2date/components/buttons/ds_button.dart';
 import 'package:chat2date/components/common/image_upload_grid.dart';
 import 'package:chat2date/components/common/loading_component.dart';
@@ -74,7 +75,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
       return;
     }
 
-    final prefs = userStore?['preferences'] as Map<String, dynamic>?;
+    final prefs = userStore['preferences'] as Map<String, dynamic>?;
     await _setDataFromStore(
       userStoreMap['profile'] as Map<String, dynamic>,
       userStoreMap['user'] as User,
@@ -121,17 +122,25 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
 
       _nicknameCtrl.text = nickname.toString();
 
-      _lifestyleCtrl.text = _getSelectedText(
+      String getSelectedText(List<int> selected, List<String> allItems) {
+        if (selected.isEmpty || allItems.isEmpty) return '';
+        return selected
+            .where((i) => i >= 0 && i < allItems.length)
+            .map((i) => allItems[i])
+            .join(', ');
+      }
+
+      _lifestyleCtrl.text = getSelectedText(
         user_has_lifestyle,
         _lifeStyles.map((l) => l.lifestyle).toList(),
       );
 
-      _interestsCtrl.text = _getSelectedText(
+      _interestsCtrl.text = getSelectedText(
         user_has_interest,
         _interests.map((l) => l.interest).toList(),
       );
 
-      _tagsCtrl.text = _getSelectedText(
+      _tagsCtrl.text = getSelectedText(
         user_has_tag,
         _tags.map((t) => t.tag).toList(),
       );
