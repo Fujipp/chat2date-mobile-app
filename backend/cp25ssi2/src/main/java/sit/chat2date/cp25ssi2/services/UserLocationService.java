@@ -24,7 +24,31 @@ public class UserLocationService {
     private final UserLocationRepository userLocationRepository;
 
     public void updateCurrentUserLocation(String accessToken, UpdateLocationRequest req) {
-        // 1) เช็ค header
+        // 1) Validate coordinates
+        if (req == null || req.getLatitude() == 0.0 && req.getLongtitude() == 0.0) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "Missing coordinates: latitude and longitude are required"
+            );
+        }
+
+        // Validate latitude range: -90 to 90
+        if (req.getLatitude() < -90.0 || req.getLatitude() > 90.0) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "Invalid latitude: must be between -90 and 90 degrees"
+            );
+        }
+
+        // Validate longitude range: -180 to 180
+        if (req.getLongtitude() < -180.0 || req.getLongtitude() > 180.0) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "Invalid longitude: must be between -180 and 180 degrees"
+            );
+        }
+
+        // 2) เช็ค header
         if (accessToken == null || !accessToken.startsWith("Bearer ")) {
             throw new ResponseStatusException(
                     HttpStatus.UNAUTHORIZED,
@@ -33,7 +57,7 @@ public class UserLocationService {
         }
 
         try {
-            // 2) ดึง sub จาก JWT
+            // 3) ดึง sub จาก JWT
             String token = accessToken.substring(7);
             DecodedJWT jwt = JWT.decode(token);
             String sub = jwt.getClaim("sub").asString();
@@ -45,7 +69,7 @@ public class UserLocationService {
                 );
             }
 
-            // 3) หา user ตาม sub (เหมือนที่ใช้ใน UserService)
+            // 4) หา user ตาม sub (เหมือนที่ใช้ใน UserService)
             Optional<User> userOpt;
             if (sub.length() == 10) {
                 userOpt = userRepository.findByPhoneNumber(sub);
@@ -60,7 +84,7 @@ public class UserLocationService {
                     )
             );
 
-            // 4) หา/สร้าง location ของ user
+            // 5) หา/สร้าง location ของ user
             UserLocation location = userLocationRepository.findByUser_UserId(user.getUserId());
             if (location == null) {
                 location = new UserLocation();
