@@ -109,7 +109,15 @@ class _AuthCheckPageState extends ConsumerState<AuthCheckPage> {
 
     // STEP 3 — load user จาก backend
     final user = await ref.read(userServiceProvider).getUser(userId);
+    // ignore: unnecessary_null_comparison
     if (user == null) {
+      _goLogin();
+      return;
+    }
+
+    final profile = ref.read(userServiceProvider)..getProfile();
+    // ignore: unnecessary_null_comparison, dead_code
+    if (profile == null) {
       _goLogin();
       return;
     }
