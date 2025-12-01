@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:chat2date/components/toasts/toast.dart';
+import 'package:chat2date/services/user_service.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_svg/flutter_svg.dart';
@@ -49,6 +50,26 @@ class _PhonePageState extends State<PhonePage> {
         type: ToastType.warning,
         title: 'ข้อมูลไม่ครบ',
         message: 'กรุณากรอกเบอร์มือถือให้ถูกต้อง (เช่น 06/08/09 + xxxxxxxx )',
+      );
+      return;
+    }
+
+    final isExist = await UserService.checkPhone(phone);
+    if (onLogin && !isExist && mounted) {
+      Toast.show(
+        context,
+        type: ToastType.warning,
+        title: 'ไม่ถูกต้อง',
+        message: 'ไม่สามารถเข้าสู่ระบบได้ เนื่องจากไม่มีเบอร์นี้ในระบบ',
+      );
+      return;
+    }
+    if (!onLogin && isExist && mounted) {
+      Toast.show(
+        context,
+        type: ToastType.warning,
+        title: 'ไม่ถูกต้อง',
+        message: 'ไม่สามารถลงทะเบียนเบอร์นี้ได้ เนื่องจากมีเบอร์นี้ในระบบแล้ว',
       );
       return;
     }

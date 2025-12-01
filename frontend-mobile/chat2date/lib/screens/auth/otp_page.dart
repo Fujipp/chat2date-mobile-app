@@ -125,16 +125,6 @@ class _OtpPageState extends ConsumerState<OtpPage> {
     }
     setState(() => _verifying = true);
     try {
-      final isExist = await UserService.checkPhone(_phone);
-      if (onLogin && !isExist) {
-        throw Exception('ไม่สามารถเข้าสู่ระบบได้ เนื่องจากไม่มีเบอร์นี้ในระบบ');
-      }
-      if (!onLogin && isExist) {
-        throw Exception(
-          'ไม่สามารถลงทะเบียนเบอร์นี้ได้ เนื่องจากมีเบอร์นี้ในระบบแล้ว',
-        );
-      }
-
       final data = await ref.read(backendOtpServiceProvider).validateOtp(token: _token, code: code, phone: _phone, onLogin: onLogin);
       if (!mounted) return;
       if (data['statusCode'] == 200) {
