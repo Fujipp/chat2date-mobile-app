@@ -33,6 +33,8 @@ CREATE TABLE IF NOT EXISTS `chat2date`.`user` (
   `accountStatus` ENUM('ACTIVE', 'SUSPENDED', 'PENDING') NOT NULL DEFAULT 'PENDING',
   `version` INT NOT NULL,
   `role` ENUM('USER', 'ADMIN') NOT NULL,
+  `deleted_at` TIMESTAMP NULL,
+  `delete_flag` BOOLEAN  NOT NULL DEFAULT FALSE,
   PRIMARY KEY (`userId`),
   UNIQUE INDEX `Email` (`email` ASC) VISIBLE,
   UNIQUE INDEX `PhoneNumber` (`phoneNumber` ASC) VISIBLE,
@@ -221,7 +223,7 @@ CREATE TABLE IF NOT EXISTS `chat2date`.`userphoto` (
   `userId` VARCHAR(36) NOT NULL,
   `attributes` JSON NOT NULL,
   `base64Card` LONGTEXT, 
-  `isVerified` BOOLEAN NOT NULL DEFAULT 0
+  `isVerified` BOOLEAN NOT NULL DEFAULT 0,
   PRIMARY KEY (`photoId`),
   INDEX `userId` (`userId` ASC) VISIBLE,
   CONSTRAINT `userphoto_ibfk_1`
