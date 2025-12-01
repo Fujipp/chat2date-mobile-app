@@ -9,13 +9,10 @@ import 'package:chat2date/components/inputs/ds_label.dart';
 import 'package:chat2date/components/layout/header.dart';
 import 'package:chat2date/components/layout/menu_bar.dart';
 import 'package:chat2date/models/dto/discovery_dto.dart';
-import 'package:chat2date/models/dto/match_event_dto.dart';
 import 'package:chat2date/models/user.dart';
-import 'package:chat2date/screens/match/match_success_screen.dart';
 import 'package:chat2date/services/discovery_service.dart';
 import 'package:chat2date/services/fcm_token_service.dart';
 import 'package:chat2date/services/location_service.dart';
-import 'package:chat2date/services/match_socket_service.dart';
 import 'package:chat2date/services/user_service.dart';
 import 'package:chat2date/stores/user_store.dart';
 import 'package:chat2date/theme/app_colors.dart';
@@ -1018,27 +1015,8 @@ class _CandidateViewState extends ConsumerState<_CandidateView> {
 
   @override
   Widget build(BuildContext context) {
-    ref.listen<AsyncValue<MatchEventDto>>(
-      matchSocketStreamProvider(widget.userId),
-      (previous, next) {
-        final event = next.valueOrNull;
-        if (event == null) return;
-
-        // กันไม่ให้ push route ระหว่าง build โดยตรง
-        WidgetsBinding.instance.addPostFrameCallback((_) {
-          if (!mounted) return;
-          Navigator.of(context).pushNamed(
-            MatchSuccessScreen.routeName,
-            arguments: MatchSuccessArgs(
-              myName: event.selfName,
-              partnerName: event.partnerName,
-              myAvatarUrl: event.selfAvatarUrl,
-              partnerAvatarUrl: event.partnerAvatarUrl,
-            ),
-          );
-        });
-      },
-    );
+    // ✅ Match listener ถูกย้ายไปอยู่ที่ GlobalMatchListener ใน main.dart แล้ว
+    // ไม่ต้อง listen ที่นี่อีกต่อไป เพราะจะทำงานได้ทุกหน้าแล้ว
 
     // ✅ ใช้ FutureBuilder รอให้รูปโหลดเสร็จก่อนแสดง
     return FutureBuilder<void>(

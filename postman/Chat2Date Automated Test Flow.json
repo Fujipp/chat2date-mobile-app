@@ -1,0 +1,1217 @@
+{
+	"info": {
+		"_postman_id": "8ec51c2b-e4dd-42b1-9722-43563af5b46d",
+		"name": "Chat2Date - Automated Test Flow",
+		"description": "Automated test collection - Just click RUN and it flows automatically!\n\nSetup:\n1. Set baseURL in environment\n2. Run collection\n3. When prompted, enter OTP code manually\n4. Rest flows automatically",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+		"_exporter_id": "34810719",
+		"_collection_link": "https://meowmeow-5097.postman.co/workspace/MeowMeow-Workspace~89a05384-431d-4521-bb35-14b1f8c257f5/collection/34881810-8ec51c2b-e4dd-42b1-9722-43563af5b46d?action=share&source=collection_link&creator=34810719"
+	},
+	"item": [
+		{
+			"name": "Setup & Authentication",
+			"item": [
+				{
+					"name": "Auth (Request Token)",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "",
+									"type": "string"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n    \"identifier\": \"{{identifier}}\"\r\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseURL}}/auth/request-token",
+							"host": [
+								"{{baseURL}}"
+							],
+							"path": [
+								"auth",
+								"request-token"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Users - Create 1",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('status 201', ()=>pm.response.to.have.status(201));",
+									"",
+									"// Save created user1 values to environment",
+									"try {",
+									"  const json = pm.response.json();",
+									"  if (json) {",
+									"    if (json.userId) {",
+									"      pm.environment.set('user1_id', json.userId);",
+									"      pm.environment.set('id', json.userId); // default id = user1",
+									"    }",
+									"    if (json.phoneNumber) {",
+									"      pm.environment.set('user1_phone', json.phoneNumber);",
+									"      pm.environment.set('phoneNumber', json.phoneNumber);",
+									"    }",
+									"    if (json.version !== undefined) {",
+									"      pm.environment.set('user1_version', json.version);",
+									"    }",
+									"    if (json.nickname) { pm.environment.set('user1_nickname', json.nickname); }",
+									"    console.log('✅ Saved user1 vars:', { id: pm.environment.get('user1_id'), phone: pm.environment.get('user1_phone') });",
+									"  }",
+									"} catch (e) { console.log('⚠️ Failed to parse create user1 response', e); }"
+								],
+								"type": "text/javascript",
+								"packages": {},
+								"requests": {}
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{admin_access_token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{access_token}}",
+								"type": "text"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"phoneNumber\": \"{{phoneNumber}}\",\n    \"provider\": \"OTP\",\n    \"firstname\": \"Test\",\n    \"lastname\": \"User\",\n    \"nickname\": \"Tester\",\n    \"cardId\": \"1100000000001\",\n    \"birthday\": \"1990-01-01\",\n    \"sex\": \"MALE\",\n    \"version\": {{nextVersion}},\n    \"role\": \"USER\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{base_url}}/users",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"users"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Users - Create 2",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('status 201', ()=>pm.response.to.have.status(201));",
+									"",
+									"// Save created user2 values to environment",
+									"try {",
+									"  const json = pm.response.json();",
+									"  if (json) {",
+									"    if (json.userId) { pm.environment.set('user2_id', json.userId); }",
+									"    if (json.email) { pm.environment.set('user2_email_saved', json.email); }",
+									"    if (json.version !== undefined) { pm.environment.set('user2_version', json.version); }",
+									"    if (json.nickname) { pm.environment.set('user2_nickname', json.nickname); }",
+									"    console.log('✅ Saved user2 vars:', { id: pm.environment.get('user2_id'), email: pm.environment.get('user2_email_saved') });",
+									"  }",
+									"} catch (e) { console.log('⚠️ Failed to parse create user2 response', e); }"
+								],
+								"type": "text/javascript",
+								"packages": {},
+								"requests": {}
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{admin_access_token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{access_token}}",
+								"type": "text"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"email\": \"{{user_002_email}}\",\n    \"provider\": \"GOOGLE\",\n    \"firstname\": \"Test\",\n    \"lastname\": \"User\",\n    \"nickname\": \"Tester\",\n    \"cardId\": \"1100000000002\",\n    \"birthday\": \"1990-01-01\",\n    \"sex\": \"MALE\",\n    \"version\": {{nextVersion}},\n    \"role\": \"USER\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{base_url}}/users",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"users"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "User Profile Tests",
+			"item": [
+				{
+					"name": "3. Get Profile (User1)",
+					"event": [
+						{
+							"listen": "prerequest",
+							"script": {
+								"exec": [
+									"// Ensure using user1 id for this request",
+									"const u1 = pm.environment.get('user1_id');",
+									"if (u1) { pm.environment.set('id', u1); }"
+								],
+								"type": "text/javascript"
+							}
+						},
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status is 200', function() {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test('Profile has required fields', function() {",
+									"    const jsonData = pm.response.json();",
+									"    pm.expect(jsonData).to.have.property('userId');",
+									"    pm.expect(jsonData).to.have.property('phoneNumber');",
+									"});",
+									"",
+									"// Save user1 version for updates",
+									"if (pm.response.code === 200) {",
+									"    const jsonData = pm.response.json();",
+									"    if (jsonData.version !== undefined) {",
+									"        pm.environment.set('user1_version', jsonData.version);",
+									"        pm.environment.set('userVersion', jsonData.version);",
+									"        console.log('✅ User1 version saved:', jsonData.version);",
+									"    }",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{accessToken}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseURL}}/users/{{id}}",
+							"host": [
+								"{{baseURL}}"
+							],
+							"path": [
+								"users",
+								"{{id}}"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "4. Update Profile (User1)",
+					"event": [
+						{
+							"listen": "prerequest",
+							"script": {
+								"exec": [
+									"// Auto-increment version",
+									"let version = pm.environment.get('user1_version') || pm.environment.get('userVersion');",
+									"if (version) {",
+									"    pm.environment.set('nextVersion', parseInt(version) + 1);",
+									"} else {",
+									"    pm.environment.set('nextVersion', 1);",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						},
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status is 200', function() {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"// Update version",
+									"if (pm.response.code === 200) {",
+									"    const jsonData = pm.response.json();",
+									"    if (jsonData.version !== undefined) {",
+									"        pm.environment.set('userVersion', jsonData.version);",
+									"        console.log('✅ Profile updated, new version:', jsonData.version);",
+									"    }",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{accessToken}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"userId\": \"{{id}}\",\n    \"phoneNumber\": \"{{phoneNumber}}\",\n    \"provider\": \"OTP\",\n    \"firstname\": \"Test\",\n    \"lastname\": \"User\",\n    \"nickname\": \"Tester\",\n    \"cardId\": \"1100000000001\",\n    \"birthday\": \"1990-01-01\",\n    \"sex\": \"MALE\",\n    \"version\": {{nextVersion}},\n    \"role\": \"USER\"\n}"
+						},
+						"url": {
+							"raw": "{{baseURL}}/users/{{id}}",
+							"host": [
+								"{{baseURL}}"
+							],
+							"path": [
+								"users",
+								"{{id}}"
+							]
+						}
+					},
+					"response": []
+				},
+					{
+						"name": "5. Get Profile (User2)",
+						"event": [
+							{
+								"listen": "prerequest",
+								"script": {
+									"exec": [
+										"// Ensure using user2 id for this request",
+										"const u2 = pm.environment.get('user2_id');",
+										"if (u2) { pm.environment.set('id', u2); }"
+									],
+									"type": "text/javascript"
+								}
+							},
+							{
+								"listen": "test",
+								"script": {
+									"exec": [
+										"pm.test('Status is 200', function() {",
+										"    pm.response.to.have.status(200);",
+										"});",
+										"",
+										"pm.test('Profile has required fields', function() {",
+										"    const jsonData = pm.response.json();",
+										"    pm.expect(jsonData).to.have.property('userId');",
+										"});",
+										"",
+										"// Save user2 version for updates",
+										"if (pm.response.code === 200) {",
+										"    const jsonData = pm.response.json();",
+										"    if (jsonData.version !== undefined) {",
+										"        pm.environment.set('user2_version', jsonData.version);",
+										"        console.log('✅ User2 version saved:', jsonData.version);",
+										"    }",
+										"}"
+									],
+									"type": "text/javascript"
+								}
+							}
+						],
+						"request": {
+							"auth": {
+								"type": "bearer",
+								"bearer": [
+									{
+										"key": "token",
+										"value": "{{accessToken}}",
+										"type": "string"
+									}
+								]
+							},
+							"method": "GET",
+							"header": [],
+							"url": {
+								"raw": "{{baseURL}}/users/{{id}}",
+								"host": [
+									"{{baseURL}}"
+								],
+								"path": [
+									"users",
+									"{{id}}"
+								]
+							}
+						},
+						"response": []
+					},
+					{
+						"name": "6. Update Profile (User2)",
+						"event": [
+							{
+								"listen": "prerequest",
+								"script": {
+									"exec": [
+										"// Auto-increment version for user2",
+										"let version = pm.environment.get('user2_version');",
+										"if (version) {",
+										"    pm.environment.set('nextVersion', parseInt(version) + 1);",
+										"} else {",
+										"    pm.environment.set('nextVersion', 1);",
+										"}"
+									],
+									"type": "text/javascript"
+								}
+							},
+							{
+								"listen": "test",
+								"script": {
+									"exec": [
+										"pm.test('Status is 200', function() {",
+										"    pm.response.to.have.status(200);",
+										"});",
+										"",
+										"// Update version",
+										"if (pm.response.code === 200) {",
+										"    const jsonData = pm.response.json();",
+										"    if (jsonData.version !== undefined) {",
+										"        pm.environment.set('user2_version', jsonData.version);",
+										"        console.log('✅ Profile (user2) updated, new version:', jsonData.version);",
+										"    }",
+										"}"
+									],
+									"type": "text/javascript"
+								}
+							}
+						],
+						"request": {
+							"auth": {
+								"type": "bearer",
+								"bearer": [
+									{
+										"key": "token",
+										"value": "{{accessToken}}",
+										"type": "string"
+									}
+								]
+							},
+							"method": "PUT",
+							"header": [
+								{
+									"key": "Content-Type",
+									"value": "application/json"
+								}
+							],
+							"body": {
+								"mode": "raw",
+								"raw": "{\n    \"userId\": \"{{id}}\",\n    \"email\": \"{{user_002_email}}\",\n    \"provider\": \"GOOGLE\",\n    \"firstname\": \"Test2\",\n    \"lastname\": \"User2\",\n    \"nickname\": \"Tester2\",\n    \"birthday\": \"1992-02-02\",\n    \"sex\": \"MALE\",\n    \"version\": {{nextVersion}},\n    \"role\": \"USER\"\n}"
+							},
+							"url": {
+								"raw": "{{baseURL}}/users/{{id}}",
+								"host": [
+									"{{baseURL}}"
+								],
+								"path": [
+									"users",
+									"{{id}}"
+								]
+							}
+						},
+						"response": []
+					}
+			]
+		},
+		{
+			"name": "Preferences Tests",
+			"item": [
+				{
+					"name": "5. Get Preferences",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status is 200', function() {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test('Has preference data', function() {",
+									"    const jsonData = pm.response.json();",
+									"    pm.expect(jsonData).to.be.an('object');",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{accessToken}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseURL}}/users/preference",
+							"host": [
+								"{{baseURL}}"
+							],
+							"path": [
+								"users",
+								"preference"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "6. Set Match Preferences",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status is 200', function() {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"console.log('✅ Preferences updated successfully');"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{accessToken}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"interestedGender\": \"BOTH\",\n    \"interestedAgeMax\": 60,\n    \"interestedAgeMin\": 20,\n    \"interestedTravelStyle\": \"SAME\",\n    \"interestedLifeStyle\": \"UNRELATED\",\n    \"interestedInterest\": \"UNNECESSARY\",\n    \"interestedDistanceMin\": 0,\n    \"interestedDistanceMax\": 100\n}"
+						},
+						"url": {
+							"raw": "{{baseURL}}/users/preferenceMatch",
+							"host": [
+								"{{baseURL}}"
+							],
+							"path": [
+								"users",
+								"preferenceMatch"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Location Tests",
+			"item": [
+				{
+					"name": "7. Update Location (Success)",
+					"event": [
+						{
+							"listen": "prerequest",
+							"script": {
+								"exec": [
+									"// Set default Bangkok coordinates if not set",
+									"if (!pm.environment.get('latitude')) {",
+									"    pm.environment.set('latitude', '13.7563');",
+									"}",
+									"if (!pm.environment.get('longitude')) {",
+									"    pm.environment.set('longitude', '100.5018');",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						},
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status is 200', function() {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test('Location updated', function() {",
+									"    const jsonData = pm.response.json();",
+									"    pm.expect(jsonData).to.have.property('latitude');",
+									"    pm.expect(jsonData).to.have.property('longtitude');",
+									"});",
+									"",
+									"console.log('✅ Location updated successfully');"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{accessToken}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"latitude\": {{latitude}},\n    \"longtitude\": {{longitude}},\n    \"accuracy\": 10.0\n}"
+						},
+						"url": {
+							"raw": "{{baseURL}}/location/update",
+							"host": [
+								"{{baseURL}}"
+							],
+							"path": [
+								"location",
+								"update"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "8. Update Location (Empty Body - 400)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status is 400', function() {",
+									"    pm.response.to.have.status(400);",
+									"});",
+									"",
+									"pm.test('Has error message', function() {",
+									"    const jsonData = pm.response.json();",
+									"    pm.expect(jsonData).to.have.property('error');",
+									"});",
+									"",
+									"console.log('✅ Empty body validation works');"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{accessToken}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{}"
+						},
+						"url": {
+							"raw": "{{baseURL}}/location/update",
+							"host": [
+								"{{baseURL}}"
+							],
+							"path": [
+								"location",
+								"update"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "9. Update Location (Invalid Latitude - 400)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status is 400', function() {",
+									"    pm.response.to.have.status(400);",
+									"});",
+									"",
+									"pm.test('Error mentions latitude', function() {",
+									"    const jsonData = pm.response.json();",
+									"    pm.expect(jsonData.error.toLowerCase()).to.include('latitude');",
+									"});",
+									"",
+									"console.log('✅ Latitude validation works');"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{accessToken}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"latitude\": 91.0,\n    \"longtitude\": 100.5018,\n    \"accuracy\": 10.0\n}"
+						},
+						"url": {
+							"raw": "{{baseURL}}/location/update",
+							"host": [
+								"{{baseURL}}"
+							],
+							"path": [
+								"location",
+								"update"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "10. Update Location (Invalid Longitude - 400)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status is 400', function() {",
+									"    pm.response.to.have.status(400);",
+									"});",
+									"",
+									"pm.test('Error mentions longitude', function() {",
+									"    const jsonData = pm.response.json();",
+									"    pm.expect(jsonData.error.toLowerCase()).to.include('longitude');",
+									"});",
+									"",
+									"console.log('✅ Longitude validation works');"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{accessToken}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"latitude\": 13.7563,\n    \"longtitude\": 181.0,\n    \"accuracy\": 10.0\n}"
+						},
+						"url": {
+							"raw": "{{baseURL}}/location/update",
+							"host": [
+								"{{baseURL}}"
+							],
+							"path": [
+								"location",
+								"update"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Error Handling Tests",
+			"item": [
+				{
+					"name": "11. Get Profile (Unauthorized - 401)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status is 401', function() {",
+									"    pm.response.to.have.status(401);",
+									"});",
+									"",
+									"console.log('✅ Auth validation works');"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "noauth"
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseURL}}/users/{{id}}",
+							"host": [
+								"{{baseURL}}"
+							],
+							"path": [
+								"users",
+								"{{id}}"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "12. Get Other User Profile (Forbidden - 403)",
+					"event": [
+						{
+							"listen": "prerequest",
+							"script": {
+								"exec": [
+									"// Use a fake user ID",
+									"pm.environment.set('otherUserId', '00000000-0000-0000-0000-000000000000');"
+								],
+								"type": "text/javascript"
+							}
+						},
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status is 403 or 404', function() {",
+									"    pm.expect(pm.response.code).to.be.oneOf([403, 404]);",
+									"});",
+									"",
+									"console.log('✅ Permission check works');"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{accessToken}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseURL}}/users/{{otherUserId}}",
+							"host": [
+								"{{baseURL}}"
+							],
+							"path": [
+								"users",
+								"{{otherUserId}}"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "13. Update Profile (Version Conflict - 412)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status is 412', function() {",
+									"    pm.response.to.have.status(412);",
+									"});",
+									"",
+									"pm.test('Error mentions version', function() {",
+									"    const jsonData = pm.response.json();",
+									"    pm.expect(JSON.stringify(jsonData).toLowerCase()).to.include('version');",
+									"});",
+									"",
+									"console.log('✅ Optimistic locking works');"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{accessToken}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"userId\": \"{{id}}\",\n    \"phoneNumber\": \"{{phoneNumber}}\",\n    \"provider\": \"OTP\",\n    \"firstname\": \"Test\",\n    \"lastname\": \"User\",\n    \"nickname\": \"Tester\",\n    \"cardId\": \"1100000000001\",\n    \"birthday\": \"1990-01-01\",\n    \"sex\": \"MALE\",\n    \"version\": 999,\n    \"role\": \"USER\"\n}"
+						},
+						"url": {
+							"raw": "{{baseURL}}/users/{{id}}",
+							"host": [
+								"{{baseURL}}"
+							],
+							"path": [
+								"users",
+								"{{id}}"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Token Management",
+			"item": [
+				{
+					"name": "14. Refresh Token",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status is 200', function() {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"if (pm.response.code === 200) {",
+									"    const jsonData = pm.response.json();",
+									"    if (jsonData.accessToken) {",
+									"        pm.environment.set('accessToken', jsonData.accessToken);",
+									"        console.log('✅ New access token saved');",
+									"    }",
+									"    if (jsonData.refreshToken) {",
+									"        pm.environment.set('refreshToken', jsonData.refreshToken);",
+									"        console.log('✅ New refresh token saved');",
+									"    }",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"refreshToken\": \"{{refreshToken}}\"\n}"
+						},
+						"url": {
+							"raw": "{{baseURL}}/auth/refresh-token",
+							"host": [
+								"{{baseURL}}"
+							],
+							"path": [
+								"auth",
+								"refresh-token"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "15. Logout",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status is 200', function() {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"console.log('✅ Logged out successfully');",
+									"console.log('🎉 All tests completed!');"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"refreshToken\": \"{{refreshToken}}\"\n}"
+						},
+						"url": {
+							"raw": "{{baseURL}}/auth/logout",
+							"host": [
+								"{{baseURL}}"
+							],
+							"path": [
+								"auth",
+								"logout"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Rate Limit Tests (Run Separately)",
+			"item": [
+				{
+					"name": "16. Send OTP Multiple Times (429)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status is 429 (Too Many Requests)', function() {",
+									"    pm.response.to.have.status(429);",
+									"});",
+									"",
+									"console.log('✅ Rate limiting works');"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"phoneNumber\": \"{{phoneNumber}}\"\n}"
+						},
+						"url": {
+							"raw": "{{baseURL}}/auth/request-otp",
+							"host": [
+								"{{baseURL}}"
+							],
+							"path": [
+								"auth",
+								"request-otp"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "17. Verify OTP Wrong Code (422)",
+					"event": [
+						{
+							"listen": "prerequest",
+							"script": {
+								"exec": [
+									"// Set wrong OTP",
+									"pm.environment.set('wrongOtp', '000000');"
+								],
+								"type": "text/javascript"
+							}
+						},
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status is 422', function() {",
+									"    pm.response.to.have.status(422);",
+									"});",
+									"",
+									"console.log('✅ OTP validation works');"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"phoneNumber\": \"{{phoneNumber}}\",\n    \"token\": \"{{token}}\",\n    \"otpCode\": \"{{wrongOtp}}\"\n}"
+						},
+						"url": {
+							"raw": "{{baseURL}}/auth/verify-otp",
+							"host": [
+								"{{baseURL}}"
+							],
+							"path": [
+								"auth",
+								"verify-otp"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		}
+	],
+	"event": [
+		{
+			"listen": "prerequest",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					"// Global pre-request setup",
+					"console.log('🚀 Starting request:', pm.info.requestName);"
+				]
+			}
+		},
+		{
+			"listen": "test",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					"// Global test script",
+					"console.log('📊 Response status:', pm.response.code);"
+				]
+			}
+		}
+	]
+}

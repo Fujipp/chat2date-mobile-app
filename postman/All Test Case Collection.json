@@ -1,0 +1,1303 @@
+{
+	"info": {
+		"_postman_id": "e346a319-b63f-4659-92d5-1387f0b0ffd4",
+		"name": "ALL Test case",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+		"_exporter_id": "34810719",
+		"_collection_link": "https://meowmeow-5097.postman.co/workspace/MeowMeow-Workspace~89a05384-431d-4521-bb35-14b1f8c257f5/collection/34881810-e346a319-b63f-4659-92d5-1387f0b0ffd4?action=share&source=collection_link&creator=34810719"
+	},
+	"item": [
+		{
+			"name": "C2D1 - C2D4",
+			"item": [
+				{
+					"name": "Auth (Send OTP) (200)",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "",
+									"type": "string"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n    \"phoneNumber\": \"{{phoneNumber}}\"\r\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseURL}}/auth/request-otp",
+							"host": [
+								"{{baseURL}}"
+							],
+							"path": [
+								"auth",
+								"request-otp"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Auth (Send OTP) (429)",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "",
+									"type": "string"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n    \"phoneNumber\": \"{{phoneNumber}}\"\r\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseURL}}/auth/request-otp",
+							"host": [
+								"{{baseURL}}"
+							],
+							"path": [
+								"auth",
+								"request-otp"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Auth (Verify OTP) (200)",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "",
+									"type": "string"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n    \"phoneNumber\": \"{{phoneNumber}}\",\r\n    \"token\": \"{{token}}\",\r\n    \"otpCode\": \"{{otpCode}}\"\r\n\r\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseURL}}/auth/verify-otp",
+							"host": [
+								"{{baseURL}}"
+							],
+							"path": [
+								"auth",
+								"verify-otp"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Auth (Verify OTP) (422)",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "",
+									"type": "string"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n    \"phoneNumber\": \"{{phoneNumber}}\",\r\n    \"token\": \"{{token}}\",\r\n    \"otpCode\": \"{{otpCode}}\"\r\n\r\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseURL}}/auth/verify-otp",
+							"host": [
+								"{{baseURL}}"
+							],
+							"path": [
+								"auth",
+								"verify-otp"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "C2D9 Admin",
+			"item": [
+				{
+					"name": "Users (All) (200)",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{accessToken}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "http://cp25ssi2.sit.kmutt.ac.th:8080/api/v1/users",
+							"protocol": "http",
+							"host": [
+								"cp25ssi2",
+								"sit",
+								"kmutt",
+								"ac",
+								"th"
+							],
+							"port": "8080",
+							"path": [
+								"api",
+								"v1",
+								"users"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Users (By id) (200)",
+					"protocolProfileBehavior": {
+						"disableBodyPruning": true
+					},
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{accessToken}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseURL}}/users/{{id}}",
+							"host": [
+								"{{baseURL}}"
+							],
+							"path": [
+								"users",
+								"{{id}}"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Users (Add) (201)",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJoYXRoYWl0YXQ4OEBnbWFpbC5jb20iLCJyb2xlIjoiQURNSU4iLCJpc3MiOiJodHRwczovL2NwMjVzc2kyLnNpdC5rbXV0dC5hYy50aC8iLCJuYW1lIjoiVW5rbm93biBVbmtub3duIiwiY2lkIjoiMDAwNzkxMDYxMDA3NiIsImlhdCI6MTc2Mjg4NDAwMywiZXhwIjoxNzYyOTcwNDAzfQ.EJs0S84lcBOM39KXMo-cwqGXWF8Y6QeCoCN0iVD_dzs",
+									"type": "string"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n  \"firstname\": \"John\",\r\n  \"lastname\": \"Doe\",\r\n  \"nickname\": \"Johnny\",\r\n  \"email\": null,\r\n  \"phoneNumber\": \"0832345644\",\r\n  \"provider\": \"OTP\",\r\n  \"cardId\": \"1234567890363\",\r\n  \"birthday\": \"1990-01-01\",\r\n  \"age\": 33,\r\n  \"sex\": \"MALE\",\r\n  \"version\": 1,\r\n  \"role\": \"USER\"\r\n}\r\n",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseURL}}/users",
+							"host": [
+								"{{baseURL}}"
+							],
+							"path": [
+								"users"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Users (Edit by id) (200)",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{accessToken}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "PUT",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n    \"userId\": \"1911910e-8fac-43d8-ad9f-f182eabb60ec\",\r\n    \"email\": \"user10@example.com\",\r\n    \"phoneNumber\": \"0626434165\",\r\n    \"provider\": \"OTP\",\r\n    \"firstname\": \"สมชาย\",\r\n    \"lastname\": \"ใจดี\",\r\n    \"nickname\": \"ชาย\",\r\n    \"cardId\": \"1100000000008\",\r\n    \"birthday\": \"1995-03-15\",\r\n    \"sex\": \"FEMALE\",\r\n    \"behaviorScore\": 25,\r\n    \"isBlacklist\": false,\r\n    \"accountStatus\": \"ACTIVE\",\r\n    \"version\": 6,\r\n    \"role\": \"USER\"\r\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "http://cp25ssi2.sit.kmutt.ac.th:8080/api/v1/users/{{id}}",
+							"protocol": "http",
+							"host": [
+								"cp25ssi2",
+								"sit",
+								"kmutt",
+								"ac",
+								"th"
+							],
+							"port": "8080",
+							"path": [
+								"api",
+								"v1",
+								"users",
+								"{{id}}"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Users (Delete) (200)",
+					"request": {
+						"auth": {
+							"type": "noauth"
+						},
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{baseURL}}/users/{{id}}",
+							"host": [
+								"{{baseURL}}"
+							],
+							"path": [
+								"users",
+								"{{id}}"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "C2D10 - C2D11",
+			"item": [
+				{
+					"name": "Users (All) (401)",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{accessToken}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "http://cp25ssi2.sit.kmutt.ac.th:8080/api/v1/users",
+							"protocol": "http",
+							"host": [
+								"cp25ssi2",
+								"sit",
+								"kmutt",
+								"ac",
+								"th"
+							],
+							"port": "8080",
+							"path": [
+								"api",
+								"v1",
+								"users"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Users (All) (403)",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{accessToken}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "http://cp25ssi2.sit.kmutt.ac.th:8080/api/v1/users",
+							"protocol": "http",
+							"host": [
+								"cp25ssi2",
+								"sit",
+								"kmutt",
+								"ac",
+								"th"
+							],
+							"port": "8080",
+							"path": [
+								"api",
+								"v1",
+								"users"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Users (By id) (200)",
+					"protocolProfileBehavior": {
+						"disableBodyPruning": true
+					},
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{accessToken}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseURL}}/users/{{id}}",
+							"host": [
+								"{{baseURL}}"
+							],
+							"path": [
+								"users",
+								"{{id}}"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Users (By id) (401)",
+					"protocolProfileBehavior": {
+						"disableBodyPruning": true
+					},
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{accessToken}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseURL}}/users/{{id}}",
+							"host": [
+								"{{baseURL}}"
+							],
+							"path": [
+								"users",
+								"{{id}}"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Users (By id) (403)",
+					"protocolProfileBehavior": {
+						"disableBodyPruning": true
+					},
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{accessToken}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseURL}}/users/{{id}}",
+							"host": [
+								"{{baseURL}}"
+							],
+							"path": [
+								"users",
+								"{{id}}"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Users (By id) (404)",
+					"protocolProfileBehavior": {
+						"disableBodyPruning": true
+					},
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{accessToken}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseURL}}/users/{{id}}",
+							"host": [
+								"{{baseURL}}"
+							],
+							"path": [
+								"users",
+								"{{id}}"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Users (Add) (201)",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJoYXRoYWl0YXQ4OEBnbWFpbC5jb20iLCJyb2xlIjoiQURNSU4iLCJpc3MiOiJodHRwczovL2NwMjVzc2kyLnNpdC5rbXV0dC5hYy50aC8iLCJuYW1lIjoiVW5rbm93biBVbmtub3duIiwiY2lkIjoiMDAwNzkxMDYxMDA3NiIsImlhdCI6MTc2Mjg4NDAwMywiZXhwIjoxNzYyOTcwNDAzfQ.EJs0S84lcBOM39KXMo-cwqGXWF8Y6QeCoCN0iVD_dzs",
+									"type": "string"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n  \"firstname\": \"John\",\r\n  \"lastname\": \"Doe\",\r\n  \"nickname\": \"Johnny\",\r\n  \"email\": null,\r\n  \"phoneNumber\": \"0832345644\",\r\n  \"provider\": \"OTP\",\r\n  \"cardId\": \"1234567890363\",\r\n  \"birthday\": \"1990-01-01\",\r\n  \"age\": 33,\r\n  \"sex\": \"MALE\",\r\n  \"version\": 1,\r\n  \"role\": \"USER\"\r\n}\r\n",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseURL}}/users",
+							"host": [
+								"{{baseURL}}"
+							],
+							"path": [
+								"users"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Users (Add) (400)",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJoYXRoYWl0YXQ4OEBnbWFpbC5jb20iLCJyb2xlIjoiQURNSU4iLCJpc3MiOiJodHRwczovL2NwMjVzc2kyLnNpdC5rbXV0dC5hYy50aC8iLCJuYW1lIjoiVW5rbm93biBVbmtub3duIiwiY2lkIjoiMDAwNzkxMDYxMDA3NiIsImlhdCI6MTc2Mjg4NDAwMywiZXhwIjoxNzYyOTcwNDAzfQ.EJs0S84lcBOM39KXMo-cwqGXWF8Y6QeCoCN0iVD_dzs",
+									"type": "string"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n  \"firstname\": \"John\",\r\n  \"lastname\": \"Doe\",\r\n  \"nickname\": \"Johnny\",\r\n  \"email\": null,\r\n  \"phoneNumber\": \"0832345644\",\r\n  \"provider\": \"OTP\",\r\n  \"cardId\": \"1234567890363\",\r\n  \"birthday\": \"1990-01-01\",\r\n  \"age\": 33,\r\n  \"sex\": \"MALE\",\r\n  \"version\": 1,\r\n  \"role\": \"USER\"\r\n}\r\n",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseURL}}/users",
+							"host": [
+								"{{baseURL}}"
+							],
+							"path": [
+								"users"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Users (Add) (401)",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJoYXRoYWl0YXQ4OEBnbWFpbC5jb20iLCJyb2xlIjoiQURNSU4iLCJpc3MiOiJodHRwczovL2NwMjVzc2kyLnNpdC5rbXV0dC5hYy50aC8iLCJuYW1lIjoiVW5rbm93biBVbmtub3duIiwiY2lkIjoiMDAwNzkxMDYxMDA3NiIsImlhdCI6MTc2Mjg4NDAwMywiZXhwIjoxNzYyOTcwNDAzfQ.EJs0S84lcBOM39KXMo-cwqGXWF8Y6QeCoCN0iVD_dzs",
+									"type": "string"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n  \"firstname\": \"John\",\r\n  \"lastname\": \"Doe\",\r\n  \"nickname\": \"Johnny\",\r\n  \"email\": null,\r\n  \"phoneNumber\": \"0832345644\",\r\n  \"provider\": \"OTP\",\r\n  \"cardId\": \"1234567890363\",\r\n  \"birthday\": \"1990-01-01\",\r\n  \"age\": 33,\r\n  \"sex\": \"MALE\",\r\n  \"version\": 1,\r\n  \"role\": \"USER\"\r\n}\r\n",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseURL}}/users",
+							"host": [
+								"{{baseURL}}"
+							],
+							"path": [
+								"users"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Users (Add) (403)",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJoYXRoYWl0YXQ4OEBnbWFpbC5jb20iLCJyb2xlIjoiQURNSU4iLCJpc3MiOiJodHRwczovL2NwMjVzc2kyLnNpdC5rbXV0dC5hYy50aC8iLCJuYW1lIjoiVW5rbm93biBVbmtub3duIiwiY2lkIjoiMDAwNzkxMDYxMDA3NiIsImlhdCI6MTc2Mjg4NDAwMywiZXhwIjoxNzYyOTcwNDAzfQ.EJs0S84lcBOM39KXMo-cwqGXWF8Y6QeCoCN0iVD_dzs",
+									"type": "string"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n  \"firstname\": \"John\",\r\n  \"lastname\": \"Doe\",\r\n  \"nickname\": \"Johnny\",\r\n  \"email\": null,\r\n  \"phoneNumber\": \"0832345644\",\r\n  \"provider\": \"OTP\",\r\n  \"cardId\": \"1234567890363\",\r\n  \"birthday\": \"1990-01-01\",\r\n  \"age\": 33,\r\n  \"sex\": \"MALE\",\r\n  \"version\": 1,\r\n  \"role\": \"USER\"\r\n}\r\n",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseURL}}/users",
+							"host": [
+								"{{baseURL}}"
+							],
+							"path": [
+								"users"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Users (Edit by id) (200)",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{accessToken}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "PUT",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n    \"userId\": \"1911910e-8fac-43d8-ad9f-f182eabb60ec\",\r\n    \"email\": \"user10@example.com\",\r\n    \"phoneNumber\": \"0626434165\",\r\n    \"provider\": \"OTP\",\r\n    \"firstname\": \"สมชาย\",\r\n    \"lastname\": \"ใจดี\",\r\n    \"nickname\": \"ชาย\",\r\n    \"cardId\": \"1100000000008\",\r\n    \"birthday\": \"1995-03-15\",\r\n    \"sex\": \"FEMALE\",\r\n    \"behaviorScore\": 25,\r\n    \"isBlacklist\": false,\r\n    \"accountStatus\": \"ACTIVE\",\r\n    \"version\": 6,\r\n    \"role\": \"USER\"\r\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "http://cp25ssi2.sit.kmutt.ac.th:8080/api/v1/users/{{id}}",
+							"protocol": "http",
+							"host": [
+								"cp25ssi2",
+								"sit",
+								"kmutt",
+								"ac",
+								"th"
+							],
+							"port": "8080",
+							"path": [
+								"api",
+								"v1",
+								"users",
+								"{{id}}"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Users (Edit by id) (400)",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{accessToken}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "PUT",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n    \"userId\": \"1911910e-8fac-43d8-ad9f-f182eabb60ec\",\r\n    \"email\": \"user10@example.com\",\r\n    \"phoneNumber\": \"0626434165\",\r\n    \"provider\": \"OTP\",\r\n    \"firstname\": \"สมชาย\",\r\n    \"lastname\": \"ใจดี\",\r\n    \"nickname\": \"ชาย\",\r\n    \"cardId\": \"1100000000008\",\r\n    \"birthday\": \"1995-03-15\",\r\n    \"sex\": \"FEMALE\",\r\n    \"behaviorScore\": 25,\r\n    \"isBlacklist\": false,\r\n    \"accountStatus\": \"ACTIVE\",\r\n    \"version\": 6,\r\n    \"role\": \"USER\"\r\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "http://cp25ssi2.sit.kmutt.ac.th:8080/api/v1/users/{{id}}",
+							"protocol": "http",
+							"host": [
+								"cp25ssi2",
+								"sit",
+								"kmutt",
+								"ac",
+								"th"
+							],
+							"port": "8080",
+							"path": [
+								"api",
+								"v1",
+								"users",
+								"{{id}}"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Users (Edit by id) (401)",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{accessToken}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "PUT",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n    \"userId\": \"1911910e-8fac-43d8-ad9f-f182eabb60ec\",\r\n    \"email\": \"user10@example.com\",\r\n    \"phoneNumber\": \"0626434165\",\r\n    \"provider\": \"OTP\",\r\n    \"firstname\": \"สมชาย\",\r\n    \"lastname\": \"ใจดี\",\r\n    \"nickname\": \"ชาย\",\r\n    \"cardId\": \"1100000000008\",\r\n    \"birthday\": \"1995-03-15\",\r\n    \"sex\": \"FEMALE\",\r\n    \"behaviorScore\": 25,\r\n    \"isBlacklist\": false,\r\n    \"accountStatus\": \"ACTIVE\",\r\n    \"version\": 6,\r\n    \"role\": \"USER\"\r\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "http://cp25ssi2.sit.kmutt.ac.th:8080/api/v1/users/{{id}}",
+							"protocol": "http",
+							"host": [
+								"cp25ssi2",
+								"sit",
+								"kmutt",
+								"ac",
+								"th"
+							],
+							"port": "8080",
+							"path": [
+								"api",
+								"v1",
+								"users",
+								"{{id}}"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Users (Edit by id) (403)",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{accessToken}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "PUT",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n    \"userId\": \"1911910e-8fac-43d8-ad9f-f182eabb60ec\",\r\n    \"email\": \"user10@example.com\",\r\n    \"phoneNumber\": \"0626434165\",\r\n    \"provider\": \"OTP\",\r\n    \"firstname\": \"สมชาย\",\r\n    \"lastname\": \"ใจดี\",\r\n    \"nickname\": \"ชาย\",\r\n    \"cardId\": \"1100000000008\",\r\n    \"birthday\": \"1995-03-15\",\r\n    \"sex\": \"FEMALE\",\r\n    \"behaviorScore\": 25,\r\n    \"isBlacklist\": false,\r\n    \"accountStatus\": \"ACTIVE\",\r\n    \"version\": 6,\r\n    \"role\": \"USER\"\r\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "http://cp25ssi2.sit.kmutt.ac.th:8080/api/v1/users/{{id}}",
+							"protocol": "http",
+							"host": [
+								"cp25ssi2",
+								"sit",
+								"kmutt",
+								"ac",
+								"th"
+							],
+							"port": "8080",
+							"path": [
+								"api",
+								"v1",
+								"users",
+								"{{id}}"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Users (Edit by id) (404)",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{accessToken}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "PUT",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n    \"userId\": \"1911910e-8fac-43d8-ad9f-f182eabb60ec\",\r\n    \"email\": \"user10@example.com\",\r\n    \"phoneNumber\": \"0626434165\",\r\n    \"provider\": \"OTP\",\r\n    \"firstname\": \"สมชาย\",\r\n    \"lastname\": \"ใจดี\",\r\n    \"nickname\": \"ชาย\",\r\n    \"cardId\": \"1100000000008\",\r\n    \"birthday\": \"1995-03-15\",\r\n    \"sex\": \"FEMALE\",\r\n    \"behaviorScore\": 25,\r\n    \"isBlacklist\": false,\r\n    \"accountStatus\": \"ACTIVE\",\r\n    \"version\": 6,\r\n    \"role\": \"USER\"\r\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "http://cp25ssi2.sit.kmutt.ac.th:8080/api/v1/users/{{id}}",
+							"protocol": "http",
+							"host": [
+								"cp25ssi2",
+								"sit",
+								"kmutt",
+								"ac",
+								"th"
+							],
+							"port": "8080",
+							"path": [
+								"api",
+								"v1",
+								"users",
+								"{{id}}"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Users (Edit by id) (412)",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{accessToken}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "PUT",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n    \"userId\": \"1911910e-8fac-43d8-ad9f-f182eabb60ec\",\r\n    \"email\": \"user10@example.com\",\r\n    \"phoneNumber\": \"0626434165\",\r\n    \"provider\": \"OTP\",\r\n    \"firstname\": \"สมชาย\",\r\n    \"lastname\": \"ใจดี\",\r\n    \"nickname\": \"ชาย\",\r\n    \"cardId\": \"1100000000008\",\r\n    \"birthday\": \"1995-03-15\",\r\n    \"sex\": \"FEMALE\",\r\n    \"behaviorScore\": 25,\r\n    \"isBlacklist\": false,\r\n    \"accountStatus\": \"ACTIVE\",\r\n    \"version\": 6,\r\n    \"role\": \"USER\"\r\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "http://cp25ssi2.sit.kmutt.ac.th:8080/api/v1/users/{{id}}",
+							"protocol": "http",
+							"host": [
+								"cp25ssi2",
+								"sit",
+								"kmutt",
+								"ac",
+								"th"
+							],
+							"port": "8080",
+							"path": [
+								"api",
+								"v1",
+								"users",
+								"{{id}}"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Users (Delete) (200)",
+					"request": {
+						"auth": {
+							"type": "noauth"
+						},
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{baseURL}}/users/{{id}}",
+							"host": [
+								"{{baseURL}}"
+							],
+							"path": [
+								"users",
+								"{{id}}"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Users (Delete) (400)",
+					"request": {
+						"auth": {
+							"type": "noauth"
+						},
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{baseURL}}/users/{{id}}",
+							"host": [
+								"{{baseURL}}"
+							],
+							"path": [
+								"users",
+								"{{id}}"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Users (Delete) (401)",
+					"request": {
+						"auth": {
+							"type": "noauth"
+						},
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{baseURL}}/users/{{id}}",
+							"host": [
+								"{{baseURL}}"
+							],
+							"path": [
+								"users",
+								"{{id}}"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Users (Delete) (403)",
+					"request": {
+						"auth": {
+							"type": "noauth"
+						},
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{baseURL}}/users/{{id}}",
+							"host": [
+								"{{baseURL}}"
+							],
+							"path": [
+								"users",
+								"{{id}}"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Users (Delete) (404)",
+					"request": {
+						"auth": {
+							"type": "noauth"
+						},
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{baseURL}}/users/{{id}}",
+							"host": [
+								"{{baseURL}}"
+							],
+							"path": [
+								"users",
+								"{{id}}"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "C2D12",
+			"item": [
+				{
+					"name": "Users (Preference) (200)",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{accessToken}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n    \"interestedGender\": \"BOTH\",\r\n    \"interestedAgeMax\": 20,\r\n    \"interestedAgeMin\": 60,\r\n    \"interestedTravelStyle\": \"SAME\",\r\n    \"interestedLifeStyle\": \"UNRELATED\",\r\n    \"interestedInterest\": \"UNNECESSARY\",\r\n    \"interestedDistanceMin\": 0,\r\n    \"interestedDistanceMax\": 0\r\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "http://localhost:8080/users/preference",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "8080",
+							"path": [
+								"users",
+								"preference"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Users (Preference Match) (200)",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{accessToken}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n    \"interestedGender\": \"BOTH\",\r\n    \"interestedAgeMax\": 20,\r\n    \"interestedAgeMin\": 60,\r\n    \"interestedTravelStyle\": \"SAME\",\r\n    \"interestedLifeStyle\": \"UNRELATED\",\r\n    \"interestedInterest\": \"UNNECESSARY\",\r\n    \"interestedDistanceMin\": 0,\r\n    \"interestedDistanceMax\": 0\r\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "http://localhost:8080/users/preferenceMatch",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "8080",
+							"path": [
+								"users",
+								"preferenceMatch"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Token",
+			"item": [
+				{
+					"name": "Auth (Refresh Token)",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{accessToken}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n    \"refreshToken\":\"{{refreshToken}}\"\r\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseURL}}/auth/refresh-token",
+							"host": [
+								"{{baseURL}}"
+							],
+							"path": [
+								"auth",
+								"refresh-token"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Auth (Request Token)",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "",
+									"type": "string"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n    \"identifier\": \"{{identifier}}\"\r\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseURL}}/auth/request-token",
+							"host": [
+								"{{baseURL}}"
+							],
+							"path": [
+								"auth",
+								"request-token"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Auth (Logout)",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{accessToken}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n    \"refreshToken\":\"{{refreshToken}}\"\r\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "http://localhost:8080/api/v1/auth/logout",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "8080",
+							"path": [
+								"api",
+								"v1",
+								"auth",
+								"logout"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		}
+	]
+}
