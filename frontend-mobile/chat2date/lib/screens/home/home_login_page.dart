@@ -85,11 +85,14 @@ class HomeLoginPage extends ConsumerWidget {
                                   arguments: result.arguments,
                                 );
                               } catch (e) {
+                                if (e.toString().contains('cancel')) {
+                                  return;
+                                }
                                 Toast.show(
                                   context,
                                   type: ToastType.error,
                                   title: 'ผิดพลาด',
-                                  message: 'เกิดข้อผิดพลาด: ${e.toString()}',
+                                  message: e.toString(),
                                 );
                               }
                             },
