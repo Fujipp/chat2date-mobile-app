@@ -223,7 +223,7 @@ class UserService {
 
     // error อื่นที่ไม่คาดคิด
     throw Exception(
-      'Check phone failed with status ${response.statusCode}: ${response.body}',
+      'Failed with status ${response.statusCode}: ${response.body}',
     );
   }
 }

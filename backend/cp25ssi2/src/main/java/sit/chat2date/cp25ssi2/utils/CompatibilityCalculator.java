@@ -15,8 +15,6 @@ public class CompatibilityCalculator {
     private static final double LIFESTYLE_WEIGHT = 0.30;
     private static final double INTEREST_WEIGHT = 0.30;
 
-    // จำนวนที่ User ต้องเลือก
-    private static final int REQUIRED_TRAVEL_COUNT = 3;
 
     public int calculateCompatibilityWithPreference(
             List<String> userTravelStyles,
@@ -31,7 +29,7 @@ public class CompatibilityCalculator {
             List<String> candidateInterests,
             String interestPref
     ) {
-        // 1. Travel Styles Score (บังคับ 3 อัน)
+        // 1. Travel Styles Score (บังคับ 2 อัน)
         double travelScore = calculateTravelScore(
                 userTravelStyles,
                 candidateTravelStyles,
@@ -82,20 +80,11 @@ public class CompatibilityCalculator {
 
         switch (preference) {
             case "SAME":
-                // ต้องตรงกันทั้ง 3 อัน
-                if (matchCount == 3) {
+                if (matchCount >= 2) {
                     return 100.0;
-                }
-                // ตรง 2 อัน
-                else if (matchCount == 2) {
-                    return 60.0;
-                }
-                // ตรง 1 อัน
-                else if (matchCount == 1) {
-                    return 30.0;
-                }
-                // ไม่ตรงเลย
-                else {
+                } else if (matchCount == 1) {
+                    return 50.0;
+                } else {
                     return 0.0;
                 }
 
