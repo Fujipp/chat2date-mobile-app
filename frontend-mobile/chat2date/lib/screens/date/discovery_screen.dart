@@ -19,6 +19,9 @@ import 'package:chat2date/services/match_socket_service.dart';
 import 'package:chat2date/services/user_service.dart';
 import 'package:chat2date/stores/user_store.dart';
 import 'package:chat2date/theme/app_colors.dart';
+// NOTE: We deliberately handle location permission inline here (minimal change)
+// rather than introducing new global wrappers to satisfy the requirement.
+import 'package:geolocator/geolocator.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/flutter_svg.dart';
@@ -36,7 +39,68 @@ class DiscoveryScreen extends ConsumerStatefulWidget {
 enum ActivePanel { none, top, bottom }
 
 class _DiscoveryScreenState extends ConsumerState<DiscoveryScreen>
-    with SingleTickerProviderStateMixin {
+    with SingleTickerProviderStateMixin, WidgetsBindingObserver {
+  /// Helper: Ensure we have usable location permission + a valid position.
+  /// Returns true if location is available and flow can proceed.
+  /// If permission is denied or a valid position cannot be obtained, we
+  /// immediately redirect to `/home` (global rule for location usage) and
+  /// return false to skip the rest of the normal initialization.
+  ///
+  /// Rationale:
+  /// - We treat missing permission or failed position acquisition as an
+  ///   unusable state for discovery; user experience should go back to home.
+  /// - We do NOT fall back to (0,0); (0,0) is considered an invalid location.
+  /// - If user later enables location in system settings, a subsequent call
+  ///   that succeeds will allow the original flow to continue unchanged.
+  Future<bool> _ensureLocationOrRedirect() async {
+    try {
+      // 1) Check location service enabled
+      final serviceEnabled = await Geolocator.isLocationServiceEnabled();
+      if (!serviceEnabled) {
+        _redirectHome();
+        return false;
+      }
+
+      // 2) Check permission
+      var permission = await Geolocator.checkPermission();
+      if (permission == LocationPermission.denied) {
+        permission = await Geolocator.requestPermission();
+        if (permission == LocationPermission.denied) {
+          _redirectHome();
+          return false;
+        }
+      }
+      if (permission == LocationPermission.deniedForever ||
+          permission == LocationPermission.unableToDetermine) {
+        _redirectHome();
+        return false;
+      }
+
+      // 3) Try to get a position
+      final pos = await Geolocator.getCurrentPosition(
+        desiredAccuracy: LocationAccuracy.high,
+      );
+
+      // Treat (0,0) as invalid (do not proceed)
+      if (pos.latitude == 0.0 && pos.longitude == 0.0) {
+        _redirectHome();
+        return false;
+      }
+
+      // Success - allow normal flow to continue
+      return true;
+    } catch (e) {
+      // Any failure obtaining location results in redirect
+      _redirectHome();
+      return false;
+    }
+  }
+
+  void _redirectHome() {
+    if (!mounted) return;
+    // Use pushReplacement so user cannot navigate back to broken screen
+    Navigator.pushReplacementNamed(context, '/home');
+  }
   void _handleBottomNavTap(int index) {
     setState(() {
       _selectedIndex = index;
@@ -157,6 +221,8 @@ class _DiscoveryScreenState extends ConsumerState<DiscoveryScreen>
   @override
   void initState() {
     super.initState();
+    // ติดตั้ง observer เพื่อตรวจสิทธิ์ใหม่เมื่อกลับจาก Settings
+    WidgetsBinding.instance.addObserver(this);
 
     _selectedIndex = widget.selectedIndex;
 
@@ -216,14 +282,18 @@ class _DiscoveryScreenState extends ConsumerState<DiscoveryScreen>
             _userId = userId;
           });
 
-          // 2️⃣ โหลด location (ครั้งเดียว)
+          // 2️⃣ Global rule: ensure location available or redirect to /home.
+          final hasLocation = await _ensureLocationOrRedirect();
+          if (!mounted || !hasLocation) return; // redirected already
+
+          // 3️⃣ Update location (normal flow continues unchanged if success)
           debugPrint('[Discovery] 📍 Updating location...');
           await ref.read(locationServiceProvider).tryUpdateLocationSilently();
 
           if (!mounted) return;
           debugPrint('[Discovery] ✅ Location updated');
 
-          // 3️⃣ ลงทะเบียน FCM token
+          // 4️⃣ ลงทะเบียน FCM token
           debugPrint('[Discovery] 🔔 Registering FCM...');
           await ref.read(fcmTokenServiceProvider).registerDeviceTokenSilently();
 
@@ -237,14 +307,14 @@ class _DiscoveryScreenState extends ConsumerState<DiscoveryScreen>
           if (!mounted) return;
           debugPrint('[Discovery] ✅ users loaded');
 
-          // 4️⃣ โหลด profile
+          // 5️⃣ โหลด profile
           debugPrint('[Discovery] 👤 Loading profile...');
           await ref.read(userServiceProvider).getProfile();
 
           if (!mounted) return;
           debugPrint('[Discovery] ✅ Profile loaded');
 
-          // 5️⃣ โหลด candidates (สุดท้าย - ครั้งเดียว)
+          // 6️⃣ โหลด candidates (สุดท้าย - ครั้งเดียว)
           debugPrint('[Discovery] 💝 Loading candidates...');
           await ref.read(discoveryProvider(userId).notifier).loadCandidates();
 
@@ -262,7 +332,22 @@ class _DiscoveryScreenState extends ConsumerState<DiscoveryScreen>
     debugPrint('[Discovery] 🔴 Disposing screen...');
     _cardCtrl.dispose();
     _settingsOverlay?.remove();
+    WidgetsBinding.instance.removeObserver(this);
     super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) async {
+    if (state == AppLifecycleState.resumed) {
+      // เมื่อผู้ใช้กลับมาจาก Settings ให้เช็คสิทธิ์อีกครั้ง
+      if (mounted) {
+        final ok = await _ensureLocationOrRedirect();
+        if (!ok || !mounted) return; // redirected if false
+        // ถ้าอนุญาตแล้วจะไม่ถูกส่งไป /home และ flow เดิมจะดำเนินต่อไป
+        // สามารถอัปเดตตำแหน่งแบบเงียบ ๆ ได้
+        await ref.read(locationServiceProvider).tryUpdateLocationSilently();
+      }
+    }
   }
 
   void _togglePanel(BuildContext context) {
