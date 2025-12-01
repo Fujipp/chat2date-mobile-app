@@ -58,29 +58,30 @@ public class SmsmktClient {
      */
     public String send(String phone08, String refCode, String deviceId) {
         User user = userRepository.findUsersByPhoneNumber(phone08);;
+        if (user != null) {
+            if (Boolean.TRUE.equals(user.getDeleteFlag())) {
+                LocalDateTime deletedAt = user.getDeletedAt();
+                LocalDateTime now = LocalDateTime.now();
+                long daysRemaining = 30 - Duration.between(deletedAt, now).toDays();
 
-        if (Boolean.TRUE.equals(user.getDeleteFlag())) {
-            LocalDateTime deletedAt = user.getDeletedAt();
-            LocalDateTime now = LocalDateTime.now();
-            long daysRemaining = 30 - Duration.between(deletedAt, now).toDays();
+                if (daysRemaining <= 0) {
+                    throw new ResponseStatusException(
+                            HttpStatus.GONE,
+                            "ACCOUNT_PERMANENTLY_DELETED"
+                    );
+                }
 
-            if (daysRemaining <= 0) {
-                throw new ResponseStatusException(
-                        HttpStatus.GONE,
-                        "ACCOUNT_PERMANENTLY_DELETED"
-                );
+                // ยังไม่เกิน 30 วัน - ส่งข้อมูลให้ frontend แสดง dialog
+                Map<String, Object> errorDetails = new HashMap<>();
+                errorDetails.put("error", "ACCOUNT_DELETED");
+                errorDetails.put("isDeleted", true);
+                errorDetails.put("deletedAt", deletedAt.toString());
+                errorDetails.put("daysRemaining", daysRemaining);
+                errorDetails.put("canRestore", true);
+                errorDetails.put("userId", user.getUserId());
+
+                throw new AuthService.AccountDeletedException(errorDetails);
             }
-
-            // ยังไม่เกิน 30 วัน - ส่งข้อมูลให้ frontend แสดง dialog
-            Map<String, Object> errorDetails = new HashMap<>();
-            errorDetails.put("error", "ACCOUNT_DELETED");
-            errorDetails.put("isDeleted", true);
-            errorDetails.put("deletedAt", deletedAt.toString());
-            errorDetails.put("daysRemaining", daysRemaining);
-            errorDetails.put("canRestore", true);
-            errorDetails.put("userId", user.getUserId());
-
-            throw new AuthService.AccountDeletedException(errorDetails);
         }
 //        String phone = normalizePhone(phone08);
 //
