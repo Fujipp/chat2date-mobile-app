@@ -494,7 +494,6 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                             labelFontSize: 20,
                           ),
                           ImageUploadGrid(
-                            key: ValueKey(photoUrls.join(',')),
                             imageUser: photoUrls,
                             onImagesChanged: (images) {
                               setState(() {

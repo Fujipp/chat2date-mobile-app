@@ -1,5 +1,6 @@
 import 'dart:io';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 
@@ -34,22 +35,52 @@ class _ImageUploadGridState extends State<ImageUploadGrid> {
   }
 
   void _initImages() {
-    _images = List<dynamic>.filled(6, null);
-    for (int i = 0; i < widget.imageUser.length && i < _images.length; i++) {
-      final url = widget.imageUser[i];
-      if (url.isNotEmpty) {
-        _images[i] = url;
-      }
-    }
+    _images = _buildImagesWithServerPhotos(
+      widget.imageUser,
+      preserveLocalFiles: false,
+    );
   }
 
   @override
   void didUpdateWidget(covariant ImageUploadGrid oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (oldWidget.key != widget.key) {
-      _initImages();
+    if (!listEquals(oldWidget.imageUser, widget.imageUser)) {
+      setState(() {
+        _images = _buildImagesWithServerPhotos(
+          widget.imageUser,
+          preserveLocalFiles: true,
+        );
+      });
       _notifyParent();
     }
+  }
+
+  List<dynamic> _buildImagesWithServerPhotos(
+    List<String> serverPhotos, {
+    required bool preserveLocalFiles,
+  }) {
+    final List<XFile> localFiles = preserveLocalFiles
+        ? _images.whereType<XFile>().toList()
+        : <XFile>[];
+
+    final List<dynamic> nextImages = List<dynamic>.filled(6, null);
+    int slot = 0;
+
+    for (final url in serverPhotos) {
+      if (slot >= nextImages.length) break;
+      if (url.isNotEmpty) {
+        nextImages[slot] = url;
+        slot++;
+      }
+    }
+
+    for (final file in localFiles) {
+      if (slot >= nextImages.length) break;
+      nextImages[slot] = file;
+      slot++;
+    }
+
+    return nextImages;
   }
 
   // ✨ เลือกรูปภาพ - รองรับหลายรูปจากคลัง หรือ 1 รูปจากกล้อง
