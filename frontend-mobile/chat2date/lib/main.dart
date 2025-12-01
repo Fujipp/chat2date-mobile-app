@@ -8,6 +8,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'firebase_options.dart';
 import 'screens/index.dart';
+import 'screens/main_tabs.dart';
 
 final GlobalKey<NavigatorState> rootNavigatorKey = GlobalKey<NavigatorState>();
 
@@ -59,7 +60,8 @@ class MyApp extends StatelessWidget {
         '/auth': (context) => const AuthCheckPage(),
 
         //Hutch
-        '/discovery': (context) => DiscoveryScreen(),
+        '/discovery': (context) => const DiscoveryScreen(),
+        '/main': (context) => const MainTabs(),
 
         //Fuji
         '/home': (context) => const HomeLoginPage(),

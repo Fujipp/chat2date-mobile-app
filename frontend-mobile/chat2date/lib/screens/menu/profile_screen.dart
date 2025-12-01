@@ -21,11 +21,13 @@ import 'package:chat2date/services/user_service.dart';
 import 'package:chat2date/stores/user_store.dart';
 import 'package:chat2date/theme/app_colors.dart';
 import 'package:flutter/material.dart';
+import '../main_tabs.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
 
 class ProfileScreen extends ConsumerStatefulWidget {
-  const ProfileScreen({super.key});
+  final bool showBottomNav;
+  const ProfileScreen({super.key, this.showBottomNav = true});
 
   @override
   ConsumerState<ProfileScreen> createState() => _ProfileScreenState();
@@ -881,39 +883,25 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
           ),
         ],
       ),
-      bottomNavigationBar: CustomBottomNavBar(
-        selectedIndex: _selectedIndex,
-        onTap: (index) async {
-          // ใช้ addPostFrameCallback เพื่อหลีกเลี่ยง setState ระหว่าง build
-          WidgetsBinding.instance.addPostFrameCallback((_) {
-            if (!mounted) return;
+      bottomNavigationBar: widget.showBottomNav
+          ? CustomBottomNavBar(
+              selectedIndex: _selectedIndex,
+              onTap: (index) async {
+                if (!mounted) return;
+                setState(() => _selectedIndex = index);
 
-            setState(() {
-              _selectedIndex = index;
-            });
-          });
-
-          switch (index) {
-            case 0: // Home (Discovery)
-              Navigator.pushReplacementNamed(context, '/discovery');
-              break;
-
-            case 1: // Chat
-              Navigator.pushReplacementNamed(context, '/chat');
-              break;
-
-            case 2: // Profile
-              await ref.read(userServiceProvider).getProfile();
-              _loadInitialData();
-              if (!mounted) return;
-              break;
-
-            case 3: // Setting
-              Navigator.pushReplacementNamed(context, '/settings');
-              break;
-          }
-        },
-      ),
+                // Jump back into the persistent tab shell without route animation
+                Navigator.of(context).pushAndRemoveUntil(
+                  PageRouteBuilder(
+                    pageBuilder: (_, __, ___) => MainTabs(initialIndex: index),
+                    transitionDuration: const Duration(milliseconds: 0),
+                    reverseTransitionDuration: const Duration(milliseconds: 0),
+                  ),
+                  (route) => false,
+                );
+              },
+            )
+          : null,
     );
   }
 }

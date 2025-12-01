@@ -1,6 +1,7 @@
 import 'package:chat2date/components/layout/header.dart';
 import 'package:chat2date/screens/settings/widgets/delete_account_screen.dart';
 import 'package:flutter/material.dart';
+import '../main_tabs.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../components/layout/menu_bar.dart';
@@ -8,7 +9,8 @@ import 'widgets/logout_modal.dart';
 
 // ✅ เปลี่ยนจาก StatefulWidget เป็น ConsumerStatefulWidget
 class SettingsScreen extends ConsumerStatefulWidget {
-  const SettingsScreen({super.key});
+  final bool showBottomNav;
+  const SettingsScreen({super.key, this.showBottomNav = true});
 
   @override
   ConsumerState<SettingsScreen> createState() => _SettingsScreenState();
@@ -133,29 +135,26 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           ),
         ],
       ),
-      bottomNavigationBar: CustomBottomNavBar(
-        selectedIndex: _selectedIndex,
-        onTap: (index) {
-          setState(() {
-            _selectedIndex = index;
-          });
+      bottomNavigationBar: widget.showBottomNav
+          ? CustomBottomNavBar(
+              selectedIndex: _selectedIndex,
+              onTap: (index) {
+                setState(() {
+                  _selectedIndex = index;
+                });
 
-          switch (index) {
-            case 0:
-              Navigator.pushReplacementNamed(context, '/discovery');
-              break;
-            case 1:
-              Navigator.pushReplacementNamed(context, '/chat');
-              break;
-            case 2:
-              Navigator.pushReplacementNamed(context, '/profile');
-              break;
-            case 3:
-              // Already on settings
-              break;
-          }
-        },
-      ),
+                // Jump back into the persistent tab shell without route animation
+                Navigator.of(context).pushAndRemoveUntil(
+                  PageRouteBuilder(
+                    pageBuilder: (_, __, ___) => MainTabs(initialIndex: index),
+                    transitionDuration: const Duration(milliseconds: 0),
+                    reverseTransitionDuration: const Duration(milliseconds: 0),
+                  ),
+                  (route) => false,
+                );
+              },
+            )
+          : null,
     );
   }
 }

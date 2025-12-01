@@ -257,7 +257,7 @@ class _IdOcrScreenState extends ConsumerState<IdOcrScreen> {
         final userService = ref.read(userServiceProvider);
         currentUser = await userService.getUser(userId);
  
-        print('✅ Fetched User from API: ${currentUser.toJson()}');
+        print('✅ Fetched User from API: ${currentUser!.toJson()}');
  
         // อัปเดตลง userStore
         userStoreNotifier.setUser(currentUser, accessToken);

@@ -5,7 +5,23 @@ class CustomBottomNavBar extends StatefulWidget {
   final int selectedIndex;
   final Function(int)? onTap;
 
-  const CustomBottomNavBar({super.key, this.selectedIndex = 0, this.onTap});
+  // Indices that should defer navigation until after the tap animation.
+  // By default, delay for Home (0), Profile (2) and Setting (3) so when
+  // switching to/from pages that rebuild the Scaffold, the menu animation
+  // is visible before navigation occurs.
+  final Set<int> delayedIndices;
+
+  // Duration used for the tap animation; navigation for delayed indices will
+  // wait approximately this long before invoking onTap.
+  final Duration tapAnimationDuration;
+
+  const CustomBottomNavBar({
+    super.key,
+    this.selectedIndex = 0,
+    this.onTap,
+    this.delayedIndices = const {0, 2, 3},
+    this.tapAnimationDuration = const Duration(milliseconds: 300),
+  });
 
   @override
   State<CustomBottomNavBar> createState() => _CustomBottomNavBarState();
@@ -13,6 +29,7 @@ class CustomBottomNavBar extends StatefulWidget {
 
 class _CustomBottomNavBarState extends State<CustomBottomNavBar> {
   late int _selectedIndex;
+  bool _isNavigating = false;
 
   final List<String> _iconPaths = [
     'assets/icons/icon_home.svg',
@@ -47,11 +64,27 @@ class _CustomBottomNavBarState extends State<CustomBottomNavBar> {
   }
 
   void _handleTap(int index) {
+    if (_isNavigating) return;
+
     setState(() {
       _selectedIndex = index;
     });
+
+    // If this tab is configured to delay navigation (e.g., pushes a new route),
+    // wait for the animation to be visible before invoking onTap.
+    final bool shouldDelay = widget.delayedIndices.contains(index);
+
     if (widget.onTap != null) {
-      widget.onTap!(index);
+      if (shouldDelay) {
+        _isNavigating = true;
+        Future.delayed(widget.tapAnimationDuration, () {
+          if (!mounted) return;
+          _isNavigating = false;
+          widget.onTap!(index);
+        });
+      } else {
+        widget.onTap!(index);
+      }
     }
   }
 

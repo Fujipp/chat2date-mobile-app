@@ -26,8 +26,13 @@ import 'package:sliding_up_panel/sliding_up_panel.dart';
 
 class DiscoveryScreen extends ConsumerStatefulWidget {
   final int selectedIndex;
+  final bool showBottomNav;
 
-  const DiscoveryScreen({super.key, this.selectedIndex = 0});
+  const DiscoveryScreen({
+    super.key,
+    this.selectedIndex = 0,
+    this.showBottomNav = true,
+  });
 
   @override
   ConsumerState<DiscoveryScreen> createState() => _DiscoveryScreenState();
@@ -507,10 +512,12 @@ class _DiscoveryScreenState extends ConsumerState<DiscoveryScreen>
             const Expanded(child: _DiscoveryLoadingWidget()),
           ],
         ),
-        bottomNavigationBar: CustomBottomNavBar(
-          selectedIndex: _selectedIndex,
-          onTap: _handleBottomNavTap,
-        ),
+        bottomNavigationBar: widget.showBottomNav
+            ? CustomBottomNavBar(
+                selectedIndex: _selectedIndex,
+                onTap: _handleBottomNavTap,
+              )
+            : null,
       );
     }
 
@@ -538,10 +545,12 @@ class _DiscoveryScreenState extends ConsumerState<DiscoveryScreen>
             const Expanded(child: _DiscoveryLoadingWidget()),
           ],
         ),
-        bottomNavigationBar: CustomBottomNavBar(
-          selectedIndex: _selectedIndex,
-          onTap: _handleBottomNavTap,
-        ),
+        bottomNavigationBar: widget.showBottomNav
+            ? CustomBottomNavBar(
+                selectedIndex: _selectedIndex,
+                onTap: _handleBottomNavTap,
+              )
+            : null,
       );
     }
 
@@ -593,10 +602,12 @@ class _DiscoveryScreenState extends ConsumerState<DiscoveryScreen>
             ),
           ],
         ),
-        bottomNavigationBar: CustomBottomNavBar(
-          selectedIndex: _selectedIndex,
-          onTap: _handleBottomNavTap,
-        ),
+        bottomNavigationBar: widget.showBottomNav
+            ? CustomBottomNavBar(
+                selectedIndex: _selectedIndex,
+                onTap: _handleBottomNavTap,
+              )
+            : null,
       );
     }
 
@@ -853,10 +864,12 @@ class _DiscoveryScreenState extends ConsumerState<DiscoveryScreen>
             ),
           ],
         ),
-        bottomNavigationBar: CustomBottomNavBar(
-          selectedIndex: _selectedIndex,
-          onTap: _handleBottomNavTap,
-        ),
+        bottomNavigationBar: widget.showBottomNav
+            ? CustomBottomNavBar(
+                selectedIndex: _selectedIndex,
+                onTap: _handleBottomNavTap,
+              )
+            : null,
       );
     }
 
@@ -866,6 +879,7 @@ class _DiscoveryScreenState extends ConsumerState<DiscoveryScreen>
       userId: _userId!,
       candidate: currentCandidate,
       selectedIndex: _selectedIndex,
+      showBottomNav: widget.showBottomNav,
       cardCtrl: _cardCtrl,
       startPos: _startPos,
       targetPos: _targetPos,
@@ -923,6 +937,7 @@ class _CandidateView extends ConsumerStatefulWidget {
   final String userId;
   final DiscoveryResponse candidate;
   final int selectedIndex;
+  final bool showBottomNav;
   final AnimationController cardCtrl;
   final Offset startPos;
   final Offset targetPos;
@@ -953,6 +968,7 @@ class _CandidateView extends ConsumerStatefulWidget {
     required this.userId,
     required this.candidate,
     required this.selectedIndex,
+    required this.showBottomNav,
     required this.cardCtrl,
     required this.startPos,
     required this.targetPos,
@@ -1043,10 +1059,12 @@ class _CandidateViewState extends ConsumerState<_CandidateView> {
                 const Expanded(child: _DiscoveryLoadingWidget()),
               ],
             ),
-            bottomNavigationBar: CustomBottomNavBar(
-              selectedIndex: widget.selectedIndex,
-              onTap: widget.onBottomNavTap,
-            ),
+            bottomNavigationBar: widget.showBottomNav
+                ? CustomBottomNavBar(
+                    selectedIndex: widget.selectedIndex,
+                    onTap: widget.onBottomNavTap,
+                  )
+                : null,
           );
         }
 
@@ -1419,10 +1437,12 @@ class _CandidateViewState extends ConsumerState<_CandidateView> {
               ),
             ],
           ),
-          bottomNavigationBar: CustomBottomNavBar(
-            selectedIndex: widget.selectedIndex,
-            onTap: widget.onBottomNavTap,
-          ),
+          bottomNavigationBar: widget.showBottomNav
+              ? CustomBottomNavBar(
+                  selectedIndex: widget.selectedIndex,
+                  onTap: widget.onBottomNavTap,
+                )
+              : null,
         );
       },
     );

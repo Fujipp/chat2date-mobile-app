@@ -10,6 +10,12 @@ ThemeData buildLightTheme() {
     useMaterial3: true,
     colorScheme: lightColorScheme,
     scaffoldBackgroundColor: AppColors.background,
+    pageTransitionsTheme: const PageTransitionsTheme(
+      builders: {
+        TargetPlatform.android: NoTransitionsPageTransitionsBuilder(),
+        TargetPlatform.iOS: NoTransitionsPageTransitionsBuilder(),
+      },
+    ),
     appBarTheme: const AppBarTheme(
       backgroundColor: AppColors.surface,
       foregroundColor: AppColors.textPrimary,
@@ -71,4 +77,19 @@ ThemeData buildLightTheme() {
       ),
     ),
   );
+}
+
+class NoTransitionsPageTransitionsBuilder extends PageTransitionsBuilder {
+  const NoTransitionsPageTransitionsBuilder();
+
+  @override
+  Widget buildTransitions<T>(
+    PageRoute<T> route,
+    BuildContext context,
+    Animation<double> animation,
+    Animation<double> secondaryAnimation,
+    Widget child,
+  ) {
+    return child;
+  }
 }
