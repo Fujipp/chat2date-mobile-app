@@ -19,12 +19,12 @@ import 'package:chat2date/services/match_socket_service.dart';
 import 'package:chat2date/services/user_service.dart';
 import 'package:chat2date/stores/user_store.dart';
 import 'package:chat2date/theme/app_colors.dart';
-// NOTE: We deliberately handle location permission inline here (minimal change)
-// rather than introducing new global wrappers to satisfy the requirement.
-import 'package:geolocator/geolocator.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+// NOTE: We deliberately handle location permission inline here (minimal change)
+// rather than introducing new global wrappers to satisfy the requirement.
+import 'package:geolocator/geolocator.dart';
 import 'package:sliding_up_panel/sliding_up_panel.dart';
 
 class DiscoveryScreen extends ConsumerStatefulWidget {
@@ -101,6 +101,7 @@ class _DiscoveryScreenState extends ConsumerState<DiscoveryScreen>
     // Use pushReplacement so user cannot navigate back to broken screen
     Navigator.pushReplacementNamed(context, '/home');
   }
+
   void _handleBottomNavTap(int index) {
     setState(() {
       _selectedIndex = index;
@@ -266,14 +267,10 @@ class _DiscoveryScreenState extends ConsumerState<DiscoveryScreen>
           debugPrint('[Discovery] 🚀 Starting initialization...');
 
           // 1️⃣ ดึง userId
-          final userStore = ref.read(userStoreProvider.notifier);
-          final user = userStore.user;
-          final userId = user?.userId;
-
-          if (userId == null) {
-            print('❌ User ID not found');
-            return;
-          }
+          final userStore = ref.read(userStoreProvider);
+          final userStoreMap = userStore as Map<String, dynamic>?;
+          final user = userStoreMap?['user'] as User;
+          final String userId = user.userId;
 
           if (!mounted) return;
 
@@ -302,7 +299,6 @@ class _DiscoveryScreenState extends ConsumerState<DiscoveryScreen>
 
           debugPrint('[Discovery] 👤 Loading users');
           await ref.read(userServiceProvider).getUser(userId);
-          
 
           if (!mounted) return;
           debugPrint('[Discovery] ✅ users loaded');
