@@ -1,5 +1,6 @@
 import 'package:chat2date/screens/match/match_success_screen.dart';
 import 'package:chat2date/theme/app_theme.dart';
+import 'package:chat2date/widgets/global_match_listener.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
@@ -28,12 +29,13 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'Component Test',
-      theme: buildLightTheme(),
-      navigatorKey: navigatorKey,
-      initialRoute: '/auth', //เวลาโค้ดเปลี่ยนเป็น path ตัวเองเอาไว้แสดง
-      routes: {
+    return GlobalMatchListener(
+      child: MaterialApp(
+        title: 'Component Test',
+        theme: buildLightTheme(),
+        navigatorKey: navigatorKey,
+        initialRoute: '/test', //เวลาโค้ดเปลี่ยนเป็น path ตัวเองเอาไว้แสดง
+        routes: {
         //Test
         '/test': (context) => const ComponentTestScreen(),
         // '/test-match': (context) => const MatchSuccessScreen(
@@ -100,6 +102,7 @@ class MyApp extends StatelessWidget {
       //     ],
       //   );
       // },
+      ),
     );
   }
 }
