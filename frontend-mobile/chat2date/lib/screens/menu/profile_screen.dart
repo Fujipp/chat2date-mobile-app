@@ -343,6 +343,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
             title: 'คำเตือน',
             message: 'ไม่สามารถลบรูป ไม่ให้เหลือใบหน้าได้',
           );
+          return;
         }
       }
 
@@ -427,9 +428,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
       }
 
       if (_isListChanged(_oldPhotos, _selectedImages)) {
-        await _handleSubmit();
-
-        if (!mounted) return;
+        tasks.add(_handleSubmit());
       }
       await Future.wait(tasks);
 
@@ -443,6 +442,15 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     } catch (e) {
       throw new Exception(e);
     }
+  }
+
+  bool get hasChanges {
+    return (nickname != _oldNickname) ||
+        _isListChanged(_oldInterests, user_has_interest) ||
+        _isListChanged(_oldLifeStyles, user_has_lifestyle) ||
+        _isListChanged(_oldTravelStyles, user_has_travelstyle) ||
+        _isListChanged(_oldTags, user_has_tag) ||
+        _isListChanged(_oldPhotos, _selectedImages.map((f) => f.path).toList());
   }
 
   // แทนที่ส่วน build method ทั้งหมด
@@ -506,6 +514,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                               // รูปจาก server (String)
                               if (removed is String) {
                                 setState(() {
+                                  print(removed);
                                   _deletedImages.add(removed);
                                   photoUrls.remove(removed); // เอาออกจาก UI
                                 });
@@ -811,30 +820,30 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                 width: 64,
                 height: 64,
                 decoration: BoxDecoration(
-                  gradient: _isLoading
-                      ? LinearGradient(
-                          colors: [AppColors.neutral400, AppColors.neutral500],
-                          begin: Alignment.topCenter,
-                          end: Alignment.bottomCenter,
-                        )
-                      : const LinearGradient(
+                  gradient: hasChanges
+                      ? const LinearGradient(
                           colors: [
                             AppColors.btnPrimary,
                             AppColors.btnHoverPrimary,
                           ],
                           begin: Alignment.topCenter,
                           end: Alignment.bottomCenter,
+                        )
+                      : const LinearGradient(
+                          colors: [AppColors.neutral400, AppColors.neutral500],
+                          begin: Alignment.topCenter,
+                          end: Alignment.bottomCenter,
                         ),
                   borderRadius: BorderRadius.circular(20),
-                  boxShadow: _isLoading
-                      ? []
-                      : [
+                  boxShadow: hasChanges && !_isLoading
+                      ? [
                           BoxShadow(
                             color: AppColors.btnPrimary.withOpacity(0.4),
                             blurRadius: 16,
                             offset: const Offset(0, 4),
                           ),
-                        ],
+                        ]
+                      : [],
                 ),
                 child: Center(
                   child: _isLoading
