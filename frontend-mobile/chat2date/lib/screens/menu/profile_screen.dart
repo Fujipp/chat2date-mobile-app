@@ -411,7 +411,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     List<Future> tasks = [];
 
     try {
-      if (nickname != _oldNickname) {
+      if (_nicknameCtrl.text != _oldNickname) {
         final user = User(
           userId: currentUser.userId,
           nickname: _nicknameCtrl.text,
