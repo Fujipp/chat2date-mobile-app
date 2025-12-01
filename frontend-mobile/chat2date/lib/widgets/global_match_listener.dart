@@ -10,10 +10,12 @@ import 'package:chat2date/stores/user_store.dart';
 /// ไม่ว่า user จะอยู่หน้าไหนก็ตาม
 class GlobalMatchListener extends ConsumerWidget {
   final Widget child;
+  final GlobalKey<NavigatorState>? navigatorKey;
 
   const GlobalMatchListener({
     super.key,
     required this.child,
+    this.navigatorKey,
   });
 
   @override
@@ -39,12 +41,16 @@ class GlobalMatchListener extends ConsumerWidget {
         // Navigate to match success screen
         // ใช้ addPostFrameCallback เพื่อป้องกัน setState during build
         WidgetsBinding.instance.addPostFrameCallback((_) {
-          final navigator = Navigator.of(context);
-          
-          // เช็คว่ายังอยู่ใน context หรือไม่
           if (!context.mounted) return;
 
-          // Navigate แบบ pushNamed
+          final navigator = navigatorKey?.currentState;
+
+          if (navigator == null) {
+            // ถ้า navigatorKey ยังไม่มี state แสดงว่ายังหา navigator ไม่เจอ ป้องกัน exception
+            print('[GlobalMatchListener] navigator not ready, skip navigation');
+            return;
+          }
+
           navigator.pushNamed(
             MatchSuccessScreen.routeName,
             arguments: MatchSuccessArgs(

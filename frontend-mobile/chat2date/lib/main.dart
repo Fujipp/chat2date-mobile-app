@@ -31,6 +31,7 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return GlobalMatchListener(
+      navigatorKey: navigatorKey,
       child: MaterialApp(
         title: 'Component Test',
         theme: buildLightTheme(),

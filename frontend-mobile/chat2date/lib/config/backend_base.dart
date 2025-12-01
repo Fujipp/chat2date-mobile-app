@@ -27,11 +27,13 @@ class ApiBase {
     if (_defined.startsWith('http')) {
       final uri = Uri.parse(_defined);
       final scheme = uri.scheme == 'https' ? 'wss' : 'ws';
-      final wsUri = Uri(
+      // WebSocket endpoint ของ backend อยู่ที่ `/ws` (no /api/v1 prefix)
+      // ดังนั้นอย่าพก path จาก API_BASE มาด้วย ไม่งั้นจะกลายเป็น /api/v1/ws แล้ว 404
+      final wsUri = uri.replace(
         scheme: scheme,
-        host: uri.host,
-        port: uri.hasPort ? uri.port : null,
-        path: uri.path, // <--- จุดสำคัญ
+        path: '',
+        query: '',
+        fragment: '',
       );
 
       // ตัด '/' ท้ายออกถ้ามี
