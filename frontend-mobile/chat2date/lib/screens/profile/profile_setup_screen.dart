@@ -103,28 +103,6 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
       _tags = prefs['tags'];
     });
 
-    // Fetch latest user to prefill nickname
-    final user = userStore?['user'] as User?;
-    if (user != null) {
-      try {
-        await ref.read(userServiceProvider).getUser(user.userId);
-        final refreshed =
-            (ref.read(userStoreProvider) as Map<String, dynamic>?)?['user']
-                as User?;
-        final nickname = refreshed?.nickname ?? user.nickname ?? '';
-        setState(() {
-          _initialNickname = nickname;
-          _nicknameCtrl.text = nickname;
-        });
-      } catch (_) {
-        final nickname = user.nickname ?? '';
-        setState(() {
-          _initialNickname = nickname;
-          _nicknameCtrl.text = nickname;
-        });
-      }
-    }
-
     // initialize initial selections from prefs if present (empty by default)
     _initialLifestyles = List.from(_selectedLifestyles);
     _initialInterests = List.from(_selectedInterests);
