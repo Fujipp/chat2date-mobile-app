@@ -63,6 +63,11 @@ class AuthService {
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
 
+        final userJson = data['user'];
+        if (userJson == null) {
+          throw Exception('User data not found in response');
+        }
+        final user = User.fromJson(userJson);
         final userId = data['user']?['id'];
         final email = data['user']?['email'];
         final accountStatus = data['user']?['accountStatus'];
@@ -78,8 +83,6 @@ class AuthService {
         }
 
         developer.log('DATA: $data', name: 'AuthService');
-
-        final user = User(userId: userId, version: int.parse(version));
 
         if (data['accessToken'] != null) {
           ref
@@ -98,10 +101,10 @@ class AuthService {
         await ref.read(preferenceServiceProvider).getPreference();
 
         return {
-          'userId': userId,
-          'email': email,
-          'accountStatus': accountStatus,
-          'version': int.parse(version),
+          'userId': user.userId,
+          'email': userJson['email'],
+          'accountStatus': userJson['accountStatus'],
+          'version': user.version,
         };
       } else {
         final error = jsonDecode(response.body);

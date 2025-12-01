@@ -52,35 +52,159 @@ class _ImageUploadGridState extends State<ImageUploadGrid> {
     }
   }
 
+  // ✨ เลือกรูปภาพ - รองรับหลายรูปจากคลัง หรือ 1 รูปจากกล้อง
   Future<void> _pickImage(int index) async {
-    final XFile? image = await _picker.pickImage(source: ImageSource.gallery);
+    final source = await _showImageSourceDialog();
+    if (source == null) return;
+
+    // 🔥 เลือกหลายรูปจากคลัง หรือ 1 รูปจากกล้อง
+    // image_picker จัดการ permission ให้เองอัตโนมัติ
+    if (source == ImageSource.gallery) {
+      await _pickMultipleImages(index);
+    } else {
+      await _pickSingleImage(index);
+    }
+  }
+
+  // 📸 ถ่ายรูป 1 รูป
+  Future<void> _pickSingleImage(int index) async {
+    final XFile? image = await _picker.pickImage(
+      source: ImageSource.camera,
+      imageQuality: 92,
+      maxWidth: 2600,
+    );
+
     if (image != null) {
       setState(() => _images[index] = image);
       _notifyParent();
     }
   }
 
-  // void _removeImage(int index) {
-  //   setState(() => _images[index] = null);
-  //   _notifyParent();
-  // }
+  // 🖼️ เลือกหลายรูปจากคลัง
+  Future<void> _pickMultipleImages(int startIndex) async {
+    final List<XFile> images = await _picker.pickMultiImage(
+      imageQuality: 92,
+      maxWidth: 2600,
+    );
+
+    if (images.isEmpty) return;
+
+    // หาช่องว่างทั้งหมด
+    List<int> emptySlots = [];
+    for (int i = 0; i < _images.length; i++) {
+      if (_images[i] == null) {
+        emptySlots.add(i);
+      }
+    }
+
+    // เช็คว่ามีช่องว่างพอไหม
+    if (emptySlots.isEmpty) {
+      if (!mounted) return;
+      _showMaxImagesDialog();
+      return;
+    }
+
+    // คำนวณจำนวนรูปที่สามารถเพิ่มได้
+    int availableSlots = emptySlots.length;
+    int imagesToAdd = images.length > availableSlots
+        ? availableSlots
+        : images.length;
+
+    // แจ้งเตือนถ้ารูปเกิน
+    if (images.length > availableSlots) {
+      if (!mounted) return;
+      _showTooManyImagesDialog(availableSlots, images.length);
+    }
+
+    // เพิ่มรูปลงในช่องว่าง
+    setState(() {
+      for (int i = 0; i < imagesToAdd; i++) {
+        _images[emptySlots[i]] = images[i];
+      }
+    });
+
+    _notifyParent();
+  }
+
+  // ✨ แสดง Dialog เลือกแหล่งรูป
+  Future<ImageSource?> _showImageSourceDialog() async {
+    return showModalBottomSheet<ImageSource>(
+      context: context,
+      showDragHandle: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      ),
+      builder: (ctx) {
+        return SafeArea(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              ListTile(
+                leading: const Icon(Icons.photo_library_rounded),
+                title: const Text('เลือกจากคลังรูป (หลายรูป)'),
+                onTap: () => Navigator.pop(ctx, ImageSource.gallery),
+              ),
+              ListTile(
+                leading: const Icon(Icons.photo_camera_rounded),
+                title: const Text('ถ่ายภาพตอนนี้'),
+                onTap: () => Navigator.pop(ctx, ImageSource.camera),
+              ),
+              const SizedBox(height: 8),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  // ✨ แสดง Dialog เมื่อเต็มแล้ว
+  void _showMaxImagesDialog() {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('เต็มแล้ว'),
+        content: const Text('คุณเลือกรูปครบ 6 รูปแล้ว กรุณาลบรูปเก่าออกก่อน'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('ตรวจสอบ'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ✨ แสดง Dialog เมื่อเลือกรูปเกิน
+  void _showTooManyImagesDialog(int available, int selected) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('รูปภาพเกิน'),
+        content: Text(
+          'คุณเลือก $selected รูป แต่มีช่องว่างเพียง $available ช่อง\nระบบจะเพิ่มเฉพาะ $available รูปแรก',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('เข้าใจแล้ว'),
+          ),
+        ],
+      ),
+    );
+  }
 
   void _removeImage(int index) {
-    final removedItem = _images[index]; // <--- เก็บค่าก่อนลบ
-
+    final removedItem = _images[index];
     setState(() {
       _images[index] = null;
     });
-
-    // ส่งไปให้ parent
     widget.onImageRemoved?.call(index, removedItem);
-
     _notifyParent();
   }
 
   void _notifyParent() {
     final List<XFile> currentImages = _images
-        .where((img) => img is XFile)
+        .whereType<XFile>()
         .cast<XFile>()
         .toList();
     widget.onImagesChanged?.call(currentImages);
@@ -89,7 +213,6 @@ class _ImageUploadGridState extends State<ImageUploadGrid> {
   @override
   Widget build(BuildContext context) {
     final screenWidth = MediaQuery.of(context).size.width;
-
     final bool isTablet = screenWidth > 600;
 
     double itemWidth = 119;
@@ -109,7 +232,6 @@ class _ImageUploadGridState extends State<ImageUploadGrid> {
     }
 
     const int crossAxisCount = 2;
-
     final double calculatedWidth =
         (itemWidth * crossAxisCount) + (spacing * (crossAxisCount - 1));
 
