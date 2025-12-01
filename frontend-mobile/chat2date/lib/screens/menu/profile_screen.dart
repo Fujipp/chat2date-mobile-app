@@ -22,6 +22,7 @@ import 'package:chat2date/stores/user_store.dart';
 import 'package:chat2date/theme/app_colors.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:image_picker/image_picker.dart';
 
 class ProfileScreen extends ConsumerStatefulWidget {
   const ProfileScreen({super.key});
@@ -454,7 +455,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
         message: 'บันทึกข้อมูลส่วนตัวสำเร็จ',
       );
     } catch (e) {
-      throw new Exception(e);
+      throw Exception(e);
     }
   }
 
@@ -517,15 +518,17 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                               });
                             },
                             onImageRemoved: (index, removed) {
-                              // รูปจาก server (String)
-                              if (removed is String) {
-                                setState(() {
+                              setState(() {
+                                if (removed is String) {
                                   _deletedImages.add(removed);
                                   photoUrls.remove(removed); // เอาออกจาก UI
-                                });
-                              }
-
-                              // ถ้าเป็นรูปใหม่ (XFile) — จะเข้ามาเป็น File ตอน submit
+                                } else if (removed is XFile) {
+                                  // ลบรูปใหม่ที่ยังไม่อัปโหลด
+                                  _selectedImages.removeWhere(
+                                    (file) => file.path == removed.path,
+                                  );
+                                }
+                              });
                             },
                           ),
 
