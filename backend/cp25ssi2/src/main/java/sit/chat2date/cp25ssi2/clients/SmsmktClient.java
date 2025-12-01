@@ -83,26 +83,24 @@ public class SmsmktClient {
                 throw new AuthService.AccountDeletedException(errorDetails);
             }
         }
-//        String phone = normalizePhone(phone08);
-//
-//        String key = "otp:lock:" + phone + ":" + deviceId;
-//        if (redis.hasKey(key)) {
-//            long waitSec = Optional.ofNullable(redis.getExpire(key, TimeUnit.SECONDS)).orElse(60L);
-//            throw new TooManyRequestException("กรุณารออีก " + waitSec + " วินาที ก่อนขอ OTP ใหม่");
-//        }
-//        redis.opsForValue().set(key, "1", 60, TimeUnit.SECONDS);
-//        var url = "https://portal-otp.smsmkt.com/api/otp-send";
-//        var payload = new HashMap<>();
-//        payload.put("project_key", projectKey);
-//        payload.put("phone", normalizePhone(phone08));  // 08xxxxxxxx
-//        if (refCode != null && !refCode.isBlank()) payload.put("ref_code", refCode);
-//
-//        var req = new HttpEntity<>(payload, headersJson());
-//        ResponseEntity<Map> res = restTemplate.postForEntity(url, req, Map.class);
-//
-//        var token = getString(res);
-//        return token;
-        return "d";
+        String phone = normalizePhone(phone08);
+
+        String key = "otp:lock:" + phone + ":" + deviceId;
+        if (redis.hasKey(key)) {
+            long waitSec = Optional.ofNullable(redis.getExpire(key, TimeUnit.SECONDS)).orElse(60L);
+            throw new TooManyRequestException("กรุณารออีก " + waitSec + " วินาที ก่อนขอ OTP ใหม่");
+        }
+        redis.opsForValue().set(key, "1", 60, TimeUnit.SECONDS);
+        var url = "https://portal-otp.smsmkt.com/api/otp-send";
+        var payload = new HashMap<>();
+        payload.put("project_key", projectKey);
+        payload.put("phone", normalizePhone(phone08));  // 08xxxxxxxx
+        if (refCode != null && !refCode.isBlank()) payload.put("ref_code", refCode);
+
+        var req = new HttpEntity<>(payload, headersJson());
+        ResponseEntity<Map> res = restTemplate.postForEntity(url, req, Map.class);
+
+        return getString(res);
     }
 
     private static String getString(ResponseEntity<Map> res) {
@@ -127,30 +125,30 @@ public class SmsmktClient {
      */
     public Map<String, Object> validate(String token, String otpCode, String refCode, String phoneNumber, boolean onLogin) {
         // URL ของ OTP validate API
-//        String url = "https://portal-otp.smsmkt.com/api/otp-validate";
-//
-//        // สร้าง payload
-//        Map<String, Object> payload = new HashMap<>();
-//        payload.put("token", token);
-//        payload.put("otp_code", otpCode);
-//        if (refCode != null && !refCode.isBlank()) {
-//            payload.put("ref_code", refCode);
-//        }
-//
-//        // ส่ง request ไปยัง OTP API
-//        HttpEntity<Map<String, Object>> req = new HttpEntity<>(payload, headersJson());
-//        ResponseEntity<Map> res = restTemplate.postForEntity(url, req, Map.class);
+        String url = "https://portal-otp.smsmkt.com/api/otp-validate";
+
+        // สร้าง payload
+        Map<String, Object> payload = new HashMap<>();
+        payload.put("token", token);
+        payload.put("otp_code", otpCode);
+        if (refCode != null && !refCode.isBlank()) {
+            payload.put("ref_code", refCode);
+        }
+
+        // ส่ง request ไปยัง OTP API
+        HttpEntity<Map<String, Object>> req = new HttpEntity<>(payload, headersJson());
+        ResponseEntity<Map> res = restTemplate.postForEntity(url, req, Map.class);
 
 //        // ตรวจสอบ response
-        boolean valid = true;
-//        if (res.getStatusCode() == HttpStatus.OK && res.getBody() != null) {
-//            Map<?, ?> body = res.getBody();
-//            if ("000".equals(body.get("code"))) {
-//                Map<?, ?> result = (Map<?, ?>) body.get("result");
-//                Object status = (result != null) ? result.get("status") : null;
-//                valid = (status instanceof Boolean) ? (Boolean) status : true;
-//            }
-//        }
+        boolean valid = false;
+        if (res.getStatusCode() == HttpStatus.OK && res.getBody() != null) {
+            Map<?, ?> body = res.getBody();
+            if ("000".equals(body.get("code"))) {
+                Map<?, ?> result = (Map<?, ?>) body.get("result");
+                Object status = (result != null) ? result.get("status") : null;
+                valid = (status instanceof Boolean) ? (Boolean) status : true;
+            }
+        }
 
         Optional<User> userOptional = userRepository.findByPhoneNumber(phoneNumber);
         User user = new User();
