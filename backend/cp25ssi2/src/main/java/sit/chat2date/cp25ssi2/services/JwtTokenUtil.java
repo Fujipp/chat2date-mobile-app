@@ -41,6 +41,8 @@ public class JwtTokenUtil implements Serializable {
     private String refresh_secret_key;
     @Value("${jwt.max-refresh-token-interval-hour}")
     private long jwt_refresh_token_time;
+
+    private long jwt_token_time_millis;
     private long jwt_refresh_token_time_millis;
 
     SignatureAlgorithm signatureAlgorithm = SignatureAlgorithm.HS256;
@@ -51,8 +53,11 @@ public class JwtTokenUtil implements Serializable {
     public void init() {
         this.key = Keys.hmacShaKeyFor(secret_key.getBytes(StandardCharsets.UTF_8));
         this.refreshKey = Keys.hmacShaKeyFor(refresh_secret_key.getBytes(StandardCharsets.UTF_8));
+
+        this.jwt_token_time_millis = jwt_token_time * 60L * 60L * 1000L; // 1 hr = 3600000
         this.jwt_refresh_token_time_millis = jwt_refresh_token_time * 60L * 60L * 1000L;
     }
+
 
     public String getSubjectFromToken(String token) {
         return getClaimFromToken(token, Claims::getSubject);
@@ -119,7 +124,7 @@ public class JwtTokenUtil implements Serializable {
         return Jwts.builder().setHeaderParam("typ", "JWT")
                 .setClaims(claims).setSubject(subject)
                 .setIssuedAt(new Date(System.currentTimeMillis()))
-                .setExpiration(new Date(System.currentTimeMillis() + jwt_refresh_token_time_millis))
+                .setExpiration(new Date(System.currentTimeMillis() + jwt_token_time_millis))
                 .signWith(key, signatureAlgorithm).compact();
     }
 
@@ -163,7 +168,7 @@ public class JwtTokenUtil implements Serializable {
         return Jwts.builder()
                 .setSubject(subject)
                 .setIssuedAt(new Date(System.currentTimeMillis()))
-                .setExpiration(new Date(System.currentTimeMillis() + jwt_refresh_token_time))
+                .setExpiration(new Date(System.currentTimeMillis() + jwt_refresh_token_time_millis))
                 .signWith(refreshKey,signatureAlgorithm)
                 .compact();
     }
