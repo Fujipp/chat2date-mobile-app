@@ -439,6 +439,9 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
         title: 'สำเร็จ',
         message: 'บันทึกข้อมูลส่วนตัวสำเร็จ',
       );
+       await ref.read(userServiceProvider).getProfile();
+              _loadInitialData();
+
     } catch (e) {
       throw new Exception(e);
     }
