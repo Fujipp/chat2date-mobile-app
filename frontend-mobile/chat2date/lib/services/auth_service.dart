@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:developer' as developer;
 
+import 'package:chat2date/components/dialogs/restore_account_dialog.dart';
 import 'package:chat2date/config/backend_base.dart';
 import 'package:chat2date/models/user.dart';
 import 'package:chat2date/services/preference_service.dart';
@@ -40,7 +41,7 @@ class AuthService {
     _isInitialized = true;
   }
 
-  Future<Map<String, dynamic>> loginWithGoogle() async {
+  Future<Map<String, dynamic>> loginWithGoogle(BuildContext context) async {
     try {
       await _initializeGoogleSignIn();
 
@@ -59,6 +60,20 @@ class AuthService {
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({'idToken': idToken}),
       );
+
+      // ✅ เช็คว่าเป็น response แบบ error หรือไม่
+      if (response.statusCode == 403) {
+        final data = jsonDecode(response.body);
+
+        if (data['error'] == 'ACCOUNT_DELETED' && context.mounted) {
+          await RestoreAccountDialog.show(
+            context,
+            userId: data['userId'],
+            daysRemaining: data['daysRemaining'],
+          );
+          return {'error': 'ACCOUNT_DELETED'};
+        }
+      }
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
@@ -88,7 +103,9 @@ class AuthService {
           ref
               .read(userStoreProvider.notifier)
               .setUser(user, data['accessToken']);
-          final userState = ref.watch(userStoreProvider);
+
+          // เก็บ access token ลง storage
+          await _storage.write(key: 'access_token', value: data['accessToken']);
         }
 
         if (data['refreshToken'] != null) {

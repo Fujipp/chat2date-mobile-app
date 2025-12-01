@@ -53,15 +53,15 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                   const SizedBox(height: 12),
 
                   // Account
-                  _SettingsCard(
-                    icon: Icons.person_outline,
-                    title: 'บัญชีของฉัน',
-                    subtitle: 'จัดการบัญชีผู้ใช้และข้อมูลส่วนตัว',
-                    onTap: () {
-                      Navigator.pushNamed(context, '/account-settings');
-                    },
-                  ),
-                  const SizedBox(height: 12),
+                  // _SettingsCard(
+                  //   icon: Icons.person_outline,
+                  //   title: 'บัญชีของฉัน',
+                  //   subtitle: 'จัดการบัญชีผู้ใช้และข้อมูลส่วนตัว',
+                  //   onTap: () {
+                  //     Navigator.pushNamed(context, '/account-settings');
+                  //   },
+                  // ),
+                  // const SizedBox(height: 12),
 
                   // Tutorial
                   _SettingsCard(

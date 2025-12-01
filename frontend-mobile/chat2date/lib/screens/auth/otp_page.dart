@@ -1,15 +1,16 @@
 import 'dart:async';
+
+import 'package:chat2date/components/buttons/index.dart'; // DsButton / enums
+import 'package:chat2date/components/dialogs/restore_account_dialog.dart';
+import 'package:chat2date/components/toasts/toast.dart';
 import 'package:chat2date/controllers/auth_controller.dart';
 import 'package:chat2date/models/user.dart';
-import 'package:chat2date/services/user_service.dart';
+import 'package:chat2date/services/backend_otp_service.dart';
 import 'package:chat2date/stores/user_store.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:flutter_svg/flutter_svg.dart';
-import 'package:chat2date/components/buttons/index.dart'; // DsButton / enums
-import 'package:chat2date/services/backend_otp_service.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:chat2date/components/toasts/toast.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 
 class OtpPage extends ConsumerStatefulWidget {
   const OtpPage({super.key});
@@ -112,6 +113,8 @@ class _OtpPageState extends ConsumerState<OtpPage> {
     return KeyEventResult.ignored;
   }
 
+  // เพิ่มส่วนนี้ใน _verify method
+
   Future<void> _verify() async {
     final code = _code();
     if (code.length != _length) {
@@ -123,10 +126,47 @@ class _OtpPageState extends ConsumerState<OtpPage> {
       );
       return;
     }
+
     setState(() => _verifying = true);
+
     try {
-      final data = await ref.read(backendOtpServiceProvider).validateOtp(token: _token, code: code, phone: _phone, onLogin: onLogin);
+      final data = await ref
+          .read(backendOtpServiceProvider)
+          .validateOtp(
+            token: _token,
+            code: code,
+            phone: _phone,
+            onLogin: onLogin,
+          );
+
       if (!mounted) return;
+
+      // ✅ เช็คว่าเป็นบัญชีที่ถูกลบหรือไม่
+      if (data['body'] != null && data['body']['error'] == 'ACCOUNT_DELETED') {
+        final accountData = data['body'];
+
+        await RestoreAccountDialog.show(
+          context,
+          userId: accountData['userId'],
+          daysRemaining: accountData['daysRemaining'],
+        );
+        return;
+      }
+
+      // ✅ เช็คว่าบัญชีหมดอายุแล้วหรือไม่
+      if (data['body'] != null &&
+          data['body']['error'] == 'ACCOUNT_PERMANENTLY_DELETED') {
+        Toast.show(
+          context,
+          type: ToastType.error,
+          title: 'บัญชีถูกลบถาวร',
+          message:
+              'บัญชีของคุณถูกลบถาวรแล้ว (เกิน 30 วัน) กรุณาสมัครสมาชิกใหม่',
+          durationSeconds: 8,
+        );
+        return;
+      }
+
       if (data['statusCode'] == 200) {
         final user = User.fromJson(data['body']['user']);
         final accessToken = data['body']['accessToken'];
@@ -134,7 +174,12 @@ class _OtpPageState extends ConsumerState<OtpPage> {
         ref.watch(userStoreProvider);
         final authController = ref.read(authControllerProvider);
         final result = authController.determineRoute(user, onLogin);
-        Navigator.pushNamed(context, result.route, arguments: result.arguments);
+
+        Navigator.pushNamed(
+          context,
+          result.route!,
+          arguments: result.arguments,
+        );
       } else {
         Toast.show(
           context,

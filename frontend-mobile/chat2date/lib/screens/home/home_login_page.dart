@@ -1,7 +1,6 @@
 import 'package:chat2date/components/index.dart'; // DsButton / Variant / Size
 import 'package:chat2date/components/toasts/toast.dart';
 import 'package:chat2date/controllers/auth_controller.dart';
-import 'package:chat2date/services/auth_service.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -69,25 +68,51 @@ class HomeLoginPage extends ConsumerWidget {
                             variant: DsButtonVariant.primary,
                             onPressed: () async {
                               try {
-                                final authService = ref.read(
-                                  authServiceProvider,
-                                );
-
                                 final authController = ref.read(
                                   authControllerProvider,
                                 );
                                 final result = await authController
-                                    .handleGoogleLogin(onLogin: true);
+                                    .handleGoogleLogin(
+                                      context: context,
+                                      onLogin: true,
+                                    );
 
-                                Navigator.pushReplacementNamed(
-                                  context,
-                                  result.route,
-                                  arguments: result.arguments,
-                                );
+                                // ✅ เช็คว่าเป็น error หรือไม่
+                                if (!context.mounted) return;
+
+                                if (result.isError) {
+                                  // ถ้าเป็น ACCOUNT_DELETED -> dialog แสดงแล้ว
+                                  if (result.errorMessage ==
+                                      'ACCOUNT_DELETED') {
+                                    return;
+                                  }
+
+                                  // Error อื่นๆ
+                                  Toast.show(
+                                    context,
+                                    type: ToastType.error,
+                                    title: 'ผิดพลาด',
+                                    message:
+                                        result.errorMessage ?? 'เกิดข้อผิดพลาด',
+                                  );
+                                  return;
+                                }
+
+                                // ✅ Login สำเร็จ
+                                if (result.route != null) {
+                                  Navigator.pushReplacementNamed(
+                                    context,
+                                    result.route!,
+                                    arguments: result.arguments,
+                                  );
+                                }
                               } catch (e) {
+                                if (!context.mounted) return;
+
                                 if (e.toString().contains('cancel')) {
                                   return;
                                 }
+
                                 Toast.show(
                                   context,
                                   type: ToastType.error,
@@ -118,7 +143,7 @@ class HomeLoginPage extends ConsumerWidget {
                           child: DsButton(
                             label: 'ลงทะเบียน',
                             size: DsButtonSize.md,
-                            variant: DsButtonVariant.secondary, // map เป็นเขียว
+                            variant: DsButtonVariant.secondary,
                             onPressed: () =>
                                 Navigator.pushNamed(context, '/policy'),
                           ),

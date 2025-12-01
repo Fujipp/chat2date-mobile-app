@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import 'package:chat2date/config/backend_base.dart';
 import 'package:chat2date/models/user.dart';
+import 'package:chat2date/services/auth_service.dart';
 import 'package:chat2date/stores/user_store.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:http/http.dart' as http;
@@ -64,6 +65,66 @@ class UserService {
     final userStoreNotifier = ref.read(userStoreProvider.notifier);
     userStoreNotifier.setUser(updatedUser, accessToken);
     return updatedUser;
+  }
+
+  Future<bool> deleteUser() async {
+    try {
+      final accessToken = ref.read(userStoreProvider.notifier).accessToken;
+      final user = ref.read(userStoreProvider.notifier).user;
+
+      if (accessToken == null || user == null) {
+        throw Exception('User not logged in');
+      }
+
+      final response = await http.delete(
+        Uri.parse('${ApiBase.baseUrl}/users/${user.userId}'),
+        headers: {
+          'Authorization': 'Bearer $accessToken',
+          'Content-Type': 'application/json',
+        },
+      );
+
+      if (response.statusCode == 204) {
+        // ลบข้อมูล local
+        await authService(ref).signOut();
+        print('✅ Account deleted successfully');
+        return true;
+      } else {
+        print('❌ Failed to delete account: ${response.body}');
+        return false;
+      }
+    } catch (e) {
+      print('❌ Delete account error: $e');
+      return false;
+    }
+  }
+
+  Future<void> restoreUser() async {
+    try {
+      final accessToken = ref.read(userStoreProvider.notifier).accessToken;
+      final user = ref.read(userStoreProvider.notifier).user;
+
+      if (accessToken == null || user == null) {
+        throw Exception('User not logged in');
+      }
+
+      final response = await http.post(
+        Uri.parse('${ApiBase.baseUrl}/users/${user.userId}/restore'),
+        headers: {
+          'Authorization': 'Bearer $accessToken',
+          'Content-Type': 'application/json',
+        },
+      );
+
+      if (response.statusCode == 200) {
+        print('✅ Account been store');
+      } else {
+        throw Exception('Failed to restore account: ${response.body}');
+      }
+    } catch (e) {
+      print('❌ error: $e');
+      rethrow;
+    }
   }
 
   Future<Map<String, dynamic>> addPreferenceUser(

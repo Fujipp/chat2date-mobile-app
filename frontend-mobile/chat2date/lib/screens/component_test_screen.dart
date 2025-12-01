@@ -113,9 +113,9 @@ class _ComponentTestScreenState extends State<ComponentTestScreen> {
             message: "you",
             onClose: () {},
           ),
-          Toast(type: ToastType.success, title: 'fuck', message: "you"),
-          Toast(type: ToastType.warning, title: 'fuck', message: "you"),
-          Toast(type: ToastType.error, title: 'fuck', message: "you"),
+          Toast(type: ToastType.success, title: 'TITLE', message: "message"),
+          Toast(type: ToastType.warning, title: 'TITLE', message: "message"),
+          Toast(type: ToastType.error, title: 'TITLE', message: "message"),
           const SizedBox(height: 12),
           const Text(
             'Toast (Real Usage)',
