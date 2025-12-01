@@ -100,26 +100,33 @@ void showLogoutModal(BuildContext context, ref.WidgetRef ref) {
                     width: 100,
                     height: 40,
                     child: ElevatedButton(
+                      // ส่วน onPressed ของปุ่ม "ยืนยัน"
                       onPressed: () async {
-                        Navigator.pop(context);
+                        Navigator.pop(context); // ปิด dialog ก่อน
 
-                        try {
-                          await ref.read(authServiceProvider).signOut();
-                          if (context.mounted) {
-                            Navigator.of(context).pushNamedAndRemoveUntil(
-                              '/home',
-                              (route) => false,
-                            );
+                        // ให้ dialog ปิดเสร็จเรียบร้อยก่อน แล้วค่อย navigate
+                        Future.delayed(Duration(milliseconds: 50), () async {
+                          try {
+                            await ref.read(authServiceProvider).signOut();
+
+                            if (context.mounted) {
+                              Navigator.of(context).pushNamedAndRemoveUntil(
+                                '/home',
+                                (route) => false,
+                              );
+                            }
+                          } catch (e) {
+                            if (context.mounted) {
+                              Toast.show(
+                                context,
+                                type: ToastType.error,
+                                title: 'เกิดข้อผิดพลาด',
+                                message:
+                                    'ไม่สามารถออกจากระบบได้ โปรดลองอีกครั้ง',
+                              );
+                            }
                           }
-                        } catch (e) {
-                          if (context.mounted) {
-                            Toast(
-                              title: 'เกิดข้อผิดพลาด',
-                              message: 'ไม่สามารถออกจากระบบได้ โปรดลองอีกครั้ง',
-                              type: ToastType.error,
-                            );
-                          }
-                        }
+                        });
                       },
                       style: ElevatedButton.styleFrom(
                         backgroundColor: const Color(0xFF98FB98),
