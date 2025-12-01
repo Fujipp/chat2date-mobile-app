@@ -14,18 +14,35 @@ class MainTabs extends StatefulWidget {
 
 class _MainTabsState extends State<MainTabs> {
   late int _index;
+  late List<Key> _pageKeys;
 
   @override
   void initState() {
     super.initState();
     _index = widget.initialIndex;
+    _pageKeys = List<Key>.generate(4, (_) => UniqueKey());
   }
 
-  late final List<Widget> _pages = <Widget>[
-    const DiscoveryScreen(showBottomNav: false),
-    const _ChatPlaceholder(),
-    const ProfileScreen(showBottomNav: false),
-    const SettingsScreen(showBottomNav: false),
+  Widget _buildPage(int i) {
+    switch (i) {
+      case 0:
+        return DiscoveryScreen(key: _pageKeys[i], showBottomNav: false);
+      case 1:
+        return _ChatPlaceholder(key: _pageKeys[i]);
+      case 2:
+        return ProfileScreen(key: _pageKeys[i], showBottomNav: false);
+      case 3:
+        return SettingsScreen(key: _pageKeys[i], showBottomNav: false);
+      default:
+        return const SizedBox.shrink();
+    }
+  }
+
+  late List<Widget> _pages = <Widget>[
+    _buildPage(0),
+    _buildPage(1),
+    _buildPage(2),
+    _buildPage(3),
   ];
 
   @override
@@ -34,14 +51,23 @@ class _MainTabsState extends State<MainTabs> {
       body: IndexedStack(index: _index, children: _pages),
       bottomNavigationBar: CustomBottomNavBar(
         selectedIndex: _index,
-        onTap: (i) => setState(() => _index = i),
+        onTap: (i) {
+          if (i == _index) {
+            setState(() {
+              _pageKeys[i] = UniqueKey();
+              _pages[i] = _buildPage(i);
+            });
+          } else {
+            setState(() => _index = i);
+          }
+        },
       ),
     );
   }
 }
 
 class _ChatPlaceholder extends StatelessWidget {
-  const _ChatPlaceholder();
+  const _ChatPlaceholder({super.key});
   @override
   Widget build(BuildContext context) {
     return const Scaffold(body: Center(child: Text('Chat will be here')));

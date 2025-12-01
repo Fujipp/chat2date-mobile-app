@@ -23,6 +23,7 @@ import 'package:flutter_svg/flutter_svg.dart';
 // rather than introducing new global wrappers to satisfy the requirement.
 import 'package:geolocator/geolocator.dart';
 import 'package:sliding_up_panel/sliding_up_panel.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class DiscoveryScreen extends ConsumerStatefulWidget {
   final int selectedIndex;
@@ -105,6 +106,12 @@ class _DiscoveryScreenState extends ConsumerState<DiscoveryScreen>
   }
 
   void _handleBottomNavTap(int index) {
+    // ปิด settings overlay เมื่อมีการเปลี่ยนหน้า
+    if (_isSettingsOpen) {
+      _settingsOverlay?.remove();
+      _settingsOverlay = null;
+      _isSettingsOpen = false;
+    }
     setState(() {
       _selectedIndex = index;
     });
@@ -115,16 +122,29 @@ class _DiscoveryScreenState extends ConsumerState<DiscoveryScreen>
         final userId = (userStore['user'] as User?)?.userId;
 
         if (userId != null) {
-          ref.read(discoveryProvider(userId).notifier).refresh();
+          ref.read(discoveryProvider(userId).notifier).refresh(
+                minDistance: _selectedRange.start.round(),
+                maxDistance: _selectedRange.end.round(),
+              );
         }
         break;
       case 1:
+        // ปิดก่อนนำทางเพื่อไม่ให้ overlay ติดตามไปหน้าถัดไป
+        _settingsOverlay?.remove();
+        _settingsOverlay = null;
+        _isSettingsOpen = false;
         Navigator.pushReplacementNamed(context, '/chat');
         break;
       case 2:
+        _settingsOverlay?.remove();
+        _settingsOverlay = null;
+        _isSettingsOpen = false;
         Navigator.pushReplacementNamed(context, '/profile');
         break;
       case 3:
+        _settingsOverlay?.remove();
+        _settingsOverlay = null;
+        _isSettingsOpen = false;
         Navigator.pushReplacementNamed(context, '/settings');
         break;
     }
@@ -156,6 +176,29 @@ class _DiscoveryScreenState extends ConsumerState<DiscoveryScreen>
   OverlayEntry? _settingsOverlay;
   bool _isSettingsOpen = false;
   RangeValues _selectedRange = const RangeValues(1, 1800);
+  void _closeSettingsOverlay() {
+    if (_isSettingsOpen) {
+      _settingsOverlay?.remove();
+      _settingsOverlay = null;
+      _isSettingsOpen = false;
+    }
+  }
+  Future<void> _loadPersistedRange() async {
+    if (_userId == null) return;
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final start = prefs.getDouble('distanceRange:${_userId}:start');
+      final end = prefs.getDouble('distanceRange:${_userId}:end');
+      if (start != null && end != null) {
+        setState(() {
+          _selectedRange = RangeValues(
+            start.clamp(1.0, 1800.0),
+            end.clamp(1.0, 1800.0),
+          );
+        });
+      }
+    } catch (_) {}
+  }
 
   // ✅ Key สำหรับบังคับให้ rebuild CandidateView
   Key _candidateKey = UniqueKey();
@@ -287,6 +330,9 @@ class _DiscoveryScreenState extends ConsumerState<DiscoveryScreen>
             _userId = userId;
           });
 
+          // โหลดค่า range ที่บันทึกไว้ของผู้ใช้นี้
+          await _loadPersistedRange();
+
           // 2️⃣ Global rule: ensure location available or redirect to /home.
           final hasLocation = await _ensureLocationOrRedirect();
           if (!mounted || !hasLocation) return; // redirected already
@@ -318,9 +364,14 @@ class _DiscoveryScreenState extends ConsumerState<DiscoveryScreen>
           if (!mounted) return;
           debugPrint('[Discovery] ✅ Profile loaded');
 
-          // 6️⃣ โหลด candidates (สุดท้าย - ครั้งเดียว)
+          // 6️⃣ โหลด candidates (สุดท้าย - ครั้งเดียว) โดยอิงค่าระยะทางที่เลือกไว้
           debugPrint('[Discovery] 💝 Loading candidates...');
-          await ref.read(discoveryProvider(userId).notifier).loadCandidates();
+          await ref
+              .read(discoveryProvider(userId).notifier)
+              .loadCandidates(
+                minDistance: _selectedRange.start.round(),
+                maxDistance: _selectedRange.end.round(),
+              );
 
           if (!mounted) return;
           debugPrint('[Discovery] 🎉 Initialization complete!');
@@ -356,9 +407,7 @@ class _DiscoveryScreenState extends ConsumerState<DiscoveryScreen>
 
   void _togglePanel(BuildContext context) {
     if (_isSettingsOpen) {
-      _settingsOverlay?.remove();
-      _settingsOverlay = null;
-      _isSettingsOpen = false;
+      _closeSettingsOverlay();
       return;
     }
 
@@ -435,6 +484,13 @@ class _DiscoveryScreenState extends ConsumerState<DiscoveryScreen>
                           values: _selectedRange,
                           min: 1,
                           max: 1800,
+                          persistKey: _userId != null ? 'distanceRange:${_userId}' : null,
+                          onChangeEnd: (r) async {
+                            // sync ค่าที่แสดงกับที่บันทึกไว้
+                            setStateOverlay(() {
+                              _selectedRange = r;
+                            });
+                          },
                           onChanged: (RangeValues values) {
                             setStateOverlay(() {
                               _selectedRange = values;
