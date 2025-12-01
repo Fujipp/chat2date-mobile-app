@@ -108,7 +108,7 @@ public class GlobalExceptionHandler {
     }
 
     @ExceptionHandler(RefreshTokenExpiredException.class)
-    public ResponseEntity<Map<String,Object>> handleRefreshExpired(RefreshTokenExpiredException ex, WebRequest request) {
+    public ResponseEntity<Map<String, Object>> handleRefreshExpired(RefreshTokenExpiredException ex, WebRequest request) {
         Map<String, Object> body = Map.of(
                 "status", HttpStatus.UNAUTHORIZED.value(),
                 "error", "Unauthorized",
@@ -152,8 +152,8 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(UnprocessableEntityException.class)
     @ResponseStatus(HttpStatus.UNPROCESSABLE_ENTITY)
-    public ResponseEntity<ErrorResponse> handleUnprocessableException(Exception e, WebRequest request) {
-        ErrorResponse error = new ErrorResponse(HttpStatus.UNPROCESSABLE_ENTITY.value(), "otp wrong", request.getDescription(false));
+    public ResponseEntity<ErrorResponse> handleUnprocessableEntityException(UnprocessableEntityException ex, WebRequest request) {
+        ErrorResponse error = new ErrorResponse(HttpStatus.UNPROCESSABLE_ENTITY.value(), "Smsmkt: data validation failed", request.getDescription(false));
         return ResponseEntity.status(HttpStatus.UNPROCESSABLE_ENTITY).body(error);
     }
 

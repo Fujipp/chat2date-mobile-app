@@ -53,14 +53,14 @@ public class SmsmktClient {
      * ส่ง OTP -> คืน token
      */
     public String send(String phone08, String refCode, String deviceId) {
-        String phone = normalizePhone(phone08);
-
-        String key = "otp:lock:" + phone + ":" + deviceId;
-        if (redis.hasKey(key)) {
-            long waitSec = Optional.ofNullable(redis.getExpire(key, TimeUnit.SECONDS)).orElse(60L);
-            throw new TooManyRequestException("กรุณารออีก " + waitSec + " วินาที ก่อนขอ OTP ใหม่");
-        }
-        redis.opsForValue().set(key, "1", 60, TimeUnit.SECONDS);
+//        String phone = normalizePhone(phone08);
+//
+//        String key = "otp:lock:" + phone + ":" + deviceId;
+//        if (redis.hasKey(key)) {
+//            long waitSec = Optional.ofNullable(redis.getExpire(key, TimeUnit.SECONDS)).orElse(60L);
+//            throw new TooManyRequestException("กรุณารออีก " + waitSec + " วินาที ก่อนขอ OTP ใหม่");
+//        }
+//        redis.opsForValue().set(key, "1", 60, TimeUnit.SECONDS);
 //        var url = "https://portal-otp.smsmkt.com/api/otp-send";
 //        var payload = new HashMap<>();
 //        payload.put("project_key", projectKey);
@@ -82,12 +82,12 @@ public class SmsmktClient {
 
         Map<?, ?> m = res.getBody();
         if (m == null || !"000".equals(m.get("code"))) {
-            throw new UnprocessableEntityException("SMSMKT error: ", res.getStatusCode().toString());
+            throw new UnprocessableEntityException("SMSMKT error: ", (m != null ? (String) m.get("detail") : "null"));
         }
         Map<?, ?> result = (Map<?, ?>) m.get("result");
         var token = result != null ? String.valueOf(result.get("token")) : null;
         if (token == null || token.isBlank()) {
-            throw new UnprocessableEntityException("No token from SMSMKT", res.getStatusCode().toString());
+            throw new UnprocessableEntityException("SMSMKT error: ","No token from SMSMKT");
         }
         return token;
     }
@@ -110,10 +110,6 @@ public class SmsmktClient {
 //        // ส่ง request ไปยัง OTP API
 //        HttpEntity<Map<String, Object>> req = new HttpEntity<>(payload, headersJson());
 //        ResponseEntity<Map> res = restTemplate.postForEntity(url, req, Map.class);
-//
-//        if (true) {
-//            throw new UnprocessableEntityException("UnprocessableEntityException: ", HttpStatus.UNPROCESSABLE_ENTITY.toString());
-//        }
 
 //        // ตรวจสอบ response
         boolean valid = true;
@@ -133,6 +129,8 @@ public class SmsmktClient {
                 user = userFactory.createPhoneUser(phoneNumber);
                 user = userRepository.save(user);
             }
+        } else {
+            throw new UnprocessableEntityException("UnprocessableEntityException: ", HttpStatus.UNPROCESSABLE_ENTITY.toString());
         }
         String jwtToken = jwtTokenUtil.generateToken(phoneNumber);
         String jwtRefreshToken = jwtTokenUtil.generateRefreshToken(phoneNumber);
