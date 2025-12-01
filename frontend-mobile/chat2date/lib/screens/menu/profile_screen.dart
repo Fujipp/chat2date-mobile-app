@@ -315,6 +315,8 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     );
   }
 
+  bool onShow = true;
+
   Future<void> _handleSubmit() async {
     final userState = ref.read(userStoreProvider);
     final user = userState['user'] as User?;
@@ -355,6 +357,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
             title: 'คำเตือน',
             message: 'ไม่สามารถลบรูป ไม่ให้เหลือใบหน้าได้',
           );
+          onShow = false;
         }
       }
 
@@ -376,6 +379,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
             title: 'ผิดพลาด',
             message: 'เกิดข้อผิดพลาด: ${e.toString()}',
           );
+          onShow = false;
         }
       }
     } finally {
@@ -395,6 +399,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
   }
 
   Future<void> _submitEdit() async {
+    onShow = true;
     if (!mounted) return;
 
     final userStore = ref.read(userStoreProvider) as Map<String, dynamic>?;
@@ -448,12 +453,14 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
       _loadInitialData();
 
       if (!mounted) return;
-      Toast.show(
-        context,
-        type: ToastType.success,
-        title: 'สำเร็จ',
-        message: 'บันทึกข้อมูลส่วนตัวสำเร็จ',
-      );
+      if (onShow) {
+        Toast.show(
+          context,
+          type: ToastType.success,
+          title: 'สำเร็จ',
+          message: 'บันทึกข้อมูลส่วนตัวสำเร็จ',
+        );
+      }
     } catch (e) {
       throw Exception(e);
     }
