@@ -10,6 +10,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.server.ResponseStatusException;
@@ -19,10 +20,12 @@ import sit.chat2date.cp25ssi2.dto.PreferenceUserProfileDTO;
 import sit.chat2date.cp25ssi2.entities.*;
 import sit.chat2date.cp25ssi2.enums.PreferenceGender;
 import sit.chat2date.cp25ssi2.enums.PreferenceLevel;
+import sit.chat2date.cp25ssi2.enums.Role;
 import sit.chat2date.cp25ssi2.exceptions.NotFoundException;
 import sit.chat2date.cp25ssi2.exceptions.PreconditionFailedException;
 import sit.chat2date.cp25ssi2.repositories.*;
 
+import java.time.LocalDateTime;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -91,11 +94,78 @@ public class UserService {
         return ResponseEntity.ok(updatedUser);
     }
 
-    public ResponseEntity<Void> deleteUser(String id) {
-        User user = userRepository.findByUserId(id)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User with id " + id + " not found"));
-        userRepository.delete(user);
-        return ResponseEntity.noContent().build();
+    public ResponseEntity<Void> deleteUser(String userId) {
+        User user = userRepository.findByUserId(userId)
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.NOT_FOUND,
+                        "User with id " + userId + " not found"
+                ));
+
+        // 🔥 เช็ค role ของคนที่ลบ
+        if (Role.ADMIN.equals(user.getRole())) {
+            // ✅ Admin: ลบจริงเลย
+            userRepository.delete(user);
+            return ResponseEntity.noContent().build();
+        } else {
+            // ✅ User: ลบปลอม (Soft Delete)
+            user.setDeleteFlag(true);
+            user.setDeletedAt(LocalDateTime.now());
+            userRepository.save(user);
+
+            return ResponseEntity.noContent().build();
+        }
+    }
+
+    public ResponseEntity<User> restoreUser(String userId) {
+        User user = userRepository.findByUserId(userId)
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.NOT_FOUND,
+                        "User with id " + userId + " not found"
+                ));
+
+        // เช็คว่าถูกลบปลอมหรือไม่
+        if (!user.getDeleteFlag()) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "User account is not deleted"
+            );
+        }
+
+        // เช็คว่าไม่เกิน 30 วัน
+        LocalDateTime deletedAt = user.getDeletedAt();
+        LocalDateTime now = LocalDateTime.now();
+        long daysPassed = java.time.Duration.between(deletedAt, now).toDays();
+
+        if (daysPassed > 30) {
+            throw new ResponseStatusException(
+                    HttpStatus.GONE,
+                    "Account deletion period has expired (30 days). Cannot restore."
+            );
+        }
+
+        // กู้คืนบัญชี
+        user.setDeleteFlag(false);
+        user.setDeletedAt(null);
+        userRepository.save(user);
+
+        return ResponseEntity.ok(user);
+    }
+
+    /**
+     * 🗑️ Scheduled Job: ลบบัญชีที่เกิน 30 วันแล้วจริงๆ (Hard Delete)
+     * รันทุก 24 ชั่วโมง
+     */
+    @Scheduled(cron = "0 0 2 * * ?") // ทุกวันเวลา 2:00 AM
+    public void permanentlyDeleteExpiredAccounts() {
+        LocalDateTime thirtyDaysAgo = LocalDateTime.now().minusDays(30);
+
+        List<User> expiredUsers = userRepository
+                .findByDeleteFlagTrueAndDeletedAtBefore(thirtyDaysAgo);
+
+        if (!expiredUsers.isEmpty()) {
+            userRepository.deleteAll(expiredUsers);
+            System.out.println("✅ Permanently deleted " + expiredUsers.size() + " expired accounts");
+        }
     }
 
     //ไว้สำหรับmap ส่วนไหนnull ก็ไม่ต้องแก้ไข ถ้าส่วนไหนไม่null จะต้องแก้ไข ยกเว้นพวก boolean หรือ enum จะต้องมา set เอง

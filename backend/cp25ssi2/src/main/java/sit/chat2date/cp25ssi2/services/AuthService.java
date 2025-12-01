@@ -11,6 +11,9 @@ import sit.chat2date.cp25ssi2.entities.User;
 import sit.chat2date.cp25ssi2.enums.Provider;
 import sit.chat2date.cp25ssi2.repositories.UserRepository;
 
+import java.time.Duration;
+import java.time.LocalDateTime;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 
@@ -55,6 +58,33 @@ public class AuthService {
                         "EMAIL_LINKED_TO_OTHER_PROVIDER"
                 );
             }
+
+            // ✅ เช็คว่าบัญชีถูกลบหรือไม่
+            if (Boolean.TRUE.equals(user.getDeleteFlag())) {
+                LocalDateTime deletedAt = user.getDeletedAt();
+                LocalDateTime now = LocalDateTime.now();
+                long daysRemaining = 30 - Duration.between(deletedAt, now).toDays();
+
+                if (daysRemaining <= 0) {
+                    // เกิน 30 วัน - บัญชีหมดอายุ
+                    throw new ResponseStatusException(
+                            HttpStatus.GONE,
+                            "ACCOUNT_PERMANENTLY_DELETED"
+                    );
+                }
+
+                // ยังไม่เกิน 30 วัน - ส่งข้อมูลให้ frontend แสดง dialog
+                Map<String, Object> errorDetails = new HashMap<>();
+                errorDetails.put("error", "ACCOUNT_DELETED");
+                errorDetails.put("isDeleted", true);
+                errorDetails.put("deletedAt", deletedAt.toString());
+                errorDetails.put("daysRemaining", daysRemaining);
+                errorDetails.put("canRestore", true);
+                errorDetails.put("userId", user.getUserId());
+
+                throw new AccountDeletedException(errorDetails);
+            }
+
         } else {
             user = userFactory.createGoogleUser(email);
             user = userRepository.save(user);
@@ -77,4 +107,17 @@ public class AuthService {
                 .build();
     }
 
+    // ✅ Custom Exception สำหรับบัญชีที่ถูกลบ
+    public static class AccountDeletedException extends RuntimeException {
+        private final Map<String, Object> details;
+
+        public AccountDeletedException(Map<String, Object> details) {
+            super("Account has been deleted");
+            this.details = details;
+        }
+
+        public Map<String, Object> getDetails() {
+            return details;
+        }
+    }
 }

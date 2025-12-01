@@ -13,6 +13,7 @@ import sit.chat2date.cp25ssi2.enums.Role;
 import sit.chat2date.cp25ssi2.enums.Sex;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.UUID;
 
 @Getter
@@ -84,4 +85,10 @@ public class User {
     @Enumerated(EnumType.STRING)
     @Column(name = "role", nullable = false)
     private Role role;
+
+    @Column(name = "delete_flag")
+    private Boolean deleteFlag = false;
+
+    @Column(name = "deleted_at")
+    private LocalDateTime deletedAt;
 }

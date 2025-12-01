@@ -2,8 +2,11 @@ package sit.chat2date.cp25ssi2.controllers;
 
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.server.ResponseStatusException;
 import sit.chat2date.cp25ssi2.dto.PreferenceMatchUserDTO;
 import sit.chat2date.cp25ssi2.dto.PreferenceUserDTO;
 import sit.chat2date.cp25ssi2.dto.PreferenceUserProfileDTO;
@@ -16,6 +19,7 @@ import sit.chat2date.cp25ssi2.services.UserService;
 import java.io.IOException;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 @RestController
 public class UserController {
@@ -53,6 +57,36 @@ public class UserController {
     @DeleteMapping("/users/{id}")
     public ResponseEntity<Void> deleteUser(@PathVariable String id) {
         return userService.deleteUser(id);
+    }
+
+    /**
+     * กู้คืนบัญชีที่ถูกลบปลอม (ภายใน 30 วัน)
+     */
+    @PostMapping("/users/{id}/restore")
+    public ResponseEntity<User> restoreUser(@PathVariable String id) {
+        return userService.restoreUser(id);
+    }
+    /**
+     * เช็คสถานะบัญชี (ว่าถูกลบปลอมหรือไม่)
+     */
+    @GetMapping("/users/{id}/deletion-status")
+    public ResponseEntity<?> checkDeletionStatus(@PathVariable String id) {
+        User user = userRepository.findByUserId(id).orElseThrow(() -> new NotFoundException("User not found"));
+
+        if (user.getDeleteFlag()) {
+            long daysRemaining = 30 - java.time.Duration
+                    .between(user.getDeletedAt(), java.time.LocalDateTime.now())
+                    .toDays();
+
+            return ResponseEntity.ok(Map.of(
+                    "isDeleted", true,
+                    "deletedAt", user.getDeletedAt(),
+                    "daysRemaining", daysRemaining > 0 ? daysRemaining : 0,
+                    "canRestore", daysRemaining > 0
+            ));
+        }
+
+        return ResponseEntity.ok(Map.of("isDeleted", false));
     }
 
     @PostMapping("/users/preference")

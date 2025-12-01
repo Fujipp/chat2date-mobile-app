@@ -14,6 +14,7 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.context.request.WebRequest;
 import org.springframework.web.server.ResponseStatusException;
+import sit.chat2date.cp25ssi2.services.AuthService;
 
 import java.security.SignatureException;
 import java.util.HashMap;
@@ -169,6 +170,15 @@ public class GlobalExceptionHandler {
                 "path", request.getDescription(false).substring(4)
         );
         return new ResponseEntity<>(body, HttpStatus.UNAUTHORIZED);
+    }
+
+    @ExceptionHandler(AuthService.AccountDeletedException.class)
+    public ResponseEntity<Map<String, Object>> handleAccountDeletedException(
+            AuthService.AccountDeletedException ex
+    ) {
+        return ResponseEntity
+                .status(HttpStatus.FORBIDDEN)
+                .body(ex.getDetails());
     }
 
 }

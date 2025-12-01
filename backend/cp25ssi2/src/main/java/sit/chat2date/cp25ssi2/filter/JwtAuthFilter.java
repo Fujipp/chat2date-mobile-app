@@ -19,10 +19,8 @@ import org.springframework.web.filter.OncePerRequestFilter;
 import sit.chat2date.cp25ssi2.entities.User;
 import sit.chat2date.cp25ssi2.enums.Role;
 import sit.chat2date.cp25ssi2.exceptions.ErrorResponse;
-import sit.chat2date.cp25ssi2.exceptions.UnauthorizedAccessException;
 import sit.chat2date.cp25ssi2.repositories.UserRepository;
 import sit.chat2date.cp25ssi2.services.JwtTokenUtil;
-import sit.chat2date.cp25ssi2.services.UserService;
 import com.auth0.jwt.interfaces.DecodedJWT;
 
 import java.util.List;
@@ -44,12 +42,23 @@ public class JwtAuthFilter extends OncePerRequestFilter {
         Optional<User> user = null;
         String path = request.getRequestURI();
 
-        if (path.startsWith("/api/v1/auth") || path.startsWith("/api/v1/preferences") || path.equals("/api/v1/users/phone")) {
+        // ✅ Skip JWT validation สำหรับ endpoint ที่ไม่ต้องการ authentication
+        if (path.startsWith("/api/v1/auth") ||
+                path.startsWith("/api/v1/preferences") ||
+                path.equals("/api/v1/users/phone") ||
+                path.matches("/api/v1/users/[^/]+/restore")) { // ✅ เพิ่ม restore endpoint
             filterChain.doFilter(request, response);
             return;
         }
+
         if (requestTokenHeader != null && requestTokenHeader.startsWith("Bearer ")) {
             jwtToken = requestTokenHeader.substring(7);
+
+            // ✅ เช็คว่า token ไม่เป็น empty string
+            if (jwtToken.isEmpty()) {
+                sendErrorResponse(response, "Empty token", request, HttpStatus.UNAUTHORIZED);
+                return;
+            }
 
             try {
                 DecodedJWT jwt = JWT.decode(jwtToken);
@@ -73,7 +82,7 @@ public class JwtAuthFilter extends OncePerRequestFilter {
                     SecurityContextHolder.getContext().setAuthentication(authToken);
                 }
 
-                if (user.get().getRole() == Role.USER) {
+                if (user.isPresent() && user.get().getRole() == Role.USER) {
                     AccessChecker checker = new AccessChecker(request, response, user.get());
                     if (!checker.checkUserAccess()) {
                         return; // ถ้า check ไม่ผ่าน

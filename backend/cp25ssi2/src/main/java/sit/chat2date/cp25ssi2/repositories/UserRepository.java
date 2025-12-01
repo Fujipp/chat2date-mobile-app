@@ -5,6 +5,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import sit.chat2date.cp25ssi2.entities.User;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
@@ -14,6 +15,8 @@ public interface UserRepository extends JpaRepository<User, String> {
     Optional<User> findByUserId(String userId);
 
     User findUsersByUserId(String userId);
+    List<User> findByDeleteFlagTrueAndDeletedAtBefore(LocalDateTime date);
+    List<User> findByDeleteFlagFalse();
 
     @Query(value = """
     SELECT DISTINCT u.*
