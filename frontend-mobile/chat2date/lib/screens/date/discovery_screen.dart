@@ -333,7 +333,6 @@ class _DiscoveryScreenState extends ConsumerState<DiscoveryScreen>
                           values: _selectedRange,
                           min: 1,
                           max: 1800,
-                          divisions: 82,
                           onChanged: (RangeValues values) {
                             setStateOverlay(() {
                               _selectedRange = values;

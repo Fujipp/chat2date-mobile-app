@@ -1230,7 +1230,7 @@ class _ComponentTestScreenState extends State<ComponentTestScreen> {
             values: _selectedRange,
             min: 18,
             max: 100,
-            divisions: 82,
+            // divisions: 82,
             onChanged: (RangeValues values) {
               setState(() {
                 _selectedRange = values;

@@ -3,13 +3,13 @@ import 'package:chat2date/components/card/preference_card.dart';
 import 'package:chat2date/components/common/custom_range_slider.dart';
 import 'package:chat2date/components/inputs/ds_label.dart';
 import 'package:chat2date/components/layout/responsive_container.dart';
+import 'package:chat2date/components/toasts/toast.dart';
 import 'package:chat2date/services/user_service.dart';
 import 'package:chat2date/stores/user_store.dart';
 import 'package:chat2date/theme/app_colors.dart';
-import 'package:flutter/material.dart';
 import 'package:dropdown_button2/dropdown_button2.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:chat2date/components/toasts/toast.dart';
 
 class MatchPreferenceScreen extends ConsumerStatefulWidget {
   const MatchPreferenceScreen({super.key});
@@ -177,7 +177,6 @@ class _MatchPreferenceScreenState extends ConsumerState<MatchPreferenceScreen> {
                       values: _selectedRange,
                       min: 18,
                       max: 100,
-                      divisions: 82,
                       onChanged: (RangeValues values) {
                         setState(() {
                           _selectedRange = values;
