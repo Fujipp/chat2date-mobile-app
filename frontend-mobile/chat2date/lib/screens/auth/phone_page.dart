@@ -1,11 +1,12 @@
 import 'dart:async';
+
+import 'package:chat2date/components/buttons/index.dart'; // DsButton / enums
 import 'package:chat2date/components/toasts/toast.dart';
+import 'package:chat2date/services/backend_otp_service.dart';
 import 'package:chat2date/services/user_service.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_svg/flutter_svg.dart';
-import 'package:chat2date/components/buttons/index.dart'; // DsButton / enums
-import 'package:chat2date/services/backend_otp_service.dart';
 
 class PhonePage extends StatefulWidget {
   const PhonePage({super.key});
@@ -54,29 +55,35 @@ class _PhonePageState extends State<PhonePage> {
       return;
     }
 
-    final isExist = await UserService.checkPhone(phone);
-    if (onLogin && !isExist && mounted) {
-      Toast.show(
-        context,
-        type: ToastType.warning,
-        title: 'ไม่ถูกต้อง',
-        message: 'ไม่สามารถเข้าสู่ระบบได้ เนื่องจากไม่มีเบอร์นี้ในระบบ',
-      );
-      return;
-    }
-    if (!onLogin && isExist && mounted) {
-      Toast.show(
-        context,
-        type: ToastType.warning,
-        title: 'ไม่ถูกต้อง',
-        message: 'ไม่สามารถลงทะเบียนเบอร์นี้ได้ เนื่องจากมีเบอร์นี้ในระบบแล้ว',
-      );
-      return;
-    }
-
     setState(() => _loading = true);
+
     try {
-      final token = await BackendOtpService.sendOtp(phone);
+      // STEP 1 — ตรวจสอบว่าเบอร์มีอยู่หรือไม่
+      final isExist = await UserService.checkPhone(phone);
+
+      if (onLogin && !isExist && mounted) {
+        Toast.show(
+          context,
+          type: ToastType.warning,
+          title: 'ไม่ถูกต้อง',
+          message: 'ไม่สามารถเข้าสู่ระบบได้ เนื่องจากไม่มีเบอร์นี้ในระบบ',
+        );
+        return;
+      }
+      if (!onLogin && isExist && mounted) {
+        Toast.show(
+          context,
+          type: ToastType.warning,
+          title: 'ไม่ถูกต้อง',
+          message:
+              'ไม่สามารถลงทะเบียนเบอร์นี้ได้ เนื่องจากมีเบอร์นี้ในระบบแล้ว',
+        );
+        return;
+      }
+
+      // STEP 2 — ส่ง OTP
+      final token = await BackendOtpService.sendOtp(phone, context);
+
       if (!mounted) return;
       Navigator.pushNamed(
         context,
@@ -85,11 +92,15 @@ class _PhonePageState extends State<PhonePage> {
       );
     } catch (e) {
       if (!mounted) return;
+
+      if (e.toString().contains('ACCOUNT_DELETED')) {
+        return;
+      }
       Toast.show(
         context,
         type: ToastType.error,
         title: 'เกิดปัญหาขัดข้อง',
-        message: 'ส่ง OTP ไม่สำเร็จ: $e',
+        message: 'ส่ง OTP ไม่สำเร็จ: ${e.toString()}',
       );
     } finally {
       if (mounted) setState(() => _loading = false);

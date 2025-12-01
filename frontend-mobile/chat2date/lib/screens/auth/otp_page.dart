@@ -1,7 +1,6 @@
 import 'dart:async';
 
 import 'package:chat2date/components/buttons/index.dart'; // DsButton / enums
-import 'package:chat2date/components/dialogs/restore_account_dialog.dart';
 import 'package:chat2date/components/toasts/toast.dart';
 import 'package:chat2date/controllers/auth_controller.dart';
 import 'package:chat2date/models/user.dart';
@@ -141,32 +140,6 @@ class _OtpPageState extends ConsumerState<OtpPage> {
 
       if (!mounted) return;
 
-      // ✅ เช็คว่าเป็นบัญชีที่ถูกลบหรือไม่
-      if (data['body'] != null && data['body']['error'] == 'ACCOUNT_DELETED') {
-        final accountData = data['body'];
-
-        await RestoreAccountDialog.show(
-          context,
-          userId: accountData['userId'],
-          daysRemaining: accountData['daysRemaining'],
-        );
-        return;
-      }
-
-      // ✅ เช็คว่าบัญชีหมดอายุแล้วหรือไม่
-      if (data['body'] != null &&
-          data['body']['error'] == 'ACCOUNT_PERMANENTLY_DELETED') {
-        Toast.show(
-          context,
-          type: ToastType.error,
-          title: 'บัญชีถูกลบถาวร',
-          message:
-              'บัญชีของคุณถูกลบถาวรแล้ว (เกิน 30 วัน) กรุณาสมัครสมาชิกใหม่',
-          durationSeconds: 8,
-        );
-        return;
-      }
-
       if (data['statusCode'] == 200) {
         final user = User.fromJson(data['body']['user']);
         final accessToken = data['body']['accessToken'];
@@ -205,7 +178,7 @@ class _OtpPageState extends ConsumerState<OtpPage> {
     if (_seconds > 0 || _resending) return;
     setState(() => _resending = true);
     try {
-      final newToken = await BackendOtpService.sendOtp(_phone);
+      final newToken = await BackendOtpService.sendOtp(_phone,context);
       if (!mounted) return;
       _token = newToken;
       _startTimer();

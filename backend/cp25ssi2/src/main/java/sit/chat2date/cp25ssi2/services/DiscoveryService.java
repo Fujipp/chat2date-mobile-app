@@ -66,9 +66,11 @@ public class DiscoveryService {
             int maxDistance
     ) {
         int limit = 10;
-        System.out.println("pref = " + userId);
         PreferenceMatch pref = preferenceRepository.findByUser_UserId(userId);
-        System.out.println("pref = " + pref); // null?
+        if (pref == null) {
+            throw new NotFoundException("User not found");
+        }
+
 
         UserLocation myLocation = locationRepository.findFirstByUser_UserId(userId);
 

@@ -443,6 +443,8 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
         if (!mounted) return;
       }
       await Future.wait(tasks);
+      await ref.read(userServiceProvider).getProfile();
+      _loadInitialData();
 
       if (!mounted) return;
       Toast.show(
@@ -875,7 +877,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
           // ใช้ addPostFrameCallback เพื่อหลีกเลี่ยง setState ระหว่าง build
           WidgetsBinding.instance.addPostFrameCallback((_) {
             if (!mounted) return;
-            
+
             setState(() {
               _selectedIndex = index;
             });

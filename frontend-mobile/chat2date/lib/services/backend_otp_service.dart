@@ -1,16 +1,17 @@
 import 'dart:convert';
 import 'dart:io';
-import 'package:chat2date/services/preference_service.dart';
-import 'package:http/http.dart' as http;
+
+import 'package:chat2date/components/dialogs/restore_account_dialog.dart';
 import 'package:chat2date/config/backend_base.dart'; // << เพิ่มบรรทัดนี้
+import 'package:chat2date/services/preference_service.dart';
 import 'package:device_info_plus/device_info_plus.dart';
-import 'package:shared_preferences/shared_preferences.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:http/http.dart' as http;
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:uuid/uuid.dart';
 
-final backendOtpServiceProvider = Provider(
-  (ref) => BackendOtpService(ref),
-);
+final backendOtpServiceProvider = Provider((ref) => BackendOtpService(ref));
 
 class BackendOtpService {
   final Ref ref;
@@ -26,7 +27,7 @@ class BackendOtpService {
     try {
       if (Platform.isAndroid) {
         final androidInfo = await deviceInfoPlugin.androidInfo;
-        if (androidInfo.id != null) return androidInfo.id;
+        return androidInfo.id;
       } else if (Platform.isIOS) {
         final iosInfo = await deviceInfoPlugin.iosInfo;
         if (iosInfo.identifierForVendor != null) {
@@ -51,7 +52,10 @@ class BackendOtpService {
     return fallbackId;
   }
 
-  static Future<String> sendOtp(String phoneNumber) async {
+  static Future<String> sendOtp(
+    String phoneNumber,
+    BuildContext context,
+  ) async {
     final deviceId = await getDeviceId();
     final uri = Uri.parse('$_base/auth/request-otp');
     final res = await http
@@ -61,11 +65,28 @@ class BackendOtpService {
           body: jsonEncode({'phoneNumber': phoneNumber, 'deviceId': deviceId}),
         )
         .timeout(_timeout);
+
+    if (res.statusCode == 403) {
+      final data = jsonDecode(res.body);
+
+      if (data['error'] == 'ACCOUNT_DELETED' && context.mounted) {
+        final userId = data['userId'] ?? '';
+        final daysRemaining = data['daysRemaining'] ?? 30;
+
+        await RestoreAccountDialog.show(
+          context,
+          userId: userId,
+          daysRemaining: daysRemaining,
+        );
+
+        throw Exception('ACCOUNT_DELETED');
+      }
+    }
+
     if (res.statusCode != 200) throw 'HTTP ${res.statusCode}: ${res.body}';
     final token = (jsonDecode(res.body)['token'] ?? '') as String;
     if (token.isEmpty) throw 'No token from backend';
     return token;
-    //return "true";
   }
 
   Future<Map<String, dynamic>> validateOtp({

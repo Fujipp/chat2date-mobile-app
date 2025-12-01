@@ -1,5 +1,7 @@
 package sit.chat2date.cp25ssi2.clients;
 
+import java.time.Duration;
+import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -13,11 +15,13 @@ import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.http.*;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestTemplate;
+import org.springframework.web.server.ResponseStatusException;
 import sit.chat2date.cp25ssi2.dto.UserDTO;
 import sit.chat2date.cp25ssi2.enums.AccountStatus;
 import sit.chat2date.cp25ssi2.exceptions.PreconditionFailedException;
 import sit.chat2date.cp25ssi2.exceptions.TooManyRequestException;
 import sit.chat2date.cp25ssi2.exceptions.UnprocessableEntityException;
+import sit.chat2date.cp25ssi2.services.AuthService;
 import sit.chat2date.cp25ssi2.utils.UserFactory;
 import sit.chat2date.cp25ssi2.entities.User;
 import sit.chat2date.cp25ssi2.repositories.UserRepository;
@@ -53,6 +57,31 @@ public class SmsmktClient {
      * ส่ง OTP -> คืน token
      */
     public String send(String phone08, String refCode, String deviceId) {
+        User user = userRepository.findUsersByPhoneNumber(phone08);;
+
+        if (Boolean.TRUE.equals(user.getDeleteFlag())) {
+            LocalDateTime deletedAt = user.getDeletedAt();
+            LocalDateTime now = LocalDateTime.now();
+            long daysRemaining = 30 - Duration.between(deletedAt, now).toDays();
+
+            if (daysRemaining <= 0) {
+                throw new ResponseStatusException(
+                        HttpStatus.GONE,
+                        "ACCOUNT_PERMANENTLY_DELETED"
+                );
+            }
+
+            // ยังไม่เกิน 30 วัน - ส่งข้อมูลให้ frontend แสดง dialog
+            Map<String, Object> errorDetails = new HashMap<>();
+            errorDetails.put("error", "ACCOUNT_DELETED");
+            errorDetails.put("isDeleted", true);
+            errorDetails.put("deletedAt", deletedAt.toString());
+            errorDetails.put("daysRemaining", daysRemaining);
+            errorDetails.put("canRestore", true);
+            errorDetails.put("userId", user.getUserId());
+
+            throw new AuthService.AccountDeletedException(errorDetails);
+        }
 //        String phone = normalizePhone(phone08);
 //
 //        String key = "otp:lock:" + phone + ":" + deviceId;

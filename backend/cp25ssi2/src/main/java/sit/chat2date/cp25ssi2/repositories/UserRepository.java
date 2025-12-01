@@ -15,6 +15,7 @@ public interface UserRepository extends JpaRepository<User, String> {
     Optional<User> findByUserId(String userId);
 
     User findUsersByUserId(String userId);
+    User findUsersByPhoneNumber(String phoneNumber);
     List<User> findByDeleteFlagTrueAndDeletedAtBefore(LocalDateTime date);
     List<User> findByDeleteFlagFalse();
 

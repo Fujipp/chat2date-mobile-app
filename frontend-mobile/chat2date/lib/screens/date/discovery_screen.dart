@@ -1078,6 +1078,8 @@ class _CandidateViewState extends ConsumerState<_CandidateView> {
         // ✅ กรณีไม่มีรูปเลย → ใช้ placeholder แทน
         final bool hasImages = images.isNotEmpty;
 
+        final String sex = widget.candidate.sex;
+
         final headerTop = [
           {
             'title': 'สไตล์การท่องเที่ยว',
@@ -1143,10 +1145,10 @@ class _CandidateViewState extends ConsumerState<_CandidateView> {
                                   height: 585,
                                   fit: BoxFit.cover,
                                   errorBuilder: (context, error, stackTrace) {
-                                    return _buildImageFallback();
+                                    return _buildImageFallback(sex);
                                   },
                                 )
-                              : _buildImageFallback(),
+                              : _buildImageFallback(sex),
                         ),
                       ),
                     ),
@@ -1450,14 +1452,26 @@ class _CandidateViewState extends ConsumerState<_CandidateView> {
 }
 
 /// ✅ สร้าง fallback widget สำหรับเวลารูปหาย
-Widget _buildImageFallback() {
-  return Container(
+Widget _buildImageFallback(String? gender) {
+  String assetPath;
+
+  switch (gender?.toLowerCase()) {
+    case 'female':
+    case 'f':
+      assetPath = 'assets/images/female.jpg';
+      break;
+    case 'male':
+    case 'm':
+      assetPath = 'assets/images/male.jpg';
+      break;
+    default:
+      assetPath = 'assets/images/female.jpg'; // หรือ default อื่น
+  }
+
+  return SizedBox(
     width: double.infinity,
     height: 585,
-    color: Colors.grey[300],
-    child: const Center(
-      child: Icon(Icons.person, size: 100, color: Colors.white70),
-    ),
+    child: Image.asset(assetPath, fit: BoxFit.cover),
   );
 }
 
