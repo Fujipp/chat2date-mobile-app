@@ -1,3 +1,4 @@
+export 'auth/auth_check_screen.dart';
 export 'auth/face_verify_screen.dart';
 export 'auth/id_ocr_screen.dart';
 export 'auth/kyc_loading_screen.dart';

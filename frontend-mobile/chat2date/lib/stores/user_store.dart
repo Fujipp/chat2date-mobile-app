@@ -28,6 +28,10 @@ class UserStore extends _$UserStore {
     state = {...state, 'user': user, 'accessToken': accessToken};
   }
 
+  void setAccessToken(String token) {
+    state = {...state, 'accessToken': token};
+  }
+
   void setCardFaceBytes(String bytes) {
     state = {...state, 'cardFaceBytes': bytes};
   }

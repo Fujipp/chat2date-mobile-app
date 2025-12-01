@@ -1,4 +1,5 @@
 import 'package:chat2date/components/index.dart'; // DsButton / Variant / Size
+import 'package:chat2date/components/toasts/toast.dart';
 import 'package:chat2date/controllers/auth_controller.dart';
 import 'package:chat2date/services/auth_service.dart';
 import 'package:flutter/material.dart';
@@ -71,8 +72,6 @@ class HomeLoginPage extends ConsumerWidget {
                                 final authService = ref.read(
                                   authServiceProvider,
                                 );
-                                // final userId = await authService
-                                //     .loginWithGoogle();
 
                                 final authController = ref.read(
                                   authControllerProvider,
@@ -80,22 +79,17 @@ class HomeLoginPage extends ConsumerWidget {
                                 final result = await authController
                                     .handleGoogleLogin(onLogin: true);
 
-                                // Navigator.pushReplacementNamed(
-                                //   context,
-                                //   '/kyc-id-ocr',
-                                //   arguments: userId,
-                                // );
-
                                 Navigator.pushReplacementNamed(
                                   context,
                                   result.route,
                                   arguments: result.arguments,
                                 );
                               } catch (e) {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  SnackBar(
-                                    content: Text('Google Sign-In Error: $e'),
-                                  ),
+                                Toast.show(
+                                  context,
+                                  type: ToastType.error,
+                                  title: 'ผิดพลาด',
+                                  message: 'เกิดข้อผิดพลาด: ${e.toString()}',
                                 );
                               }
                             },

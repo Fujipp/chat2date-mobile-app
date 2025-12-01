@@ -32,7 +32,7 @@ class MyApp extends StatelessWidget {
       title: 'Component Test',
       theme: buildLightTheme(),
       navigatorKey: navigatorKey,
-      initialRoute: '/home', //เวลาโค้ดเปลี่ยนเป็น path ตัวเองเอาไว้แสดง
+      initialRoute: '/auth', //เวลาโค้ดเปลี่ยนเป็น path ตัวเองเอาไว้แสดง
       routes: {
         //Test
         '/test': (context) => const ComponentTestScreen(),
@@ -46,6 +46,7 @@ class MyApp extends StatelessWidget {
         '/userPicture': (context) => const UserPictureScreen(),
         '/profile': (context) => const ProfileScreen(),
         '/settings': (context) => const SettingsScreen(),
+        '/auth': (context) => const AuthCheckPage(),
 
         //Hutch
         '/discovery': (context) => DiscoveryScreen(),

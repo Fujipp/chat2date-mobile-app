@@ -118,7 +118,7 @@ class AuthService {
   Future<void> signOut() async {
     try {
       final accessToken = ref.read(userStoreProvider.notifier).accessToken;
-      final refreshToken = await _storage.read(key: 'refresh_token');
+      final refreshToken = await _storage.read(key: 'refreshToken');
 
       if (accessToken != null) {
         await http.post(
