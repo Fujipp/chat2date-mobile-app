@@ -860,7 +860,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
       ),
       bottomNavigationBar: CustomBottomNavBar(
         selectedIndex: _selectedIndex,
-        onTap: (index) {
+        onTap: (index) async {
           setState(() {
             _selectedIndex = index;
           });
@@ -875,7 +875,9 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
               break;
 
             case 2: // Profile
-              Navigator.pushReplacementNamed(context, '/profile');
+              await ref.read(userServiceProvider).getProfile();
+              _loadInitialData();
+              if (!mounted) return;
               break;
 
             case 3: // Setting

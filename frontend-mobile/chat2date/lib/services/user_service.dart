@@ -26,7 +26,7 @@ class UserService {
       Uri.parse('${ApiBase.baseUrl}/users/$id'),
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': accessToken,
+        'Authorization': 'Bearer $accessToken',
       },
     );
 
@@ -35,6 +35,10 @@ class UserService {
     }
 
     final data = jsonDecode(response.body);
+    final currentUser = User.fromJson(data);
+    final userStoreNotifier = ref.read(userStoreProvider.notifier);
+    userStoreNotifier.setUser(currentUser, accessToken);
+
     return User.fromJson(data);
   }
 

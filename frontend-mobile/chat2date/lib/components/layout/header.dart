@@ -181,7 +181,7 @@ class ChatToDateHeaderWhite extends StatelessWidget {
   const ChatToDateHeaderWhite({
     super.key,
     required this.leftIconPath,
-    required this.rightIconPath,
+    this.rightIconPath = "",
     this.iconColor,
     this.onSettings,
     this.onBack,
@@ -222,6 +222,7 @@ class ChatToDateHeaderWhite extends StatelessWidget {
 
           const Spacer(),
 
+          if (rightIconPath.isNotEmpty)
           InkWell(
             onTap: onSettings,
             child: SizedBox(

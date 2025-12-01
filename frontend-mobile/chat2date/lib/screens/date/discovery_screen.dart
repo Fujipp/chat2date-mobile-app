@@ -230,6 +230,13 @@ class _DiscoveryScreenState extends ConsumerState<DiscoveryScreen>
           if (!mounted) return;
           debugPrint('[Discovery] ✅ FCM registered');
 
+          debugPrint('[Discovery] 👤 Loading users');
+          await ref.read(userServiceProvider).getUser(userId);
+          
+
+          if (!mounted) return;
+          debugPrint('[Discovery] ✅ users loaded');
+
           // 4️⃣ โหลด profile
           debugPrint('[Discovery] 👤 Loading profile...');
           await ref.read(userServiceProvider).getProfile();
