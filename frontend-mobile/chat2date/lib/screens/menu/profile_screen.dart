@@ -863,8 +863,13 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
       bottomNavigationBar: CustomBottomNavBar(
         selectedIndex: _selectedIndex,
         onTap: (index) async {
-          setState(() {
-            _selectedIndex = index;
+          // ใช้ addPostFrameCallback เพื่อหลีกเลี่ยง setState ระหว่าง build
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (!mounted) return;
+            
+            setState(() {
+              _selectedIndex = index;
+            });
           });
 
           switch (index) {
