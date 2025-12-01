@@ -942,11 +942,11 @@ class _InterestsSelectionScreenWidgetState
           // * ถ้าไม่มีความขัดแย้งใน Interest ก็ไม่ต้องเรียก _handleExclusivity()
         } else {
           // TODO: แสดง SnackBar/Dialog แจ้งเตือน: "เลือกได้สูงสุด 5 รายการ"
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('คุณเลือกได้สูงสุดเพียง 5 รายการเท่านั้น'),
-              duration: Duration(seconds: 2),
-            ),
+          Toast.show(
+            context,
+            type: ToastType.warning,
+            title: 'จำนวนเกิน',
+            message: 'คุณเลือกได้สูงสุดเพียง 5 รายการเท่านั้น',
           );
         }
       }
@@ -1230,18 +1230,27 @@ class _InterestsSelectionScreenWidgetState
                             ) // อนุญาตให้ยืนยันเมื่อถูกต้อง
                       : () {
                           // ป้องกันการยืนยันเมื่อเลือกไม่ครบ 3 หรือเกิน 5
-                          ScaffoldMessenger.of(context).hideCurrentSnackBar();
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
-                              content: Text(
-                                selectedCount < 3
-                                    ? 'กรุณาเลือกอย่างน้อย 3 รายการ'
-                                    : 'คุณเลือกเกิน 5 รายการ กรุณาลบออกก่อนยืนยัน',
-                              ),
-                              duration: const Duration(seconds: 2),
-                              backgroundColor: Colors.red.shade700,
-                            ),
-                          );
+                          if (selectedCount > 5) {
+                            Toast.show(
+                              context,
+                              type: ToastType.warning,
+                              title: 'จำนวนเกิน',
+                              message:
+                                  'คุณเลือกได้สูงสุดเพียง 5 รายการเท่านั้น',
+                            );
+                            return;
+                          }
+
+                          // เช็คว่าเลือกไม่ถึงขั้นต่ำ
+                          if (selectedCount < 3) {
+                            Toast.show(
+                              context,
+                              type: ToastType.warning,
+                              title: 'เลือกไม่ครบ',
+                              message: 'กรุณาเลือกอย่างน้อย 3 รายการ',
+                            );
+                            return;
+                          }
                         },
                   borderRadius: BorderRadius.circular(30),
                   child: AnimatedContainer(

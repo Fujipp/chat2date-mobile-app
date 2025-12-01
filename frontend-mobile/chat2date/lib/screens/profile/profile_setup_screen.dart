@@ -3,6 +3,7 @@ import 'package:chat2date/components/inputs/ds_label.dart';
 import 'package:chat2date/components/inputs/ds_text_field/ds_text_field.dart';
 import 'package:chat2date/components/inputs/ds_text_field/tag_autocomplete.dart';
 import 'package:chat2date/components/layout/responsive_container.dart';
+import 'package:chat2date/components/toasts/toast.dart';
 import 'package:chat2date/models/interest.dart';
 import 'package:chat2date/models/lifestyle.dart';
 import 'package:chat2date/models/tag.dart';
@@ -197,45 +198,54 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
               onPressed: () async {
                 // ตรวจสอบข้อมูลก่อนส่ง
                 if (_nicknameCtrl.text.isEmpty) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('กรุณากรอกชื่อเล่น')),
+                  Toast.show(
+                    context,
+                    type: ToastType.warning,
+                    title: 'ชื่อเล่นหายไป',
+                    message: 'กรุณากรอกชื่อเล่น',
                   );
                   return;
                 }
 
                 if (_selectedTravelStyles.length < 2 ||
                     _selectedTravelStyles.length > 3) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('กรุณาเลือกสไตล์การท่องเที่ยว 2–3 ข้อ'),
-                    ),
+                  Toast.show(
+                    context,
+                    type: ToastType.warning,
+                    title: 'สไตล์การท่องเที่ยวไม่ถูกต้อง',
+                    message: 'กรุณาเลือกสไตล์การท่องเที่ยว 2–3 ข้อ',
                   );
                   return;
                 }
 
                 if (_selectedLifestyles.length < 3 ||
                     _selectedLifestyles.length > 5) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('กรุณาเลือกไลฟ์สไตล์ 3–5 ข้อ'),
-                    ),
+                  Toast.show(
+                    context,
+                    type: ToastType.warning,
+                    title: 'ไลฟ์สไตล์ไม่ถูกต้อง',
+                    message: 'กรุณาเลือกไลฟ์สไตล์ 3–5 ข้อ',
                   );
                   return;
                 }
 
                 if (_selectedInterests.length < 3 ||
                     _selectedInterests.length > 5) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('กรุณาเลือกความสนใจ 3–5 ข้อ')),
+                  Toast.show(
+                    context,
+                    type: ToastType.warning,
+                    title: 'สิ่งที่สนใจไม่ถูกต้อง',
+                    message: 'กรุณาเลือกสิ่งที่สนใจ 3–5 ข้อ',
                   );
                   return;
                 }
 
                 if (_selectedTags.length > 5) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('สามารถเลือก Tag สูงสุด 5 ข้อ'),
-                    ),
+                  Toast.show(
+                    context,
+                    type: ToastType.warning,
+                    title: 'จำนวน Tag เกิน',
+                    message: 'สามารถเลือก Tag สูงสุด 5 ข้อ',
                   );
                   return;
                 }
@@ -260,10 +270,12 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
                       ref.read(userStoreProvider) as Map<String, dynamic>?;
 
                   if (userStore == null) {
-                    print('❌ userStore is null');
                     if (mounted) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('ไม่พบข้อมูลผู้ใช้')),
+                      Toast.show(
+                        context,
+                        type: ToastType.error,
+                        title: 'ข้อผิดพลาด',
+                        message: 'ไม่พบข้อมูลผู้ใช้',
                       );
                     }
                     return;
@@ -272,28 +284,28 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
                   final oldUser = userStore['user'] as User?;
 
                   if (oldUser == null) {
-                    print('❌ oldUser is null');
                     if (mounted) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('ไม่พบข้อมูลผู้ใช้')),
+                      Toast.show(
+                        context,
+                        type: ToastType.error,
+                        title: 'ข้อผิดพลาด',
+                        message: 'ไม่พบข้อมูลผู้ใช้',
                       );
                     }
                     return;
                   }
 
                   if (oldUser.version == null) {
-                    print('❌ userId or version is null');
                     if (mounted) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('ข้อมูลผู้ใช้ไม่ครบถ้วน')),
+                      Toast.show(
+                        context,
+                        type: ToastType.error,
+                        title: 'ข้อผิดพลาด',
+                        message: 'ไม่พบข้อมูลผู้ใช้',
                       );
                     }
                     return;
                   }
-
-                  print('✅ userId: ${oldUser.userId}');
-                  print('✅ nickname: ${_nicknameCtrl.text}');
-                  print('✅ version: ${oldUser.version}');
 
                   final user = User(
                     userId: oldUser.userId,
@@ -307,8 +319,6 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
                     "tags": incrementedTag,
                     "travelStyles": incrementedTravelStyles,
                   };
-
-                  print('📦 preference: $preference');
 
                   final userService = ref.read(userServiceProvider);
 
@@ -335,12 +345,11 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
                   print('StackTrace: $stackTrace');
 
                   if (mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text('เกิดข้อผิดพลาด: ${e.toString()}'),
-                        backgroundColor: Colors.red,
-                        duration: const Duration(seconds: 5),
-                      ),
+                    Toast.show(
+                      context,
+                      type: ToastType.error,
+                      title: 'ข้อผิดพลาด',
+                      message: 'เกิดข้อผิดพลาด: ${e.toString()}',
                     );
                   }
                   // ⚠️ ไม่ throw exception ออกไป

@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:chat2date/components/toasts/toast.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_svg/flutter_svg.dart';
@@ -43,10 +44,11 @@ class _PhonePageState extends State<PhonePage> {
 
     final phone = _normalizePhone(_phoneCtrl.text);
     if (!_isValidThaiMobile(phone)) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('กรุณากรอกเบอร์มือถือให้ถูกต้อง (เช่น 08xxxxxxxx)'),
-        ),
+      Toast.show(
+        context,
+        type: ToastType.warning,
+        title: 'ข้อมูลไม่ครบ',
+        message: 'กรุณากรอกเบอร์มือถือให้ถูกต้อง (เช่น 06/08/09 + xxxxxxxx )',
       );
       return;
     }
@@ -62,9 +64,12 @@ class _PhonePageState extends State<PhonePage> {
       );
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(
+      Toast.show(
         context,
-      ).showSnackBar(SnackBar(content: Text('ส่ง OTP ไม่สำเร็จ: $e')));
+        type: ToastType.error,
+        title: 'เกิดปัญหาขัดข้อง',
+        message: 'ส่ง OTP ไม่สำเร็จ: $e',
+      );
     } finally {
       if (mounted) setState(() => _loading = false);
     }
