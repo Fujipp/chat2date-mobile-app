@@ -10,6 +10,7 @@ import 'package:chat2date/components/layout/header.dart';
 import 'package:chat2date/components/layout/menu_bar.dart';
 import 'package:chat2date/models/dto/discovery_dto.dart';
 import 'package:chat2date/models/dto/match_event_dto.dart';
+import 'package:chat2date/models/user.dart';
 import 'package:chat2date/screens/match/match_success_screen.dart';
 import 'package:chat2date/services/discovery_service.dart';
 import 'package:chat2date/services/fcm_token_service.dart';
@@ -43,7 +44,12 @@ class _DiscoveryScreenState extends ConsumerState<DiscoveryScreen>
 
     switch (index) {
       case 0:
-        Navigator.pushReplacementNamed(context, '/discovery');
+        final userStore = ref.read(userStoreProvider);
+        final userId = (userStore['user'] as User?)?.userId;
+
+        if (userId != null) {
+          ref.read(discoveryProvider(userId).notifier).refresh();
+        }
         break;
       case 1:
         Navigator.pushReplacementNamed(context, '/chat');
