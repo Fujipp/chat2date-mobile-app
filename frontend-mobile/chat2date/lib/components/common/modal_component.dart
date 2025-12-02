@@ -102,7 +102,7 @@ class ModalComponent extends StatefulWidget {
 }
 
 class _ModalComponentState extends State<ModalComponent> {
-  RangeValues selectedRange = const RangeValues(1, 1900);
+  RangeValues selectedRange = const RangeValues(0, 1800);
 
   @override
   Widget build(BuildContext context) {

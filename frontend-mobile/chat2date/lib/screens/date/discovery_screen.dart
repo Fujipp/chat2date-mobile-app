@@ -175,7 +175,7 @@ class _DiscoveryScreenState extends ConsumerState<DiscoveryScreen>
   // Settings
   OverlayEntry? _settingsOverlay;
   bool _isSettingsOpen = false;
-  RangeValues _selectedRange = const RangeValues(1, 1800);
+  RangeValues _selectedRange = const RangeValues(0, 1800);
   void _closeSettingsOverlay() {
     if (_isSettingsOpen) {
       _settingsOverlay?.remove();
