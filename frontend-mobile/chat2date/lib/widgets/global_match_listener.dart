@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:chat2date/models/dto/match_event_dto.dart';
+import 'package:chat2date/models/user.dart';
 import 'package:chat2date/screens/match/match_success_screen.dart';
 import 'package:chat2date/services/match_socket_service.dart';
 import 'package:chat2date/stores/user_store.dart';
@@ -22,7 +23,8 @@ class GlobalMatchListener extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     // ดึง userId จาก userStore
     final userState = ref.watch(userStoreProvider);
-    final userId = userState['id'] as String?;
+    final user = userState['user'] as User?;
+    final userId = user?.userId;
 
     // ถ้าไม่มี userId (ยังไม่ได้ login) ไม่ต้อง listen
     if (userId == null || userId.isEmpty) {

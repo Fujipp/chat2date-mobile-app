@@ -192,8 +192,8 @@ class _DiscoveryScreenState extends ConsumerState<DiscoveryScreen>
       if (start != null && end != null) {
         setState(() {
           _selectedRange = RangeValues(
-            start.clamp(1.0, 1800.0),
-            end.clamp(1.0, 1800.0),
+            start.clamp(0.0, 1800.0),
+            end.clamp(0.0, 1800.0),
           );
         });
       }
@@ -482,7 +482,7 @@ class _DiscoveryScreenState extends ConsumerState<DiscoveryScreen>
                         const SizedBox(height: 10),
                         CustomRangeSlider(
                           values: _selectedRange,
-                          min: 1,
+                          min: 0,
                           max: 1800,
                           persistKey: _userId != null ? 'distanceRange:${_userId}' : null,
                           onChangeEnd: (r) async {

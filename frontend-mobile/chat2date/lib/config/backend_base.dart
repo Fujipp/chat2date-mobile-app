@@ -7,7 +7,7 @@ class ApiBase {
   // อนุญาต override จาก --dart-define=API_BASE=http://...
   static const String _defined = String.fromEnvironment(
     'API_BASE',
-    // defaultValue: 'http://192.168.1.107:8080/api/v1',
+    // defaultValue: 'http://10.250.103.196:8080/api/v1',
     defaultValue: 'http://cp25ssi2.sit.kmutt.ac.th:8080/api/v1',
   );
 
@@ -19,7 +19,7 @@ class ApiBase {
     if (Platform.isIOS) return 'http://127.0.0.1:8080'; // iOS simulator
 
     // เครื่องจริง (ตั้งค่าตามแลนของ Dev ทีหลัง)
-    // return 'http://localhost:8080';
+    // return 'http://10.250.103.196:8080';
     return 'http://cp25ssi2.sit.kmutt.ac.th:8080';
   }
 
@@ -55,7 +55,7 @@ class ApiBase {
     }
     if (Platform.isAndroid) return 'ws://10.0.2.2:8080';
     if (Platform.isIOS) return 'ws://127.0.0.1:8080';
-    // return 'ws://localhost:8080';
+    // return 'ws://10.250.103.196:8080';
     return 'ws://cp25ssi2.sit.kmutt.ac.th:8080';
   }
 }
