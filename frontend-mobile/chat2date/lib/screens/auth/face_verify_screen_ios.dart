@@ -613,7 +613,16 @@ class _FaceVerifyScreenIosState extends ConsumerState<FaceVerifyScreenIos>
         Navigator.pop(context);
       }
 
-      final resultArgs = {'matched': matched, 'score': score, 'raw': raw};
+      final resultArgs = {
+        'matched': matched,
+        'score': score,
+        'raw': raw,
+        // Preserve original face args for retry
+        'cardFaceBytes': faceArgs?.cardFaceBytes,
+        'fullName': faceArgs?.fullName,
+        'dob': faceArgs?.dob,
+        'gender': faceArgs?.gender,
+      };
 
       if (livenessPass && matched) {
         Navigator.pushReplacementNamed(
@@ -648,6 +657,11 @@ class _FaceVerifyScreenIosState extends ConsumerState<FaceVerifyScreenIos>
         'matched': false,
         'score': 0.0,
         'raw': {'error': e.toString()},
+        // Preserve original face args for retry on error
+        'cardFaceBytes': faceArgs?.cardFaceBytes,
+        'fullName': faceArgs?.fullName,
+        'dob': faceArgs?.dob,
+        'gender': faceArgs?.gender,
       };
 
       Navigator.pushReplacementNamed(

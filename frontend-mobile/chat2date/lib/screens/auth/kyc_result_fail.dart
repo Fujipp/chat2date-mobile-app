@@ -1,10 +1,11 @@
 // lib/screens/auth/kyc_result_fail.dart
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'dart:typed_data';
+import 'package:chat2date/models/face_scan_args.dart';
 
 // ใช้ปุ่มจาก DS ของเรา
 import 'package:chat2date/components/buttons/ds_button.dart';
-import 'package:chat2date/components/buttons/ds_button_schemes.dart';
 
 class KycResultFailScreen extends StatelessWidget {
   const KycResultFailScreen({super.key});
@@ -15,30 +16,7 @@ class KycResultFailScreen extends StatelessWidget {
     final args =
         ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>?;
 
-    bool? matched;
-    double? score;
-    Map<String, dynamic>? raw;
-
-    if (args != null) {
-      // matched
-      final m = args['matched'];
-      if (m is bool) {
-        matched = m;
-      }
-
-      // score
-      final s = args['score'];
-      if (s is num) {
-        score = s.toDouble();
-      }
-
-      // raw (ตรวจแบบง่าย ๆ กัน type error)
-      final r = args['raw'];
-      if (r is Map) {
-        // cast ให้เป็น Map<String, dynamic> แบบปลอดภัย
-        raw = r.map((key, value) => MapEntry(key.toString(), value));
-      }
-    }
+    // ใช้เฉพาะข้อมูลสำหรับ retry (ไม่แสดง debug แล้ว)
 
     return Scaffold(
       backgroundColor: Colors.white,
@@ -155,9 +133,21 @@ class KycResultFailScreen extends StatelessWidget {
                           size: DsButtonSize.md,
                           variant: DsButtonVariant.primary,
                           onPressed: () {
-                            // กลับไปเริ่มที่หน้าสแกนบัตรใหม่
-                            Navigator.popUntil(context, (r) => r.isFirst);
-                            Navigator.pushNamed(context, '/face-scan');
+                            final cardBytes = args?['cardFaceBytes'];
+                            final fullName = args?['fullName'] as String?;
+                            final dob = args?['dob'] as DateTime?;
+                            final gender = args?['gender'] as String?;
+                            // ส่ง args เดิมกลับไปหน้า face-scan (ถ้ามี) เพื่อไม่ให้รูปจากบัตรหาย
+                            Navigator.pushReplacementNamed(
+                              context,
+                              '/face-scan',
+                              arguments: FaceScanArgs(
+                                cardFaceBytes: cardBytes is Uint8List ? cardBytes : null,
+                                fullName: fullName,
+                                dob: dob,
+                                gender: gender,
+                              ),
+                            );
                           },
                         ),
                       ),

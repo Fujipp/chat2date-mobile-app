@@ -610,7 +610,16 @@ class _FaceVerifyScreenAndroidState
         Navigator.pop(context);
       }
 
-      final resultArgs = {'matched': matched, 'score': score, 'raw': raw};
+      final resultArgs = {
+        'matched': matched,
+        'score': score,
+        'raw': raw,
+        // Preserve original face args for retry
+        'cardFaceBytes': faceArgs?.cardFaceBytes,
+        'fullName': faceArgs?.fullName,
+        'dob': faceArgs?.dob,
+        'gender': faceArgs?.gender,
+      };
 
       if (matched) {
         Navigator.pushReplacementNamed(
@@ -645,6 +654,11 @@ class _FaceVerifyScreenAndroidState
         'matched': false,
         'score': 0.0,
         'raw': {'error': e.toString()},
+        // Preserve original face args for retry on error
+        'cardFaceBytes': faceArgs?.cardFaceBytes,
+        'fullName': faceArgs?.fullName,
+        'dob': faceArgs?.dob,
+        'gender': faceArgs?.gender,
       };
 
       Navigator.pushReplacementNamed(
