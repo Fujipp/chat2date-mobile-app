@@ -31,7 +31,7 @@ class MatchSocketService {
     if (_client != null || _connecting) return;
     _connecting = true;
 
-    final wsUrl = '${ApiBase.websocketBase}/ws';
+    final wsUrl = '${ApiBase.websocketBase}${ApiBase.websocketPath}';
     print('[MatchSocket] connecting to $wsUrl');
     final headers = <String, String>{
       if (accessToken?.isNotEmpty == true) 'Authorization': 'Bearer $accessToken',

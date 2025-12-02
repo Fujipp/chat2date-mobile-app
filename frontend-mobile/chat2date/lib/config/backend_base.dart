@@ -10,6 +10,11 @@ class ApiBase {
     // defaultValue: 'http://10.250.103.196:8080/api/v1',
     defaultValue: 'http://cp25ssi2.sit.kmutt.ac.th:8080/api/v1',
   );
+  // อนุญาต override path ของ WebSocket เช่น '/ws' หรือ '/api/v1/ws'
+  static const String _wsPathDefined = String.fromEnvironment(
+    'WS_PATH',
+    defaultValue: '/api/v1/ws',
+  );
 
   static String get baseUrl {
     if (_defined.isNotEmpty) return _defined;
@@ -27,18 +32,13 @@ class ApiBase {
     if (_defined.startsWith('http')) {
       final uri = Uri.parse(_defined);
       final scheme = uri.scheme == 'https' ? 'wss' : 'ws';
-      // WebSocket endpoint ของ backend อยู่ที่ `/ws` (no /api/v1 prefix)
-      // ดังนั้นอย่าพก path จาก API_BASE มาด้วย ไม่งั้นจะกลายเป็น /api/v1/ws แล้ว 404
-      final wsUri = uri.replace(
+      // สร้าง URI ใหม่สำหรับ WebSocket โดยไม่พก path/query/fragment เพื่อหลีกเลี่ยง '?#/ws'
+      final wsUri = Uri(
         scheme: scheme,
-        path: '',
-        query: '',
-        fragment: '',
+        host: uri.host,
+        port: uri.hasPort ? uri.port : null,
       );
-
-      // ตัด '/' ท้ายออกถ้ามี
-      final base = wsUri.toString();
-      return base.endsWith('/') ? base.substring(0, base.length - 1) : base;
+      return wsUri.toString();
     }
 
     if (kIsWeb) {
@@ -57,5 +57,15 @@ class ApiBase {
     if (Platform.isIOS) return 'ws://127.0.0.1:8080';
     // return 'ws://10.250.103.196:8080';
     return 'ws://cp25ssi2.sit.kmutt.ac.th:8080';
+  }
+
+  // ให้ path สำหรับ WebSocket (configurable ผ่าน --dart-define=WS_PATH)
+  static String get websocketPath {
+    // normalize: ensure leading '/', no trailing '/'
+    var p = _wsPathDefined.trim();
+    if (p.isEmpty) p = '/ws';
+    if (!p.startsWith('/')) p = '/$p';
+    if (p.endsWith('/')) p = p.substring(0, p.length - 1);
+    return p;
   }
 }
