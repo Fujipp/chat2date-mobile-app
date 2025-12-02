@@ -23,7 +23,7 @@ public class DiscoveryController {
 
     @GetMapping("")
     public ResponseEntity<List<DiscoveryResponse>> getDiscovery(
-            @RequestParam(required = false, defaultValue = "1") @Min(0) int minDistance,
+            @RequestParam(required = false, defaultValue = "0") @Min(0) int minDistance,
             @RequestParam(required = false, defaultValue = "1800") @Min(0) int maxDistance,
             @RequestParam @NotBlank String userId
     ) {
