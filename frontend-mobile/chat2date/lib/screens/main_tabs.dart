@@ -1,4 +1,5 @@
 import 'package:chat2date/components/layout/menu_bar.dart';
+import 'package:chat2date/screens/chat/chat_screen.dart';
 import 'package:chat2date/screens/date/discovery_screen.dart';
 import 'package:chat2date/screens/menu/profile_screen.dart';
 import 'package:chat2date/screens/settings/settings_screen.dart';
@@ -28,7 +29,7 @@ class _MainTabsState extends State<MainTabs> {
       case 0:
         return DiscoveryScreen(key: _pageKeys[i], showBottomNav: false);
       case 1:
-        return _ChatPlaceholder(key: _pageKeys[i]);
+        return ChatScreen(key: _pageKeys[i], showBottomNav: false);
       case 2:
         return ProfileScreen(key: _pageKeys[i], showBottomNav: false);
       case 3:
@@ -38,7 +39,7 @@ class _MainTabsState extends State<MainTabs> {
     }
   }
 
-  late List<Widget> _pages = <Widget>[
+  late final List<Widget> _pages = <Widget>[
     _buildPage(0),
     _buildPage(1),
     _buildPage(2),
@@ -63,13 +64,5 @@ class _MainTabsState extends State<MainTabs> {
         },
       ),
     );
-  }
-}
-
-class _ChatPlaceholder extends StatelessWidget {
-  const _ChatPlaceholder({super.key});
-  @override
-  Widget build(BuildContext context) {
-    return const Scaffold(body: Center(child: Text('Chat will be here')));
   }
 }
