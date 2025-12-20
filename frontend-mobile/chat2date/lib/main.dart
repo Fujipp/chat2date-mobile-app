@@ -38,73 +38,74 @@ class MyApp extends StatelessWidget {
         navigatorKey: navigatorKey,
         initialRoute: '/home', //เวลาโค้ดเปลี่ยนเป็น path ตัวเองเอาไว้แสดง
         routes: {
-        //Test
-        '/test': (context) => const ComponentTestScreen(),
-        // '/test-match': (context) => const MatchSuccessScreen(
-        //   args: MatchSuccessArgs(
-        //     myName: 'คุณ',
-        //     partnerName: 'แมทช์',
-        //     myAvatarUrl: null,
-        //     partnerAvatarUrl: null,
-        //   ),
-        // ),
+          //Test
+          '/test': (context) => const ComponentTestScreen(),
+          // '/test-match': (context) => const MatchSuccessScreen(
+          //   args: MatchSuccessArgs(
+          //     myName: 'คุณ',
+          //     partnerName: 'แมทช์',
+          //     myAvatarUrl: null,
+          //     partnerAvatarUrl: null,
+          //   ),
+          // ),
 
-        //Amp
-        '/profileSetup': (context) => const ProfileSetupScreen(),
-        '/lifestylesSelection': (context) => LifestylesSelectionScreen(),
-        '/interestsSelection': (context) => InterestsSelectionScreen(),
-        '/tagsSelection': (context) => TagsSelectionScreen(),
-        '/matchPreference': (context) => MatchPreferenceScreen(),
-        '/userPicture': (context) => const UserPictureScreen(),
-        '/profile': (context) => const ProfileScreen(),
-        '/settings': (context) => const SettingsScreen(),
-        '/auth': (context) => const AuthCheckPage(),
+          //Amp
+          '/profileSetup': (context) => const ProfileSetupScreen(),
+          '/lifestylesSelection': (context) => LifestylesSelectionScreen(),
+          '/interestsSelection': (context) => InterestsSelectionScreen(),
+          '/tagsSelection': (context) => TagsSelectionScreen(),
+          '/matchPreference': (context) => MatchPreferenceScreen(),
+          '/userPicture': (context) => const UserPictureScreen(),
+          '/profile': (context) => const ProfileScreen(),
+          '/settings': (context) => const SettingsScreen(),
+          '/auth': (context) => const AuthCheckPage(),
+          '/chat': (context) => const ChatScreen(),
 
-        //Hutch
-        '/discovery': (context) => const DiscoveryScreen(),
-        '/main': (context) => const MainTabs(),
+          //Hutch
+          '/discovery': (context) => const DiscoveryScreen(),
+          '/main': (context) => const MainTabs(),
 
-        //Fuji
-        '/home': (context) => const HomeLoginPage(),
-        '/policy': (context) => const PolicyPage(),
-        '/phone': (context) => const PhonePage(),
-        '/otp': (context) => const OtpPage(),
-        '/kyc-id-ocr': (context) => const IdOcrScreen(),
-        '/face-scan': (context) => const FaceVerifyScreen(),
-        '/kyc-loading': (context) => const KycLoadingScreen(),
-        '/kyc-result-success': (context) => const KycResultSuccessScreen(),
-        '/kyc-result-fail': (context) => const KycResultFailScreen(),
+          //Fuji
+          '/home': (context) => const HomeLoginPage(),
+          '/policy': (context) => const PolicyPage(),
+          '/phone': (context) => const PhonePage(),
+          '/otp': (context) => const OtpPage(),
+          '/kyc-id-ocr': (context) => const IdOcrScreen(),
+          '/face-scan': (context) => const FaceVerifyScreen(),
+          '/kyc-loading': (context) => const KycLoadingScreen(),
+          '/kyc-result-success': (context) => const KycResultSuccessScreen(),
+          '/kyc-result-fail': (context) => const KycResultFailScreen(),
 
-        MatchSuccessScreen.routeName: (context) {
-          final args =
-              ModalRoute.of(context)!.settings.arguments as MatchSuccessArgs;
-          return MatchSuccessScreen(args: args);
+          MatchSuccessScreen.routeName: (context) {
+            final args =
+                ModalRoute.of(context)!.settings.arguments as MatchSuccessArgs;
+            return MatchSuccessScreen(args: args);
+          },
         },
-      },
-      // builder: (context, child) {
-      //   return Stack(
-      //     children: [
-      //       child ?? const SizedBox(),
-      //       Positioned(
-      //         right: 16,
-      //         bottom: 16,
-      //         child: FloatingActionButton(
-      //           onPressed: () {
-      //             final nav = navigatorKey.currentState!;
-      //             if (nav.canPop()) {
-      //                nav.pop(); // 🔹 ถ้ามีหน้าก่อนหน้า -> กลับ
-      //             } else {
-      //               nav.pushNamed('/test');
-      //             }
-      //           },
-      //           backgroundColor: Colors.blueAccent,
-      //           heroTag: 'globalTestBtn',
-      //           child: const Icon(Icons.help, color: Colors.white),
-      //         ),
-      //       ),
-      //     ],
-      //   );
-      // },
+        builder: (context, child) {
+          return Stack(
+            children: [
+              child ?? const SizedBox(),
+              Positioned(
+                right: 16,
+                bottom: 16,
+                child: FloatingActionButton(
+                  onPressed: () {
+                    final nav = navigatorKey.currentState!;
+                    if (nav.canPop()) {
+                      nav.pop(); // 🔹 ถ้ามีหน้าก่อนหน้า -> กลับ
+                    } else {
+                      nav.pushNamed('/test');
+                    }
+                  },
+                  backgroundColor: Colors.blueAccent,
+                  heroTag: 'globalTestBtn',
+                  child: const Icon(Icons.help, color: Colors.white),
+                ),
+              ),
+            ],
+          );
+        },
       ),
     );
   }
