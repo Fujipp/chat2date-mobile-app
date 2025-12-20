@@ -17,32 +17,40 @@ class ContentSwitcher extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
+      width: 332,
       height: 39,
       padding: const EdgeInsets.all(4),
       decoration: BoxDecoration(
         color: AppColors.neutralLight,
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(16),
       ),
       child: Row(
         children: List.generate(items.length, (index) {
           final isSelected = index == selectedIndex;
+
           return Expanded(
             child: GestureDetector(
               onTap: () => onChanged(index),
-              child: AnimatedContainer(
-                duration: const Duration(milliseconds: 200),
+              child: Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 8,
+                ),
                 decoration: BoxDecoration(
-                  color: isSelected ? AppColors.btnPrimary : null,
-                  borderRadius: BorderRadius.circular(16),
+                  color: isSelected
+                      ? const Color(0xFF5CE1E6)
+                      : Colors.transparent,
+                  borderRadius: BorderRadius.circular(12),
                 ),
                 alignment: Alignment.center,
                 child: Text(
-                  items[index],
+                  items[index].toUpperCase(),
                   textAlign: TextAlign.center,
                   style: TextStyle(
                     color: isSelected ? Colors.white : AppColors.inputText,
                     fontSize: 12,
                     fontWeight: FontWeight.w700,
+                    fontFamily: 'Inter',
                   ),
                 ),
               ),
