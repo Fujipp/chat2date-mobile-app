@@ -29,7 +29,7 @@ class _MainTabsState extends State<MainTabs> {
       case 0:
         return DiscoveryScreen(key: _pageKeys[i], showBottomNav: false);
       case 1:
-        return ChatScreen(key: _pageKeys[i], showBottomNav: false);
+        return ChatListScreen(key: _pageKeys[i], showBottomNav: false);
       case 2:
         return ProfileScreen(key: _pageKeys[i], showBottomNav: false);
       case 3:
