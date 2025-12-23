@@ -8,6 +8,7 @@ export 'auth/otp_page.dart';
 export 'auth/phone_page.dart';
 export 'auth/policy_page.dart';
 export 'chat/chat_list_screen.dart';
+export 'game/guessing_game_screen.dart';
 export 'component_test_screen.dart';
 export 'date/discovery_screen.dart';
 export 'home/home_login_page.dart';

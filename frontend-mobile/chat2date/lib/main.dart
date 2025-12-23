@@ -60,6 +60,7 @@ class MyApp extends StatelessWidget {
           '/settings': (context) => const SettingsScreen(),
           '/auth': (context) => const AuthCheckPage(),
           '/chatList': (context) => const ChatListScreen(),
+          '/guessingGame': (context) => const GuessingGameScreen(),
 
           //Hutch
           '/discovery': (context) => const DiscoveryScreen(),
