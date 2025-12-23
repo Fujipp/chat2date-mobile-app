@@ -6,16 +6,16 @@ import 'package:chat2date/screens/main_tabs.dart';
 import 'package:chat2date/theme/app_colors.dart';
 import 'package:flutter/material.dart';
 
-class ChatScreen extends StatefulWidget {
+class ChatListScreen extends StatefulWidget {
   final bool showBottomNav;
 
-  const ChatScreen({super.key, this.showBottomNav = true});
+  const ChatListScreen({super.key, this.showBottomNav = true});
 
   @override
-  State<ChatScreen> createState() => _ChatScreenState();
+  State<ChatListScreen> createState() => _ChatListScreenState();
 }
 
-class _ChatScreenState extends State<ChatScreen> {
+class _ChatListScreenState extends State<ChatListScreen> {
   int _selectedIndex = 1;
   int selectedIndex1 = 0;
 

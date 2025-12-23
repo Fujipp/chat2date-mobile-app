@@ -59,7 +59,7 @@ class MyApp extends StatelessWidget {
           '/profile': (context) => const ProfileScreen(),
           '/settings': (context) => const SettingsScreen(),
           '/auth': (context) => const AuthCheckPage(),
-          '/chat': (context) => const ChatScreen(),
+          '/chatList': (context) => const ChatListScreen(),
 
           //Hutch
           '/discovery': (context) => const DiscoveryScreen(),
