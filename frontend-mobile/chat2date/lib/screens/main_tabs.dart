@@ -1,5 +1,5 @@
 import 'package:chat2date/components/layout/menu_bar.dart';
-import 'package:chat2date/screens/chat/chat_screen.dart';
+import 'package:chat2date/screens/chat/chat_list_screen.dart';
 import 'package:chat2date/screens/date/discovery_screen.dart';
 import 'package:chat2date/screens/menu/profile_screen.dart';
 import 'package:chat2date/screens/settings/settings_screen.dart';
