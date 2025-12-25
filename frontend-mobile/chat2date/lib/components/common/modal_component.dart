@@ -26,6 +26,7 @@ class ModalComponent extends StatefulWidget {
   //space หัวท้ายเพื่อความสวยงาม
   final double spaceTop;
   final double spaceBottom;
+  final double width;
 
   //มี choice
   final bool? choice;
@@ -65,6 +66,7 @@ class ModalComponent extends StatefulWidget {
     //มี space หัวท้าย
     this.spaceTop = 0,
     this.spaceBottom = 0,
+    this.width = 310,
 
     //มี choice
     this.choice = false,
@@ -110,7 +112,7 @@ class _ModalComponentState extends State<ModalComponent> {
       alignment: Alignment.center,
       child: Container(
         padding: const EdgeInsets.all(10),
-        width: 310,
+        width: widget.width,
         decoration: ShapeDecoration(
           color: Colors.white,
           shape: RoundedRectangleBorder(

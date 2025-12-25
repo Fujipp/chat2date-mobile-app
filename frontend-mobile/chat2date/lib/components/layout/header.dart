@@ -10,6 +10,8 @@ class Header extends StatelessWidget {
   final bool showSpinwait;
   final bool showFlag;
   final bool showOptions;
+  final bool showAvatar;
+  final bool showBorder;
   final VoidCallback? onBack;
   final VoidCallback? onCalendar;
   final VoidCallback? onSettings;
@@ -19,11 +21,13 @@ class Header extends StatelessWidget {
     super.key,
     required this.name,
     this.avatarUrl,
+    this.showAvatar = true,
     this.showCalendar = false,
     this.showSpinwheel = false,
     this.showSpinwait = false,
     this.showOptions = false,
     this.showFlag = false,
+    this.showBorder = true,
     this.onBack,
     this.onCalendar,
     this.onSettings,
@@ -34,9 +38,11 @@ class Header extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+      height: showAvatar ? null : 85,
+      width: double.infinity,
       decoration: BoxDecoration(
         color: Colors.white,
-        border: Border(bottom: BorderSide(color: Colors.grey[300]!)),
+        border: showBorder ? Border(bottom: BorderSide(color: Colors.grey[300]!)) : null,
       ),
       child: Stack(
         alignment: Alignment.center,
@@ -45,6 +51,7 @@ class Header extends StatelessWidget {
           Column(
             mainAxisSize: MainAxisSize.min,
             children: [
+              if (showAvatar)
               CircleAvatar(
                 radius: 20,
                 backgroundColor: Colors.grey[300],
