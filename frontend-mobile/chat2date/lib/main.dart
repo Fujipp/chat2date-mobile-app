@@ -76,6 +76,7 @@ class MyApp extends StatelessWidget {
           '/kyc-loading': (context) => const KycLoadingScreen(),
           '/kyc-result-success': (context) => const KycResultSuccessScreen(),
           '/kyc-result-fail': (context) => const KycResultFailScreen(),
+          '/chat': (context) => const InsideChatScreen(),
 
           MatchSuccessScreen.routeName: (context) {
             final args =
