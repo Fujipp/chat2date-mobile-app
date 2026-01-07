@@ -16,6 +16,25 @@ class InsideChatScreen extends StatefulWidget {
 class _InsideChatScreenState extends State<InsideChatScreen> {
   final TextEditingController _messageController = TextEditingController();
   bool _hasText = false;
+  bool _isWheelShowing = false;
+  final double _currentPercent = 0.45; // สมมติค่าเริ่มต้น
+  final int _heartCount = 1;
+
+  @override
+  void initState() {
+    super.initState();
+    // เรียกเช็คทันทีที่เข้าหน้านี้
+    _checkSpinWheelCondition();
+  }
+
+  void _checkSpinWheelCondition() {
+    // เงื่อนไข: หลอดเต็ม (1.0) หรือ หัวใจครบตามที่กำหนด (เช่น 3 ดวง)
+    if (_currentPercent >= 1.0 || _heartCount >= 1) {
+      setState(() {
+        _isWheelShowing = true;
+      });
+    }
+  }
 
   @override
   void dispose() {
@@ -36,17 +55,20 @@ class _InsideChatScreenState extends State<InsideChatScreen> {
               showFlag: true,
               showBorder: false,
               onBack: () => Navigator.maybePop(context),
-              onFlag: () {},
+              showSpinwheel: _isWheelShowing,
+              onFlag: () {
+                Navigator.pushReplacementNamed(context, '/report');
+              },
             ),
             const SizedBox(height: 12),
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 20),
               child: LayoutBuilder(
                 builder: (context, constraints) {
-                  final double barWidth =
-                      (constraints.maxWidth - 25 - 20).clamp(140, 260);
+                  final double barWidth = (constraints.maxWidth - 25 - 20)
+                      .clamp(140, 260);
                   return ScoreRow(
-                    basePercent: 0.45,
+                    basePercent: _currentPercent,
                     number: 0,
                     barWidth: barWidth,
                     barHeight: 8,
@@ -156,7 +178,8 @@ class _InsideChatScreenState extends State<InsideChatScreen> {
               sendIconBackgroundColor: AppColors.surfaceLight,
               isSendEnabled: _hasText,
               controller: _messageController,
-              onChanged: (value) => setState(() => _hasText = value.trim().isNotEmpty),
+              onChanged: (value) =>
+                  setState(() => _hasText = value.trim().isNotEmpty),
               onSend: () {},
             ),
           ],

@@ -16,6 +16,7 @@ class Header extends StatelessWidget {
   final VoidCallback? onCalendar;
   final VoidCallback? onSettings;
   final VoidCallback? onFlag;
+  final VoidCallback? onSpinwheel;
 
   const Header({
     super.key,
@@ -32,6 +33,7 @@ class Header extends StatelessWidget {
     this.onCalendar,
     this.onSettings,
     this.onFlag,
+    this.onSpinwheel
   });
 
   @override
@@ -115,7 +117,7 @@ class Header extends StatelessWidget {
                 ],
                 if (showSpinwheel) ...[
                   InkWell(
-                    onTap: onSettings,
+                    onTap: onSpinwheel,
                     child: SizedBox(
                       width: 30,
                       height: 30,
@@ -130,7 +132,7 @@ class Header extends StatelessWidget {
                 ],
                 if (showSpinwait) ...[
                   InkWell(
-                    onTap: onSettings,
+                    onTap: onSpinwheel,
                     child: SizedBox(
                       width: 30,
                       height: 30,

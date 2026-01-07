@@ -10,9 +10,17 @@ class ImageUploadGrid extends StatefulWidget {
   final double spacing;
   final double runSpacing;
   final List<String> imageUser;
+  final int maxImages;
+  final double itemWidth;
+  final double itemHeight;
+  final bool isHorizontal;
 
   const ImageUploadGrid({
     super.key,
+    this.isHorizontal = false,
+    this.maxImages = 6,
+    this.itemWidth = 119,
+    this.itemHeight = 120,
     this.onImagesChanged,
     this.spacing = 12.0,
     this.runSpacing = 50.0,
@@ -25,7 +33,7 @@ class ImageUploadGrid extends StatefulWidget {
 }
 
 class _ImageUploadGridState extends State<ImageUploadGrid> {
-  late List<dynamic> _images = List.filled(6, null);
+  late List<dynamic> _images = List.filled(widget.maxImages, null);
   final ImagePicker _picker = ImagePicker();
 
   @override
@@ -63,7 +71,7 @@ class _ImageUploadGridState extends State<ImageUploadGrid> {
         ? _images.whereType<XFile>().toList()
         : <XFile>[];
 
-    final List<dynamic> nextImages = List<dynamic>.filled(6, null);
+    final List<dynamic> nextImages = List<dynamic>.filled(widget.maxImages, null);
     int slot = 0;
 
     for (final url in serverPhotos) {
@@ -194,7 +202,7 @@ class _ImageUploadGridState extends State<ImageUploadGrid> {
       context: context,
       builder: (ctx) => AlertDialog(
         title: const Text('เต็มแล้ว'),
-        content: const Text('คุณเลือกรูปครบ 6 รูปแล้ว กรุณาลบรูปเก่าออกก่อน'),
+        content: Text('คุณเลือกรูปครบ ${widget.maxImages} รูปแล้ว กรุณาลบรูปเก่าออกก่อน'),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
@@ -246,12 +254,12 @@ class _ImageUploadGridState extends State<ImageUploadGrid> {
     final screenWidth = MediaQuery.of(context).size.width;
     final bool isTablet = screenWidth > 600;
 
-    double itemWidth = 119;
-    double itemHeight = 120;
+    double itemWidth = widget.itemWidth;
+    double itemHeight = widget.itemHeight;
     double iconSize = 32;
-    double internalPadding = 40;
-    double spacing = widget.spacing;
-    double runSpacing = widget.runSpacing;
+    double internalPadding = widget.isHorizontal ? 0 : 40;
+    double spacing = widget.isHorizontal ? 36.7 : widget.spacing;
+    double runSpacing = widget.isHorizontal ? 16.0 : widget.runSpacing;
 
     if (isTablet) {
       itemWidth = 180;
@@ -262,7 +270,7 @@ class _ImageUploadGridState extends State<ImageUploadGrid> {
       runSpacing = 70;
     }
 
-    const int crossAxisCount = 2;
+    final int crossAxisCount = widget.isHorizontal ? 3 : 2;
     final double calculatedWidth =
         (itemWidth * crossAxisCount) + (spacing * (crossAxisCount - 1));
 
@@ -273,7 +281,7 @@ class _ImageUploadGridState extends State<ImageUploadGrid> {
           spacing: spacing,
           runSpacing: runSpacing,
           alignment: WrapAlignment.start,
-          children: List.generate(6, (index) {
+          children: List.generate(widget.maxImages, (index) {
             final image = _images[index];
             Widget content;
 
