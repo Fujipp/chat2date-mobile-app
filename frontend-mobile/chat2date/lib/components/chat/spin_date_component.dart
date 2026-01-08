@@ -10,7 +10,9 @@ class SpinDateComponent extends StatefulWidget {
   final int indexMode;
   final String? firstPersonName;
   final String? secondPersonName;
-  final int     indexSelected;
+  final int indexSelected;
+  final VoidCallback? onCloseModal;
+  final VoidCallback? onRefreshSpin;
 
   const SpinDateComponent({
     super.key,
@@ -19,6 +21,8 @@ class SpinDateComponent extends StatefulWidget {
     this.indexSelected = 1,
     this.firstPersonName = "jack",
     this.secondPersonName = "susie",
+    this.onCloseModal,
+    this.onRefreshSpin,
   });
 
   @override
@@ -66,10 +70,19 @@ class _SpinDateComponentState extends State<SpinDateComponent> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              SvgPicture.asset(
-                "assets/icons/icon_refresh.svg",
-                width: 31,
-                height: 31,
+              InkWell(
+                onTap: widget.onRefreshSpin, // เรียกฟังก์ชันรีเซ็ต
+                borderRadius: BorderRadius.circular(20),
+                child: Padding(
+                  padding: const EdgeInsets.all(
+                    8.0,
+                  ), // เพิ่มพื้นที่ให้กดง่ายขึ้น
+                  child: SvgPicture.asset(
+                    "assets/icons/icon_refresh.svg",
+                    width: 31,
+                    height: 31,
+                  ),
+                ),
               ),
               const Text(
                 'SPIN TO CHOOSE',
@@ -79,16 +92,27 @@ class _SpinDateComponentState extends State<SpinDateComponent> {
                   fontWeight: FontWeight.bold,
                 ),
               ),
-              SvgPicture.asset("assets/icons/icon_close.svg", width: 21, height: 21),
+              InkWell(
+                onTap: widget.onCloseModal, // เรียกฟังก์ชันปิด Modal
+                borderRadius: BorderRadius.circular(20),
+                child: Padding(
+                  padding: const EdgeInsets.all(8.0),
+                  child: SvgPicture.asset(
+                    "assets/icons/icon_close.svg",
+                    width: 21,
+                    height: 21,
+                  ),
+                ),
+              ),
             ],
           ),
           const SizedBox(height: 20),
           if (indexing == 0)
             NameSwitcher(
-            items: [firstName!, secondName!],
-            selectedIndex: selectedIndex,
-            onChanged: (index) => setState(() => selectedIndex = index),
-          ),
+              items: [firstName!, secondName!],
+              selectedIndex: selectedIndex,
+              onChanged: (index) => setState(() => selectedIndex = index),
+            ),
           const SizedBox(height: 20),
           CustomPaint(
             size: const Size(231.82, 224.51),
