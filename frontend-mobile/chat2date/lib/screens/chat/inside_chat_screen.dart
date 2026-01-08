@@ -1,13 +1,14 @@
 import 'dart:ui';
 
+import 'package:chat2date/components/chat/bot_message_component.dart';
 import 'package:chat2date/components/chat/chat_text_component.dart';
 import 'package:chat2date/components/chat/input_chat_component.dart';
 import 'package:chat2date/components/chat/spin_date_component.dart';
 import 'package:chat2date/components/layout/header.dart';
 import 'package:chat2date/components/status_bar/score_row.dart';
+import 'package:chat2date/models/chat_message.dart';
 import 'package:chat2date/theme/app_colors.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_svg/flutter_svg.dart';
 
 class InsideChatScreen extends StatefulWidget {
   const InsideChatScreen({super.key});
@@ -20,16 +21,43 @@ class _InsideChatScreenState extends State<InsideChatScreen> {
   final TextEditingController _messageController = TextEditingController();
   bool _hasText = false;
   bool _isWheelShowing = false;
-  final double _currentPercent = 0.45; // สมมติค่าเริ่มต้น
-  final int _heartCount = 1;
+  final double _currentPercent = 0.35; // 90px / 255px ≈ 0.35 ตาม Figma
+  final int _heartCount = 1; // 0 = ซ่อน, 1-2 = แสดง, 3 = rainbow
   bool _showWheelModal = false;
   bool _showUnlockDate = false;
+  
+  // ตัวอย่างข้อความแชทตาม Figma designs
+  late List<ChatMessage> _messages;
 
   @override
   void initState() {
     super.initState();
-    // เรียกเช็คทันทีที่เข้าหน้านี้
     _checkSpinWheelCondition();
+    _initSampleMessages();
+  }
+  
+  void _initSampleMessages() {
+    _messages = [
+      // ข้อความปกติ
+      ChatMessage.sent(
+        id: '1',
+        text: 'text message',
+        isSeen: false,
+      ),
+      ChatMessage.received(
+        id: '2',
+        text: 'text message',
+      ),
+      ChatMessage.received(
+        id: '3',
+        text: 'text message',
+      ),
+      ChatMessage.sent(
+        id: '4',
+        text: 'text message',
+        isSeen: true,
+      ),
+    ];
   }
 
   void _checkSpinWheelCondition() {
@@ -40,20 +68,59 @@ class _InsideChatScreenState extends State<InsideChatScreen> {
       });
     }
   }
-
-  void _triggerUnlockDate() {
-    setState(() {
-      _showUnlockDate = true;
-    });
-
-    // นับถอยหลัง 5 วินาทีแล้วปิด
-    Future.delayed(const Duration(seconds: 5), () {
-      if (mounted) {
-        setState(() {
-          _showUnlockDate = false;
-        });
-      }
-    });
+  
+  /// สร้าง Widget สำหรับแต่ละ message
+  Widget _buildMessageWidget(ChatMessage message, int index) {
+    // Bot message
+    if (message.isBot && message.botType != null) {
+      return BotMessageComponent.fromMessage(
+        message: message,
+        onActionPressed: () {
+          // Handle action button press
+          debugPrint('Action pressed for message: ${message.id}');
+        },
+        onFirstChoice: () {
+          // Handle "ใช่" choice
+          debugPrint('First choice (ใช่) for message: ${message.id}');
+        },
+        onSecondChoice: () {
+          // Handle "ไม่" choice
+          debugPrint('Second choice (ไม่) for message: ${message.id}');
+        },
+      );
+    }
+    
+    // User message (sent/received)
+    return Column(
+      crossAxisAlignment: message.isOwn 
+          ? CrossAxisAlignment.end 
+          : CrossAxisAlignment.start,
+      children: [
+        ChatTextComponent(
+          text: message.text,
+          isChatRight: message.isOwn,
+          // Received message ใช้ avatar ด้านซ้าย
+          imagePath: !message.isOwn && index > 0 && _messages[index - 1].isOwn 
+              ? 'assets/images/figma/avatar_placeholder.png' 
+              : null,
+          bottomLeftRadius: message.isOwn ? 20 : 0,
+          bottomRightRadius: message.isOwn ? 0 : 20,
+        ),
+        // แสดง "เห็นแล้ว" สำหรับข้อความที่ส่งและถูกอ่านแล้ว
+        if (message.isOwn && message.isSeen)
+          Padding(
+            padding: const EdgeInsets.only(top: 4),
+            child: StatusTextComponent(
+              text: 'เห็นแล้ว',
+              textColor: AppColors.textMuted,
+              textSize: 10,
+              isMiddle: false,
+              svgPath: 'assets/icons/icon_seen.svg',
+              size: 12,
+            ),
+          ),
+      ],
+    );
   }
 
   @override
@@ -76,14 +143,19 @@ class _InsideChatScreenState extends State<InsideChatScreen> {
                 Header(
                   name: 'Name',
                   showFlag: true,
+                  showHeart: true,
                   showBorder: false,
                   onBack: () => Navigator.maybePop(context),
-                  showSpinwheel: _isWheelShowing,
-                  onSpinwheel: () {
-                    setState(() {
-                      _showWheelModal = true; // ✅ กดแล้วเปิดวงล้อ
-                    });
-                  },
+                  showSpinCooldown: true,
+                  cooldownDays: 7,
+                  isSpinCooldownEnabled: _isWheelShowing,
+                  onSpinwheel: _isWheelShowing
+                      ? () {
+                          setState(() {
+                            _showWheelModal = true; // ✅ กดแล้วเปิดวงล้อ
+                          });
+                        }
+                      : null,
                   onFlag: () {
                     Navigator.pushReplacementNamed(context, '/report');
                   },
@@ -122,15 +194,16 @@ class _InsideChatScreenState extends State<InsideChatScreen> {
                         ),
                       ),
                       Expanded(
-                        child: ListView(
+                        child: ListView.builder(
                           padding: const EdgeInsets.fromLTRB(20, 12, 20, 12),
-                          children: [
-                            ChatTextComponent(
-                              text: 'text message',
-                              isChatRight: true,
-                            ),
-                            // ... ข้อความอื่นๆ ...
-                          ],
+                          itemCount: _messages.length,
+                          itemBuilder: (context, index) {
+                            final message = _messages[index];
+                            return Padding(
+                              padding: const EdgeInsets.only(bottom: 12),
+                              child: _buildMessageWidget(message, index),
+                            );
+                          },
                         ),
                       ),
                       InputChatComponent(

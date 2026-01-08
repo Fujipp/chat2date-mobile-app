@@ -2,6 +2,25 @@ import 'package:chat2date/theme/app_colors.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/svg.dart';
 
+/// Chat Header Variants ตาม Figma:
+/// - Chat 1: Back + Avatar + Name + Flag (พื้นฐาน)
+/// - Chat 2: Chat 1 + Calendar + Spinwheel + Heart (ไม่มี cooldown)
+/// - Chat 3: Chat 2 + Cooldown number on spinwheel (enabled)
+/// - Chat 4: Chat 3 แต่ spinwheel disabled (greyed)
+enum ChatHeaderVariant {
+  /// Chat 1: แค่ปุ่ม Back, Avatar, Name, Flag
+  chat1,
+  
+  /// Chat 2: + Calendar, Spinwheel, Heart (ไม่มี cooldown number)
+  chat2,
+  
+  /// Chat 3: + Cooldown number บน spinwheel (enabled, สีสัน)
+  chat3,
+  
+  /// Chat 4: + Cooldown number บน spinwheel (disabled, สีเทา)
+  chat4,
+}
+
 class Header extends StatelessWidget {
   final String name;
   final String? avatarUrl;
@@ -10,8 +29,15 @@ class Header extends StatelessWidget {
   final bool showSpinwait;
   final bool showFlag;
   final bool showOptions;
+  final bool showHeart;
   final bool showAvatar;
   final bool showBorder;
+  // Spinwheel cooldown (Chat 3/4)
+  final bool showSpinCooldown;
+  final int? cooldownDays;
+  final bool isSpinCooldownEnabled;
+  // Variant for quick setup
+  final ChatHeaderVariant? variant;
   final VoidCallback? onBack;
   final VoidCallback? onCalendar;
   final VoidCallback? onSettings;
@@ -26,9 +52,14 @@ class Header extends StatelessWidget {
     this.showCalendar = false,
     this.showSpinwheel = false,
     this.showSpinwait = false,
+    this.showSpinCooldown = false,
+    this.cooldownDays,
+    this.isSpinCooldownEnabled = true,
     this.showOptions = false,
     this.showFlag = false,
+    this.showHeart = false,
     this.showBorder = true,
+    this.variant,
     this.onBack,
     this.onCalendar,
     this.onSettings,
@@ -36,146 +67,283 @@ class Header extends StatelessWidget {
     this.onSpinwheel
   });
 
+  /// Factory สร้าง Header จาก ChatHeaderVariant
+  factory Header.fromVariant({
+    required ChatHeaderVariant variant,
+    required String name,
+    String? avatarUrl,
+    int? cooldownDays,
+    VoidCallback? onBack,
+    VoidCallback? onCalendar,
+    VoidCallback? onSpinwheel,
+    VoidCallback? onFlag,
+    VoidCallback? onSettings,
+    bool showBorder = false,
+  }) {
+    switch (variant) {
+      case ChatHeaderVariant.chat1:
+        return Header(
+          name: name,
+          avatarUrl: avatarUrl,
+          showFlag: true,
+          showBorder: showBorder,
+          variant: variant,
+          onBack: onBack,
+          onFlag: onFlag,
+        );
+      case ChatHeaderVariant.chat2:
+        return Header(
+          name: name,
+          avatarUrl: avatarUrl,
+          showCalendar: true,
+          showSpinwheel: true,
+          showHeart: true,
+          showFlag: true,
+          showBorder: showBorder,
+          variant: variant,
+          onBack: onBack,
+          onCalendar: onCalendar,
+          onSpinwheel: onSpinwheel,
+          onFlag: onFlag,
+        );
+      case ChatHeaderVariant.chat3:
+        return Header(
+          name: name,
+          avatarUrl: avatarUrl,
+          showCalendar: true,
+          showSpinCooldown: true,
+          cooldownDays: cooldownDays ?? 7,
+          isSpinCooldownEnabled: true,
+          showHeart: true,
+          showFlag: true,
+          showBorder: showBorder,
+          variant: variant,
+          onBack: onBack,
+          onCalendar: onCalendar,
+          onSpinwheel: onSpinwheel,
+          onFlag: onFlag,
+        );
+      case ChatHeaderVariant.chat4:
+        return Header(
+          name: name,
+          avatarUrl: avatarUrl,
+          showCalendar: true,
+          showSpinCooldown: true,
+          cooldownDays: cooldownDays ?? 7,
+          isSpinCooldownEnabled: false,
+          showHeart: true,
+          showFlag: true,
+          showBorder: showBorder,
+          variant: variant,
+          onBack: onBack,
+          onCalendar: onCalendar,
+          onFlag: onFlag,
+        );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
-      height: showAvatar ? null : 85,
+      height: 85,
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 12),
       width: double.infinity,
       decoration: BoxDecoration(
         color: Colors.white,
         border: showBorder ? Border(bottom: BorderSide(color: Colors.grey[300]!)) : null,
       ),
-      child: Stack(
-        alignment: Alignment.center,
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          // Avatar + Name อยู่กึ่งกลางเสมอ
+          InkWell(
+            onTap: onBack ?? () => Navigator.pop(context),
+            child: Container(
+              width: 45,
+              height: 45,
+              decoration: const BoxDecoration(
+                color: AppColors.btnPrimary,
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(
+                Icons.arrow_back,
+                color: Colors.white,
+                size: 22,
+              ),
+            ),
+          ),
+          const Spacer(),
           Column(
             mainAxisSize: MainAxisSize.min,
             children: [
               if (showAvatar)
-              CircleAvatar(
-                radius: 20,
-                backgroundColor: Colors.grey[300],
-                backgroundImage: avatarUrl != null
-                    ? NetworkImage(avatarUrl!)
-                    : null,
-                child: avatarUrl == null
-                    ? const Icon(Icons.person, color: Colors.white, size: 30)
-                    : null,
-              ),
-              const SizedBox(height: 4),
+                Container(
+                  width: 50,
+                  height: 50,
+                  decoration: BoxDecoration(
+                    color: Colors.grey[300],
+                    shape: BoxShape.circle,
+                  ),
+                  clipBehavior: Clip.antiAlias,
+                  child: avatarUrl != null
+                      ? Image.network(avatarUrl!, fit: BoxFit.cover)
+                      : const Icon(Icons.person, color: Colors.white, size: 32),
+                ),
+              if (showAvatar) const SizedBox(height: 4),
               Text(
                 name,
                 style: const TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w600,
+                  fontSize: 14,
+                  fontWeight: FontWeight.w700,
+                  height: 1.0,
+                  fontFamily: 'Inter',
+                  color: AppColors.textPrimary,
                 ),
               ),
             ],
           ),
-
-          Positioned(
-            left: 0,
-            child: InkWell(
-              onTap: onBack ?? () => Navigator.pop(context),
-              child: Container(
-                width: 40,
-                height: 40,
-                decoration: const BoxDecoration(
-                  color: AppColors.brandSecondary,
-                  shape: BoxShape.circle,
+          const Spacer(),
+          Row(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              if (showCalendar) ...[
+                InkWell(
+                  onTap: onCalendar,
+                  child: SvgPicture.asset(
+                    'assets/icons/icon_calendar.svg',
+                    width: 20,
+                    height: 20,
+                  ),
                 ),
-                child: const Icon(
-                  Icons.arrow_back,
-                  color: Colors.white,
-                  size: 20,
-                ),
-              ),
-            ),
-          ),
-
-          Positioned(
-            right: 0,
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                if (showCalendar) ...[
-                  InkWell(
-                    onTap: onCalendar,
-                    child: SizedBox(
-                      width: 20,
-                      height: 20,
-                      child: SvgPicture.asset(
-                        'assets/icons/icon_calendar.svg',
-                        width: 20,
-                        height: 20,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                ],
-                if (showSpinwheel) ...[
-                  InkWell(
-                    onTap: onSpinwheel,
-                    child: SizedBox(
-                      width: 30,
-                      height: 30,
-                      child: SvgPicture.asset(
-                        'assets/icons/icon_spinwheel.svg',
-                        width: 30,
-                        height: 30,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                ],
-                if (showSpinwait) ...[
-                  InkWell(
-                    onTap: onSpinwheel,
-                    child: SizedBox(
-                      width: 30,
-                      height: 30,
-                      child: SvgPicture.asset(
-                        'assets/icons/icon_spinwheel_7.svg',
-                        width: 30,
-                        height: 30,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                ],
-                if (showFlag)
-                  InkWell(
-                    onTap: onFlag,
-                    child: SizedBox(
-                      width: 20,
-                      height: 20,
-                      child: SvgPicture.asset(
-                        'assets/icons/icon_report.svg',
-                        width: 20,
-                        height: 20,
-                      ),
-                    ),
-                  ),
-                if (showOptions)
-                  InkWell(
-                    onTap: onFlag,
-                    child: SizedBox(
-                      width: 30,
-                      height: 20,
-                      child: Icon(
-                        Icons.more_horiz,
-                        size: 30,
-                        color: AppColors.error,
-                      ),
-                    ),
-                  ),
+                const SizedBox(width: 8),
               ],
+              if (showSpinwheel) ...[
+                InkWell(
+                  onTap: onSpinwheel,
+                  child: SvgPicture.asset(
+                    'assets/icons/icon_spinwheel.svg',
+                    width: 25,
+                    height: 25,
+                  ),
+                ),
+                const SizedBox(width: 8),
+              ],
+              if (showSpinwait) ...[
+                InkWell(
+                  onTap: onSpinwheel,
+                  child: SvgPicture.asset(
+                    'assets/icons/icon_spinwheel_7.svg',
+                    width: 25,
+                    height: 25,
+                  ),
+                ),
+                const SizedBox(width: 8),
+              ],
+              if (showSpinCooldown && cooldownDays != null) ...[
+                _CooldownSpinwheelIcon(
+                  days: cooldownDays!,
+                  enabled: isSpinCooldownEnabled,
+                  onTap: isSpinCooldownEnabled ? onSpinwheel : null,
+                ),
+                const SizedBox(width: 8),
+              ],
+              if (showFlag) ...[
+                InkWell(
+                  onTap: onFlag,
+                  child: SvgPicture.asset(
+                    'assets/icons/icon_report.svg',
+                    width: 21,
+                    height: 21,
+                  ),
+                ),
+                const SizedBox(width: 8),
+              ],
+              if (showHeart)
+                InkWell(
+                  onTap: onSettings,
+                  child: SvgPicture.asset(
+                    'assets/icons/icon_heart_active.svg',
+                    width: 25,
+                    height: 25,
+                  ),
+                ),
+              if (showOptions)
+                InkWell(
+                  onTap: onFlag,
+                  child: const SizedBox(
+                    width: 30,
+                    height: 20,
+                    child: Icon(
+                      Icons.more_horiz,
+                      size: 30,
+                      color: AppColors.error,
+                    ),
+                  ),
+                ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _CooldownSpinwheelIcon extends StatelessWidget {
+  final int days;
+  final bool enabled;
+  final VoidCallback? onTap;
+
+  const _CooldownSpinwheelIcon({
+    required this.days,
+    required this.enabled,
+    this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final Widget icon = SizedBox(
+      width: 31,
+      height: 31,
+      child: Stack(
+        alignment: Alignment.center,
+        children: [
+          SvgPicture.asset(
+            enabled
+                ? 'assets/icons/icon_spinwheel.svg'
+                : 'assets/icons/icon_spinwheel_7.svg',
+            width: 25,
+            height: 25,
+            color: enabled ? null : AppColors.textMuted,
+          ),
+          Container(
+            width: 16,
+            height: 16,
+            decoration: BoxDecoration(
+              color: enabled ? AppColors.btnPrimary : AppColors.textSecondary,
+              shape: BoxShape.circle,
+            ),
+            alignment: Alignment.center,
+            child: Text(
+              days.toString(),
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 10,
+                fontWeight: FontWeight.w700,
+                height: 1.0,
+              ),
             ),
           ),
         ],
       ),
+    );
+
+    if (!enabled || onTap == null) {
+      return icon;
+    }
+
+    return InkWell(
+      onTap: onTap,
+      child: icon,
     );
   }
 }
