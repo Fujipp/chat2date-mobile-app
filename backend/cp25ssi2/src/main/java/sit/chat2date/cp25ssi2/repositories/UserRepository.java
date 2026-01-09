@@ -53,8 +53,7 @@ public interface UserRepository extends JpaRepository<User, String> {
             @Param("limit") int limit
     );
 
-    @Query(
-            value = """
+    @Query(value = """
         SELECT DISTINCT u.*
         FROM user u
         JOIN userlocation loc ON u.userId = loc.userId
@@ -105,18 +104,36 @@ public interface UserRepository extends JpaRepository<User, String> {
           ) BETWEEN :minDistance AND :maxDistance
           AND TIMESTAMPDIFF(YEAR, u.birthday, CURDATE()) BETWEEN :minAge AND :maxAge
 
-          -- Filter ตาม preference
-          AND (:travelPref != 'SAME' OR travel.commonTravelStyles >= CEIL(:userTravelCount * 0.5))
-          AND (:lifestylePref != 'SAME' OR lifestyle.commonLifestyles >= CEIL(:userLifestyleCount * 0.5))
-          AND (:interestPref != 'SAME' OR interest.commonInterests >= CEIL(:userInterestCount * 0.5))
-          AND (:travelPref != 'UNRELATED' OR IFNULL(travel.commonTravelStyles, 0) = 0)
-          AND (:lifestylePref != 'UNRELATED' OR IFNULL(lifestyle.commonLifestyles, 0) = 0)
-          AND (:interestPref != 'UNRELATED' OR IFNULL(interest.commonInterests, 0) = 0)
+          -- ✅ Travel Style (2-3 อัน): SAME = ตรงทั้งหมด (2/2 หรือ 3/3), NEARLY = ตรงบางส่วน, UNRELATED = ตรง 0 อัน
+          AND (
+            :travelPref = 'UNNECESSARY'
+            OR (:travelPref = 'SAME' AND IFNULL(travel.commonTravelStyles, 0) = :userTravelCount)
+            OR (:travelPref = 'NEARLY' AND IFNULL(travel.commonTravelStyles, 0) > 0 
+                AND IFNULL(travel.commonTravelStyles, 0) < :userTravelCount)
+            OR (:travelPref = 'UNRELATED' AND IFNULL(travel.commonTravelStyles, 0) = 0)
+          )
+
+          -- ✅ Lifestyle (3-5 อัน): SAME = ตรงทั้งหมด, NEARLY = ตรงบางส่วน, UNRELATED = ตรง 0 อัน
+          AND (
+            :lifestylePref = 'UNNECESSARY'
+            OR (:lifestylePref = 'SAME' AND IFNULL(lifestyle.commonLifestyles, 0) = :userLifestyleCount)
+            OR (:lifestylePref = 'NEARLY' AND IFNULL(lifestyle.commonLifestyles, 0) > 0 
+                AND IFNULL(lifestyle.commonLifestyles, 0) < :userLifestyleCount)
+            OR (:lifestylePref = 'UNRELATED' AND IFNULL(lifestyle.commonLifestyles, 0) = 0)
+          )
+
+          -- ✅ Interest (3-5 อัน): SAME = ตรงทั้งหมด, NEARLY = ตรงบางส่วน, UNRELATED = ตรง 0 อัน
+          AND (
+            :interestPref = 'UNNECESSARY'
+            OR (:interestPref = 'SAME' AND IFNULL(interest.commonInterests, 0) = :userInterestCount)
+            OR (:interestPref = 'NEARLY' AND IFNULL(interest.commonInterests, 0) > 0 
+                AND IFNULL(interest.commonInterests, 0) < :userInterestCount)
+            OR (:interestPref = 'UNRELATED' AND IFNULL(interest.commonInterests, 0) = 0)
+          )
 
         ORDER BY RAND()
         LIMIT :limit
-      """,
-            nativeQuery = true)
+      """, nativeQuery = true)
     List<User> findCandidatesWithPreference(
             @Param("currentUserId") String currentUserId,
             @Param("myLat") double myLat,
