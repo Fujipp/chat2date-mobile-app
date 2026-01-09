@@ -25,7 +25,7 @@ class _InsideChatScreenState extends State<InsideChatScreen> {
   final int _heartCount = 1; // 0 = ซ่อน, 1-2 = แสดง, 3 = rainbow
   bool _showWheelModal = false;
   bool _showUnlockDate = false;
-  
+
   // ตัวอย่างข้อความแชทตาม Figma designs
   late List<ChatMessage> _messages;
 
@@ -35,28 +35,14 @@ class _InsideChatScreenState extends State<InsideChatScreen> {
     _checkSpinWheelCondition();
     _initSampleMessages();
   }
-  
+
   void _initSampleMessages() {
     _messages = [
       // ข้อความปกติ
-      ChatMessage.sent(
-        id: '1',
-        text: 'text message',
-        isSeen: false,
-      ),
-      ChatMessage.received(
-        id: '2',
-        text: 'text message',
-      ),
-      ChatMessage.received(
-        id: '3',
-        text: 'text message',
-      ),
-      ChatMessage.sent(
-        id: '4',
-        text: 'text message',
-        isSeen: true,
-      ),
+      ChatMessage.sent(id: '1', text: 'text message', isSeen: false),
+      ChatMessage.received(id: '2', text: 'text message'),
+      ChatMessage.received(id: '3', text: 'text message'),
+      ChatMessage.sent(id: '4', text: 'text message', isSeen: true),
     ];
   }
 
@@ -68,7 +54,22 @@ class _InsideChatScreenState extends State<InsideChatScreen> {
       });
     }
   }
-  
+
+  void _triggerUnlockDate() {
+    setState(() {
+      _showUnlockDate = true;
+    });
+
+    // นับถอยหลัง 5 วินาทีแล้วปิด
+    Future.delayed(const Duration(seconds: 5), () {
+      if (mounted) {
+        setState(() {
+          _showUnlockDate = false;
+        });
+      }
+    });
+  }
+
   /// สร้าง Widget สำหรับแต่ละ message
   Widget _buildMessageWidget(ChatMessage message, int index) {
     // Bot message
@@ -89,19 +90,19 @@ class _InsideChatScreenState extends State<InsideChatScreen> {
         },
       );
     }
-    
+
     // User message (sent/received)
     return Column(
-      crossAxisAlignment: message.isOwn 
-          ? CrossAxisAlignment.end 
+      crossAxisAlignment: message.isOwn
+          ? CrossAxisAlignment.end
           : CrossAxisAlignment.start,
       children: [
         ChatTextComponent(
           text: message.text,
           isChatRight: message.isOwn,
           // Received message ใช้ avatar ด้านซ้าย
-          imagePath: !message.isOwn && index > 0 && _messages[index - 1].isOwn 
-              ? 'assets/images/figma/avatar_placeholder.png' 
+          imagePath: !message.isOwn && index > 0 && _messages[index - 1].isOwn
+              ? 'assets/images/figma/avatar_placeholder.png'
               : null,
           bottomLeftRadius: message.isOwn ? 20 : 0,
           bottomRightRadius: message.isOwn ? 0 : 20,
@@ -228,7 +229,6 @@ class _InsideChatScreenState extends State<InsideChatScreen> {
             if (_showWheelModal) ...[
               // 1. ฉากหลังสีเทาจาง (Dim background)
               Positioned.fill(
-                top: 85, // ให้เริ่มหลัง Header
                 child: GestureDetector(
                   onTap: () => setState(() => _showWheelModal = false),
                   child: Container(color: Colors.black.withOpacity(0.5)),
@@ -287,102 +287,144 @@ class _InsideChatScreenState extends State<InsideChatScreen> {
               ),
             ],
             if (_showUnlockDate) ...[
-              // 1. ฉากหลังเบลอแบบมีสีสัน (สไตล์ Dating App)
+              // 1. Full Screen Blur (คลุมทั้งหมดรวม Header)
               Positioned.fill(
-                top: 85,
-                child: ClipRect(
-                  child: BackdropFilter(
-                    filter: ImageFilter.blur(sigmaX: 12.0, sigmaY: 12.0),
-                    child: Container(
-                      decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                          begin: Alignment.topCenter,
-                          end: Alignment.bottomCenter,
-                          colors: [
-                            Colors.pink.withOpacity(0.1), // สีชมพูระเรื่อ
-                            Colors.deepPurple.withOpacity(0.1), // สีม่วงจางๆ
-                            Colors.white.withOpacity(
-                              0.4,
-                            ), // ไล่ไปสีขาวให้ดูคลีน
-                          ],
-                        ),
-                      ),
-                    ),
+                child: BackdropFilter(
+                  filter: ImageFilter.blur(sigmaX: 15.0, sigmaY: 15.0),
+                  child: Container(
+                    color: Colors.white.withOpacity(0.2), // เคลียร์สีให้ดูฟุ้งๆ
                   ),
                 ),
               ),
 
-              // 2. การ์ด Unlock Date สไตล์ Minimal & Soft
+              // 2. Animated Content
               Positioned.fill(
-                top: 85,
-                child: Center(
-                  child: Container(
-                    width: MediaQuery.of(context).size.width * 0.82,
-                    padding: const EdgeInsets.symmetric(
-                      vertical: 35,
-                      horizontal: 24,
-                    ),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(35),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withOpacity(0.05),
-                          blurRadius: 25,
-                          spreadRadius: 5,
-                          offset: const Offset(0, 10),
-                        ),
-                      ],
-                    ),
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        // ไอคอนหัวใจ + กุญแจ (สื่อถึงแอปหาคู่ได้ดีกว่า)
-                        Stack(
-                          alignment: Alignment.center,
-                          children: [
-                            Container(
-                              width: 70,
-                              height: 70,
-                              decoration: BoxDecoration(
-                                color: Colors.pink.shade50,
-                                shape: BoxShape.circle,
-                              ),
-                              child: const Icon(
-                                Icons.favorite_rounded,
-                                size: 35,
-                                color: Colors.pinkAccent,
-                              ),
-                            ),
-                            Positioned(
-                              right: 0,
-                              bottom: 0,
-                              child: Container(
-                                padding: const EdgeInsets.all(5),
-                                decoration: const BoxDecoration(
-                                  color: Colors.white,
-                                  shape: BoxShape.circle,
-                                ),
-                                child: const Icon(
-                                  Icons.lock_open,
-                                  size: 18,
-                                  color: Colors.amber,
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 20),
-                        const Text(
-                          'UNLOCK DATE',
-                          style: TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.w800,
-                            letterSpacing: 1.2,
-                            color: Color(0xFF4A4A4A),
+                child: TweenAnimationBuilder<double>(
+                  tween: Tween(begin: 0.0, end: 1.0),
+                  duration: const Duration(milliseconds: 600),
+                  curve: Curves.bounceIn, // เอฟเฟกต์การเด้งออกแบบนุ่มๆ
+                  builder: (context, value, child) {
+                    return Transform.scale(
+                      scale: value,
+                      child: Opacity(
+                        opacity: value.clamp(0.0, 1.0),
+                        child: child,
+                      ),
+                    );
+                  },
+                  child: Center(
+                    child: Container(
+                      width: MediaQuery.of(context).size.width * 0.85,
+                      padding: const EdgeInsets.all(32),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(40),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.pink.withOpacity(0.15),
+                            blurRadius: 30,
+                            spreadRadius: 5,
+                            offset: const Offset(0, 15),
                           ),
-                        ),
-                      ],
+                        ],
+                      ),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          // --- ส่วนไอคอนที่มีลูกเล่น ---
+                          Stack(
+                            alignment: Alignment.center,
+                            children: [
+                              // แสงออร่าหลังหัวใจ
+                              Container(
+                                width: 120,
+                                height: 120,
+                                decoration: BoxDecoration(
+                                  shape: BoxShape.circle,
+                                  gradient: RadialGradient(
+                                    colors: [
+                                      Colors.pink.shade50,
+                                      Colors.white.withOpacity(0.0),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                              // หัวใจขยับขึ้นลง (Floating)
+                              TweenAnimationBuilder<double>(
+                                tween: Tween(begin: 0.0, end: 10.0),
+                                duration: const Duration(seconds: 2),
+                                curve: Curves.easeInOut,
+                                builder: (context, value, child) {
+                                  return Transform.translate(
+                                    offset: Offset(0, -value),
+                                    child: child,
+                                  );
+                                },
+                                onEnd:
+                                    () {}, // ใส่ Logic ให้ Loop ได้ถ้าต้องการ
+                                child: Container(
+                                  width: 80,
+                                  height: 80,
+                                  decoration: const BoxDecoration(
+                                    color: Colors.pinkAccent,
+                                    shape: BoxShape.circle,
+                                    boxShadow: [
+                                      BoxShadow(
+                                        color: Colors.black12,
+                                        blurRadius: 10,
+                                      ),
+                                    ],
+                                  ),
+                                  child: const Icon(
+                                    Icons.favorite_rounded,
+                                    color: Colors.white,
+                                    size: 40,
+                                  ),
+                                ),
+                              ),
+                              // กุญแจสีทอง
+                              Positioned(
+                                right: 0,
+                                bottom: 0,
+                                child: Container(
+                                  padding: const EdgeInsets.all(8),
+                                  decoration: const BoxDecoration(
+                                    color: Color(0xFFFFD700), // Gold
+                                    shape: BoxShape.circle,
+                                  ),
+                                  child: const Icon(
+                                    Icons.key_rounded,
+                                    size: 20,
+                                    color: Colors.white,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 24),
+
+                          // --- ข้อความหัวข้อ ---
+                          const Text(
+                            'YAY! IT\'S A DATE',
+                            style: TextStyle(
+                              fontSize: 20,
+                              fontWeight: FontWeight.bold,
+                              letterSpacing: 2,
+                              color: Color(0xFFE91E63),
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            'คุณปลดล็อกการนัดเดทสำเร็จแล้ว\nเตรียมตัวให้พร้อมสำหรับช่วงเวลาดีๆ!',
+                            textAlign: TextAlign.center,
+                            style: TextStyle(
+                              fontSize: 14,
+                              color: Colors.grey.shade600,
+                              height: 1.5,
+                            ),
+                          ),      
+                        ],
+                      ),
                     ),
                   ),
                 ),
