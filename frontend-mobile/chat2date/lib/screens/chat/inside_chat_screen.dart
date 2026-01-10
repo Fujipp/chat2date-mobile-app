@@ -20,11 +20,20 @@ class InsideChatScreen extends StatefulWidget {
 class _InsideChatScreenState extends State<InsideChatScreen> {
   final TextEditingController _messageController = TextEditingController();
   bool _hasText = false;
-  bool _isWheelShowing = false;
   final double _currentPercent = 0.35; // 90px / 255px ≈ 0.35 ตาม Figma
   final int _heartCount = 1; // 0 = ซ่อน, 1-2 = แสดง, 3 = rainbow
   bool _showWheelModal = false;
   bool _showUnlockDate = false;
+  
+  // === Chat User Data (ดึงจากข้อมูลจริง) ===
+  String _chatUserName = 'Name';
+  String? _chatUserAvatar;
+  
+  // === Spinwheel Cooldown Logic ===
+  DateTime? _lastSpinDate; // วันที่หมุนวงล้อล่าสุด
+  int _cooldownDays = 7; // จำนวนวันที่ต้องรอก่อนหมุนได้อีกครั้ง
+  bool _canSpin = true; // true = กดได้ (Chat 2/3), false = cooldown (Chat 4)
+  ChatHeaderVariant _headerVariant = ChatHeaderVariant.chat1;
 
   // ตัวอย่างข้อความแชทตาม Figma designs
   late List<ChatMessage> _messages;
@@ -32,8 +41,100 @@ class _InsideChatScreenState extends State<InsideChatScreen> {
   @override
   void initState() {
     super.initState();
+    _loadChatUserData();
     _checkSpinWheelCondition();
     _initSampleMessages();
+  }
+  
+  /// ดึงข้อมูล user ของแชทนี้ (avatar, name)
+  Future<void> _loadChatUserData() async {
+    // TODO: ดึงข้อมูลจาก backend/argument
+    // ตัวอย่าง: final chatUser = await chatService.getChatUser(chatId);
+    setState(() {
+      _chatUserName = 'Name'; // chatUser.name
+      _chatUserAvatar = null; // chatUser.avatarUrl
+    });
+  }
+  
+  /// คำนวณ cooldown สำหรับ spinwheel
+  void _calculateSpinwheelCooldown() {
+    if (_lastSpinDate == null) {
+      // ยังไม่เคยหมุน - สามารถหมุนได้เลย
+      setState(() {
+        _canSpin = true;
+        _cooldownDays = 0;
+        _headerVariant = ChatHeaderVariant.chat2; // ไม่แสดง cooldown number
+      });
+      return;
+    }
+    
+    final now = DateTime.now();
+    final daysSinceLastSpin = now.difference(_lastSpinDate!).inDays;
+    final cooldownPeriod = 7; // 7 วันก่อนหมุนได้อีก
+    
+    if (daysSinceLastSpin >= cooldownPeriod) {
+      // หมดเวลา cooldown แล้ว - หมุนได้
+      setState(() {
+        _canSpin = true;
+        _cooldownDays = 0;
+        _headerVariant = ChatHeaderVariant.chat3; // แสดง 0 days (enabled)
+      });
+    } else {
+      // ยังอยู่ใน cooldown - ห้ามหมุน
+      final remainingDays = cooldownPeriod - daysSinceLastSpin;
+      setState(() {
+        _canSpin = false;
+        _cooldownDays = remainingDays;
+        _headerVariant = ChatHeaderVariant.chat4; // แสดง X days (disabled)
+      });
+    }
+  }
+  
+  /// บันทึกเมื่อหมุนวงล้อสำเร็จ
+  void _onSpinComplete() {
+    setState(() {
+      _lastSpinDate = DateTime.now();
+      _showWheelModal = false;
+    });
+    _calculateSpinwheelCooldown();
+    // TODO: บันทึก _lastSpinDate ไปยัง backend
+  }
+  
+  /// เช็คเงื่อนไขว่า user ผ่านหรือไม่ก่อนเปิด spinwheel
+  bool _checkUserEligibility() {
+    // TODO: ดึงเงื่อนไขจาก backend
+    // เช่น: หลอดเต็ม, หัวใจครบ, chat count ครบ เป็นต้น
+    return _currentPercent >= 1.0 || _heartCount >= 3;
+  }
+  
+  /// จัดการการกด spinwheel
+  void _handleSpinwheelTap() {
+    if (!_canSpin) {
+      // อยู่ใน cooldown - แสดง message
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('กรุณารออีก $_cooldownDays วันก่อนหมุนได้อีกครั้ง'),
+          backgroundColor: AppColors.textMuted,
+        ),
+      );
+      return;
+    }
+    
+    if (!_checkUserEligibility()) {
+      // ไม่ผ่านเงื่อนไข
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('คุณยังไม่ผ่านเงื่อนไขในการหมุนวงล้อ'),
+          backgroundColor: AppColors.error,
+        ),
+      );
+      return;
+    }
+    
+    // ผ่านทุกเงื่อนไข - เปิด modal
+    setState(() {
+      _showWheelModal = true;
+    });
   }
 
   void _initSampleMessages() {
@@ -48,10 +149,16 @@ class _InsideChatScreenState extends State<InsideChatScreen> {
 
   void _checkSpinWheelCondition() {
     // เงื่อนไข: หลอดเต็ม (1.0) หรือ หัวใจครบตามที่กำหนด (เช่น 3 ดวง)
-    if (_heartCount >= 1) {
+    // คำนวณ cooldown และ determine variant
+    
+    if (_heartCount < 1) {
+      // ไม่ผ่านเงื่อนไข - แสดงแค่ Chat 1 (พื้นฐาน)
       setState(() {
-        _isWheelShowing = true;
+        _headerVariant = ChatHeaderVariant.chat1;
       });
+    } else {
+      // ผ่านเงื่อนไข - คำนวณ cooldown
+      _calculateSpinwheelCooldown();
     }
   }
 
@@ -275,22 +382,19 @@ class _InsideChatScreenState extends State<InsideChatScreen> {
             Column(
               children: [
                 const SizedBox(height: 8),
-                Header(
-                  name: 'Name',
-                  showFlag: true,
-                  showHeart: true,
+                // ใช้ Header.fromVariant เพื่อรองรับ 4 variants
+                Header.fromVariant(
+                  variant: _headerVariant,
+                  name: _chatUserName,
+                  avatarUrl: _chatUserAvatar,
+                  cooldownDays: _cooldownDays,
                   showBorder: false,
                   onBack: () => Navigator.maybePop(context),
-                  showSpinCooldown: true,
-                  cooldownDays: 7,
-                  isSpinCooldownEnabled: _isWheelShowing,
-                  onSpinwheel: _isWheelShowing
-                      ? () {
-                          setState(() {
-                            _showWheelModal = true; // ✅ กดแล้วเปิดวงล้อ
-                          });
-                        }
-                      : null,
+                  onCalendar: () {
+                    // TODO: เปิด Calendar
+                    debugPrint('Calendar tapped');
+                  },
+                  onSpinwheel: _handleSpinwheelTap,
                   onFlag: () {
                     Navigator.pushReplacementNamed(context, '/report');
                   },
@@ -407,6 +511,7 @@ class _InsideChatScreenState extends State<InsideChatScreen> {
                               SpinDateComponent(
                                 onCloseModal: () =>
                                     setState(() => _showWheelModal = false),
+                                onSpinComplete: _onSpinComplete,
                                 prizes: const [
                                   {'label': 'Coffee'},
                                   {'label': 'Pizza'},

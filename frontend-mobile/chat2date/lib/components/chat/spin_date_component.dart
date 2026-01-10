@@ -13,6 +13,7 @@ class SpinDateComponent extends StatefulWidget {
   final int indexSelected;
   final VoidCallback? onCloseModal;
   final VoidCallback? onRefreshSpin;
+  final VoidCallback? onSpinComplete; // Callback เมื่อหมุนเสร็จ
 
   const SpinDateComponent({
     super.key,
@@ -23,6 +24,7 @@ class SpinDateComponent extends StatefulWidget {
     this.secondPersonName = "susie",
     this.onCloseModal,
     this.onRefreshSpin,
+    this.onSpinComplete,
   });
 
   @override
