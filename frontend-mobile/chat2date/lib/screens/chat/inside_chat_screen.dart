@@ -55,6 +55,100 @@ class _InsideChatScreenState extends State<InsideChatScreen> {
     }
   }
 
+  /// ส่งข้อความ
+  void _sendMessage() {
+    if (_messageController.text.trim().isEmpty) return;
+    
+    setState(() {
+      _messages.add(
+        ChatMessage.sent(
+          id: DateTime.now().millisecondsSinceEpoch.toString(),
+          text: _messageController.text.trim(),
+          isSeen: false,
+        ),
+      );
+      _messageController.clear();
+      _hasText = false;
+    });
+  }
+  
+  /// คำนวณ position ของ bubble ในกลุ่ม (burger style)
+  /// Returns: single, first, middle, last
+  String _getBubblePosition(int index) {
+    final current = _messages[index];
+    if (current.isBot) return 'single';
+    
+    final bool hasPrevSameOwner = index > 0 &&
+        _messages[index - 1].isOwn == current.isOwn &&
+        !_messages[index - 1].isBot;
+    final bool hasNextSameOwner = index < _messages.length - 1 &&
+        _messages[index + 1].isOwn == current.isOwn &&
+        !_messages[index + 1].isBot;
+    
+    if (!hasPrevSameOwner && !hasNextSameOwner) return 'single';
+    if (!hasPrevSameOwner && hasNextSameOwner) return 'first';
+    if (hasPrevSameOwner && hasNextSameOwner) return 'middle';
+    return 'last';
+  }
+  
+  /// คำนวณ border radius ตาม position และ isSent (burger style)
+  /// Sent (ขวา): มุมขวาที่ติดกับ bubble อื่นจะเป็น 0 หรือ 5
+  /// Received (ซ้าย): มุมซ้ายที่ติดกับ bubble อื่นจะเป็น 0 หรือ 5
+  Map<String, double> _getBorderRadius(String position, bool isSent) {
+    if (isSent) {
+      // Sent messages (ขวา - เราส่งไป)
+      switch (position) {
+        case 'single':
+          // ข้อความเดี่ยว: มุมล่างขวา = 0
+          return {'tl': 20, 'tr': 20, 'bl': 20, 'br': 0};
+        case 'first':
+          // ข้อความแรก (บนสุด): มุมล่างขวา = 0 (ติดกับ bubble ถัดไป)
+          return {'tl': 20, 'tr': 20, 'bl': 20, 'br': 0};
+        case 'middle':
+          // ข้อความกลาง: 2 มุมขวา = 5 (burger style 🍔)
+          return {'tl': 20, 'tr': 5, 'bl': 20, 'br': 5};
+        case 'last':
+          // ข้อความสุดท้าย (ล่างสุด): มุมบนขวา = 0 (ติดกับ bubble ก่อนหน้า)
+          return {'tl': 20, 'tr': 0, 'bl': 20, 'br': 20};
+        default:
+          return {'tl': 20, 'tr': 20, 'bl': 20, 'br': 0};
+      }
+    } else {
+      // Received messages (ซ้าย - คนอื่นส่งมา)
+      switch (position) {
+        case 'single':
+          // ข้อความเดี่ยว: มุมล่างซ้าย = 0
+          return {'tl': 20, 'tr': 20, 'bl': 0, 'br': 20};
+        case 'first':
+          // ข้อความแรก (บนสุด): มุมล่างซ้าย = 0 (ติดกับ bubble ถัดไป)
+          return {'tl': 20, 'tr': 20, 'bl': 0, 'br': 20};
+        case 'middle':
+          // ข้อความกลาง: 2 มุมซ้าย = 5 (burger style 🍔)
+          return {'tl': 5, 'tr': 20, 'bl': 5, 'br': 20};
+        case 'last':
+          // ข้อความสุดท้าย (ล่างสุด): มุมบนซ้าย = 0 (ติดกับ bubble ก่อนหน้า)
+          return {'tl': 0, 'tr': 20, 'bl': 20, 'br': 20};
+        default:
+          return {'tl': 20, 'tr': 20, 'bl': 0, 'br': 20};
+      }
+    }
+  }
+  
+  /// ตรวจสอบว่าควรแสดง avatar หรือไม่ (แสดงที่ข้อความสุดท้ายในกลุ่ม)
+  bool _shouldShowAvatar(int index) {
+    if (_messages[index].isOwn) return false;
+    if (_messages[index].isBot) return false;
+    if (index >= _messages.length - 1) return true;
+    return _messages[index + 1].isOwn || _messages[index + 1].isBot;
+  }
+  
+  /// ตรวจสอบว่าเป็นข้อความสุดท้ายในกลุ่มหรือไม่
+  bool _isLastInGroup(int index) {
+    if (index >= _messages.length - 1) return true;
+    return _messages[index + 1].isOwn != _messages[index].isOwn ||
+           _messages[index + 1].isBot;
+  }
+
   void _triggerUnlockDate() {
     setState(() {
       _showUnlockDate = true;
@@ -91,37 +185,77 @@ class _InsideChatScreenState extends State<InsideChatScreen> {
       );
     }
 
-    // User message (sent/received)
-    return Column(
-      crossAxisAlignment: message.isOwn
-          ? CrossAxisAlignment.end
-          : CrossAxisAlignment.start,
-      children: [
-        ChatTextComponent(
-          text: message.text,
-          isChatRight: message.isOwn,
-          // Received message ใช้ avatar ด้านซ้าย
-          imagePath: !message.isOwn && index > 0 && _messages[index - 1].isOwn
-              ? 'assets/images/figma/avatar_placeholder.png'
-              : null,
-          bottomLeftRadius: message.isOwn ? 20 : 0,
-          bottomRightRadius: message.isOwn ? 0 : 20,
-        ),
-        // แสดง "เห็นแล้ว" สำหรับข้อความที่ส่งและถูกอ่านแล้ว
-        if (message.isOwn && message.isSeen)
-          Padding(
-            padding: const EdgeInsets.only(top: 4),
-            child: StatusTextComponent(
-              text: 'เห็นแล้ว',
-              textColor: AppColors.textMuted,
-              textSize: 10,
-              isMiddle: false,
-              svgPath: 'assets/icons/icon_seen.svg',
-              size: 12,
+    // User message (sent/received) - Burger style grouping
+    final position = _getBubblePosition(index);
+    final radius = _getBorderRadius(position, message.isOwn);
+    final showAvatar = _shouldShowAvatar(index);
+    final showSeen = message.isOwn && message.isSeen && _isLastInGroup(index);
+    
+    if (message.isOwn) {
+      // Sent message (ขวา - ชมพู)
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.end,
+        children: [
+          ChatTextComponent(
+            text: message.text,
+            isChatRight: true,
+            topLeftRadius: radius['tl'],
+            topRightRadius: radius['tr'],
+            bottomLeftRadius: radius['bl'],
+            bottomRightRadius: radius['br'],
+          ),
+          if (showSeen)
+            Padding(
+              padding: const EdgeInsets.only(top: 4),
+              child: StatusTextComponent(
+                text: 'เห็นแล้ว',
+                textColor: AppColors.textMuted,
+                textSize: 10,
+                isMiddle: false,
+                svgPath: 'assets/icons/icon_seen.svg',
+                size: 12,
+              ),
+            ),
+        ],
+      );
+    } else {
+      // Received message (ซ้าย - เทา) - Avatar ที่ข้อความสุดท้ายในกลุ่ม
+      return Row(
+        crossAxisAlignment: CrossAxisAlignment.end,
+        children: [
+          // Avatar หรือ space (avatar อยู่ที่ข้อความสุดท้าย)
+          if (showAvatar)
+            Container(
+              width: 50,
+              height: 50,
+              margin: const EdgeInsets.only(right: 8),
+              decoration: BoxDecoration(
+                color: AppColors.surfaceMuted,
+                shape: BoxShape.circle,
+              ),
+              clipBehavior: Clip.antiAlias,
+              child: Icon(
+                Icons.person,
+                color: Colors.grey[400],
+                size: 32,
+              ),
+            )
+          else
+            const SizedBox(width: 58),
+          // Message bubble
+          Flexible(
+            child: ChatTextComponent(
+              text: message.text,
+              isChatRight: false,
+              topLeftRadius: radius['tl'],
+              topRightRadius: radius['tr'],
+              bottomLeftRadius: radius['bl'],
+              bottomRightRadius: radius['br'],
             ),
           ),
-      ],
-    );
+        ],
+      );
+    }
   }
 
   @override
@@ -200,26 +334,31 @@ class _InsideChatScreenState extends State<InsideChatScreen> {
                           itemCount: _messages.length,
                           itemBuilder: (context, index) {
                             final message = _messages[index];
+                            // Gap: 10px สำหรับ grouped messages, 12px สำหรับ different owner
+                            final bool isGroupedWithNext = index < _messages.length - 1 &&
+                                _messages[index + 1].isOwn == message.isOwn &&
+                                !_messages[index + 1].isBot &&
+                                !message.isBot;
+                            final double bottomGap = isGroupedWithNext ? 10 : 12;
+                            
                             return Padding(
-                              padding: const EdgeInsets.only(bottom: 12),
+                              padding: EdgeInsets.only(bottom: bottomGap),
                               child: _buildMessageWidget(message, index),
                             );
                           },
                         ),
                       ),
                       InputChatComponent(
-                        svgPath: 'assets/icons/icon_new-black.svg',
-                        svgPathLast: _hasText
-                            ? 'assets/icons/icon_send.svg'
-                            : null,
+                        svgPath: 'assets/icons/icon_more-options.svg',
+                        svgPathLast: 'assets/icons/icon_send.svg',
                         leftIconColor: AppColors.surfaceLight,
-                        sendIconColor: Colors.white,
-                        sendIconBackgroundColor: AppColors.surfaceLight,
+                        sendIconColor: null, // icon_send.svg already has colors
+                        sendIconBackgroundColor: null, // icon_send.svg already has bg
                         isSendEnabled: _hasText,
                         controller: _messageController,
                         onChanged: (value) =>
                             setState(() => _hasText = value.trim().isNotEmpty),
-                        onSend: () {},
+                        onSend: _hasText ? () => _sendMessage() : null,
                       ),
                     ],
                   ),

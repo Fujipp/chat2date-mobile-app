@@ -13,7 +13,9 @@ class ChatTextComponent extends StatelessWidget {
   //สี content
   final Color? color;
 
-  //ความมนของมุม
+  //ความมนของมุม - burger style support
+  final double? topLeftRadius;
+  final double? topRightRadius;
   final double? bottomLeftRadius;
   final double? bottomRightRadius;
 
@@ -52,7 +54,9 @@ class ChatTextComponent extends StatelessWidget {
     this.isChatRight = false,
     this.isContentMiddle = false,
 
-    //ความมนของมุม
+    //ความมนของมุม - burger style
+    this.topLeftRadius = 20,
+    this.topRightRadius = 20,
     this.bottomLeftRadius = 20,
     this.bottomRightRadius = 0,
 
@@ -140,8 +144,8 @@ class ChatTextComponent extends StatelessWidget {
           decoration: BoxDecoration(
             color: isChatRight ? AppColors.surfaceLight : color,
             borderRadius: BorderRadius.only(
-              topLeft: Radius.circular(20),
-              topRight: Radius.circular(20),
+              topLeft: Radius.circular(topLeftRadius!),
+              topRight: Radius.circular(topRightRadius!),
               bottomLeft: Radius.circular(bottomLeftRadius!),
               bottomRight: Radius.circular(bottomRightRadius!),
             ),

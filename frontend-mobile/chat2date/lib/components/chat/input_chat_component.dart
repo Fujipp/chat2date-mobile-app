@@ -46,108 +46,81 @@ class InputChatComponent extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-      height: 72,
+      padding: const EdgeInsets.all(16),
       width: double.infinity,
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
+          // More Options button (+ icon) - ตาม Figma
           if (svgPath != null)
             GestureDetector(
               onTap: onClick,
-              child: leftIconBackgroundColor == null
-                  ? SvgPicture.asset(
-                      svgPath!,
-                      width: 16,
-                      height: 16,
-                      colorFilter: leftIconColor == null
-                          ? null
-                          : ColorFilter.mode(leftIconColor!, BlendMode.srcIn),
-                    )
-                  : Container(
-                      width: 28,
-                      height: 28,
-                      decoration: BoxDecoration(
-                        color: leftIconBackgroundColor,
-                        shape: BoxShape.circle,
+              child: Padding(
+                padding: const EdgeInsets.all(8),
+                child: SvgPicture.asset(
+                  svgPath!,
+                  width: 16,
+                  height: 16,
+                  colorFilter: leftIconColor == null
+                      ? null
+                      : ColorFilter.mode(leftIconColor!, BlendMode.srcIn),
+                ),
+              ),
+            ),
+          if (svgPath != null) const SizedBox(width: 6), // gap=6px ตาม Figma
+          // Text Input with Send button inside - ตาม Figma
+          Expanded(
+            child: Container(
+              height: 40, // ความสูง 40px ตาม Figma
+              decoration: BoxDecoration(
+                color: const Color(0xFFF8F9FE), // #F8F9FE ตาม Figma
+                borderRadius: BorderRadius.circular(71), // rounded-[71px] ตาม Figma
+              ),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: TextField(
+                      controller: controller,
+                      onChanged: onChanged,
+                      style: const TextStyle(
+                        color: Color(0xFF1F2024),
+                        fontSize: 14,
+                        fontFamily: 'Inter',
+                        fontWeight: FontWeight.w400,
                       ),
-                      child: Center(
-                        child: SvgPicture.asset(
-                          svgPath!,
-                          width: 14,
-                          height: 14,
-                          colorFilter: leftIconColor == null
-                              ? null
-                              : ColorFilter.mode(leftIconColor!, BlendMode.srcIn),
+                      decoration: InputDecoration(
+                        hintText: hintText,
+                        hintStyle: TextStyle(
+                          color: const Color(0xFF1F2024).withOpacity(0.5),
+                          fontSize: 14,
+                          fontFamily: 'Inter',
                         ),
+                        isDense: true,
+                        contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 10,
+                        ),
+                        border: InputBorder.none,
                       ),
                     ),
-            ),
-          if (svgPath != null) const SizedBox(width: 12),
-          Expanded(
-            child: TextField(
-              controller: controller,
-              onChanged: onChanged,
-              decoration: InputDecoration(
-                hintText: hintText,
-                isDense: true,
-                contentPadding: const EdgeInsets.symmetric(
-                  horizontal: 16,
-                  vertical: 12,
-                ),
-                filled: true,
-                fillColor: inputFillColor,
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(20),
-                  borderSide: BorderSide.none,
-                ),
-                suffixIcon: svgPathLast == null
-                    ? null
-                    : SizedBox(
-                        width: 48,
-                        height: 48,
-                        child: GestureDetector(
-                          onTap: isSendEnabled ? (onSend ?? () {}) : null,
-                          behavior: HitTestBehavior.opaque,
-                          child: Center(
-                            child: sendIconBackgroundColor == null
-                                ? SvgPicture.asset(
-                                    svgPathLast!,
-                                    width: 32,
-                                    height: 32,
-                                    colorFilter: sendIconColor == null
-                                        ? null
-                                        : ColorFilter.mode(
-                                            sendIconColor!,
-                                            BlendMode.srcIn,
-                                          ),
-                                  )
-                                : Container(
-                                    width: 32,
-                                    height: 32,
-                                    decoration: BoxDecoration(
-                                      color: isSendEnabled
-                                          ? sendIconBackgroundColor
-                                          : sendIconBackgroundColor!.withOpacity(0.5),
-                                      shape: BoxShape.circle,
-                                    ),
-                                    child: Center(
-                                      child: SvgPicture.asset(
-                                        svgPathLast!,
-                                        width: 16,
-                                        height: 16,
-                                        colorFilter: sendIconColor == null
-                                            ? null
-                                            : ColorFilter.mode(
-                                                sendIconColor!,
-                                                BlendMode.srcIn,
-                                              ),
-                                      ),
-                                    ),
-                                  ),
+                  ),
+                  // Send button (32x32 circle) - ตาม Figma
+                  if (svgPathLast != null)
+                    GestureDetector(
+                      onTap: isSendEnabled ? onSend : null,
+                      child: Padding(
+                        padding: const EdgeInsets.only(right: 6),
+                        child: Opacity(
+                          opacity: isSendEnabled ? 1.0 : 0.5,
+                          child: SvgPicture.asset(
+                            svgPathLast!,
+                            width: 32,
+                            height: 32,
                           ),
                         ),
                       ),
+                    ),
+                ],
               ),
             ),
           ),
