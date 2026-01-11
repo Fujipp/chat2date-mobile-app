@@ -102,9 +102,9 @@ class _InsideChatScreenState extends State<InsideChatScreen> {
   
   /// เช็คเงื่อนไขว่า user ผ่านหรือไม่ก่อนเปิด spinwheel
   bool _checkUserEligibility() {
-    // TODO: ดึงเงื่อนไขจาก backend
-    // เช่น: หลอดเต็ม, หัวใจครบ, chat count ครบ เป็นต้น
-    return _currentPercent >= 1.0 || _heartCount >= 3;
+    // เงื่อนไขผ่าน: จำนวนหัวใจ >= 1 (0,1,2,3 โดย 3 จะเป็นรุ้ง)
+    // ไม่ต้องเช็ค percent เพราะถ้าเต็มจะเป็น 1 อยู่แล้ว
+    return _heartCount >= 1;
   }
   
   /// จัดการการกด spinwheel
