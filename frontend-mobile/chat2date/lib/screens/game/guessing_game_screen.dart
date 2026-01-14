@@ -13,7 +13,7 @@ class GuessingGameScreen extends StatefulWidget {
 }
 
 class _GuessingGameScreenState extends State<GuessingGameScreen> {
-  String currentView = 'loading'; // waiting, question, loading, result
+  String currentView = 'question'; // waiting, question, loading, result
 
   // Game State
   int currentQuestion = 0;

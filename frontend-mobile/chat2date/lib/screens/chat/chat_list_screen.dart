@@ -111,6 +111,12 @@ class _ChatListScreenState extends State<ChatListScreen> {
           svgPath: 'assets/icons/icon_avatar.svg',
           title: 'แอมจิฮัช (99)',
           subtitle: 'แมทต์เมื่อวันที่ 22 กันยายน 2025',
+          svgPathEnd: 'assets/icons/icon_new-white.svg',
+        ),
+        CardChatComponent(
+          svgPath: 'assets/icons/icon_avatar.svg',
+          title: 'แอมจิฮัช (99)',
+          subtitle: 'แมทต์เมื่อวันที่ 22 กันยายน 2025',
           colors: [AppColors.backgroundWhite],
         ),
 
