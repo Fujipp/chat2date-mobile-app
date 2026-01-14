@@ -61,7 +61,8 @@ class _UserReportScreenState extends State<UserReportScreen> {
               children: [
                 Header(
                   name: 'รายงานผู้ใช้',
-                  onBack: () => Navigator.pushReplacementNamed(context, '/chat'),
+                  onBack: () =>
+                      Navigator.pushReplacementNamed(context, '/chat'),
                   showAvatar: false,
                   showBorder: false,
                 ),
@@ -262,35 +263,6 @@ class _UserReportScreenState extends State<UserReportScreen> {
 
                         const SizedBox(height: 16),
 
-                        // ---- แนบหลักฐาน ----
-                        Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 26),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              DsLabel(label: 'แนบหลักฐาน', labelFontSize: 16),
-                              const SizedBox(height: 8),
-                              ImageUploadGrid(
-                                isHorizontal: true,
-                                maxImages: 3,
-                                itemHeight: 70,
-                                itemWidth: 70,
-                                key:
-                                    _imageGridKey, // ✅ ใช้ key เพื่อ force rebuild
-                                onImagesChanged: (images) {
-                                  setState(() {
-                                    // _selectedImages = images
-                                    //     .map((xFile) => File(xFile.path))
-                                    //     .toList();
-                                  });
-                                },
-                              ),
-                            ],
-                          ),
-                        ),
-
-                        const SizedBox(height: 16),
-
                         // ---- คำอธิบายเพิ่มเติม ----
                         Padding(
                           padding: const EdgeInsets.symmetric(horizontal: 26),
@@ -336,6 +308,35 @@ class _UserReportScreenState extends State<UserReportScreen> {
                                     ),
                                   ),
                                 ),
+                              ),
+                            ],
+                          ),
+                        ),
+
+                        const SizedBox(height: 16),
+
+                        // ---- แนบหลักฐาน ----
+                        Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 26),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              DsLabel(label: 'แนบหลักฐาน', labelFontSize: 16),
+                              const SizedBox(height: 8),
+                              ImageUploadGrid(
+                                isHorizontal: true,
+                                maxImages: 3,
+                                itemHeight: 70,
+                                itemWidth: 70,
+                                key:
+                                    _imageGridKey, // ✅ ใช้ key เพื่อ force rebuild
+                                onImagesChanged: (images) {
+                                  setState(() {
+                                    // _selectedImages = images
+                                    //     .map((xFile) => File(xFile.path))
+                                    //     .toList();
+                                  });
+                                },
                               ),
                             ],
                           ),

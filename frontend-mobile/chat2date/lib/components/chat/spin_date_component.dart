@@ -101,8 +101,8 @@ class _SpinDateComponentState extends State<SpinDateComponent> {
                   padding: const EdgeInsets.all(8.0),
                   child: SvgPicture.asset(
                     "assets/icons/icon_close.svg",
-                    width: 21,
-                    height: 21,
+                    width: 31,
+                    height: 31,
                   ),
                 ),
               ),
@@ -166,7 +166,7 @@ class _SpinDateComponentState extends State<SpinDateComponent> {
           ),
 
           const Text(
-            'Sub-topic',
+            'หมายเหตุ',
             style: TextStyle(fontSize: 12, color: Color(0xFF0F172A)),
           ),
           const SizedBox(height: 5),
