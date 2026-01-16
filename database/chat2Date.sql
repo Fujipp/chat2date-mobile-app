@@ -349,6 +349,131 @@ CREATE TABLE IF NOT EXISTS `chat2date`.`devicetoken` (
     ON DELETE CASCADE,
   UNIQUE INDEX `uk_user_token` (`userId`, `fcmToken`) VISIBLE
 )
+
+-- =====================================================
+-- RELEASE 2: CHAT, GAME, STATS, REPORT (Strict Version)
+-- =====================================================
+
+-- 1. Table: Messages
+CREATE TABLE IF NOT EXISTS `chat2date`.`messages` (
+  `messageId` BIGINT NOT NULL AUTO_INCREMENT,
+  `roomId` INT NOT NULL,  -- (FK to match table)
+  `senderId` VARCHAR(36) NULL, -- (FK to user table)
+  `message` TEXT NOT NULL,
+  `messageType` ENUM('TEXT', 'GAME', 'SUCCESS', 'FAIL') NOT NULL DEFAULT 'TEXT',
+  `isRead` BOOLEAN NOT NULL DEFAULT FALSE,
+  `createdAt` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`messageId`),
+  INDEX `idx_roomId` (`roomId` ASC),
+  CONSTRAINT `fk_messages_match`
+    FOREIGN KEY (`roomId`)
+    REFERENCES `chat2date`.`match` (`matchId`)
+    ON DELETE CASCADE,
+  CONSTRAINT `fk_messages_user`
+    FOREIGN KEY (`senderId`)
+    REFERENCES `chat2date`.`user` (`userId`)
+    ON DELETE SET NULL
+) ENGINE = InnoDB DEFAULT CHARACTER SET = utf8mb4;
+
+-- 2. Table: ChatAccessLogs
+CREATE TABLE IF NOT EXISTS `chat2date`.`chat_access_logs` (
+  `chatAccessId` BIGINT NOT NULL AUTO_INCREMENT,
+  `userId` VARCHAR(36) NOT NULL,
+  `roomId` INT NOT NULL,
+  `actionType` ENUM('ENTER', 'EXIT') NOT NULL,
+  `createdAt` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`chatAccessId`),
+  CONSTRAINT `fk_logs_user`
+    FOREIGN KEY (`userId`)
+    REFERENCES `chat2date`.`user` (`userId`)
+    ON DELETE CASCADE,
+  CONSTRAINT `fk_logs_match`
+    FOREIGN KEY (`roomId`)
+    REFERENCES `chat2date`.`match` (`matchId`)
+    ON DELETE CASCADE
+) ENGINE = InnoDB DEFAULT CHARACTER SET = utf8mb4;
+
+-- 3. Table: Reports
+CREATE TABLE IF NOT EXISTS `chat2date`.`reports` (
+  `reportId` INT NOT NULL AUTO_INCREMENT,
+  `reporterId` VARCHAR(36) NOT NULL,
+  `targetUserId` VARCHAR(36) NOT NULL,
+  `reason` VARCHAR(100) NOT NULL,
+  `anotherReason` TEXT NULL,
+  `description` TEXT NULL,
+  `status` ENUM('PENDING', 'RESOLVED', 'REJECTED') NOT NULL DEFAULT 'PENDING',
+  `isNotified` BOOLEAN NOT NULL DEFAULT FALSE,
+  `createdAt` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`reportId`),
+  CONSTRAINT `fk_report_reporter`
+    FOREIGN KEY (`reporterId`)
+    REFERENCES `chat2date`.`user` (`userId`)
+    ON DELETE CASCADE,
+  CONSTRAINT `fk_report_target`
+    FOREIGN KEY (`targetUserId`)
+    REFERENCES `chat2date`.`user` (`userId`)
+    ON DELETE CASCADE
+) ENGINE = InnoDB DEFAULT CHARACTER SET = utf8mb4;
+
+-- 4. Table: ReportEvidences
+CREATE TABLE IF NOT EXISTS `chat2date`.`report_evidences` (
+  `evidenceId` INT NOT NULL AUTO_INCREMENT,
+  `reportId` INT NOT NULL,
+  `evidenceUrl` JSON NOT NULL, -- เก็บเป็น JSON ตามที่ขอ
+  PRIMARY KEY (`evidenceId`),
+  CONSTRAINT `fk_evidence_report`
+    FOREIGN KEY (`reportId`)
+    REFERENCES `chat2date`.`reports` (`reportId`)
+    ON DELETE CASCADE
+) ENGINE = InnoDB DEFAULT CHARACTER SET = utf8mb4;
+
+-- 5. Table: RelationshipStats
+CREATE TABLE IF NOT EXISTS `chat2date`.`relationship_stats` (
+  `relationshipId` INT NOT NULL, -- (ใช้ matchId เป็น PK ตามที่ระบุ)
+  `score` INT NOT NULL DEFAULT 0,
+  `streakDays` INT NOT NULL DEFAULT 0,
+  `isFirstMessageBonus` BOOLEAN NOT NULL DEFAULT FALSE,
+  `dailyMessageCount` INT NOT NULL DEFAULT 0,
+  `dailyDate` DATE NULL, -- เอาไว้นับวันสำหรับ dailyMessageCount
+  `createdAt` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `updatedAt` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (`relationshipId`),
+  CONSTRAINT `fk_relationship_match`
+    FOREIGN KEY (`relationshipId`)
+    REFERENCES `chat2date`.`match` (`matchId`)
+    ON DELETE CASCADE
+) ENGINE = InnoDB DEFAULT CHARACTER SET = utf8mb4;
+
+-- 6. Table: GameSession
+CREATE TABLE IF NOT EXISTS `chat2date`.`game_sessions` (
+  `gameId` VARCHAR(50) NOT NULL, -- ใช้ VARCHAR รองรับ ID จาก Backend
+  `roomId` INT NOT NULL,
+  `totalScore` INT NOT NULL DEFAULT 0,
+  `status` ENUM('ACTIVE', 'COMPLETED', 'FAILED') NOT NULL DEFAULT 'ACTIVE',
+  `createdAt` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`gameId`),
+  CONSTRAINT `fk_game_match`
+    FOREIGN KEY (`roomId`)
+    REFERENCES `chat2date`.`match` (`matchId`)
+    ON DELETE CASCADE
+) ENGINE = InnoDB DEFAULT CHARACTER SET = utf8mb4;
+
+-- 7. Table: GameQuestion
+CREATE TABLE IF NOT EXISTS `chat2date`.`game_questions` (
+  `questionId` VARCHAR(50) NOT NULL,
+  `gameId` VARCHAR(50) NOT NULL,
+  `question` TEXT NOT NULL,
+  `options` JSON NOT NULL, -- เก็บ Array ตัวเลือก
+  `correctAnswer` VARCHAR(255) NOT NULL,
+  `userSelectedOption` VARCHAR(255) NULL,
+  `isCorrect` BOOLEAN NULL,
+  PRIMARY KEY (`questionId`, `gameId`), -- PK คู่
+  CONSTRAINT `fk_questions_session`
+    FOREIGN KEY (`gameId`)
+    REFERENCES `chat2date`.`game_sessions` (`gameId`)
+    ON DELETE CASCADE
+) ENGINE = InnoDB DEFAULT CHARACTER SET = utf8mb4;
+
 ENGINE = InnoDB
 DEFAULT CHARACTER SET = utf8mb4
 COLLATE = utf8mb4_0900_ai_ci;
