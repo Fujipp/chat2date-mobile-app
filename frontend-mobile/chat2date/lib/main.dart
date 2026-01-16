@@ -1,4 +1,5 @@
 import 'package:chat2date/screens/match/match_success_screen.dart';
+import 'package:chat2date/screens/report/user_report_screen.dart';
 import 'package:chat2date/theme/app_theme.dart';
 import 'package:chat2date/widgets/global_match_listener.dart';
 import 'package:firebase_core/firebase_core.dart';
@@ -65,6 +66,7 @@ class MyApp extends StatelessWidget {
           //Hutch
           '/discovery': (context) => const DiscoveryScreen(),
           '/main': (context) => const MainTabs(),
+          '/report': (context) => const UserReportScreen(),
 
           //Fuji
           '/home': (context) => const HomeLoginPage(),
