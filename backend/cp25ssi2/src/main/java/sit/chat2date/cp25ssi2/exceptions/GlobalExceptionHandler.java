@@ -47,16 +47,19 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(PreconditionFailedException.class)
     @ResponseStatus(HttpStatus.PRECONDITION_FAILED)
     public ResponseEntity<ErrorResponse> handlePreconditionFailed(Exception e, WebRequest request) {
-        ErrorResponse error = new ErrorResponse(HttpStatus.PRECONDITION_FAILED.value(), "Version data mismatch", request.getDescription(false));
+        ErrorResponse error = new ErrorResponse(HttpStatus.PRECONDITION_FAILED.value(), "Version data mismatch",
+                request.getDescription(false));
         return ResponseEntity.status(HttpStatus.PRECONDITION_FAILED).body(error);
     }
 
     // validation จาก @Valid/@Min เป็นต้น
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<ErrorResponse> handleValidation(MethodArgumentNotValidException ex, HttpServletRequest req) {
-        ErrorResponse body = new ErrorResponse(HttpStatus.BAD_REQUEST.value(), "Validation failed", req.getRequestURI());
+        ErrorResponse body = new ErrorResponse(HttpStatus.BAD_REQUEST.value(), "Validation failed",
+                req.getRequestURI());
         body.setTitle(HttpStatus.BAD_REQUEST.getReasonPhrase());
-        ex.getBindingResult().getFieldErrors().forEach(err -> body.addValidationError(err.getField(), err.getDefaultMessage()));
+        ex.getBindingResult().getFieldErrors()
+                .forEach(err -> body.addValidationError(err.getField(), err.getDefaultMessage()));
         return ResponseEntity.badRequest().body(body);
     }
 
@@ -78,7 +81,8 @@ public class GlobalExceptionHandler {
     }
 
     @ExceptionHandler(HttpMessageNotReadableException.class)
-    public ResponseEntity<ErrorResponse> handleEnumParsingError(HttpMessageNotReadableException ex, HttpServletRequest request) {
+    public ResponseEntity<ErrorResponse> handleEnumParsingError(HttpMessageNotReadableException ex,
+            HttpServletRequest request) {
         String message = "Malformed JSON request or invalid value";
 
         if (ex.getCause() instanceof InvalidFormatException cause &&
@@ -90,8 +94,7 @@ public class GlobalExceptionHandler {
         ErrorResponse errorResponse = new ErrorResponse(
                 HttpStatus.BAD_REQUEST.value(),
                 message,
-                request.getRequestURI()
-        );
+                request.getRequestURI());
         errorResponse.setTitle(HttpStatus.BAD_REQUEST.getReasonPhrase());
 
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errorResponse);
@@ -99,26 +102,25 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(ForbiddenAccessException.class)
     @ResponseStatus(HttpStatus.FORBIDDEN)
-    public ResponseEntity<ErrorResponse> handleForbiddenAccessException(ForbiddenAccessException ex, WebRequest request) {
+    public ResponseEntity<ErrorResponse> handleForbiddenAccessException(ForbiddenAccessException ex,
+            WebRequest request) {
         ErrorResponse errorResponse = new ErrorResponse(
                 HttpStatus.FORBIDDEN.value(),
                 ex.getMessage(),
-                request.getDescription(false)
-        );
+                request.getDescription(false));
         return new ResponseEntity<>(errorResponse, HttpStatus.FORBIDDEN);
     }
 
     @ExceptionHandler(RefreshTokenExpiredException.class)
-    public ResponseEntity<Map<String, Object>> handleRefreshExpired(RefreshTokenExpiredException ex, WebRequest request) {
+    public ResponseEntity<Map<String, Object>> handleRefreshExpired(RefreshTokenExpiredException ex,
+            WebRequest request) {
         Map<String, Object> body = Map.of(
                 "status", HttpStatus.UNAUTHORIZED.value(),
                 "error", "Unauthorized",
                 "message", ex.getMessage(),
-                "path", request.getDescription(false).substring(4)
-        );
+                "path", request.getDescription(false).substring(4));
         return new ResponseEntity<>(body, HttpStatus.UNAUTHORIZED);
     }
-
 
     @ExceptionHandler(ExpiredJwtException.class)
     public ResponseEntity<Map<String, Object>> handleExpiredJwtException(ExpiredJwtException ex, WebRequest request) {
@@ -126,8 +128,7 @@ public class GlobalExceptionHandler {
                 "status", HttpStatus.UNAUTHORIZED.value(),
                 "error", "Unauthorized",
                 "message", "Access token has expired",
-                "path", request.getDescription(false).substring(4)
-        );
+                "path", request.getDescription(false).substring(4));
         return new ResponseEntity<>(body, HttpStatus.UNAUTHORIZED);
     }
 
@@ -137,8 +138,7 @@ public class GlobalExceptionHandler {
                 "status", HttpStatus.UNAUTHORIZED.value(),
                 "error", "Unauthorized",
                 "message", "Invalid token signature",
-                "path", request.getDescription(false).substring(4)
-        );
+                "path", request.getDescription(false).substring(4));
         return new ResponseEntity<>(body, HttpStatus.UNAUTHORIZED);
     }
 
@@ -153,32 +153,47 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(UnprocessableEntityException.class)
     @ResponseStatus(HttpStatus.UNPROCESSABLE_ENTITY)
-    public ResponseEntity<ErrorResponse> handleUnprocessableEntityException(UnprocessableEntityException ex, WebRequest request) {
-        ErrorResponse error = new ErrorResponse(HttpStatus.UNPROCESSABLE_ENTITY.value(), "Smsmkt: data validation failed", request.getDescription(false));
+    public ResponseEntity<ErrorResponse> handleUnprocessableEntityException(UnprocessableEntityException ex,
+            WebRequest request) {
+        ErrorResponse error = new ErrorResponse(HttpStatus.UNPROCESSABLE_ENTITY.value(),
+                "Smsmkt: data validation failed", request.getDescription(false));
         return ResponseEntity.status(HttpStatus.UNPROCESSABLE_ENTITY).body(error);
     }
 
     @ExceptionHandler(IllegalArgumentException.class)
     public ResponseEntity<Map<String, Object>> handleIllegalArgumentException(
             IllegalArgumentException ex,
-            WebRequest request
-    ) {
+            WebRequest request) {
         Map<String, Object> body = Map.of(
                 "status", HttpStatus.UNAUTHORIZED.value(),
                 "error", "Unauthorized",
                 "message", ex.getMessage(),
-                "path", request.getDescription(false).substring(4)
-        );
+                "path", request.getDescription(false).substring(4));
         return new ResponseEntity<>(body, HttpStatus.UNAUTHORIZED);
     }
 
     @ExceptionHandler(AuthService.AccountDeletedException.class)
     public ResponseEntity<Map<String, Object>> handleAccountDeletedException(
-            AuthService.AccountDeletedException ex
-    ) {
+            AuthService.AccountDeletedException ex) {
         return ResponseEntity
                 .status(HttpStatus.FORBIDDEN)
                 .body(ex.getDetails());
+    }
+
+    @ExceptionHandler(ConflictException.class)
+    public ResponseEntity<ErrorResponse> handleConflict(ConflictException ex, HttpServletRequest req) {
+        return build(HttpStatus.CONFLICT, ex.getMessage(), req.getRequestURI());
+    }
+
+    @ExceptionHandler(PayloadTooLargeException.class)
+    public ResponseEntity<ErrorResponse> handlePayloadTooLarge(PayloadTooLargeException ex, HttpServletRequest req) {
+        return build(HttpStatus.PAYLOAD_TOO_LARGE, ex.getMessage(), req.getRequestURI());
+    }
+
+    @ExceptionHandler(UnsupportedMediaTypeException.class)
+    public ResponseEntity<ErrorResponse> handleUnsupportedMediaType(UnsupportedMediaTypeException ex,
+            HttpServletRequest req) {
+        return build(HttpStatus.UNSUPPORTED_MEDIA_TYPE, ex.getMessage(), req.getRequestURI());
     }
 
 }
