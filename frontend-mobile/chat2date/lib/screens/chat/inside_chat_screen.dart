@@ -9,6 +9,7 @@ import 'package:chat2date/components/status_bar/score_row.dart';
 import 'package:chat2date/models/chat_message.dart';
 import 'package:chat2date/theme/app_colors.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 
 class InsideChatScreen extends StatefulWidget {
   const InsideChatScreen({super.key});
@@ -393,8 +394,8 @@ class _InsideChatScreenState extends State<InsideChatScreen> {
                     debugPrint('Calendar tapped');
                   },
                   onSpinwheel:
-                      _handleSpinwheelTap,
-                      //_triggerUnlockDate,
+                      //_handleSpinwheelTap,
+                      _triggerUnlockDate,
                   onFlag: () {
                     Navigator.pushReplacementNamed(context, '/report');
                   },
@@ -473,75 +474,15 @@ class _InsideChatScreenState extends State<InsideChatScreen> {
                 ),
               ],
             ),
-            if (_showWheelModal) ...[
-              // 1. ฉากหลังสีเทาจาง (Dim background)
-              Positioned.fill(
-                child: GestureDetector(
-                  onTap: () => setState(() => _showWheelModal = false),
-                  child: Container(color: Colors.black.withOpacity(0.5)),
-                ),
-              ),
-
-              // 2. ตัว SpinDateComponent
-              // ✅ ใช้ Positioned.fill เพื่อกำหนดขอบเขตพื้นที่ที่เหลือจาก Header
-              Positioned.fill(
-                top: 85, // เริ่มต้นที่ขอบล่างของ Header
-                child: Align(
-                  alignment: Alignment.center, // จัดกลางใน "พื้นที่ที่เหลือ"
-                  child: SingleChildScrollView(
-                    // ✅ กันบั๊กกรณีจอเตี้ยเกินไปหรือ Content ยาวเกินจอ
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 20,
-                        vertical: 20,
-                      ), // ✅ เพิ่ม vertical padding กันติดขอบ
-                      child: Container(
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(24),
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.black.withOpacity(0.2),
-                              blurRadius: 20,
-                              offset: const Offset(0, 10),
-                            ),
-                          ],
-                        ),
-                        child: ClipRRect(
-                          borderRadius: BorderRadius.circular(24),
-                          child: Column(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              SpinDateComponent(
-                                onCloseModal: () =>
-                                    setState(() => _showWheelModal = false),
-                                onSpinComplete: _onSpinComplete,
-                                prizes: const [
-                                  {'label': 'Coffee'},
-                                  {'label': 'Pizza'},
-                                  {'label': 'Movie'},
-                                  {'label': 'Book'},
-                                  {'label': 'Gift'},
-                                  {'label': 'Ice-cream'},
-                                ],
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-            ],
             if (_showUnlockDate) ...[
-              // 1. Full Screen Blur (โทนฟ้าสว่างเหมือนท้องฟ้าตอนสายๆ)
+              // 1. Full Screen Blur
               Positioned.fill(
                 child: BackdropFilter(
                   filter: ImageFilter.blur(sigmaX: 15.0, sigmaY: 15.0),
                   child: Container(
                     decoration: BoxDecoration(
-                      color: Colors.blue.shade50.withOpacity(0.4),
+                      // ใช้สี Info จากธีม (A7E0FF) แบบโปร่งใส
+                      color: AppColors.info.withOpacity(0.1),
                     ),
                   ),
                 ),
@@ -560,11 +501,13 @@ class _InsideChatScreenState extends State<InsideChatScreen> {
                     child: Container(
                       width: MediaQuery.of(context).size.width * 0.88,
                       decoration: BoxDecoration(
-                        color: Colors.white.withOpacity(0.95),
+                        color: AppColors.background.withOpacity(
+                          0.95,
+                        ), // ใช้สี Background สีขาว
                         borderRadius: BorderRadius.circular(45),
                         boxShadow: [
                           BoxShadow(
-                            color: Colors.blue.shade200.withOpacity(0.3),
+                            color: AppColors.brandPrimary.withOpacity(0.2),
                             blurRadius: 40,
                             offset: const Offset(0, 20),
                           ),
@@ -588,7 +531,8 @@ class _InsideChatScreenState extends State<InsideChatScreen> {
                                     left: -20,
                                     child: CircleAvatar(
                                       radius: 60,
-                                      backgroundColor: Colors.blue.shade50,
+                                      backgroundColor: AppColors.info
+                                          .withOpacity(0.3),
                                     ),
                                   ),
                                   Positioned(
@@ -596,15 +540,16 @@ class _InsideChatScreenState extends State<InsideChatScreen> {
                                     right: -10,
                                     child: CircleAvatar(
                                       radius: 40,
-                                      backgroundColor: Colors.lightBlue.shade100
+                                      backgroundColor: AppColors.brandPrimary200
                                           .withOpacity(0.5),
                                     ),
                                   ),
-                                  const Center(
+                                  Center(
                                     child: Text(
                                       "IT'S DATE TIME!",
                                       style: TextStyle(
-                                        color: Color(0xFF0284C7),
+                                        color: AppColors
+                                            .brandPrimary700, // ใช้สี Primary เข้ม
                                         fontWeight: FontWeight.w900,
                                         letterSpacing: 2,
                                         fontSize: 14,
@@ -620,11 +565,10 @@ class _InsideChatScreenState extends State<InsideChatScreen> {
                             padding: const EdgeInsets.fromLTRB(32, 0, 32, 40),
                             child: Column(
                               children: [
-                                // --- ไอคอน: กล้องสีฟ้าพาสเทล + หัวใจ 3D ---
+                                // --- ไอคอน: กล้อง + หัวใจ ---
                                 Stack(
                                   alignment: Alignment.center,
                                   children: [
-                                    // แสงออร่าสีฟ้าอ่อน
                                     Container(
                                       width: 140,
                                       height: 140,
@@ -632,21 +576,24 @@ class _InsideChatScreenState extends State<InsideChatScreen> {
                                         shape: BoxShape.circle,
                                         gradient: RadialGradient(
                                           colors: [
-                                            Colors.blue.shade100,
-                                            Colors.white.withOpacity(0.0),
+                                            AppColors.brandPrimary200
+                                                .withOpacity(0.6),
+                                            AppColors.background.withOpacity(
+                                              0.0,
+                                            ),
                                           ],
                                         ),
                                       ),
                                     ),
-                                    // กล้องถ่ายรูป (Soft Blue Gradient)
+                                    // กล้อง (ใช้สี Brand Primary Gradient)
                                     Container(
                                       width: 100,
                                       height: 100,
                                       decoration: BoxDecoration(
                                         gradient: const LinearGradient(
                                           colors: [
-                                            Color(0xFF7DD3FC),
-                                            Color(0xFF0EA5E9),
+                                            AppColors.brandPrimary,
+                                            AppColors.brandPrimary700,
                                           ],
                                           begin: Alignment.topLeft,
                                           end: Alignment.bottomRight,
@@ -654,44 +601,47 @@ class _InsideChatScreenState extends State<InsideChatScreen> {
                                         shape: BoxShape.circle,
                                         boxShadow: [
                                           BoxShadow(
-                                            color: const Color(
-                                              0xFF0EA5E9,
-                                            ).withOpacity(0.3),
+                                            color: AppColors.brandPrimary
+                                                .withOpacity(0.4),
                                             blurRadius: 15,
                                             offset: const Offset(0, 10),
                                           ),
                                         ],
                                       ),
-                                      child: const Icon(
-                                        Icons.photo_camera_back_rounded,
-                                        color: Colors.white,
-                                        size: 45,
+                                      padding: const EdgeInsets.all(5),
+                                      child: SvgPicture.asset(
+                                        'assets/icons/icon_spinwheel.svg',
+                                        width: 25, // กำหนดขนาดที่ต้องการจริง
+                                        height: 25,
+                                        fit: BoxFit
+                                            .contain, // บังคับให้ขนาดภาพอยู่ในขอบเขตที่ระบุ
                                       ),
                                     ),
-                                    // หัวใจสีชมพูพีช (เพื่อให้ดูรักๆ แต่เข้ากับสีฟ้า)
+                                    // หัวใจสีชมพู (จากธีม surfaceLight หรือ error)
                                     Positioned(
                                       top: 5,
                                       right: 5,
-                                      child: const Icon(
-                                        Icons.favorite_rounded,
-                                        color: Color(0xFFF472B6),
-                                        size: 38,
+                                      child: SvgPicture.asset(
+                                        'assets/icons/HEART_STATUS_BAR.svg',
+                                        width: 28,
+                                        height: 28,
                                       ),
                                     ),
-                                    // เข็มทิศสีน้ำเงินเข้ม
+                                    // เข็มทิศ (ใช้สีเข้มจาก Text Primary)
                                     Positioned(
                                       bottom: 0,
                                       left: 10,
                                       child: Container(
                                         padding: const EdgeInsets.all(8),
                                         decoration: const BoxDecoration(
-                                          color: Color(0xFF0369A1),
+                                          color: AppColors.textPrimary,
                                           shape: BoxShape.circle,
                                         ),
-                                        child: const Icon(
-                                          Icons.explore_rounded,
-                                          size: 20,
-                                          color: Colors.white,
+                                        child: SvgPicture.asset(
+                                          'assets/icons/icon_unlock.svg',
+                                          width: 20,
+                                          height: 20,
+                                          color: AppColors.warning,
                                         ),
                                       ),
                                     ),
@@ -706,7 +656,7 @@ class _InsideChatScreenState extends State<InsideChatScreen> {
                                   style: TextStyle(
                                     fontSize: 24,
                                     fontWeight: FontWeight.bold,
-                                    color: Color(0xFF0F172A),
+                                    color: AppColors.textPrimary,
                                   ),
                                 ),
                                 const SizedBox(height: 12),
@@ -715,29 +665,29 @@ class _InsideChatScreenState extends State<InsideChatScreen> {
                                   textAlign: TextAlign.center,
                                   style: TextStyle(
                                     fontSize: 16,
-                                    color: Colors.blueGrey.shade600,
+                                    color: AppColors.textSecondary,
                                     height: 1.5,
                                   ),
                                 ),
 
                                 const SizedBox(height: 32),
 
-                                // --- ปุ่ม Let's Go (Sky Blue Gradient) ---
+                                // --- ปุ่ม Let's Go (ใช้สีปุ่มจากธีม) ---
                                 Container(
                                   width: double.infinity,
                                   decoration: BoxDecoration(
                                     borderRadius: BorderRadius.circular(20),
                                     gradient: const LinearGradient(
                                       colors: [
-                                        Color(0xFF38BDF8),
-                                        Color(0xFF0284C7),
+                                        AppColors.btnPrimary,
+                                        AppColors.btnHoverPrimary,
                                       ],
                                     ),
                                     boxShadow: [
                                       BoxShadow(
-                                        color: const Color(
-                                          0xFF0284C7,
-                                        ).withOpacity(0.3),
+                                        color: AppColors.btnPrimary.withOpacity(
+                                          0.3,
+                                        ),
                                         blurRadius: 15,
                                         offset: const Offset(0, 8),
                                       ),
@@ -748,7 +698,10 @@ class _InsideChatScreenState extends State<InsideChatScreen> {
                                     style: ElevatedButton.styleFrom(
                                       backgroundColor: Colors.transparent,
                                       shadowColor: Colors.transparent,
-                                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 16,
+                                        vertical: 16,
+                                      ),
                                       shape: RoundedRectangleBorder(
                                         borderRadius: BorderRadius.circular(20),
                                       ),
@@ -756,7 +709,7 @@ class _InsideChatScreenState extends State<InsideChatScreen> {
                                     child: const Text(
                                       'ไปเดทกันเลย!',
                                       style: TextStyle(
-                                        color: Colors.white,
+                                        color: AppColors.btnTextPrimary,
                                         fontSize: 18,
                                         fontWeight: FontWeight.bold,
                                       ),
