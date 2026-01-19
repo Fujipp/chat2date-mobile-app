@@ -15,7 +15,7 @@ import java.util.UUID;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-@Table(name = "chatAccessLog")
+@Table(name = "chat_access_logs")
 public class ChatAccessLog {
     @Id
     @GeneratedValue(generator = "uuid2")

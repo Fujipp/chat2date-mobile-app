@@ -15,7 +15,7 @@ import java.util.UUID;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-@Table(name = "relationshipStats")
+@Table(name = "relationship_stats")
 public class RelationshipStats {
     @Id
     @GeneratedValue(generator = "uuid2")

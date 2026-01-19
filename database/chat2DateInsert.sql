@@ -518,3 +518,82 @@ INSERT INTO `action` (`userId`, `actionType`, `targetUserId`) VALUES
 -- Match record for User 1 and User 2
 INSERT INTO `match` (`userId1`, `userId2`) VALUES
 (1, 2);
+
+--
+-- 7.
+-- CHAT / REPORT TEST DATA
+--
+SET @chat_user1 := 'b6f0f0d2-2f1d-4b0d-9a10-8f2f1b8d9a11';
+SET @chat_user2 := 'a7c2c3d4-5e6f-4712-8a9b-0c1d2e3f4a5b';
+SET @report_target := 'c9a1b2c3-d4e5-4f67-8901-23456789abcd';
+
+INSERT IGNORE INTO `user`
+(`userId`, `email`, `phoneNumber`, `provider`, `firstname`, `lastname`, `nickname`, `cardId`, `birthday`, `sex`, `behaviorScore`, `isBlacklist`, `accountStatus`, `version`, `role`)
+VALUES
+(@chat_user1, 'seed.chat1@example.com', '0890000011', 'GOOGLE', 'Seed', 'One', 'SeedOne', '9900000000011', '1997-01-15', 'MALE', 0, 0, 'ACTIVE', 1, 'USER'),
+(@chat_user2, 'seed.chat2@example.com', '0890000022', 'GOOGLE', 'Seed', 'Two', 'SeedTwo', '9900000000022', '1998-02-20', 'FEMALE', 0, 0, 'ACTIVE', 1, 'USER'),
+(@report_target, 'seed.report@example.com', '0890000033', 'GOOGLE', 'Seed', 'Report', 'SeedReport', '9900000000033', '1996-06-30', 'FEMALE', 0, 0, 'ACTIVE', 1, 'USER');
+
+INSERT INTO `userphoto` (`userId`, `attributes`) VALUES
+(@chat_user1, '{\"urls\":[\"https://example.com/photos/seed1_1.jpg\",\"https://example.com/photos/seed1_2.jpg\"]}'),
+(@chat_user2, '{\"urls\":[\"https://example.com/photos/seed2_1.jpg\",\"https://example.com/photos/seed2_2.jpg\"]}');
+
+INSERT INTO `match` (`userId1`, `userId2`)
+SELECT @chat_user1, @chat_user2
+WHERE NOT EXISTS (
+  SELECT 1 FROM `match`
+  WHERE (`userId1` = @chat_user1 AND `userId2` = @chat_user2)
+     OR (`userId1` = @chat_user2 AND `userId2` = @chat_user1)
+);
+SET @roomId := (
+  SELECT `matchId` FROM `match`
+  WHERE (`userId1` = @chat_user1 AND `userId2` = @chat_user2)
+     OR (`userId1` = @chat_user2 AND `userId2` = @chat_user1)
+  ORDER BY `matchId` DESC
+  LIMIT 1
+);
+
+INSERT IGNORE INTO `relationship_stats`
+(`relationshipId`, `score`, `streakDays`, `isFirstMessageBonus`, `dailyMessageCount`, `dailyDate`)
+VALUES
+(@roomId, 85, 3, TRUE, 5, CURRENT_DATE);
+
+INSERT INTO `messages` (`roomId`, `senderId`, `message`, `messageType`, `isRead`, `createdAt`) VALUES
+(@roomId, @chat_user1, 'Hi SeedTwo, this is SeedOne.', 'TEXT', TRUE, DATE_SUB(NOW(), INTERVAL 2 DAY)),
+(@roomId, @chat_user2, 'Hello SeedOne! nice to meet you.', 'TEXT', FALSE, DATE_SUB(NOW(), INTERVAL 1 DAY)),
+(@roomId, @chat_user1, 'Ready for a game?', 'GAME', TRUE, DATE_SUB(NOW(), INTERVAL 12 HOUR));
+
+INSERT INTO `chat_access_logs` (`userId`, `roomId`, `actionType`, `createdAt`) VALUES
+(@chat_user1, @roomId, 'ENTER', DATE_SUB(NOW(), INTERVAL 5 MINUTE)),
+(@chat_user2, @roomId, 'EXIT', DATE_SUB(NOW(), INTERVAL 2 MINUTE));
+
+INSERT INTO `game_sessions` (`gameId`, `roomId`, `totalScore`, `status`) VALUES
+('game_seed_1', @roomId, 7, 'ACTIVE')
+ON DUPLICATE KEY UPDATE
+`totalScore` = VALUES(`totalScore`),
+`status` = VALUES(`status`);
+
+INSERT INTO `game_questions` (`questionId`, `gameId`, `question`, `options`, `correctAnswer`, `userSelectedOption`, `isCorrect`) VALUES
+('q_seed_1', 'game_seed_1', 'Which place would you prefer for a first date?', '[\"Cafe\",\"Park\",\"Museum\",\"Beach\"]', 'Cafe', 'Park', FALSE)
+ON DUPLICATE KEY UPDATE
+`userSelectedOption` = VALUES(`userSelectedOption`),
+`isCorrect` = VALUES(`isCorrect`);
+
+INSERT INTO `reports` (`reporterId`, `targetUserId`, `reason`, `anotherReason`, `description`, `status`, `isNotified`)
+SELECT @chat_user1, @report_target, 'spam', NULL, 'Test report for spam messages', 'PENDING', FALSE
+WHERE NOT EXISTS (
+  SELECT 1 FROM `reports`
+  WHERE `reporterId` = @chat_user1 AND `targetUserId` = @report_target
+);
+SET @reportId := (
+  SELECT `reportId` FROM `reports`
+  WHERE `reporterId` = @chat_user1 AND `targetUserId` = @report_target
+  ORDER BY `reportId` DESC
+  LIMIT 1
+);
+
+INSERT INTO `report_evidences` (`reportId`, `evidenceUrl`)
+SELECT @reportId, '[\"https://example.com/evidence/seed-report-1.jpg\"]'
+WHERE NOT EXISTS (
+  SELECT 1 FROM `report_evidences` WHERE `reportId` = @reportId
+);
