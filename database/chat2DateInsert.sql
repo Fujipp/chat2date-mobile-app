@@ -600,69 +600,61 @@ WHERE NOT EXISTS (
 
 --
 -- 8.
--- MORE CHAT TEST DATA (OTP USERS)
+-- MORE CHAT TEST DATA (ADMIN USERS)
 --
-SET @otp_user1 := '4f1c8b6a-2f0b-4b3f-9a2c-1b2c3d4e5f01';
-SET @otp_user2 := '7a3d9c1b-5e2a-4f7b-8c1d-2e3f4a5b6c02';
-SET @otp_user3 := '9b5e1d2c-7f3a-4c8b-9d2e-3f4a5b6c7d03';
-SET @otp_user4 := '1c6f2e3d-8a4b-5d9c-0e3f-4a5b6c7d8e04';
+SET @admin_user1 := 'df210f16-a22c-471c-9671-2926bce89fef';
+SET @admin_user2 := 'efca9113-49a9-4565-b292-e8f5cecdc881';
+SET @admin_user3 := '29d3477d-34cd-43b5-861f-36875b76eff8';
+SET @admin_user4 := '4248c9dc-8f40-451f-b223-7ea60a36240e';
 
 INSERT IGNORE INTO `user`
 (`userId`, `email`, `phoneNumber`, `provider`, `firstname`, `lastname`, `nickname`, `cardId`, `birthday`, `sex`, `behaviorScore`, `isBlacklist`, `accountStatus`, `version`, `role`)
 VALUES
-(@otp_user1, NULL, '0890000101', 'OTP', 'Otp', 'One', 'OtpOne', '9900000000101', '1999-01-10', 'MALE', 0, 0, 'ACTIVE', 1, 'USER'),
-(@otp_user2, NULL, '0890000102', 'OTP', 'Otp', 'Two', 'OtpTwo', '9900000000102', '1998-02-11', 'FEMALE', 0, 0, 'ACTIVE', 1, 'USER'),
-(@otp_user3, NULL, '0890000103', 'OTP', 'Otp', 'Three', 'OtpThree', '9900000000103', '1997-03-12', 'FEMALE', 0, 0, 'ACTIVE', 1, 'USER'),
-(@otp_user4, NULL, '0890000104', 'OTP', 'Otp', 'Four', 'OtpFour', '9900000000104', '1996-04-13', 'MALE', 0, 0, 'ACTIVE', 1, 'USER');
+(@admin_user1, NULL, '0900000001', 'OTP', 'Admin', '01', 'Admin-01', '9000000000001', '1996-01-01', 'MALE', 0, 0, 'ACTIVE', 1, 'USER'),
+(@admin_user2, NULL, '0900000002', 'OTP', 'Admin', '02', 'Admin-02', '9000000000002', '1996-02-02', 'FEMALE', 0, 0, 'ACTIVE', 1, 'USER'),
+(@admin_user3, NULL, '0900000003', 'OTP', 'Admin', '03', 'Admin-03', '9000000000003', '1996-03-03', 'MALE', 0, 0, 'ACTIVE', 1, 'USER'),
+(@admin_user4, NULL, '0900000004', 'OTP', 'Admin', '04', 'Admin-04', '9000000000004', '1996-04-04', 'FEMALE', 0, 0, 'ACTIVE', 1, 'USER');
 
-INSERT INTO `userphoto` (`userId`, `attributes`) VALUES
-(@otp_user1, '{\"urls\":[\"https://example.com/photos/otp1_1.jpg\",\"https://example.com/photos/otp1_2.jpg\"]}'),
-(@otp_user2, '{\"urls\":[\"https://example.com/photos/otp2_1.jpg\",\"https://example.com/photos/otp2_2.jpg\"]}'),
-(@otp_user3, '{\"urls\":[\"https://example.com/photos/otp3_1.jpg\",\"https://example.com/photos/otp3_2.jpg\"]}'),
-(@otp_user4, '{\"urls\":[\"https://example.com/photos/otp4_1.jpg\",\"https://example.com/photos/otp4_2.jpg\"]}');
+INSERT INTO `userphoto` (`userId`, `attributes`)
+SELECT @admin_user1, '{\"urls\":[\"https://picsum.photos/seed/chat2date-1/400/400\",\"https://picsum.photos/seed/chat2date-2/400/400\",\"https://picsum.photos/seed/chat2date-3/400/400\",\"https://picsum.photos/seed/chat2date-4/400/400\"]}'
+WHERE NOT EXISTS (SELECT 1 FROM `userphoto` WHERE `userId` = @admin_user1);
+INSERT INTO `userphoto` (`userId`, `attributes`)
+SELECT @admin_user2, '{\"urls\":[\"https://picsum.photos/seed/chat2date-1/400/400\",\"https://picsum.photos/seed/chat2date-2/400/400\",\"https://picsum.photos/seed/chat2date-3/400/400\",\"https://picsum.photos/seed/chat2date-4/400/400\"]}'
+WHERE NOT EXISTS (SELECT 1 FROM `userphoto` WHERE `userId` = @admin_user2);
+INSERT INTO `userphoto` (`userId`, `attributes`)
+SELECT @admin_user3, '{\"urls\":[\"https://picsum.photos/seed/chat2date-1/400/400\",\"https://picsum.photos/seed/chat2date-2/400/400\",\"https://picsum.photos/seed/chat2date-3/400/400\",\"https://picsum.photos/seed/chat2date-4/400/400\"]}'
+WHERE NOT EXISTS (SELECT 1 FROM `userphoto` WHERE `userId` = @admin_user3);
+INSERT INTO `userphoto` (`userId`, `attributes`)
+SELECT @admin_user4, '{\"urls\":[\"https://picsum.photos/seed/chat2date-1/400/400\",\"https://picsum.photos/seed/chat2date-2/400/400\",\"https://picsum.photos/seed/chat2date-3/400/400\",\"https://picsum.photos/seed/chat2date-4/400/400\"]}'
+WHERE NOT EXISTS (SELECT 1 FROM `userphoto` WHERE `userId` = @admin_user4);
 
 -- Create matches for multiple rooms
 INSERT INTO `match` (`userId1`, `userId2`)
-SELECT @otp_user1, @otp_user2
+SELECT @admin_user1, @admin_user2
 WHERE NOT EXISTS (
   SELECT 1 FROM `match`
-  WHERE (`userId1` = @otp_user1 AND `userId2` = @otp_user2)
-     OR (`userId1` = @otp_user2 AND `userId2` = @otp_user1)
+  WHERE (`userId1` = @admin_user1 AND `userId2` = @admin_user2)
+     OR (`userId1` = @admin_user2 AND `userId2` = @admin_user1)
 );
-SET @otp_roomA := (
+SET @admin_roomA := (
   SELECT `matchId` FROM `match`
-  WHERE (`userId1` = @otp_user1 AND `userId2` = @otp_user2)
-     OR (`userId1` = @otp_user2 AND `userId2` = @otp_user1)
+  WHERE (`userId1` = @admin_user1 AND `userId2` = @admin_user2)
+     OR (`userId1` = @admin_user2 AND `userId2` = @admin_user1)
   ORDER BY `matchId` DESC
   LIMIT 1
 );
 
 INSERT INTO `match` (`userId1`, `userId2`)
-SELECT @otp_user1, @otp_user3
+SELECT @admin_user3, @admin_user4
 WHERE NOT EXISTS (
   SELECT 1 FROM `match`
-  WHERE (`userId1` = @otp_user1 AND `userId2` = @otp_user3)
-     OR (`userId1` = @otp_user3 AND `userId2` = @otp_user1)
+  WHERE (`userId1` = @admin_user3 AND `userId2` = @admin_user4)
+     OR (`userId1` = @admin_user4 AND `userId2` = @admin_user3)
 );
-SET @otp_roomB := (
+SET @admin_roomB := (
   SELECT `matchId` FROM `match`
-  WHERE (`userId1` = @otp_user1 AND `userId2` = @otp_user3)
-     OR (`userId1` = @otp_user3 AND `userId2` = @otp_user1)
-  ORDER BY `matchId` DESC
-  LIMIT 1
-);
-
-INSERT INTO `match` (`userId1`, `userId2`)
-SELECT @otp_user2, @otp_user4
-WHERE NOT EXISTS (
-  SELECT 1 FROM `match`
-  WHERE (`userId1` = @otp_user2 AND `userId2` = @otp_user4)
-     OR (`userId1` = @otp_user4 AND `userId2` = @otp_user2)
-);
-SET @otp_roomC := (
-  SELECT `matchId` FROM `match`
-  WHERE (`userId1` = @otp_user2 AND `userId2` = @otp_user4)
-     OR (`userId1` = @otp_user4 AND `userId2` = @otp_user2)
+  WHERE (`userId1` = @admin_user3 AND `userId2` = @admin_user4)
+     OR (`userId1` = @admin_user4 AND `userId2` = @admin_user3)
   ORDER BY `matchId` DESC
   LIMIT 1
 );
@@ -670,107 +662,20 @@ SET @otp_roomC := (
 INSERT IGNORE INTO `relationship_stats`
 (`relationshipId`, `score`, `streakDays`, `isFirstMessageBonus`, `dailyMessageCount`, `dailyDate`)
 VALUES
-(@otp_roomA, 85, 4, TRUE, 6, '2026-01-19'),
-(@otp_roomB, 42, 1, FALSE, 2, '2026-01-20'),
-(@otp_roomC, 10, 0, FALSE, 0, '2026-01-21');
+(@admin_roomA, 15, 0, FALSE, 0, '2026-01-21'),
+(@admin_roomB, 72, 3, TRUE, 50, '2026-01-21');
 
--- Messages for room A
+-- Messages for room B (Admin-03 <-> Admin-04)
 INSERT INTO `messages` (`roomId`, `senderId`, `message`, `messageType`, `isRead`, `createdAt`)
-SELECT @otp_roomA, @otp_user1, 'สวัสดีครับ', 'TEXT', TRUE, '2026-01-19 10:30:00'
-WHERE NOT EXISTS (
-  SELECT 1 FROM `messages` WHERE `roomId` = @otp_roomA AND `senderId` = @otp_user1
-    AND `message` = 'สวัสดีครับ' AND `createdAt` = '2026-01-19 10:30:00'
-);
-INSERT INTO `messages` (`roomId`, `senderId`, `message`, `messageType`, `isRead`, `createdAt`)
-SELECT @otp_roomA, @otp_user2, 'สวัสดีค่ะ', 'TEXT', FALSE, '2026-01-19 10:31:00'
-WHERE NOT EXISTS (
-  SELECT 1 FROM `messages` WHERE `roomId` = @otp_roomA AND `senderId` = @otp_user2
-    AND `message` = 'สวัสดีค่ะ' AND `createdAt` = '2026-01-19 10:31:00'
-);
-INSERT INTO `messages` (`roomId`, `senderId`, `message`, `messageType`, `isRead`, `createdAt`)
-SELECT @otp_roomA, @otp_user1, 'อยากคุยกันไหม', 'TEXT', TRUE, '2026-01-19 10:35:00'
-WHERE NOT EXISTS (
-  SELECT 1 FROM `messages` WHERE `roomId` = @otp_roomA AND `senderId` = @otp_user1
-    AND `message` = 'อยากคุยกันไหม' AND `createdAt` = '2026-01-19 10:35:00'
-);
-INSERT INTO `messages` (`roomId`, `senderId`, `message`, `messageType`, `isRead`, `createdAt`)
-SELECT @otp_roomA, @otp_user1, 'มาเล่นเกมกัน', 'GAME', TRUE, '2026-01-19 10:40:00'
-WHERE NOT EXISTS (
-  SELECT 1 FROM `messages` WHERE `roomId` = @otp_roomA AND `senderId` = @otp_user1
-    AND `message` = 'มาเล่นเกมกัน' AND `createdAt` = '2026-01-19 10:40:00'
-);
-
--- Messages for room B
-INSERT INTO `messages` (`roomId`, `senderId`, `message`, `messageType`, `isRead`, `createdAt`)
-SELECT @otp_roomB, @otp_user1, 'ว่างคุยไหม', 'TEXT', TRUE, '2026-01-20 09:00:00'
-WHERE NOT EXISTS (
-  SELECT 1 FROM `messages` WHERE `roomId` = @otp_roomB AND `senderId` = @otp_user1
-    AND `message` = 'ว่างคุยไหม' AND `createdAt` = '2026-01-20 09:00:00'
-);
-INSERT INTO `messages` (`roomId`, `senderId`, `message`, `messageType`, `isRead`, `createdAt`)
-SELECT @otp_roomB, @otp_user3, 'ได้เลยค่ะ', 'TEXT', FALSE, '2026-01-20 09:05:00'
-WHERE NOT EXISTS (
-  SELECT 1 FROM `messages` WHERE `roomId` = @otp_roomB AND `senderId` = @otp_user3
-    AND `message` = 'ได้เลยค่ะ' AND `createdAt` = '2026-01-20 09:05:00'
-);
-
--- Messages for room C
-INSERT INTO `messages` (`roomId`, `senderId`, `message`, `messageType`, `isRead`, `createdAt`)
-SELECT @otp_roomC, @otp_user2, 'เย็นนี้ว่างไหม', 'TEXT', TRUE, '2026-01-21 18:10:00'
-WHERE NOT EXISTS (
-  SELECT 1 FROM `messages` WHERE `roomId` = @otp_roomC AND `senderId` = @otp_user2
-    AND `message` = 'เย็นนี้ว่างไหม' AND `createdAt` = '2026-01-21 18:10:00'
-);
-INSERT INTO `messages` (`roomId`, `senderId`, `message`, `messageType`, `isRead`, `createdAt`)
-SELECT @otp_roomC, @otp_user4, 'ว่างครับ', 'TEXT', FALSE, '2026-01-21 18:12:00'
-WHERE NOT EXISTS (
-  SELECT 1 FROM `messages` WHERE `roomId` = @otp_roomC AND `senderId` = @otp_user4
-    AND `message` = 'ว่างครับ' AND `createdAt` = '2026-01-21 18:12:00'
-);
-
--- Chat access logs
-INSERT INTO `chat_access_logs` (`userId`, `roomId`, `actionType`, `createdAt`)
-SELECT @otp_user1, @otp_roomA, 'ENTER', '2026-01-19 10:50:00'
-WHERE NOT EXISTS (
-  SELECT 1 FROM `chat_access_logs` WHERE `userId` = @otp_user1 AND `roomId` = @otp_roomA
-    AND `actionType` = 'ENTER' AND `createdAt` = '2026-01-19 10:50:00'
-);
-INSERT INTO `chat_access_logs` (`userId`, `roomId`, `actionType`, `createdAt`)
-SELECT @otp_user2, @otp_roomA, 'EXIT', '2026-01-19 10:52:00'
-WHERE NOT EXISTS (
-  SELECT 1 FROM `chat_access_logs` WHERE `userId` = @otp_user2 AND `roomId` = @otp_roomA
-    AND `actionType` = 'EXIT' AND `createdAt` = '2026-01-19 10:52:00'
-);
-
--- Game session for room A
-INSERT INTO `game_sessions` (`gameId`, `roomId`, `totalScore`, `status`) VALUES
-('game_otp_a', @otp_roomA, 12, 'ACTIVE')
-ON DUPLICATE KEY UPDATE
-`totalScore` = VALUES(`totalScore`),
-`status` = VALUES(`status`);
-
-INSERT INTO `game_questions` (`questionId`, `gameId`, `question`, `options`, `correctAnswer`, `userSelectedOption`, `isCorrect`) VALUES
-('q_otp_a_1', 'game_otp_a', 'First date idea?', '[\"Cafe\",\"Park\",\"Movie\",\"Beach\"]', 'Cafe', 'Park', FALSE)
-ON DUPLICATE KEY UPDATE
-`userSelectedOption` = VALUES(`userSelectedOption`),
-`isCorrect` = VALUES(`isCorrect`);
-
--- Reports
-INSERT INTO `reports` (`reporterId`, `targetUserId`, `reason`, `anotherReason`, `description`, `status`, `isNotified`)
-SELECT @otp_user2, @otp_user3, 'spam', NULL, 'Test report from OTP user', 'PENDING', FALSE
-WHERE NOT EXISTS (
-  SELECT 1 FROM `reports`
-  WHERE `reporterId` = @otp_user2 AND `targetUserId` = @otp_user3
-);
-SET @otp_reportId := (
-  SELECT `reportId` FROM `reports`
-  WHERE `reporterId` = @otp_user2 AND `targetUserId` = @otp_user3
-  ORDER BY `reportId` DESC
-  LIMIT 1
-);
-
-INSERT INTO `report_evidences` (`reportId`, `evidenceUrl`)
-SELECT @otp_reportId, '[\"https://example.com/evidence/otp-report-1.jpg\"]'
-WHERE NOT EXISTS (
-  SELECT 1 FROM `report_evidences` WHERE `reportId` = @otp_reportId
-);
+SELECT
+  @admin_roomB,
+  CASE WHEN MOD(seq.n, 2) = 1 THEN @admin_user3 ELSE @admin_user4 END,
+  CONCAT('ข้อความทดสอบ #', seq.n),
+  'TEXT',
+  TRUE,
+  DATE_SUB(NOW(), INTERVAL (50 - seq.n) MINUTE)
+FROM (
+  SELECT @n := @n + 1 AS n
+  FROM information_schema.columns, (SELECT @n := 0) init
+  LIMIT 50
+) seq;
