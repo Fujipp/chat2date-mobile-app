@@ -14,7 +14,7 @@ import sit.chat2date.cp25ssi2.services.ChatService;
 import java.util.Optional;
 
 @RestController
-@RequestMapping("/api/v1/chats")
+@RequestMapping("/chats")
 @RequiredArgsConstructor
 public class ChatController {
 

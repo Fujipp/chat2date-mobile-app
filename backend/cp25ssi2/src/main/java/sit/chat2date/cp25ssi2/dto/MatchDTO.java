@@ -5,6 +5,8 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.time.LocalDateTime;
+
 @Data
 @Builder
 @NoArgsConstructor
@@ -14,5 +16,6 @@ public class MatchDTO {
     private String partnerId;
     private String partnerName;
     private String partnerImage;
+    private LocalDateTime created;
     private String type; // "new" or "old"
 }

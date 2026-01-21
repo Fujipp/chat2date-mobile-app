@@ -14,9 +14,10 @@ import java.time.LocalDateTime;
 @AllArgsConstructor
 public class SendMessageResponse {
     private String roomId;
-    private String messageId;
+    private Long messageId;
     private String message;
     private String senderId;
     private LocalDateTime created;
     private MessageType type;
+    private Boolean isRead;
 }

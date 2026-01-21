@@ -44,7 +44,7 @@ public class MatchService {
                     ? match.getUserId2()
                     : match.getUserId1();
 
-            String roomId = String.valueOf(match.getId());
+            Integer roomId = match.getId();
             boolean hasMessages = messageRepository.findFirstByRoomIdOrderByCreatedAtDesc(roomId).isPresent();
             String type = hasMessages ? "old" : "new";
 
@@ -53,6 +53,7 @@ public class MatchService {
                     .partnerId(partner.getUserId())
                     .partnerName(partner.getNickname())
                     .partnerImage(getFirstPhoto(partner.getUserId()))
+                    .created(match.getCreatedAt())
                     .type(type)
                     .build();
         }).collect(Collectors.toList());
@@ -63,15 +64,15 @@ public class MatchService {
     /**
      * Unmatch - delete the match
      */
-    public void unmatch(String userId, String roomId, String partnerId) {
-        if (roomId == null || roomId.isBlank()) {
+    public void unmatch(String userId, String roomIdStr, String partnerId) {
+        if (roomIdStr == null || roomIdStr.isBlank()) {
             throw new BadRequestException("roomId is required");
         }
         if (partnerId == null || partnerId.isBlank()) {
             throw new BadRequestException("partnerId is required");
         }
 
-        Integer matchId = Integer.parseInt(roomId);
+        Integer matchId = Integer.parseInt(roomIdStr);
         Match match = matchRepository.findById(matchId)
                 .orElseThrow(() -> new NotFoundException("Match not found"));
 

@@ -409,8 +409,24 @@ public class UserService {
 
         PreferenceUserProfileDTO dto = new PreferenceUserProfileDTO();
 
-        // เพศที่สนใจ
-        dto.setInterestedGender(preferenceMatch.getInterestedGender().toString());
+        // ✅ เพิ่ม null check สำหรับ preferenceMatch
+        if (preferenceMatch != null) {
+            // เพศที่สนใจ
+            if (preferenceMatch.getInterestedGender() != null) {
+                dto.setInterestedGender(preferenceMatch.getInterestedGender().toString());
+            }
+            dto.setInterestedAgeMin(preferenceMatch.getInterestedAgeMin());
+            dto.setInterestedAgeMax(preferenceMatch.getInterestedAgeMax());
+            if (preferenceMatch.getInterestedInterest() != null) {
+                dto.setInterestedInterest(String.valueOf(preferenceMatch.getInterestedInterest()));
+            }
+            if (preferenceMatch.getInterestedLifeStyle() != null) {
+                dto.setInterestedLifeStyle(String.valueOf(preferenceMatch.getInterestedLifeStyle()));
+            }
+            if (preferenceMatch.getInterestedTravelStyle() != null) {
+                dto.setInterestedTravelStyle(String.valueOf(preferenceMatch.getInterestedTravelStyle()));
+            }
+        }
 
         // แปลง entity เป็น List<Integer> ของ id
         dto.setInterests(
@@ -421,27 +437,21 @@ public class UserService {
 
         dto.setLifeStyles(
                 userHasLifestyles.stream()
-                        .map(uhl -> uhl.getLifestyleLifestyle().getId()) // สมมติ entity มี getLifeStyleId()
+                        .map(uhl -> uhl.getLifestyleLifestyle().getId())
                         .toList()
         );
 
         dto.setTags(
                 userHasTags.stream()
-                        .map(uht -> uht.getTagTag().getId()) // สมมติ entity มี getTagId()
+                        .map(uht -> uht.getTagTag().getId())
                         .toList()
         );
 
         dto.setTravelStyles(
                 userHasTravelstyles.stream()
-                        .map(uhts -> uhts.getTravelstyleTravel().getId()) // สมมติ entity มี getTravelStyleId()
+                        .map(uhts -> uhts.getTravelstyleTravel().getId())
                         .toList()
         );
-
-        dto.setInterestedAgeMin(preferenceMatch.getInterestedAgeMin());
-        dto.setInterestedAgeMax(preferenceMatch.getInterestedAgeMax());
-        dto.setInterestedInterest(String.valueOf(preferenceMatch.getInterestedInterest()));
-        dto.setInterestedLifeStyle(String.valueOf(preferenceMatch.getInterestedLifeStyle()));
-        dto.setInterestedTravelStyle(String.valueOf(preferenceMatch.getInterestedTravelStyle()));
 
         // รูปภาพ
         dto.setPhotos(userPhotos);

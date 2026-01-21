@@ -8,21 +8,18 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import sit.chat2date.cp25ssi2.entities.Message;
 
-import java.util.List;
 import java.util.Optional;
 
-public interface MessageRepository extends JpaRepository<Message, String> {
+public interface MessageRepository extends JpaRepository<Message, Long> {
 
-    Page<Message> findByRoomIdOrderByCreatedAtDesc(String roomId, Pageable pageable);
+    Page<Message> findByRoomIdOrderByCreatedAtDesc(Integer roomId, Pageable pageable);
 
-    List<Message> findByRoomIdOrderByCreatedAtDesc(String roomId);
-
-    Optional<Message> findFirstByRoomIdOrderByCreatedAtDesc(String roomId);
+    Optional<Message> findFirstByRoomIdOrderByCreatedAtDesc(Integer roomId);
 
     @Query("SELECT COUNT(m) FROM Message m WHERE m.roomId = :roomId AND m.senderId != :userId AND m.isRead = false")
-    Integer countUnreadMessages(@Param("roomId") String roomId, @Param("userId") String userId);
+    Integer countUnreadMessages(@Param("roomId") Integer roomId, @Param("userId") String userId);
 
     @Modifying
     @Query("UPDATE Message m SET m.isRead = true WHERE m.roomId = :roomId AND m.senderId != :userId AND m.isRead = false")
-    void markMessagesAsRead(@Param("roomId") String roomId, @Param("userId") String userId);
+    void markMessagesAsRead(@Param("roomId") Integer roomId, @Param("userId") String userId);
 }

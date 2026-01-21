@@ -11,7 +11,7 @@ import sit.chat2date.cp25ssi2.services.MatchService;
 import java.util.Optional;
 
 @RestController
-@RequestMapping("/api/v1")
+@RequestMapping("")
 @RequiredArgsConstructor
 public class MatchController {
 

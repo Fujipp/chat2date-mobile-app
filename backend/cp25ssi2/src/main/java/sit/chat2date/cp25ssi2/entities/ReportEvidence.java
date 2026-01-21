@@ -2,9 +2,6 @@ package sit.chat2date.cp25ssi2.entities;
 
 import jakarta.persistence.*;
 import lombok.*;
-import org.hibernate.annotations.GenericGenerator;
-
-import java.util.UUID;
 
 @Getter
 @Setter
@@ -12,16 +9,15 @@ import java.util.UUID;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-@Table(name = "reportEvidence")
+@Table(name = "report_evidences")
 public class ReportEvidence {
     @Id
-    @GeneratedValue(generator = "uuid2")
-    @GenericGenerator(name = "uuid2", strategy = "uuid2")
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "evidenceId", nullable = false)
-    private String evidenceId;
+    private Integer evidenceId;
 
     @Column(name = "reportId", nullable = false)
-    private String reportId;
+    private Integer reportId;
 
     @Column(name = "evidenceUrl", columnDefinition = "JSON")
     private String evidenceUrl;

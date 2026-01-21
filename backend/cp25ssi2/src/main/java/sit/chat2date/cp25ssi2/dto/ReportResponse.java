@@ -13,7 +13,7 @@ import java.time.LocalDateTime;
 @NoArgsConstructor
 @AllArgsConstructor
 public class ReportResponse {
-    private String reportId;
+    private Integer reportId;
     private String reporterId;
     private String targetUserId;
     private String reason;

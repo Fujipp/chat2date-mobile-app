@@ -49,7 +49,7 @@ public class ChatService {
                 List<Match> matches = matchRepository.findAllByUser(user);
 
                 List<ChatRoomDTO> roomDTOs = matches.stream().map(match -> {
-                        String roomId = String.valueOf(match.getId()); // matchId as roomId
+                        Integer roomId = match.getId(); // matchId as roomId (Integer)
                         User partner = match.getUserId1().getUserId().equals(userId)
                                         ? match.getUserId2()
                                         : match.getUserId1();
@@ -66,7 +66,7 @@ public class ChatService {
                         String type = hasMessages ? "old" : "new";
 
                         return ChatRoomDTO.builder()
-                                        .roomId(roomId)
+                                        .roomId(String.valueOf(roomId))
                                         .partnerId(partner.getUserId())
                                         .partnerName(partner.getNickname())
                                         .partnerImage(getFirstPhoto(partner.getUserId()))
@@ -82,9 +82,9 @@ public class ChatService {
         /**
          * Get chat messages for a room with pagination
          */
-        public ChatRoomDetailResponse getChatMessages(String userId, String roomId, int page) {
-                Integer matchId = Integer.parseInt(roomId);
-                Match match = matchRepository.findByIdAndUserId(matchId, userId)
+        public ChatRoomDetailResponse getChatMessages(String userId, String roomIdStr, int page) {
+                Integer roomId = Integer.parseInt(roomIdStr);
+                Match match = matchRepository.findByIdAndUserId(roomId, userId)
                                 .orElseThrow(() -> new NotFoundException("Room not found"));
 
                 // Check if user is member of match
@@ -122,7 +122,7 @@ public class ChatService {
 
                 return ChatRoomDetailResponse.builder()
                                 .room(ChatRoomDetailResponse.RoomInfo.builder()
-                                                .roomId(roomId)
+                                                .roomId(roomIdStr)
                                                 .isRead(isRead)
                                                 .build())
                                 .chat(chatMessages)
@@ -142,8 +142,8 @@ public class ChatService {
                 // Rate limiting check
                 checkRateLimit(userId);
 
-                Integer matchId = Integer.parseInt(request.getRoomId());
-                Match match = matchRepository.findByIdAndUserId(matchId, userId)
+                Integer roomId = Integer.parseInt(request.getRoomId());
+                Match match = matchRepository.findByIdAndUserId(roomId, userId)
                                 .orElseThrow(() -> new NotFoundException("Room not found"));
 
                 if (!match.getUserId1().getUserId().equals(userId) && !match.getUserId2().getUserId().equals(userId)) {
@@ -151,7 +151,7 @@ public class ChatService {
                 }
 
                 Message message = Message.builder()
-                                .roomId(request.getRoomId())
+                                .roomId(roomId)
                                 .senderId(userId)
                                 .message(request.getMessage())
                                 .messageType(MessageType.TEXT)
@@ -161,7 +161,7 @@ public class ChatService {
                 message = messageRepository.save(message);
 
                 SendMessageResponse response = SendMessageResponse.builder()
-                                .roomId(message.getRoomId())
+                                .roomId(String.valueOf(message.getRoomId()))
                                 .messageId(message.getMessageId())
                                 .message(message.getMessage())
                                 .senderId(message.getSenderId())

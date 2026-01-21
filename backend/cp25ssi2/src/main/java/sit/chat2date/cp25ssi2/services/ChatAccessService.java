@@ -38,8 +38,8 @@ public class ChatAccessService {
             throw new BadRequestException("Invalid action type for enter");
         }
 
-        Integer matchId = Integer.parseInt(request.getRoomId());
-        Match match = matchRepository.findByIdAndUserId(matchId, userId)
+        Integer roomId = Integer.parseInt(request.getRoomId());
+        Match match = matchRepository.findByIdAndUserId(roomId, userId)
                 .orElseThrow(() -> new NotFoundException("Room not found"));
 
         if (!match.getUserId1().getUserId().equals(userId) && !match.getUserId2().getUserId().equals(userId)) {
@@ -47,8 +47,7 @@ public class ChatAccessService {
         }
 
         // Check if user is already in room - 409 CONFLICT
-        Optional<ChatAccessLog> latestLog = chatAccessLogRepository.findLatestByRoomIdAndUserId(request.getRoomId(),
-                userId);
+        Optional<ChatAccessLog> latestLog = chatAccessLogRepository.findLatestByRoomIdAndUserId(roomId, userId);
         if (latestLog.isPresent() && latestLog.get().getActionType() == ChatAccessActionType.ENTER) {
             throw new ConflictException("User is already in the room");
         }
@@ -56,13 +55,13 @@ public class ChatAccessService {
         // Create access log
         ChatAccessLog accessLog = ChatAccessLog.builder()
                 .userId(userId)
-                .roomId(request.getRoomId())
+                .roomId(roomId)
                 .actionType(ChatAccessActionType.ENTER)
                 .build();
         chatAccessLogRepository.save(accessLog);
 
         // Mark messages as read for this user
-        messageRepository.markMessagesAsRead(request.getRoomId(), userId);
+        messageRepository.markMessagesAsRead(roomId, userId);
 
         // Broadcast status change
         ChatAccessStatusResponse status = getRoomAccessStatus(request.getRoomId());
@@ -78,8 +77,8 @@ public class ChatAccessService {
             throw new BadRequestException("Invalid action type for exit");
         }
 
-        Integer matchId = Integer.parseInt(request.getRoomId());
-        Match match = matchRepository.findByIdAndUserId(matchId, userId)
+        Integer roomId = Integer.parseInt(request.getRoomId());
+        Match match = matchRepository.findByIdAndUserId(roomId, userId)
                 .orElseThrow(() -> new NotFoundException("Room not found"));
 
         if (!match.getUserId1().getUserId().equals(userId) && !match.getUserId2().getUserId().equals(userId)) {
@@ -89,7 +88,7 @@ public class ChatAccessService {
         // Create access log
         ChatAccessLog accessLog = ChatAccessLog.builder()
                 .userId(userId)
-                .roomId(request.getRoomId())
+                .roomId(roomId)
                 .actionType(ChatAccessActionType.EXIT)
                 .build();
         chatAccessLogRepository.save(accessLog);
@@ -102,9 +101,9 @@ public class ChatAccessService {
     /**
      * Get room access status for all members
      */
-    public ChatAccessStatusResponse getRoomAccessStatus(String roomId) {
-        Integer matchId = Integer.parseInt(roomId);
-        Match match = matchRepository.findById(matchId)
+    public ChatAccessStatusResponse getRoomAccessStatus(String roomIdStr) {
+        Integer roomId = Integer.parseInt(roomIdStr);
+        Match match = matchRepository.findById(roomId)
                 .orElseThrow(() -> new NotFoundException("Room not found"));
 
         List<ChatAccessLog> latestLogs = chatAccessLogRepository.findLatestStatusByRoomId(roomId);
@@ -125,7 +124,7 @@ public class ChatAccessService {
                 }).collect(Collectors.toList());
 
         return ChatAccessStatusResponse.builder()
-                .roomId(roomId)
+                .roomId(roomIdStr)
                 .roomMember(members)
                 .build();
     }

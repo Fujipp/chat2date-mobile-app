@@ -3,14 +3,17 @@ package sit.chat2date.cp25ssi2.entities;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
+import org.hibernate.annotations.ColumnDefault;
 import org.hibernate.annotations.OnDelete;
 import org.hibernate.annotations.OnDeleteAction;
+
+import java.time.LocalDateTime;
 
 @Getter
 @Setter
 @Entity
 @Table(name = "`match`")
-public class Match{
+public class Match {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "matchId", nullable = false)
@@ -26,4 +29,14 @@ public class Match{
     @JoinColumn(name = "userId2", nullable = false)
     private User userId2;
 
+    @ColumnDefault("CURRENT_TIMESTAMP")
+    @Column(name = "createdAt", nullable = false, updatable = false)
+    private LocalDateTime createdAt;
+
+    @PrePersist
+    protected void onCreate() {
+        if (createdAt == null) {
+            createdAt = LocalDateTime.now();
+        }
+    }
 }

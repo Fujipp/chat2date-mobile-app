@@ -14,8 +14,9 @@ import java.time.LocalDateTime;
 @AllArgsConstructor
 public class ChatMessageDTO {
     private String senderId;
-    private String messageId;
+    private Long messageId;
     private String message;
     private LocalDateTime created;
     private MessageType type;
+    private Boolean isRead;
 }

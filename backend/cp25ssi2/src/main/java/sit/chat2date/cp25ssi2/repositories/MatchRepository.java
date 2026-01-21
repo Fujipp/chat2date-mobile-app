@@ -13,7 +13,7 @@ public interface MatchRepository extends JpaRepository<Match, Integer> {
 
     boolean existsByUserId1AndUserId2(User user1, User user2);
 
-    @Query("SELECT m FROM Match m WHERE m.userId1 = :user OR m.userId2 = :user ORDER BY m.id DESC")
+    @Query("SELECT m FROM Match m WHERE m.userId1 = :user OR m.userId2 = :user ORDER BY m.createdAt DESC")
     List<Match> findAllByUser(@Param("user") User user);
 
     @Query("SELECT m FROM Match m WHERE m.id = :matchId AND (m.userId1.userId = :userId OR m.userId2.userId = :userId)")

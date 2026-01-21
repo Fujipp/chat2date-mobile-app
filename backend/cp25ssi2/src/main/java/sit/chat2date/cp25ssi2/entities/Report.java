@@ -3,11 +3,9 @@ package sit.chat2date.cp25ssi2.entities;
 import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.ColumnDefault;
-import org.hibernate.annotations.GenericGenerator;
 import sit.chat2date.cp25ssi2.enums.ReportStatus;
 
 import java.time.LocalDateTime;
-import java.util.UUID;
 
 @Getter
 @Setter
@@ -15,13 +13,12 @@ import java.util.UUID;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-@Table(name = "report")
+@Table(name = "reports")
 public class Report {
     @Id
-    @GeneratedValue(generator = "uuid2")
-    @GenericGenerator(name = "uuid2", strategy = "uuid2")
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "reportId", nullable = false)
-    private String reportId;
+    private Integer reportId;
 
     @Column(name = "reporterId", nullable = false)
     private String reporterId;

@@ -5,7 +5,7 @@ import sit.chat2date.cp25ssi2.entities.ReportEvidence;
 
 import java.util.List;
 
-public interface ReportEvidenceRepository extends JpaRepository<ReportEvidence, String> {
+public interface ReportEvidenceRepository extends JpaRepository<ReportEvidence, Integer> {
 
     List<ReportEvidence> findByReportId(String reportId);
 }
