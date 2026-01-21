@@ -46,12 +46,6 @@ public class ChatAccessService {
             throw new ForbiddenAccessException("Access denied to this room");
         }
 
-        // Check if user is already in room - 409 CONFLICT
-        Optional<ChatAccessLog> latestLog = chatAccessLogRepository.findLatestByRoomIdAndUserId(roomId, userId);
-        if (latestLog.isPresent() && latestLog.get().getActionType() == ChatAccessActionType.ENTER) {
-            throw new ConflictException("User is already in the room");
-        }
-
         // Create access log
         ChatAccessLog accessLog = ChatAccessLog.builder()
                 .userId(userId)
