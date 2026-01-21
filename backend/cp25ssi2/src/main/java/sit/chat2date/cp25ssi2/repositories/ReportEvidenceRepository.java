@@ -7,5 +7,5 @@ import java.util.List;
 
 public interface ReportEvidenceRepository extends JpaRepository<ReportEvidence, Integer> {
 
-    List<ReportEvidence> findByReportId(String reportId);
+    List<ReportEvidence> findByReportId(Integer reportId);
 }
