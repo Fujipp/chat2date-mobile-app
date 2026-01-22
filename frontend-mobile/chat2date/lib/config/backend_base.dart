@@ -4,12 +4,26 @@ import 'dart:io' show Platform;
 import 'package:flutter/foundation.dart' show kIsWeb;
 
 class ApiBase {
+  // ============================================
+  // 🔧 SWITCH: เปลี่ยนเป็น true เพื่อใช้ Backend บนเครื่อง
+  // ============================================
+  static const bool useLocalBackend = true;
+  
+  // URLs สำหรับ Local Backend (บนเครื่อง)
+  // 🔧 เปลี่ยน IP นี้เป็น IP ของ Mac เมื่อรันบนเครื่องจริง
+  static const String _localIp = '192.168.1.53'; // IP ของ Mac (ใช้กับ iPhone/Android จริง)
+  static const String _localUrl = 'http://$_localIp:8080/api/v1';
+  static const String _localUrlAndroid = 'http://10.0.2.2:8080/api/v1'; // สำหรับ Android Emulator
+  static const String _localWsUrl = 'ws://$_localIp:8080';
+  static const String _localWsUrlAndroid = 'ws://10.0.2.2:8080';
+  
+  // URLs สำหรับ Server จริง
+  static const String _serverUrl = 'http://cp25ssi2.sit.kmutt.ac.th:8080/api/v1';
+  static const String _serverWsUrl = 'ws://cp25ssi2.sit.kmutt.ac.th:8080';
+
   // อนุญาต override จาก --dart-define=API_BASE=http://...
-  static const String _defined = String.fromEnvironment(
-    'API_BASE',
-    // defaultValue: 'http://10.250.103.196:8080/api/v1',
-    defaultValue: 'http://cp25ssi2.sit.kmutt.ac.th:8080/api/v1',
-  );
+  static const String _defined = String.fromEnvironment('API_BASE');
+  
   // อนุญาต override path ของ WebSocket เช่น '/ws' หรือ '/api/v1/ws'
   static const String _wsPathDefined = String.fromEnvironment(
     'WS_PATH',
@@ -17,22 +31,25 @@ class ApiBase {
   );
 
   static String get baseUrl {
+    // ถ้ามี dart-define ให้ใช้ค่านั้น
     if (_defined.isNotEmpty) return _defined;
 
-    if (kIsWeb) return 'http://127.0.0.1:8080'; // web dev
-    if (Platform.isAndroid) return 'http://10.0.2.2:8080'; // Android emulator
-    if (Platform.isIOS) return 'http://127.0.0.1:8080'; // iOS simulator
+    // ใช้ Local Backend
+    if (useLocalBackend) {
+      if (kIsWeb) return 'http://127.0.0.1:8080/api/v1';
+      if (Platform.isAndroid) return _localUrlAndroid;
+      if (Platform.isIOS) return _localUrl;
+      return _localUrl;
+    }
 
-    // เครื่องจริง (ตั้งค่าตามแลนของ Dev ทีหลัง)
-    // return 'http://10.250.103.196:8080';
-    return 'http://cp25ssi2.sit.kmutt.ac.th:8080';
+    // ใช้ Server จริง
+    return _serverUrl;
   }
 
   static String get websocketBase {
-    if (_defined.startsWith('http')) {
+    if (_defined.isNotEmpty && _defined.startsWith('http')) {
       final uri = Uri.parse(_defined);
       final scheme = uri.scheme == 'https' ? 'wss' : 'ws';
-      // สร้าง URI ใหม่สำหรับ WebSocket โดยไม่พก path/query/fragment เพื่อหลีกเลี่ยง '?#/ws'
       final wsUri = Uri(
         scheme: scheme,
         host: uri.host,
@@ -41,27 +58,20 @@ class ApiBase {
       return wsUri.toString();
     }
 
-    if (kIsWeb) {
-      final base = Uri.base;
-      if (base.host.isNotEmpty) {
-        final scheme = base.scheme == 'https' ? 'wss' : 'ws';
-        return Uri(
-          scheme: scheme,
-          host: base.host,
-          port: base.hasPort ? base.port : null,
-        ).toString();
-      }
-      return 'ws://127.0.0.1:8080';
+    // ใช้ Local Backend
+    if (useLocalBackend) {
+      if (kIsWeb) return 'ws://127.0.0.1:8080';
+      if (Platform.isAndroid) return _localWsUrlAndroid;
+      if (Platform.isIOS) return _localWsUrl;
+      return _localWsUrl;
     }
-    if (Platform.isAndroid) return 'ws://10.0.2.2:8080';
-    if (Platform.isIOS) return 'ws://127.0.0.1:8080';
-    // return 'ws://10.250.103.196:8080';
-    return 'ws://cp25ssi2.sit.kmutt.ac.th:8080';
+
+    // ใช้ Server จริง
+    return _serverWsUrl;
   }
 
   // ให้ path สำหรับ WebSocket (configurable ผ่าน --dart-define=WS_PATH)
   static String get websocketPath {
-    // normalize: ensure leading '/', no trailing '/'
     var p = _wsPathDefined.trim();
     if (p.isEmpty) p = '/ws';
     if (!p.startsWith('/')) p = '/$p';
@@ -69,3 +79,4 @@ class ApiBase {
     return p;
   }
 }
+
