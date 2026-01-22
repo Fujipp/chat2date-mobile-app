@@ -10,6 +10,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'firebase_options.dart';
 import 'screens/index.dart';
 import 'screens/main_tabs.dart';
+import 'screens/chat/chat_list_screen.dart';
 
 final GlobalKey<NavigatorState> rootNavigatorKey = GlobalKey<NavigatorState>();
 
@@ -37,7 +38,7 @@ class MyApp extends StatelessWidget {
         title: 'Component Test',
         theme: buildLightTheme(),
         navigatorKey: navigatorKey,
-        initialRoute: '/chat', //เวลาโค้ดเปลี่ยนเป็น path ตัวเองเอาไว้แสดง
+        initialRoute: '/home', //เวลาโค้ดเปลี่ยนเป็น path ตัวเองเอาไว้แสดง
         routes: {
           //Test
           '/test': (context) => const ComponentTestScreen(),
@@ -66,7 +67,16 @@ class MyApp extends StatelessWidget {
           //Hutch
           '/discovery': (context) => const DiscoveryScreen(),
           '/main': (context) => const MainTabs(),
-          '/report': (context) => const UserReportScreen(),
+          '/report': (context) {
+            final args = ModalRoute.of(context)?.settings.arguments
+                as Map<String, dynamic>?;
+            return UserReportScreen(
+              roomId: args?['roomId'],
+              targetUserId: args?['targetUserId'],
+              userName: args?['userName'],
+              avatarUrl: args?['avatarUrl'],
+            );
+          },
 
           //Fuji
           '/home': (context) => const HomeLoginPage(),
@@ -78,7 +88,17 @@ class MyApp extends StatelessWidget {
           '/kyc-loading': (context) => const KycLoadingScreen(),
           '/kyc-result-success': (context) => const KycResultSuccessScreen(),
           '/kyc-result-fail': (context) => const KycResultFailScreen(),
-          '/chat': (context) => const InsideChatScreen(),
+          '/chat-list': (context) => const ChatListScreen(),
+          '/chat': (context) {
+            final args = ModalRoute.of(context)?.settings.arguments
+                as Map<String, dynamic>?;
+            return InsideChatScreen(
+              roomId: args?['roomId'],
+              targetUserId: args?['targetUserId'],
+              userName: args?['userName'],
+              avatarUrl: args?['avatarUrl'],
+            );
+          },
 
           MatchSuccessScreen.routeName: (context) {
             final args =
