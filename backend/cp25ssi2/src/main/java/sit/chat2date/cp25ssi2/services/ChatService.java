@@ -106,6 +106,7 @@ public class ChatService {
                                                 .message(msg.getMessage())
                                                 .created(msg.getCreatedAt())
                                                 .type(msg.getMessageType())
+                                                .isRead(msg.getIsRead())
                                                 .build())
                                 .collect(Collectors.toList());
 
