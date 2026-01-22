@@ -53,6 +53,77 @@ class ChatMessage {
     this.answeredCount,
     this.totalCount,
   });
+
+  ChatMessage copyWith({
+    String? id,
+    String? text,
+    bool? isOwn,
+    DateTime? timestamp,
+    bool? isSeen,
+    bool? isBot,
+    BotMessageType? botType,
+    String? description,
+    String? subDescription,
+    String? actionButtonText,
+    bool? isActionDisabled,
+    String? firstChoiceText,
+    String? secondChoiceText,
+    int? answeredCount,
+    int? totalCount,
+  }) {
+    return ChatMessage(
+      id: id ?? this.id,
+      text: text ?? this.text,
+      isOwn: isOwn ?? this.isOwn,
+      timestamp: timestamp ?? this.timestamp,
+      isSeen: isSeen ?? this.isSeen,
+      isBot: isBot ?? this.isBot,
+      botType: botType ?? this.botType,
+      description: description ?? this.description,
+      subDescription: subDescription ?? this.subDescription,
+      actionButtonText: actionButtonText ?? this.actionButtonText,
+      isActionDisabled: isActionDisabled ?? this.isActionDisabled,
+      firstChoiceText: firstChoiceText ?? this.firstChoiceText,
+      secondChoiceText: secondChoiceText ?? this.secondChoiceText,
+      answeredCount: answeredCount ?? this.answeredCount,
+      totalCount: totalCount ?? this.totalCount,
+    );
+  }
+
+  /// สร้างข้อความจาก API (/chats/{roomId})
+  factory ChatMessage.fromApi({
+    required Map<String, dynamic> json,
+    required String currentUserId,
+  }) {
+    final senderId = json['senderId']?.toString() ?? '';
+    final message = json['message']?.toString() ?? '';
+    final createdRaw = json['created']?.toString();
+    final timestamp = createdRaw != null
+        ? DateTime.tryParse(createdRaw) ?? DateTime.now()
+        : DateTime.now();
+    final isOwn = senderId == currentUserId;
+    final rawRead =
+        json['isRead'] ?? json['is_read'] ?? json['isread'] ?? json['read'];
+    final bool messageRead = rawRead is bool
+        ? rawRead
+        : rawRead is num
+            ? rawRead != 0
+            : rawRead is String
+                ? rawRead == '1' || rawRead.toLowerCase() == 'true'
+                : false;
+
+    // Debug log เพื่อตรวจสอบค่า isRead ที่ได้รับจาก API
+    print('[ChatMessage.fromApi] messageId=${json['messageId']}, senderId=$senderId, currentUserId=$currentUserId, isOwn=$isOwn, rawRead=$rawRead (${rawRead.runtimeType}), messageRead=$messageRead, isSeen=${isOwn && messageRead}');
+
+    return ChatMessage(
+      id: json['messageId']?.toString() ??
+          timestamp.millisecondsSinceEpoch.toString(),
+      text: message,
+      isOwn: isOwn,
+      timestamp: timestamp,
+      isSeen: isOwn && messageRead,
+    );
+  }
   
   /// สร้าง User message (ส่งออก - ขวา)
   factory ChatMessage.sent({

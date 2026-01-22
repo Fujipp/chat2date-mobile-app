@@ -2,22 +2,111 @@ import 'package:chat2date/components/card/card_chat_component.dart';
 import 'package:chat2date/components/chat/content_switcher.dart';
 import 'package:chat2date/components/layout/header.dart';
 import 'package:chat2date/components/layout/menu_bar.dart';
+import 'package:chat2date/models/chat_room.dart';
+import 'package:chat2date/models/match.dart';
 import 'package:chat2date/screens/main_tabs.dart';
+import 'package:chat2date/services/chat_service.dart';
 import 'package:chat2date/theme/app_colors.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-class ChatListScreen extends StatefulWidget {
+class ChatListScreen extends ConsumerStatefulWidget {
   final bool showBottomNav;
 
   const ChatListScreen({super.key, this.showBottomNav = true});
 
   @override
-  State<ChatListScreen> createState() => _ChatListScreenState();
+  ConsumerState<ChatListScreen> createState() => _ChatListScreenState();
 }
 
-class _ChatListScreenState extends State<ChatListScreen> {
+class _ChatListScreenState extends ConsumerState<ChatListScreen> {
   int _selectedIndex = 1;
   int selectedIndex1 = 0;
+  final Set<String> _viewedMatchIds = {};
+  final Set<String> _clearedUnreadRoomIds = {};
+
+  // State สำหรับข้อมูลจาก API
+  List<ChatRoom> _chatRooms = [];
+  List<Match> _matches = [];
+  bool _isLoadingChats = true;
+  bool _isLoadingMatches = true;
+  String? _chatError;
+  String? _matchError;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadData();
+  }
+
+  Future<void> _loadData() async {
+    await Future.wait([
+      _loadChatRooms(),
+      _loadMatches(),
+    ]);
+  }
+
+  Future<void> _loadChatRooms() async {
+    setState(() {
+      _isLoadingChats = true;
+      _chatError = null;
+    });
+
+    try {
+      final chatService = ref.read(chatServiceProvider);
+      final rooms = await chatService.getChatRooms();
+      if (mounted) {
+        setState(() {
+          _chatRooms = rooms.where((room) => room.type != 'new').toList();
+          final unreadRoomIds = _chatRooms
+              .where((room) => room.unreadCount > 0)
+              .map((room) => room.roomId)
+              .toSet();
+          _clearedUnreadRoomIds.removeWhere(unreadRoomIds.contains);
+          _isLoadingChats = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _chatError = e.toString().replaceAll('Exception: ', '');
+          _isLoadingChats = false;
+        });
+      }
+    }
+  }
+
+  Future<void> _loadMatches() async {
+    setState(() {
+      _isLoadingMatches = true;
+      _matchError = null;
+    });
+
+    try {
+      final chatService = ref.read(chatServiceProvider);
+      final matches = await chatService.getMatches();
+      if (mounted) {
+        setState(() {
+          _matches = matches.where((match) => match.type == 'new').toList();
+          _isLoadingMatches = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _matchError = e.toString().replaceAll('Exception: ', '');
+          _isLoadingMatches = false;
+        });
+      }
+    }
+  }
+
+  bool _isSvgImage(String? path) {
+    if (path == null || path.isEmpty) return false;
+    final uri = Uri.tryParse(path);
+    final normalizedPath = (uri?.path ?? path).toLowerCase();
+    return normalizedPath.endsWith('.svg');
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -67,61 +156,172 @@ class _ChatListScreenState extends State<ChatListScreen> {
   }
 
   Widget _buildChatTab() {
-    return ListView(
-      padding: const EdgeInsets.symmetric(horizontal: 20),
-      children: [
-        CardChatComponent(
-          svgPath: 'assets/icons/icon_avatar.svg',
-          title: 'Ava Martinez',
-          subtitle: 'What time works for you?',
-          svgPathEnd: 'assets/icons/icon_unseen-message.svg',
-          widthSvgEnd: 33,
-          heightSvgEnd: 33,
-          onClick: () {
-            print('Open chat with Ava (has unread messages)');
-          },
-        ),
+    // Loading state
+    if (_isLoadingChats) {
+      return const Center(
+        child: CircularProgressIndicator(),
+      );
+    }
 
-        const SizedBox(height: 10),
-
-        CardChatComponent(
-          svgPath: 'assets/icons/icon_avatar.svg',
-          title: 'Sassy',
-          subtitle: 'Nuna',
-          svgPathEnd: 'assets/icons/icon_new-white.svg',
+    // Error state
+    if (_chatError != null) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Text(
+              _chatError!,
+              style: const TextStyle(color: Colors.red),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 16),
+            ElevatedButton(
+              onPressed: _loadChatRooms,
+              child: const Text('ลองใหม่'),
+            ),
+          ],
         ),
-        const SizedBox(height: 10),
-        CardChatComponent(
-          svgPath: 'assets/icons/icon_avatar.svg',
-          title: 'Sassy',
-          subtitle: 'Nuna',
-          colors: [AppColors.backgroundWhite],
-        ),
+      );
+    }
 
-        const SizedBox(height: 10),
-      ],
+    // Empty state
+    if (_chatRooms.isEmpty) {
+      return const Center(
+        child: Text(
+          'ยังไม่มีแชท',
+          style: TextStyle(color: Colors.grey, fontSize: 16),
+        ),
+      );
+    }
+
+    // Data state
+    return RefreshIndicator(
+      onRefresh: _loadChatRooms,
+      child: ListView.separated(
+        padding: const EdgeInsets.symmetric(horizontal: 20),
+        itemCount: _chatRooms.length,
+        separatorBuilder: (_, __) => const SizedBox(height: 10),
+        itemBuilder: (context, index) {
+          final room = _chatRooms[index];
+          final avatarPath = room.partnerImage;
+          final isSvgAvatar = _isSvgImage(avatarPath);
+          final int displayUnreadCount =
+              _clearedUnreadRoomIds.contains(room.roomId)
+                  ? 0
+                  : room.unreadCount;
+          return CardChatComponent(
+            svgPath: isSvgAvatar ? avatarPath : null,
+            imagePath: isSvgAvatar ? null : avatarPath,
+            title: room.partnerName,
+            subtitle: room.lastMessage ?? '',
+            unreadCount: displayUnreadCount,
+            colors: [AppColors.backgroundWhite],
+            onClick: () async {
+              setState(() {
+                _clearedUnreadRoomIds.add(room.roomId);
+              });
+              await Navigator.pushNamed(
+                context,
+                '/chat',
+                arguments: {
+                  'roomId': room.roomId,
+                  'targetUserId': room.partnerId,
+                  'userName': room.partnerName,
+                  'avatarUrl': room.partnerImage,
+                },
+              );
+              if (!mounted) return;
+              await _loadChatRooms();
+            },
+          );
+        },
+      ),
     );
   }
 
   Widget _buildMatchTab() {
-    return ListView(
-      padding: const EdgeInsets.symmetric(horizontal: 20),
-      children: [
-        CardChatComponent(
-          svgPath: 'assets/icons/icon_avatar.svg',
-          title: 'แอมจิฮัช (99)',
-          subtitle: 'แมทต์เมื่อวันที่ 22 กันยายน 2025',
-          svgPathEnd: 'assets/icons/icon_new-white.svg',
-        ),
-        CardChatComponent(
-          svgPath: 'assets/icons/icon_avatar.svg',
-          title: 'แอมจิฮัช (99)',
-          subtitle: 'แมทต์เมื่อวันที่ 22 กันยายน 2025',
-          colors: [AppColors.backgroundWhite],
-        ),
+    // Loading state
+    if (_isLoadingMatches) {
+      return const Center(
+        child: CircularProgressIndicator(),
+      );
+    }
 
-        const SizedBox(height: 20),
-      ],
+    // Error state
+    if (_matchError != null) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Text(
+              _matchError!,
+              style: const TextStyle(color: Colors.red),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 16),
+            ElevatedButton(
+              onPressed: _loadMatches,
+              child: const Text('ลองใหม่'),
+            ),
+          ],
+        ),
+      );
+    }
+
+    // Empty state
+    if (_matches.isEmpty) {
+      return const Center(
+        child: Text(
+          'ยังไม่มี match',
+          style: TextStyle(color: Colors.grey, fontSize: 16),
+        ),
+      );
+    }
+
+    // Data state
+    return RefreshIndicator(
+      onRefresh: _loadMatches,
+      child: ListView.separated(
+        padding: const EdgeInsets.symmetric(horizontal: 20),
+        itemCount: _matches.length,
+        separatorBuilder: (_, __) => const SizedBox(height: 10),
+        itemBuilder: (context, index) {
+          final match = _matches[index];
+          final isNew =
+              match.type == 'new' && !_viewedMatchIds.contains(match.matchId);
+          final avatarPath = match.partnerImage;
+          final isSvgAvatar = _isSvgImage(avatarPath);
+          return CardChatComponent(
+            svgPath: isSvgAvatar ? avatarPath : null,
+            imagePath: isSvgAvatar ? null : avatarPath,
+            title: match.partnerName,
+            subtitle: match.matchDuration,
+            isNewMatch: isNew,
+            colors: isNew ? null : [AppColors.backgroundWhite],
+            onClick: () async {
+              setState(() {
+                _viewedMatchIds.add(match.matchId);
+              });
+              // เปิดแชทกับ match
+              await Navigator.pushNamed(
+                context,
+                '/chat',
+                arguments: {
+                  'roomId': match.matchId,
+                  'targetUserId': match.partnerId,
+                  'userName': match.partnerName,
+                  'avatarUrl': match.partnerImage,
+                },
+              );
+              if (!mounted) return;
+              await Future.wait([
+                _loadMatches(),
+                _loadChatRooms(),
+              ]);
+            },
+          );
+        },
+      ),
     );
   }
 }

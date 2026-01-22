@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:ui';
 
 import 'package:chat2date/components/chat/bot_message_component.dart';
@@ -6,29 +7,64 @@ import 'package:chat2date/components/chat/input_chat_component.dart';
 import 'package:chat2date/components/chat/spin_date_component.dart';
 import 'package:chat2date/components/layout/header.dart';
 import 'package:chat2date/components/status_bar/score_row.dart';
+import 'package:chat2date/models/chat_access_status.dart';
 import 'package:chat2date/models/chat_message.dart';
+import 'package:chat2date/models/user.dart';
+import 'package:chat2date/services/chat_service.dart';
+import 'package:chat2date/services/chat_socket_service.dart';
+import 'package:chat2date/stores/user_store.dart';
 import 'package:chat2date/theme/app_colors.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-class InsideChatScreen extends StatefulWidget {
-  const InsideChatScreen({super.key});
+class InsideChatScreen extends ConsumerStatefulWidget {
+  final String? roomId;
+  final String? targetUserId;
+  final String? userName;
+  final String? avatarUrl;
+  
+  const InsideChatScreen({
+    super.key,
+    this.roomId,
+    this.targetUserId,
+    this.userName,
+    this.avatarUrl,
+  });
 
   @override
-  State<InsideChatScreen> createState() => _InsideChatScreenState();
+  ConsumerState<InsideChatScreen> createState() => _InsideChatScreenState();
 }
 
-class _InsideChatScreenState extends State<InsideChatScreen> {
+class _InsideChatScreenState extends ConsumerState<InsideChatScreen> {
   final TextEditingController _messageController = TextEditingController();
+  final ScrollController _scrollController = ScrollController();
+  static const int _pageSize = 20;
   bool _hasText = false;
-  final double _currentPercent = 0.35; // 90px / 255px ≈ 0.35 ตาม Figma
-  final int _heartCount = 1; // 0 = ซ่อน, 1-2 = แสดง, 3 = rainbow
+  bool _isSending = false;
+  double _currentPercent = 0.0;
+  int _heartCount = 0; // 0 = ซ่อน, 1-2 = แสดง, 3 = rainbow
   bool _showWheelModal = false;
   bool _showUnlockDate = false;
+
+  bool _isLoadingMessages = true;
+  bool _isLoadingMore = false;
+  bool _hasMoreMessages = true;
+  int _currentPage = 0;
+  String? _messageError;
+  int? _relationshipScore;
+  final Set<String> _messageIds = {};
+  ChatSocketService? _chatSocketService;
+  StreamSubscription<ChatMessage>? _messageSubscription;
+  StreamSubscription<ChatAccessStatus>? _accessSubscription;
+  String? _currentUserId;
+  bool _hasEntered = false;
+  bool _hasExited = false;
 
   // === Chat User Data (ดึงจากข้อมูลจริง) ===
   String _chatUserName = 'Name';
   String? _chatUserAvatar;
+  String? _chatUserId; // เพิ่ม userId สำหรับ Report
 
   // === Spinwheel Cooldown Logic ===
   DateTime? _lastSpinDate; // วันที่หมุนวงล้อล่าสุด
@@ -36,25 +72,441 @@ class _InsideChatScreenState extends State<InsideChatScreen> {
   bool _canSpin = true; // true = กดได้ (Chat 2/3), false = cooldown (Chat 4)
   ChatHeaderVariant _headerVariant = ChatHeaderVariant.chat1;
 
-  // ตัวอย่างข้อความแชทตาม Figma designs
-  late List<ChatMessage> _messages;
+  // ข้อความแชท
+  List<ChatMessage> _messages = [];
+  
+  // index ของข้อความที่ถูกกดเพื่อดูเวลาส่ง (-1 = ไม่มี)
+  int _selectedMessageIndex = -1;
 
   @override
   void initState() {
     super.initState();
-    _loadChatUserData();
-    _checkSpinWheelCondition();
-    _initSampleMessages();
+    // รับข้อมูลจาก arguments
+    _chatUserId = widget.targetUserId;
+    _chatUserName = widget.userName ?? 'Name';
+    _chatUserAvatar = widget.avatarUrl;
+
+    _scrollController.addListener(_handleScroll);
+    _initializeChat();
   }
 
-  /// ดึงข้อมูล user ของแชทนี้ (avatar, name)
-  Future<void> _loadChatUserData() async {
-    // TODO: ดึงข้อมูลจาก backend/argument
-    // ตัวอย่าง: final chatUser = await chatService.getChatUser(chatId);
+  void _handleScroll() {
+    if (!_scrollController.hasClients) return;
+    if (_scrollController.position.pixels <= 80) {
+      _loadMoreMessages();
+    }
+  }
+
+  Future<void> _initializeChat() async {
+    await _enterRoomOnce();
+    await _loadChatRoomMessages();
+    _checkSpinWheelCondition();
+  }
+
+  Future<void> _loadChatRoomMessages() async {
+    final roomId = widget.roomId;
+    if (roomId == null || roomId.isEmpty) {
+      setState(() {
+        _messageError = 'ไม่พบ roomId สำหรับแชทนี้';
+        _isLoadingMessages = false;
+      });
+      return;
+    }
+
     setState(() {
-      _chatUserName = 'Name'; // chatUser.name
-      _chatUserAvatar = null; // chatUser.avatarUrl
+      _isLoadingMessages = true;
+      _isLoadingMore = false;
+      _messageError = null;
+      _currentPage = 0;
+      _hasMoreMessages = true;
     });
+
+    try {
+      final chatService = ref.read(chatServiceProvider);
+      final roomData = await chatService.getChatMessages(roomId);
+      if (!mounted) return;
+      final sortedMessages = [...roomData.messages]
+        ..sort((a, b) => a.timestamp.compareTo(b.timestamp));
+      setState(() {
+        _messages = sortedMessages;
+        _isLoadingMessages = false;
+        _messageIds
+          ..clear()
+          ..addAll(sortedMessages.map((message) => message.id));
+        _hasMoreMessages = sortedMessages.length >= _pageSize;
+        _relationshipScore = roomData.relationshipScore;
+        _applyRelationshipScore(roomData.relationshipScore);
+        if (widget.userName == null && roomData.partnerName != null) {
+          _chatUserName = roomData.partnerName!;
+        }
+        if (widget.avatarUrl == null && roomData.partnerImages.isNotEmpty) {
+          _chatUserAvatar = roomData.partnerImages.first;
+        }
+      });
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _scrollToBottom(animated: false);
+      });
+      _startChatSocket();
+      await _syncAccessStatus();
+      _checkSpinWheelCondition();
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _messageError = e.toString().replaceAll('Exception: ', '');
+        _isLoadingMessages = false;
+      });
+    }
+  }
+
+  Future<void> _loadMoreMessages() async {
+    if (_isLoadingMessages || _isLoadingMore || !_hasMoreMessages) return;
+    final roomId = widget.roomId;
+    if (roomId == null || roomId.isEmpty) return;
+
+    setState(() {
+      _isLoadingMore = true;
+    });
+
+    final nextPage = _currentPage + 1;
+    final prevMaxExtent = _scrollController.position.maxScrollExtent;
+    final prevOffset = _scrollController.offset;
+
+    try {
+      final chatService = ref.read(chatServiceProvider);
+      final roomData = await chatService.getChatMessages(
+        roomId,
+        paginate: nextPage,
+      );
+      if (!mounted) return;
+      final olderMessages = roomData.messages
+          .where((message) => !_messageIds.contains(message.id))
+          .toList();
+      setState(() {
+        _currentPage = nextPage;
+        _isLoadingMore = false;
+        if (olderMessages.isNotEmpty) {
+          _messages = [...olderMessages, ..._messages];
+          _messageIds.addAll(olderMessages.map((message) => message.id));
+        }
+        _hasMoreMessages = roomData.messages.length >= _pageSize;
+      });
+      if (olderMessages.isNotEmpty) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (!mounted || !_scrollController.hasClients) return;
+          final newMaxExtent = _scrollController.position.maxScrollExtent;
+          final delta = newMaxExtent - prevMaxExtent;
+          _scrollController.jumpTo(prevOffset + delta);
+        });
+      }
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        _isLoadingMore = false;
+      });
+    }
+  }
+
+  void _applyRelationshipScore(int? score) {
+    final int safeScore = score ?? 0;
+    final double percent = (safeScore / 100).clamp(0.0, 1.0);
+    int heart;
+    if (safeScore >= 90) {
+      heart = 3;
+    } else if (safeScore >= 60) {
+      heart = 2;
+    } else if (safeScore >= 30) {
+      heart = 1;
+    } else {
+      heart = 0;
+    }
+    _currentPercent = percent;
+    _heartCount = heart;
+  }
+
+  Future<void> _enterRoom() async {
+    final roomId = widget.roomId;
+    if (roomId == null || roomId.isEmpty) return;
+    try {
+      final chatService = ref.read(chatServiceProvider);
+      await chatService.enterRoom(roomId);
+    } catch (_) {}
+  }
+
+  Future<void> _enterRoomOnce() async {
+    if (_hasEntered) return;
+    _hasEntered = true;
+    await _enterRoom();
+  }
+
+  Future<void> _exitRoom() async {
+    final roomId = widget.roomId;
+    if (roomId == null || roomId.isEmpty) return;
+    try {
+      final chatService = ref.read(chatServiceProvider);
+      await chatService.exitRoom(roomId);
+    } catch (_) {}
+  }
+
+  Future<void> _exitRoomOnce() async {
+    if (_hasExited) return;
+    _hasExited = true;
+    await _exitRoom();
+  }
+
+  void _startChatSocket() {
+    final roomId = widget.roomId;
+    if (roomId == null || roomId.isEmpty) return;
+    if (_chatSocketService != null) return;
+
+    final userState = ref.read(userStoreProvider);
+    final accessToken = userState['accessToken'] as String?;
+    final user = userState['user'];
+    if (user is! User) return;
+    final userId = user.userId;
+    _currentUserId = userId;
+
+    final service = ChatSocketService(
+      roomId: roomId,
+      userId: userId,
+      accessToken: accessToken,
+    );
+    service.connect();
+    _chatSocketService = service;
+    _messageSubscription = service.messageStream.listen(_handleIncomingMessage);
+    _accessSubscription = service.accessStream.listen(_handleAccessStatus);
+  }
+
+  Future<void> _syncAccessStatus() async {
+    final roomId = widget.roomId;
+    if (roomId == null || roomId.isEmpty) return;
+    try {
+      final chatService = ref.read(chatServiceProvider);
+      final status = await chatService.getAccessStatus(roomId);
+      if (!mounted) return;
+      _handleAccessStatus(status);
+    } catch (_) {}
+  }
+
+  void _handleIncomingMessage(ChatMessage message) {
+    if (!mounted) return;
+    if (_messageIds.contains(message.id)) return;
+    setState(() {
+      _messages.add(message);
+      _messages.sort((a, b) => a.timestamp.compareTo(b.timestamp));
+      _messageIds.add(message.id);
+    });
+    _scrollToBottom();
+  }
+
+  void _scrollToBottom({bool animated = true}) {
+    if (!_scrollController.hasClients) return;
+    final position = _scrollController.position.maxScrollExtent;
+    if (animated) {
+      _scrollController.animateTo(
+        position,
+        duration: const Duration(milliseconds: 250),
+        curve: Curves.easeOut,
+      );
+    } else {
+      _scrollController.jumpTo(position);
+    }
+  }
+
+  void _handleAccessStatus(ChatAccessStatus status) {
+    final currentUserId = _currentUserId;
+    if (currentUserId == null || currentUserId.isEmpty) return;
+    final other = status.roomMember.firstWhere(
+      (member) => member.userId != currentUserId,
+      orElse: () => const ChatAccessMember(userId: '', type: ''),
+    );
+    if (other.type == 'ENTER') {
+      _refreshReadStatus();
+    }
+  }
+
+  Future<void> _refreshReadStatus() async {
+    final roomId = widget.roomId;
+    if (roomId == null || roomId.isEmpty) return;
+    try {
+      final chatService = ref.read(chatServiceProvider);
+      final roomData = await chatService.getChatMessages(roomId);
+      if (!mounted) return;
+      final readMap = <String, bool>{
+        for (final message in roomData.messages)
+          message.id: message.isSeen,
+      };
+      bool hasUpdate = false;
+      final updated = _messages.map((message) {
+        if (message.isOwn && readMap[message.id] == true && !message.isSeen) {
+          hasUpdate = true;
+          return message.copyWith(isSeen: true);
+        }
+        return message;
+      }).toList();
+      if (hasUpdate) {
+        setState(() {
+          _messages = updated;
+        });
+      }
+    } catch (_) {}
+  }
+
+  bool _isSvgImage(String? path) {
+    if (path == null || path.isEmpty) return false;
+    final uri = Uri.tryParse(path);
+    final normalizedPath = (uri?.path ?? path).toLowerCase();
+    return normalizedPath.endsWith('.svg');
+  }
+
+  Widget _buildChatAvatar() {
+    const size = 50.0;
+    final avatar = _chatUserAvatar;
+
+    if (avatar == null || avatar.isEmpty) {
+      return Container(
+        width: size,
+        height: size,
+        decoration: const BoxDecoration(
+          color: AppColors.surfaceMuted,
+          shape: BoxShape.circle,
+        ),
+        alignment: Alignment.center,
+        child: Icon(Icons.person, color: Colors.grey[400], size: 32),
+      );
+    }
+
+    final bool isSvg = _isSvgImage(avatar);
+    final Widget image = isSvg
+        ? (avatar.startsWith('http')
+            ? SvgPicture.network(
+                avatar,
+                width: size,
+                height: size,
+                fit: BoxFit.cover,
+              )
+            : SvgPicture.asset(
+                avatar,
+                width: size,
+                height: size,
+                fit: BoxFit.cover,
+              ))
+        : (avatar.startsWith('http')
+            ? Image.network(
+                avatar,
+                width: size,
+                height: size,
+                fit: BoxFit.cover,
+                errorBuilder: (context, error, stackTrace) {
+                  return Icon(Icons.person, color: Colors.grey[400], size: 32);
+                },
+              )
+            : Image.asset(
+                avatar,
+                width: size,
+                height: size,
+                fit: BoxFit.cover,
+                errorBuilder: (context, error, stackTrace) {
+                  return Icon(Icons.person, color: Colors.grey[400], size: 32);
+                },
+              ));
+
+    return Container(
+      width: size,
+      height: size,
+      decoration: const BoxDecoration(
+        color: AppColors.surfaceMuted,
+        shape: BoxShape.circle,
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: image,
+    );
+  }
+
+  String _formatChatTimestamp(DateTime time) {
+    const weekdays = [
+      'วันจันทร์',
+      'วันอังคาร',
+      'วันพุธ',
+      'วันพฤหัสบดี',
+      'วันศุกร์',
+      'วันเสาร์',
+      'วันอาทิตย์',
+    ];
+    final weekday = weekdays[time.weekday - 1];
+    final hour = time.hour.toString().padLeft(2, '0');
+    final minute = time.minute.toString().padLeft(2, '0');
+    return '$weekday $hour:$minute';
+  }
+
+  Widget _buildChatTimestamp(DateTime time) {
+    return Text(
+      _formatChatTimestamp(time),
+      style: const TextStyle(
+        color: AppColors.textMuted,
+        fontSize: 12,
+      ),
+    );
+  }
+
+  /// Format เวลาส่งจริงของข้อความ (แสดงเมื่อกดที่ข้อความ)
+  String _formatMessageTime(DateTime time) {
+    final hour = time.hour.toString().padLeft(2, '0');
+    final minute = time.minute.toString().padLeft(2, '0');
+    return '$hour:$minute';
+  }
+
+  /// Widget แสดงเวลาส่งจริงของข้อความ
+  Widget _buildMessageTimeIndicator(DateTime time, bool isOwn) {
+    return AnimatedOpacity(
+      opacity: 1.0,
+      duration: const Duration(milliseconds: 200),
+      child: Padding(
+        padding: EdgeInsets.only(
+          top: 4,
+          left: isOwn ? 0 : 8,
+          right: isOwn ? 8 : 0,
+        ),
+        child: Text(
+          _formatMessageTime(time),
+          style: const TextStyle(
+            color: AppColors.textMuted,
+            fontSize: 10,
+          ),
+        ),
+      ),
+    );
+  }
+
+  bool _shouldShowTimestamp(int index) {
+    if (index <= 0) return true;
+    final current = _messages[index].timestamp;
+    final previous = _messages[index - 1].timestamp;
+    // แสดง timestamp เมื่อเปลี่ยนชั่วโมง (เช่น 01:xx → 02:xx) หรือเปลี่ยนวัน
+    return current.hour != previous.hour ||
+        current.day != previous.day ||
+        current.month != previous.month ||
+        current.year != previous.year;
+  }
+
+  bool _hasTimeBreakBefore(int index) {
+    if (index <= 0) return false;
+    return _shouldShowTimestamp(index);
+  }
+
+  bool _hasTimeBreakAfter(int index) {
+    if (index >= _messages.length - 1) return false;
+    return _shouldShowTimestamp(index + 1);
+  }
+
+  /// หาข้อความล่าสุดของเรา (ไม่สนใจว่าถูกอ่านหรือยัง)
+  int _findLatestOwnMessageIndex() {
+    for (int i = _messages.length - 1; i >= 0; i--) {
+      final message = _messages[i];
+      if (message.isOwn && !message.isBot) {
+        return i;
+      }
+    }
+    return -1;
   }
 
   /// คำนวณ cooldown สำหรับ spinwheel
@@ -138,16 +590,6 @@ class _InsideChatScreenState extends State<InsideChatScreen> {
     });
   }
 
-  void _initSampleMessages() {
-    _messages = [
-      // ข้อความปกติ
-      ChatMessage.sent(id: '1', text: 'text message', isSeen: false),
-      ChatMessage.received(id: '2', text: 'text message'),
-      ChatMessage.received(id: '3', text: 'text message'),
-      ChatMessage.sent(id: '4', text: 'text message', isSeen: true),
-    ];
-  }
-
   void _checkSpinWheelCondition() {
     // เงื่อนไข: หลอดเต็ม (1.0) หรือ หัวใจครบตามที่กำหนด (เช่น 3 ดวง)
     // คำนวณ cooldown และ determine variant
@@ -164,20 +606,48 @@ class _InsideChatScreenState extends State<InsideChatScreen> {
   }
 
   /// ส่งข้อความ
-  void _sendMessage() {
-    if (_messageController.text.trim().isEmpty) return;
+  Future<void> _sendMessage() async {
+    final roomId = widget.roomId;
+    if (roomId == null || roomId.isEmpty) return;
+    final text = _messageController.text.trim();
+    if (text.isEmpty) return;
 
     setState(() {
-      _messages.add(
-        ChatMessage.sent(
-          id: DateTime.now().millisecondsSinceEpoch.toString(),
-          text: _messageController.text.trim(),
-          isSeen: false,
-        ),
-      );
       _messageController.clear();
       _hasText = false;
+      _isSending = true;
     });
+
+    try {
+      final chatService = ref.read(chatServiceProvider);
+      final sentMessage = await chatService.sendMessage(
+        roomId: roomId,
+        message: text,
+      );
+      if (!mounted) return;
+      setState(() {
+        if (!_messageIds.contains(sentMessage.id)) {
+          _messages.add(sentMessage);
+          _messages.sort((a, b) => a.timestamp.compareTo(b.timestamp));
+          _messageIds.add(sentMessage.id);
+        }
+        _isSending = false;
+      });
+      _scrollToBottom();
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _messageController.text = text;
+        _hasText = true;
+        _isSending = false;
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(e.toString().replaceAll('Exception: ', '')),
+          backgroundColor: AppColors.error,
+        ),
+      );
+    }
   }
 
   /// คำนวณ position ของ bubble ในกลุ่ม (burger style)
@@ -189,11 +659,13 @@ class _InsideChatScreenState extends State<InsideChatScreen> {
     final bool hasPrevSameOwner =
         index > 0 &&
         _messages[index - 1].isOwn == current.isOwn &&
-        !_messages[index - 1].isBot;
+        !_messages[index - 1].isBot &&
+        !_hasTimeBreakBefore(index);
     final bool hasNextSameOwner =
         index < _messages.length - 1 &&
         _messages[index + 1].isOwn == current.isOwn &&
-        !_messages[index + 1].isBot;
+        !_messages[index + 1].isBot &&
+        !_hasTimeBreakAfter(index);
 
     if (!hasPrevSameOwner && !hasNextSameOwner) return 'single';
     if (!hasPrevSameOwner && hasNextSameOwner) return 'first';
@@ -249,14 +721,17 @@ class _InsideChatScreenState extends State<InsideChatScreen> {
     if (_messages[index].isOwn) return false;
     if (_messages[index].isBot) return false;
     if (index >= _messages.length - 1) return true;
-    return _messages[index + 1].isOwn || _messages[index + 1].isBot;
+    return _messages[index + 1].isOwn ||
+        _messages[index + 1].isBot ||
+        _hasTimeBreakAfter(index);
   }
 
   /// ตรวจสอบว่าเป็นข้อความสุดท้ายในกลุ่มหรือไม่
   bool _isLastInGroup(int index) {
     if (index >= _messages.length - 1) return true;
     return _messages[index + 1].isOwn != _messages[index].isOwn ||
-        _messages[index + 1].isBot;
+        _messages[index + 1].isBot ||
+        _hasTimeBreakAfter(index);
   }
 
   void _triggerUnlockDate() {
@@ -275,7 +750,11 @@ class _InsideChatScreenState extends State<InsideChatScreen> {
   }
 
   /// สร้าง Widget สำหรับแต่ละ message
-  Widget _buildMessageWidget(ChatMessage message, int index) {
+  Widget _buildMessageWidget(
+    ChatMessage message,
+    int index, {
+    required int latestOwnIndex,
+  }) {
     // Bot message
     if (message.isBot && message.botType != null) {
       return BotMessageComponent.fromMessage(
@@ -299,22 +778,43 @@ class _InsideChatScreenState extends State<InsideChatScreen> {
     final position = _getBubblePosition(index);
     final radius = _getBorderRadius(position, message.isOwn);
     final showAvatar = _shouldShowAvatar(index);
-    final showSeen = message.isOwn && message.isSeen && _isLastInGroup(index);
+    // แสดง "เห็นแล้ว" เมื่อ:
+    // 1. เป็นข้อความของเรา (isOwn)
+    // 2. ถูกอ่านแล้ว (isSeen)
+    // 3. เป็นข้อความล่าสุดของเรา (index == latestOwnIndex)
+    // 4. ข้อความล่าสุดในแชทเป็นของเรา (ไม่มีข้อความอีกฝ่ายตามหลังมา)
+    final isLastMessageOurs = _messages.isNotEmpty && _messages.last.isOwn;
+    final showSeen = message.isOwn &&
+        message.isSeen &&
+        index == latestOwnIndex &&
+        isLastMessageOurs;
+    final showMessageTime = _selectedMessageIndex == index;
 
     if (message.isOwn) {
       // Sent message (ขวา - ชมพู)
       return Column(
         crossAxisAlignment: CrossAxisAlignment.end,
         children: [
-          ChatTextComponent(
-            text: message.text,
-            isChatRight: true,
-            topLeftRadius: radius['tl'],
-            topRightRadius: radius['tr'],
-            bottomLeftRadius: radius['bl'],
-            bottomRightRadius: radius['br'],
+          GestureDetector(
+            onTap: () {
+              setState(() {
+                _selectedMessageIndex = _selectedMessageIndex == index ? -1 : index;
+              });
+            },
+            child: ChatTextComponent(
+              text: message.text,
+              isChatRight: true,
+              topLeftRadius: radius['tl'],
+              topRightRadius: radius['tr'],
+              bottomLeftRadius: radius['bl'],
+              bottomRightRadius: radius['br'],
+            ),
           ),
-          if (showSeen)
+          // แสดงเวลาส่งจริงเมื่อกดที่ข้อความ
+          if (showMessageTime)
+            _buildMessageTimeIndicator(message.timestamp, true),
+          // แสดง "เห็นแล้ว" เฉพาะข้อความล่าสุดที่ถูกอ่าน
+          if (showSeen && !showMessageTime)
             Padding(
               padding: const EdgeInsets.only(top: 4),
               child: StatusTextComponent(
@@ -330,35 +830,46 @@ class _InsideChatScreenState extends State<InsideChatScreen> {
       );
     } else {
       // Received message (ซ้าย - เทา) - Avatar ที่ข้อความสุดท้ายในกลุ่ม
-      return Row(
-        crossAxisAlignment: CrossAxisAlignment.end,
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Avatar หรือ space (avatar อยู่ที่ข้อความสุดท้าย)
-          if (showAvatar)
-            Container(
-              width: 50,
-              height: 50,
-              margin: const EdgeInsets.only(right: 8),
-              decoration: BoxDecoration(
-                color: AppColors.surfaceMuted,
-                shape: BoxShape.circle,
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              // Avatar หรือ space (avatar อยู่ที่ข้อความสุดท้าย)
+              if (showAvatar)
+                Container(
+                  margin: const EdgeInsets.only(right: 8),
+                  child: _buildChatAvatar(),
+                )
+              else
+                const SizedBox(width: 58),
+              // Message bubble
+              Flexible(
+                child: GestureDetector(
+                  onTap: () {
+                    setState(() {
+                      _selectedMessageIndex = _selectedMessageIndex == index ? -1 : index;
+                    });
+                  },
+                  child: ChatTextComponent(
+                    text: message.text,
+                    isChatRight: false,
+                    topLeftRadius: radius['tl'],
+                    topRightRadius: radius['tr'],
+                    bottomLeftRadius: radius['bl'],
+                    bottomRightRadius: radius['br'],
+                  ),
+                ),
               ),
-              clipBehavior: Clip.antiAlias,
-              child: Icon(Icons.person, color: Colors.grey[400], size: 32),
-            )
-          else
-            const SizedBox(width: 58),
-          // Message bubble
-          Flexible(
-            child: ChatTextComponent(
-              text: message.text,
-              isChatRight: false,
-              topLeftRadius: radius['tl'],
-              topRightRadius: radius['tr'],
-              bottomLeftRadius: radius['bl'],
-              bottomRightRadius: radius['br'],
-            ),
+            ],
           ),
+          // แสดงเวลาส่งจริงเมื่อกดที่ข้อความ
+          if (showMessageTime)
+            Padding(
+              padding: const EdgeInsets.only(left: 58),
+              child: _buildMessageTimeIndicator(message.timestamp, false),
+            ),
         ],
       );
     }
@@ -366,367 +877,469 @@ class _InsideChatScreenState extends State<InsideChatScreen> {
 
   @override
   void dispose() {
+    _messageSubscription?.cancel();
+    _accessSubscription?.cancel();
+    _chatSocketService?.dispose();
+    _chatSocketService = null;
+    _scrollController.removeListener(_handleScroll);
+    _exitRoomOnce();
     _messageController.dispose();
+    _scrollController.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Colors.white,
-      body: SafeArea(
-        child: Stack(
-          // ✅ ใช้ Stack เพื่อวาง Layer ของวงล้อทับส่วนแชท
-          children: [
-            Column(
-              children: [
-                const SizedBox(height: 8),
-                // ใช้ Header.fromVariant เพื่อรองรับ 4 variants
-                Header.fromVariant(
-                  variant: _headerVariant,
-                  name: _chatUserName,
-                  avatarUrl: _chatUserAvatar,
-                  cooldownDays: _cooldownDays,
-                  showBorder: false,
-                  onBack: () => Navigator.maybePop(context),
-                  onCalendar: () {
-                    // TODO: เปิด Calendar
-                    debugPrint('Calendar tapped');
-                  },
-                  onSpinwheel:
-                      //_handleSpinwheelTap,
-                      _triggerUnlockDate,
-                  onFlag: () {
-                    Navigator.pushReplacementNamed(context, '/report');
-                  },
-                ),
-
-                // --- ส่วนแชททั้งหมด (ScoreRow + ListView + Input) ---
-                Expanded(
-                  child: Column(
-                    children: [
-                      const SizedBox(height: 12),
-                      Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 20),
-                        child: LayoutBuilder(
-                          builder: (context, constraints) {
-                            final double barWidth =
-                                (constraints.maxWidth - 25 - 20).clamp(
-                                  140,
-                                  260,
-                                );
-                            return ScoreRow(
-                              basePercent: _currentPercent,
-                              number: 0,
-                              barWidth: barWidth,
-                              barHeight: 8,
-                              rightIconSize: 18,
-                            );
-                          },
-                        ),
-                      ),
-                      const SizedBox(height: 12),
-                      Text(
-                        'วันเสาร์ 13:30',
-                        style: TextStyle(
-                          color: AppColors.textMuted,
-                          fontSize: 12,
-                        ),
-                      ),
-                      Expanded(
-                        child: ListView.builder(
-                          padding: const EdgeInsets.fromLTRB(20, 12, 20, 12),
-                          itemCount: _messages.length,
-                          itemBuilder: (context, index) {
-                            final message = _messages[index];
-                            // Gap: 10px สำหรับ grouped messages, 12px สำหรับ different owner
-                            final bool isGroupedWithNext =
-                                index < _messages.length - 1 &&
-                                _messages[index + 1].isOwn == message.isOwn &&
-                                !_messages[index + 1].isBot &&
-                                !message.isBot;
-                            final double bottomGap = isGroupedWithNext
-                                ? 10
-                                : 12;
-
-                            return Padding(
-                              padding: EdgeInsets.only(bottom: bottomGap),
-                              child: _buildMessageWidget(message, index),
-                            );
-                          },
-                        ),
-                      ),
-                      InputChatComponent(
-                        svgPath: 'assets/icons/icon_more-options.svg',
-                        svgPathLast: 'assets/icons/icon_send.svg',
-                        leftIconColor: AppColors.surfaceLight,
-                        sendIconColor: null, // icon_send.svg already has colors
-                        sendIconBackgroundColor:
-                            null, // icon_send.svg already has bg
-                        isSendEnabled: _hasText,
-                        controller: _messageController,
-                        onChanged: (value) =>
-                            setState(() => _hasText = value.trim().isNotEmpty),
-                        onSend: _hasText ? () => _sendMessage() : null,
-                      ),
-                    ],
+    final latestOwnIndex = _findLatestOwnMessageIndex();
+    return WillPopScope(
+      onWillPop: () async {
+        await _exitRoomOnce();
+        return true;
+      },
+      child: Scaffold(
+        backgroundColor: Colors.white,
+        body: SafeArea(
+          child: Stack(
+            // ✅ ใช้ Stack เพื่อวาง Layer ของวงล้อทับส่วนแชท
+            children: [
+              Column(
+                children: [
+                  const SizedBox(height: 8),
+                  // ใช้ Header.fromVariant เพื่อรองรับ 4 variants
+                  Header.fromVariant(
+                    variant: _headerVariant,
+                    name: _chatUserName,
+                    avatarUrl: _chatUserAvatar,
+                    cooldownDays: _cooldownDays,
+                    showBorder: false,
+                    onBack: () async {
+                      await _exitRoomOnce();
+                      if (!mounted) return;
+                      Navigator.maybePop(context);
+                    },
+                    onCalendar: () {
+                      debugPrint('Calendar tapped');
+                    },
+                    onSpinwheel: _triggerUnlockDate,
+                    onFlag: () {
+                      Navigator.pushReplacementNamed(
+                        context,
+                        '/report',
+                        arguments: {
+                          'roomId': widget.roomId,
+                          'targetUserId': _chatUserId,
+                          'userName': _chatUserName,
+                          'avatarUrl': _chatUserAvatar,
+                        },
+                      );
+                    },
                   ),
-                ),
-              ],
-            ),
-            if (_showUnlockDate) ...[
-              // 1. Full Screen Blur
-              Positioned.fill(
-                child: BackdropFilter(
-                  filter: ImageFilter.blur(sigmaX: 15.0, sigmaY: 15.0),
-                  child: Container(
-                    decoration: BoxDecoration(
-                      // ใช้สี Info จากธีม (A7E0FF) แบบโปร่งใส
-                      color: AppColors.info.withOpacity(0.1),
+
+                  // --- ส่วนแชททั้งหมด (ScoreRow + ListView + Input) ---
+                  Expanded(
+                    child: Column(
+                      children: [
+                        const SizedBox(height: 12),
+                        Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 20),
+                          child: LayoutBuilder(
+                            builder: (context, constraints) {
+                              final double barWidth =
+                                  (constraints.maxWidth - 25 - 20).clamp(
+                                    140,
+                                    260,
+                                  );
+                              return ScoreRow(
+                                basePercent: _currentPercent,
+                                number: _heartCount,
+                                barWidth: barWidth,
+                                barHeight: 8,
+                                rightIconSize: 18,
+                              );
+                            },
+                          ),
+                        ),
+                        const SizedBox(height: 12),
+                        Expanded(
+                          child: _isLoadingMessages
+                              ? const Center(child: CircularProgressIndicator())
+                              : _messageError != null
+                                  ? Center(
+                                      child: Column(
+                                        mainAxisAlignment:
+                                            MainAxisAlignment.center,
+                                        children: [
+                                          Text(
+                                            _messageError!,
+                                            style: const TextStyle(
+                                              color: Colors.red,
+                                            ),
+                                            textAlign: TextAlign.center,
+                                          ),
+                                          const SizedBox(height: 16),
+                                          ElevatedButton(
+                                            onPressed: _loadChatRoomMessages,
+                                            child: const Text('ลองใหม่'),
+                                          ),
+                                        ],
+                                      ),
+                                    )
+                                  : _messages.isEmpty
+                                      ? const Center(
+                                          child: Text(
+                                            'ยังไม่มีข้อความ',
+                                            style: TextStyle(
+                                              color: Colors.grey,
+                                              fontSize: 16,
+                                            ),
+                                          ),
+                                        )
+                                      : ListView.builder(
+                                          controller: _scrollController,
+                                          padding: const EdgeInsets.fromLTRB(
+                                            20,
+                                            12,
+                                            20,
+                                            12,
+                                          ),
+                                          itemCount: _messages.length +
+                                              (_isLoadingMore ? 1 : 0),
+                                          itemBuilder: (context, index) {
+                                            final int offset =
+                                                _isLoadingMore ? 1 : 0;
+                                            if (_isLoadingMore && index == 0) {
+                                              return const Padding(
+                                                padding: EdgeInsets.only(
+                                                  bottom: 12,
+                                                ),
+                                                child: Center(
+                                                  child:
+                                                      CircularProgressIndicator(),
+                                                ),
+                                              );
+                                            }
+
+                                            final messageIndex =
+                                                index - offset;
+                                            final message =
+                                                _messages[messageIndex];
+                                            final bool isGroupedWithNext =
+                                                messageIndex <
+                                                    _messages.length - 1 &&
+                                                _messages[messageIndex + 1]
+                                                        .isOwn ==
+                                                    message.isOwn &&
+                                                !_messages[messageIndex + 1]
+                                                    .isBot &&
+                                                !message.isBot;
+                                            final double bottomGap =
+                                                isGroupedWithNext ? 10 : 12;
+                                            final bool showTimestamp =
+                                                _shouldShowTimestamp(
+                                              messageIndex,
+                                            );
+
+                                            return Column(
+                                              crossAxisAlignment:
+                                                  CrossAxisAlignment.stretch,
+                                              children: [
+                                                if (showTimestamp)
+                                                  Padding(
+                                                    padding:
+                                                        const EdgeInsets.only(
+                                                      bottom: 8,
+                                                    ),
+                                                    child: Center(
+                                                      child:
+                                                          _buildChatTimestamp(
+                                                        message.timestamp,
+                                                      ),
+                                                    ),
+                                                  ),
+                                                Padding(
+                                                  padding: EdgeInsets.only(
+                                                    bottom: bottomGap,
+                                                  ),
+                                                  child: _buildMessageWidget(
+                                                    message,
+                                                    messageIndex,
+                                                    latestOwnIndex:
+                                                        latestOwnIndex,
+                                                  ),
+                                                ),
+                                              ],
+                                            );
+                                          },
+                                        ),
+                        ),
+                        InputChatComponent(
+                          svgPath: 'assets/icons/icon_more-options.svg',
+                          svgPathLast: 'assets/icons/icon_send.svg',
+                          leftIconColor: AppColors.surfaceLight,
+                          sendIconColor: null,
+                          sendIconBackgroundColor: null,
+                          isSendEnabled: _hasText &&
+                              !_isSending &&
+                              (widget.roomId?.isNotEmpty ?? false),
+                          controller: _messageController,
+                          onChanged: (value) => setState(
+                            () => _hasText = value.trim().isNotEmpty,
+                          ),
+                          onSend: _hasText &&
+                                  !_isSending &&
+                                  (widget.roomId?.isNotEmpty ?? false)
+                              ? () => _sendMessage()
+                              : null,
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+              if (_showUnlockDate) ...[
+                // 1. Full Screen Blur
+                Positioned.fill(
+                  child: BackdropFilter(
+                    filter: ImageFilter.blur(sigmaX: 15.0, sigmaY: 15.0),
+                    child: Container(
+                      decoration: BoxDecoration(
+                        color: AppColors.info.withOpacity(0.1),
+                      ),
                     ),
                   ),
                 ),
-              ),
 
-              // 2. Animated Content
-              Positioned.fill(
-                child: TweenAnimationBuilder<double>(
-                  tween: Tween(begin: 0.0, end: 1.0),
-                  duration: const Duration(milliseconds: 800),
-                  curve: Curves.elasticOut,
-                  builder: (context, value, child) {
-                    return Transform.scale(scale: value, child: child);
-                  },
-                  child: Center(
-                    child: Container(
-                      width: MediaQuery.of(context).size.width * 0.88,
-                      decoration: BoxDecoration(
-                        color: AppColors.background.withOpacity(
-                          0.95,
-                        ), // ใช้สี Background สีขาว
-                        borderRadius: BorderRadius.circular(45),
-                        boxShadow: [
-                          BoxShadow(
-                            color: AppColors.brandPrimary.withOpacity(0.2),
-                            blurRadius: 40,
-                            offset: const Offset(0, 20),
-                          ),
-                        ],
-                      ),
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          // --- ด้านบนสุด: ตกแต่งด้วยรูปทรงวงกลมฟุ้งๆ ---
-                          ClipRRect(
-                            borderRadius: const BorderRadius.only(
-                              topLeft: Radius.circular(45),
-                              topRight: Radius.circular(45),
+                // 2. Animated Content
+                Positioned.fill(
+                  child: TweenAnimationBuilder<double>(
+                    tween: Tween(begin: 0.0, end: 1.0),
+                    duration: const Duration(milliseconds: 800),
+                    curve: Curves.elasticOut,
+                    builder: (context, value, child) {
+                      return Transform.scale(scale: value, child: child);
+                    },
+                    child: Center(
+                      child: Container(
+                        width: MediaQuery.of(context).size.width * 0.88,
+                        decoration: BoxDecoration(
+                          color: AppColors.background.withOpacity(0.95),
+                          borderRadius: BorderRadius.circular(45),
+                          boxShadow: [
+                            BoxShadow(
+                              color: AppColors.brandPrimary.withOpacity(0.2),
+                              blurRadius: 40,
+                              offset: const Offset(0, 20),
                             ),
-                            child: SizedBox(
-                              height: 100,
-                              child: Stack(
+                          ],
+                        ),
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            // --- ด้านบนสุด: ตกแต่งด้วยรูปทรงวงกลมฟุ้งๆ ---
+                            ClipRRect(
+                              borderRadius: const BorderRadius.only(
+                                topLeft: Radius.circular(45),
+                                topRight: Radius.circular(45),
+                              ),
+                              child: SizedBox(
+                                height: 100,
+                                child: Stack(
+                                  children: [
+                                    Positioned(
+                                      top: -50,
+                                      left: -20,
+                                      child: CircleAvatar(
+                                        radius: 60,
+                                        backgroundColor: AppColors.info
+                                            .withOpacity(0.3),
+                                      ),
+                                    ),
+                                    Positioned(
+                                      top: -20,
+                                      right: -10,
+                                      child: CircleAvatar(
+                                        radius: 40,
+                                        backgroundColor: AppColors
+                                            .brandPrimary200
+                                            .withOpacity(0.5),
+                                      ),
+                                    ),
+                                    Center(
+                                      child: Text(
+                                        "IT'S DATE TIME!",
+                                        style: TextStyle(
+                                          color: AppColors.brandPrimary700,
+                                          fontWeight: FontWeight.w900,
+                                          letterSpacing: 2,
+                                          fontSize: 14,
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+
+                            Padding(
+                              padding: const EdgeInsets.fromLTRB(32, 0, 32, 40),
+                              child: Column(
                                 children: [
-                                  Positioned(
-                                    top: -50,
-                                    left: -20,
-                                    child: CircleAvatar(
-                                      radius: 60,
-                                      backgroundColor: AppColors.info
-                                          .withOpacity(0.3),
+                                  // --- ไอคอน: กล้อง + หัวใจ ---
+                                  Stack(
+                                    alignment: Alignment.center,
+                                    children: [
+                                      Container(
+                                        width: 140,
+                                        height: 140,
+                                        decoration: BoxDecoration(
+                                          shape: BoxShape.circle,
+                                          gradient: RadialGradient(
+                                            colors: [
+                                              AppColors.brandPrimary200
+                                                  .withOpacity(0.6),
+                                              AppColors.background
+                                                  .withOpacity(0.0),
+                                            ],
+                                          ),
+                                        ),
+                                      ),
+                                      Container(
+                                        width: 100,
+                                        height: 100,
+                                        decoration: BoxDecoration(
+                                          gradient: const LinearGradient(
+                                            colors: [
+                                              AppColors.brandPrimary,
+                                              AppColors.brandPrimary700,
+                                            ],
+                                            begin: Alignment.topLeft,
+                                            end: Alignment.bottomRight,
+                                          ),
+                                          shape: BoxShape.circle,
+                                          boxShadow: [
+                                            BoxShadow(
+                                              color: AppColors.brandPrimary
+                                                  .withOpacity(0.4),
+                                              blurRadius: 15,
+                                              offset: const Offset(0, 10),
+                                            ),
+                                          ],
+                                        ),
+                                        padding: const EdgeInsets.all(5),
+                                        child: SvgPicture.asset(
+                                          'assets/icons/icon_spinwheel.svg',
+                                          width: 25,
+                                          height: 25,
+                                          fit: BoxFit.contain,
+                                        ),
+                                      ),
+                                      Positioned(
+                                        top: 5,
+                                        right: 5,
+                                        child: SvgPicture.asset(
+                                          'assets/icons/HEART_STATUS_BAR.svg',
+                                          width: 28,
+                                          height: 28,
+                                        ),
+                                      ),
+                                      Positioned(
+                                        bottom: 0,
+                                        left: 10,
+                                        child: Container(
+                                          padding: const EdgeInsets.all(8),
+                                          decoration: const BoxDecoration(
+                                            color: AppColors.textPrimary,
+                                            shape: BoxShape.circle,
+                                          ),
+                                          child: SvgPicture.asset(
+                                            'assets/icons/icon_unlock.svg',
+                                            width: 20,
+                                            height: 20,
+                                            color: AppColors.warning,
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                  const SizedBox(height: 32),
+
+                                  const Text(
+                                    'Unlock Your Date!',
+                                    textAlign: TextAlign.center,
+                                    style: TextStyle(
+                                      fontSize: 24,
+                                      fontWeight: FontWeight.bold,
+                                      color: AppColors.textPrimary,
                                     ),
                                   ),
-                                  Positioned(
-                                    top: -20,
-                                    right: -10,
-                                    child: CircleAvatar(
-                                      radius: 40,
-                                      backgroundColor: AppColors.brandPrimary200
-                                          .withOpacity(0.5),
+                                  const SizedBox(height: 12),
+                                  Text(
+                                    'เตรียมตัวไปสร้างเดทสุดพิเศษ\nกับคู่ของคุณกัน!',
+                                    textAlign: TextAlign.center,
+                                    style: TextStyle(
+                                      fontSize: 16,
+                                      color: AppColors.textSecondary,
+                                      height: 1.5,
                                     ),
                                   ),
-                                  Center(
-                                    child: Text(
-                                      "IT'S DATE TIME!",
-                                      style: TextStyle(
-                                        color: AppColors
-                                            .brandPrimary700, // ใช้สี Primary เข้ม
-                                        fontWeight: FontWeight.w900,
-                                        letterSpacing: 2,
-                                        fontSize: 14,
+
+                                  const SizedBox(height: 32),
+
+                                  Container(
+                                    width: double.infinity,
+                                    decoration: BoxDecoration(
+                                      borderRadius: BorderRadius.circular(20),
+                                      gradient: const LinearGradient(
+                                        colors: [
+                                          AppColors.btnPrimary,
+                                          AppColors.btnHoverPrimary,
+                                        ],
+                                      ),
+                                      boxShadow: [
+                                        BoxShadow(
+                                          color: AppColors.btnPrimary
+                                              .withOpacity(0.3),
+                                          blurRadius: 15,
+                                          offset: const Offset(0, 8),
+                                        ),
+                                      ],
+                                    ),
+                                    child: ElevatedButton(
+                                      onPressed: () {},
+                                      style: ElevatedButton.styleFrom(
+                                        backgroundColor: Colors.transparent,
+                                        shadowColor: Colors.transparent,
+                                        padding: const EdgeInsets.symmetric(
+                                          horizontal: 16,
+                                          vertical: 16,
+                                        ),
+                                        shape: RoundedRectangleBorder(
+                                          borderRadius:
+                                              BorderRadius.circular(20),
+                                        ),
+                                      ),
+                                      child: const Text(
+                                        'ไปเดทกันเลย!',
+                                        style: TextStyle(
+                                          color: AppColors.btnTextPrimary,
+                                          fontSize: 18,
+                                          fontWeight: FontWeight.bold,
+                                        ),
                                       ),
                                     ),
                                   ),
                                 ],
                               ),
                             ),
-                          ),
-
-                          Padding(
-                            padding: const EdgeInsets.fromLTRB(32, 0, 32, 40),
-                            child: Column(
-                              children: [
-                                // --- ไอคอน: กล้อง + หัวใจ ---
-                                Stack(
-                                  alignment: Alignment.center,
-                                  children: [
-                                    Container(
-                                      width: 140,
-                                      height: 140,
-                                      decoration: BoxDecoration(
-                                        shape: BoxShape.circle,
-                                        gradient: RadialGradient(
-                                          colors: [
-                                            AppColors.brandPrimary200
-                                                .withOpacity(0.6),
-                                            AppColors.background.withOpacity(
-                                              0.0,
-                                            ),
-                                          ],
-                                        ),
-                                      ),
-                                    ),
-                                    // กล้อง (ใช้สี Brand Primary Gradient)
-                                    Container(
-                                      width: 100,
-                                      height: 100,
-                                      decoration: BoxDecoration(
-                                        gradient: const LinearGradient(
-                                          colors: [
-                                            AppColors.brandPrimary,
-                                            AppColors.brandPrimary700,
-                                          ],
-                                          begin: Alignment.topLeft,
-                                          end: Alignment.bottomRight,
-                                        ),
-                                        shape: BoxShape.circle,
-                                        boxShadow: [
-                                          BoxShadow(
-                                            color: AppColors.brandPrimary
-                                                .withOpacity(0.4),
-                                            blurRadius: 15,
-                                            offset: const Offset(0, 10),
-                                          ),
-                                        ],
-                                      ),
-                                      padding: const EdgeInsets.all(5),
-                                      child: SvgPicture.asset(
-                                        'assets/icons/icon_spinwheel.svg',
-                                        width: 25, // กำหนดขนาดที่ต้องการจริง
-                                        height: 25,
-                                        fit: BoxFit
-                                            .contain, // บังคับให้ขนาดภาพอยู่ในขอบเขตที่ระบุ
-                                      ),
-                                    ),
-                                    // หัวใจสีชมพู (จากธีม surfaceLight หรือ error)
-                                    Positioned(
-                                      top: 5,
-                                      right: 5,
-                                      child: SvgPicture.asset(
-                                        'assets/icons/HEART_STATUS_BAR.svg',
-                                        width: 28,
-                                        height: 28,
-                                      ),
-                                    ),
-                                    // เข็มทิศ (ใช้สีเข้มจาก Text Primary)
-                                    Positioned(
-                                      bottom: 0,
-                                      left: 10,
-                                      child: Container(
-                                        padding: const EdgeInsets.all(8),
-                                        decoration: const BoxDecoration(
-                                          color: AppColors.textPrimary,
-                                          shape: BoxShape.circle,
-                                        ),
-                                        child: SvgPicture.asset(
-                                          'assets/icons/icon_unlock.svg',
-                                          width: 20,
-                                          height: 20,
-                                          color: AppColors.warning,
-                                        ),
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                                const SizedBox(height: 32),
-
-                                // --- ข้อความหัวข้อ ---
-                                const Text(
-                                  'Unlock Your Date!',
-                                  textAlign: TextAlign.center,
-                                  style: TextStyle(
-                                    fontSize: 24,
-                                    fontWeight: FontWeight.bold,
-                                    color: AppColors.textPrimary,
-                                  ),
-                                ),
-                                const SizedBox(height: 12),
-                                Text(
-                                  'เตรียมตัวไปสร้างเดทสุดพิเศษ\nกับคู่ของคุณกัน!',
-                                  textAlign: TextAlign.center,
-                                  style: TextStyle(
-                                    fontSize: 16,
-                                    color: AppColors.textSecondary,
-                                    height: 1.5,
-                                  ),
-                                ),
-
-                                const SizedBox(height: 32),
-
-                                // --- ปุ่ม Let's Go (ใช้สีปุ่มจากธีม) ---
-                                Container(
-                                  width: double.infinity,
-                                  decoration: BoxDecoration(
-                                    borderRadius: BorderRadius.circular(20),
-                                    gradient: const LinearGradient(
-                                      colors: [
-                                        AppColors.btnPrimary,
-                                        AppColors.btnHoverPrimary,
-                                      ],
-                                    ),
-                                    boxShadow: [
-                                      BoxShadow(
-                                        color: AppColors.btnPrimary.withOpacity(
-                                          0.3,
-                                        ),
-                                        blurRadius: 15,
-                                        offset: const Offset(0, 8),
-                                      ),
-                                    ],
-                                  ),
-                                  child: ElevatedButton(
-                                    onPressed: () {},
-                                    style: ElevatedButton.styleFrom(
-                                      backgroundColor: Colors.transparent,
-                                      shadowColor: Colors.transparent,
-                                      padding: const EdgeInsets.symmetric(
-                                        horizontal: 16,
-                                        vertical: 16,
-                                      ),
-                                      shape: RoundedRectangleBorder(
-                                        borderRadius: BorderRadius.circular(20),
-                                      ),
-                                    ),
-                                    child: const Text(
-                                      'ไปเดทกันเลย!',
-                                      style: TextStyle(
-                                        color: AppColors.btnTextPrimary,
-                                        fontSize: 18,
-                                        fontWeight: FontWeight.bold,
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ],
+                          ],
+                        ),
                       ),
                     ),
                   ),
                 ),
-              ),
+              ],
             ],
-          ],
+          ),
         ),
       ),
     );

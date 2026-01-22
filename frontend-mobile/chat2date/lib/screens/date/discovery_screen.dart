@@ -133,7 +133,7 @@ class _DiscoveryScreenState extends ConsumerState<DiscoveryScreen>
         _settingsOverlay?.remove();
         _settingsOverlay = null;
         _isSettingsOpen = false;
-        Navigator.pushReplacementNamed(context, '/chat');
+        Navigator.pushReplacementNamed(context, '/chat-list');
         break;
       case 2:
         _settingsOverlay?.remove();
