@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:chat2date/components/buttons/ds_button.dart';
 import 'package:chat2date/components/common/image_upload_grid.dart';
 import 'package:chat2date/components/common/modal_component.dart';
@@ -6,33 +8,50 @@ import 'package:chat2date/components/inputs/ds_text_field/tag_autocomplete.dart'
 import 'package:chat2date/components/layout/header.dart';
 import 'package:chat2date/components/layout/responsive_container.dart';
 import 'package:chat2date/models/report_reason.dart';
+import 'package:chat2date/models/report_request.dart';
+import 'package:chat2date/models/user.dart';
+import 'package:chat2date/services/report_service.dart';
+import 'package:chat2date/stores/user_store.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:go_router/go_router.dart';
 
-class UserReportScreen extends StatefulWidget {
+class UserReportScreen extends ConsumerStatefulWidget {
   const UserReportScreen({
     super.key,
+    this.targetUserId,
     this.avatarUrl,
     this.userName,
+    this.roomId,
     this.reportItems,
   });
 
+  final String? targetUserId;
   final String? avatarUrl;
   final String? userName;
+  final String? roomId;
   final List<ReportReason>? reportItems;
 
   @override
-  State<UserReportScreen> createState() => _UserReportScreenState();
+  ConsumerState<UserReportScreen> createState() => _UserReportScreenState();
 }
 
-class _UserReportScreenState extends State<UserReportScreen> {
+class _UserReportScreenState extends ConsumerState<UserReportScreen> {
   Key _imageGridKey = UniqueKey();
   late final List<ReportReason> _reportItems;
   bool _showModal = false;
+  bool _showErrorModal = false;
+  String _errorMessage = '';
+  bool _isSubmitting = false;
+  
+  List<String> _selectedReasons = []; // เก็บเหตุผลที่เลือก
   List<String> otherReasons = []; // เก็บรายการเหตุผลที่เพิ่ม
   final TextEditingController _controller = TextEditingController();
+  final TextEditingController _descriptionController = TextEditingController();
   final int charLimit = 50;
+  
+  List<File> _selectedImages = []; // เก็บไฟล์หลักฐาน
 
   @override
   void initState() {
@@ -46,6 +65,92 @@ class _UserReportScreenState extends State<UserReportScreen> {
           ReportReason(id: 4, report: 'ภาษาที่ไม่เหมาะสม'),
           ReportReason(id: 5, report: 'อื่น ๆ'),
         ];
+  }
+  
+  /// Submit report to backend
+  Future<void> _submitReport() async {
+    if (widget.targetUserId == null) {
+      _showError('ไม่พบข้อมูลผู้ใช้ที่ต้องการรายงาน');
+      return;
+    }
+    
+    if (_selectedReasons.isEmpty && otherReasons.isEmpty) {
+      _showError('กรุณาเลือกเหตุผลในการรายงาน');
+      return;
+    }
+    
+    setState(() => _isSubmitting = true);
+    
+    try {
+      final userStore = ref.read(userStoreProvider);
+      final currentUser = userStore['user'] as User?;
+      
+      if (currentUser == null) {
+        _showError('กรุณาเข้าสู่ระบบก่อนรายงาน');
+        return;
+      }
+      
+      // รวมเหตุผลทั้งหมด
+      final allReasons = [..._selectedReasons, ...otherReasons];
+      final primaryReason = allReasons.first;
+      final anotherReason = allReasons.length > 1 
+          ? allReasons.skip(1).join(', ') 
+          : null;
+      
+      final request = ReportRequest(
+        userId: currentUser.userId,
+        targetUserId: widget.targetUserId!,
+        reason: primaryReason,
+        anotherReason: anotherReason,
+        description: _descriptionController.text.trim().isEmpty 
+            ? null 
+            : _descriptionController.text.trim(),
+      );
+      
+      final reportService = ref.read(reportServiceProvider);
+      await reportService.createReport(
+        request,
+        evidenceFiles: _selectedImages.isEmpty ? null : _selectedImages,
+      );
+      
+      // Success
+      setState(() {
+        _isSubmitting = false;
+        _showModal = true;
+      });
+      
+      // ปิด modal และกลับหน้า chat หลัง 3 วินาที
+      Future.delayed(const Duration(seconds: 3), () {
+        if (!mounted) return;
+        setState(() => _showModal = false);
+        Navigator.pushReplacementNamed(
+          context,
+          '/chat',
+          arguments: {
+            'roomId': widget.roomId,
+            'targetUserId': widget.targetUserId,
+            'userName': widget.userName,
+            'avatarUrl': widget.avatarUrl,
+          },
+        );
+      });
+      
+    } catch (e) {
+      setState(() => _isSubmitting = false);
+      _showError(e.toString().replaceAll('Exception: ', ''));
+    }
+  }
+  
+  void _showError(String message) {
+    setState(() {
+      _errorMessage = message;
+      _showErrorModal = true;
+    });
+    
+    Future.delayed(const Duration(seconds: 3), () {
+      if (!mounted) return;
+      setState(() => _showErrorModal = false);
+    });
   }
 
   @override
@@ -62,7 +167,16 @@ class _UserReportScreenState extends State<UserReportScreen> {
                 Header(
                   name: 'รายงานผู้ใช้',
                   onBack: () =>
-                      Navigator.pushReplacementNamed(context, '/chat'),
+                      Navigator.pushReplacementNamed(
+                        context,
+                        '/chat',
+                        arguments: {
+                          'roomId': widget.roomId,
+                          'targetUserId': widget.targetUserId,
+                          'userName': widget.userName,
+                          'avatarUrl': widget.avatarUrl,
+                        },
+                      ),
                   showAvatar: false,
                   showBorder: false,
                 ),
@@ -125,8 +239,14 @@ class _UserReportScreenState extends State<UserReportScreen> {
                                   items: _reportItems
                                       .map((t) => t.report)
                                       .toList(),
-                                  onChanged: (selectedList) {
-                                    print("Selected: $selectedList");
+                                  onChanged: (selectedIndices) {
+                                    // แปลง indices เป็น reason strings
+                                    final reasons = selectedIndices
+                                        .map((i) => _reportItems[i].report)
+                                        .toList();
+                                    setState(() {
+                                      _selectedReasons = reasons;
+                                    });
                                   },
                                 ),
                               ],
@@ -277,6 +397,7 @@ class _UserReportScreenState extends State<UserReportScreen> {
                               SizedBox(
                                 height: 120,
                                 child: TextField(
+                                  controller: _descriptionController,
                                   maxLines: null,
                                   expands: true,
                                   textAlignVertical: TextAlignVertical.top,
@@ -332,9 +453,9 @@ class _UserReportScreenState extends State<UserReportScreen> {
                                     _imageGridKey, // ✅ ใช้ key เพื่อ force rebuild
                                 onImagesChanged: (images) {
                                   setState(() {
-                                    // _selectedImages = images
-                                    //     .map((xFile) => File(xFile.path))
-                                    //     .toList();
+                                    _selectedImages = images
+                                        .map((xFile) => File(xFile.path))
+                                        .toList();
                                   });
                                 },
                               ),
@@ -345,20 +466,8 @@ class _UserReportScreenState extends State<UserReportScreen> {
                         const SizedBox(height: 24),
 
                         DsButton(
-                          label: 'บันทึก',
-                          onPressed: () {
-                            setState(() {
-                              _showModal = true;
-                            });
-
-                            // ปิด modal หลัง 5 วินาที
-                            Future.delayed(const Duration(seconds: 5), () {
-                              if (!mounted) return;
-                              setState(() {
-                                _showModal = false;
-                              });
-                            });
-                          },
+                          label: _isSubmitting ? 'กำลังส่ง...' : 'บันทึก',
+                          onPressed: _isSubmitting ? null : _submitReport,
                           variant: DsButtonVariant.primary,
                           size: DsButtonSize.md,
                         ),
@@ -380,6 +489,22 @@ class _UserReportScreenState extends State<UserReportScreen> {
                   topic: 'ขอบคุณสำหรับการรายงาน',
                   description:
                       'เราได้ทำการส่งเรื่องของคุณ\nให้ทาง admin เป็นที่เรียบร้อยแล้ว \nและจะดำเนินการบล็อคบัญชีที่ถูกรายงานให้กับคุณทันที',
+                  textOnly: true,
+                  spaceTop: 20,
+                  spaceBottom: 20,
+                  width: 330,
+                ),
+              ),
+            ],
+            
+            /// ================== Layer 3 : Error Modal ==================
+            if (_showErrorModal) ...[
+              Positioned.fill(child: Container(color: const Color(0x66B2B2B2))),
+
+              Center(
+                child: ModalComponent(
+                  topic: 'เกิดข้อผิดพลาด',
+                  description: _errorMessage,
                   textOnly: true,
                   spaceTop: 20,
                   spaceBottom: 20,
