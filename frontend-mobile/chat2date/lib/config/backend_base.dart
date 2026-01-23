@@ -13,10 +13,14 @@ class ApiBase {
   // 🔧 เปลี่ยน IP นี้เป็น IP ของ Mac เมื่อรันบนเครื่องจริง
   static const String _localIp = '192.168.1.53'; // IP ของ Mac (ใช้กับ iPhone/Android จริง)
   static const String _localUrl = 'http://$_localIp:8080/api/v1';
-  static const String _localUrlAndroid = 'http://10.0.2.2:8080/api/v1'; // สำหรับ Android Emulator
+  // static const String _localUrlAndroid =
+  //     'http://10.0.2.2:8080/api/v1'; // สำหรับ Android Emulator
   static const String _localWsUrl = 'ws://$_localIp:8080';
-  static const String _localWsUrlAndroid = 'ws://10.0.2.2:8080';
-  
+  // static const String _localWsUrlAndroid = 'ws://10.0.2.2:8080';
+
+  static const String _localUrlAndroid = 'http://$_localIp:8080/api/v1';
+  static const String _localWsUrlAndroid = 'ws://$_localIp:8080';
+
   // URLs สำหรับ Server จริง
   static const String _serverUrl = 'http://cp25ssi2.sit.kmutt.ac.th:8080/api/v1';
   static const String _serverWsUrl = 'ws://cp25ssi2.sit.kmutt.ac.th:8080';
