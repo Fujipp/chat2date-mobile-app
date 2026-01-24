@@ -31,6 +31,7 @@ public class SecurityConfig {
                                 .requestMatchers("/auth/**").permitAll()
                                 .requestMatchers("/ws/**").permitAll()
                                 .requestMatchers("/users/*/restore").permitAll()
+                                .requestMatchers("/demo/**").permitAll()
                                 .requestMatchers(HttpMethod.POST, "/users/phone").permitAll()
                                 .requestMatchers(HttpMethod.GET, "/users").hasRole(Role.ADMIN.name())
                                 .anyRequest().hasAnyRole(Role.USER.name(), Role.ADMIN.name())
