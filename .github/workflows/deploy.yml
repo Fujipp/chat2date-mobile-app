@@ -34,5 +34,4 @@ jobs:
         env:
           BUILDKIT_PROGRESS: plain
         run: |
-          export COMPOSE_DOCKER_CLI_BUILD_METADATA=0
-          sudo -E /snap/bin/docker compose -f "$HOME/docker-compose.yml" up -d --build backend
+          sudo /snap/bin/docker compose -f "$HOME/docker-compose.yml" up -d --build backend
