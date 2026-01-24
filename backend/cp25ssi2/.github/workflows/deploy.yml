@@ -1,0 +1,55 @@
+name: Deploy to Server
+
+on:
+  push:
+    branches: [ main, develop ]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+
+      - name: Build with Maven
+        run: ./mvnw clean package -DskipTests
+
+      - name: Install sshpass
+        run: sudo apt-get update && sudo apt-get install -y sshpass
+
+      - name: Deploy to server
+        env:
+          SSH_HOST: ${{ secrets.SSH_HOST }}
+          SSH_USER: ${{ secrets.SSH_USER }}
+          SSH_PASSWORD: ${{ secrets.SSH_PASSWORD }}
+          REPO_URL: ${{ secrets.REPO_URL }}
+        run: |
+          sshpass -p "$SSH_PASSWORD" ssh -o StrictHostKeyChecking=no "$SSH_USER@$SSH_HOST" << 'EOSSH'
+          cd ~
+          
+          # Clone or pull latest code
+          if [ -d "backend" ]; then
+            echo "Pulling latest code..."
+            cd backend
+            git pull origin main
+          else
+            echo "Cloning repository..."
+            git clone $REPO_URL backend
+            cd backend
+          fi
+          
+          cd ~
+          
+          # Run docker-compose
+          echo "Starting docker-compose..."
+          docker-compose up -d --build
+          
+          echo "Deployment completed!"
+          EOSSH
