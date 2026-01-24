@@ -31,4 +31,4 @@ jobs:
 
       - name: Deploy with docker compose
         working-directory: .
-        run: sudo /snap/bin/docker-compose -f "$HOME/docker-compose.yml" up -d --build backend
+        run: sudo /snap/bin/docker compose -f "$HOME/docker-compose.yml" up -d --build backend
