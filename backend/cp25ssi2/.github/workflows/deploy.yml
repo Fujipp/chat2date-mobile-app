@@ -3,6 +3,7 @@ name: Deploy to Server
 on:
   push:
     branches: [ main, develop ]
+  workflow_dispatch:
 
 jobs:
   deploy:
@@ -30,26 +31,29 @@ jobs:
           SSH_USER: ${{ secrets.SSH_USER }}
           SSH_PASSWORD: ${{ secrets.SSH_PASSWORD }}
           REPO_URL: ${{ secrets.REPO_URL }}
+          DEPLOY_BRANCH: ${{ github.ref_name }}
         run: |
           sshpass -p "$SSH_PASSWORD" ssh -o StrictHostKeyChecking=no "$SSH_USER@$SSH_HOST" << 'EOSSH'
           cd ~
-          
+
           # Clone or pull latest code
           if [ -d "backend" ]; then
-            echo "Pulling latest code..."
+            echo "Pulling latest code on branch ${DEPLOY_BRANCH}..."
             cd backend
-            git pull origin main
+            git fetch origin ${DEPLOY_BRANCH}
+            git checkout ${DEPLOY_BRANCH} || git checkout -b ${DEPLOY_BRANCH}
+            git pull origin ${DEPLOY_BRANCH}
           else
-            echo "Cloning repository..."
-            git clone $REPO_URL backend
+            echo "Cloning repository (branch ${DEPLOY_BRANCH})..."
+            git clone --branch ${DEPLOY_BRANCH} ${REPO_URL} backend
             cd backend
           fi
-          
+
           cd ~
-          
+
           # Run docker-compose
           echo "Starting docker-compose..."
           docker-compose up -d --build
-          
+
           echo "Deployment completed!"
           EOSSH
