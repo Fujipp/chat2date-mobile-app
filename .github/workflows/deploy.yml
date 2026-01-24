@@ -7,7 +7,7 @@ on:
 
 jobs:
   deploy:
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     defaults:
       run:
         working-directory: backend/cp25ssi2
@@ -25,38 +25,10 @@ jobs:
       - name: Build with Maven
         run: ./mvnw clean package -DskipTests
 
-      - name: Install sshpass
-        run: sudo apt-get update && sudo apt-get install -y sshpass
+      - name: Sync backend code to deployed path
+        working-directory: .
+        run: rsync -av --delete backend/cp25ssi2/ "$HOME/backend/"
 
-      - name: Deploy to server
-        env:
-          SSH_HOST: ${{ secrets.SSH_HOST }}
-          SSH_USER: ${{ secrets.SSH_USER }}
-          SSH_PASSWORD: ${{ secrets.SSH_PASSWORD }}
-          REPO_URL: ${{ secrets.REPO_URL }}
-          DEPLOY_BRANCH: ${{ github.ref_name }}
-        run: |
-          sshpass -p "$SSH_PASSWORD" ssh -o StrictHostKeyChecking=no "$SSH_USER@$SSH_HOST" << 'EOSSH'
-          cd ~
-
-          # Clone or pull latest code
-          if [ -d "backend" ]; then
-            echo "Pulling latest code on branch ${DEPLOY_BRANCH}..."
-            cd backend
-            git fetch origin ${DEPLOY_BRANCH}
-            git checkout ${DEPLOY_BRANCH} || git checkout -b ${DEPLOY_BRANCH}
-            git pull origin ${DEPLOY_BRANCH}
-          else
-            echo "Cloning repository (branch ${DEPLOY_BRANCH})..."
-            git clone --branch ${DEPLOY_BRANCH} ${REPO_URL} backend
-            cd backend
-          fi
-
-          cd ~
-
-          # Run docker-compose
-          echo "Starting docker-compose..."
-          docker-compose up -d --build
-
-          echo "Deployment completed!"
-          EOSSH
+      - name: Deploy with docker compose
+        working-directory: .
+        run: docker compose -f "$HOME/docker-compose.yml" up -d --build backend
