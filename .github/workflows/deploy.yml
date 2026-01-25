@@ -33,5 +33,6 @@ jobs:
         working-directory: .
         env:
           BUILDKIT_PROGRESS: plain
+          DOCKER_BUILDKIT: '0'
         run: |
-          sudo /snap/bin/docker compose -f "$HOME/docker-compose.yml" up -d --build backend
+          sudo /usr/bin/env DOCKER_BUILDKIT=0 COMPOSE_DOCKER_CLI_BUILD_METADATA=0 /snap/bin/docker compose -f "$HOME/docker-compose.yml" up -d --build backend
