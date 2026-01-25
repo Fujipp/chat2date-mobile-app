@@ -71,17 +71,25 @@ class InputChatComponent extends StatelessWidget {
           // Text Input with Send button inside - ตาม Figma
           Expanded(
             child: Container(
-              height: 40, // ความสูง 40px ตาม Figma
+              constraints: const BoxConstraints(
+                minHeight: 40,
+                maxHeight: 120,
+              ),
               decoration: BoxDecoration(
                 color: const Color(0xFFF8F9FE), // #F8F9FE ตาม Figma
                 borderRadius: BorderRadius.circular(71), // rounded-[71px] ตาม Figma
               ),
               child: Row(
+                crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
                   Expanded(
                     child: TextField(
                       controller: controller,
                       onChanged: onChanged,
+                      maxLines: null,
+                      minLines: 1,
+                      keyboardType: TextInputType.multiline,
+                      textInputAction: TextInputAction.newline,
                       style: const TextStyle(
                         color: Color(0xFF1F2024),
                         fontSize: 14,
@@ -104,12 +112,13 @@ class InputChatComponent extends StatelessWidget {
                       ),
                     ),
                   ),
+                  const SizedBox(width: 8),
                   // Send button (32x32 circle) - ตาม Figma
                   if (svgPathLast != null)
                     GestureDetector(
                       onTap: isSendEnabled ? onSend : null,
                       child: Padding(
-                        padding: const EdgeInsets.only(right: 6),
+                        padding: const EdgeInsets.only(right: 12, bottom: 4),
                         child: Opacity(
                           opacity: isSendEnabled ? 1.0 : 0.5,
                           child: SvgPicture.asset(
