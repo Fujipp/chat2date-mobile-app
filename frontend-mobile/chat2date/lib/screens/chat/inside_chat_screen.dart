@@ -23,7 +23,7 @@ class InsideChatScreen extends ConsumerStatefulWidget {
   final String? targetUserId;
   final String? userName;
   final String? avatarUrl;
-  
+
   const InsideChatScreen({
     super.key,
     this.roomId,
@@ -46,6 +46,9 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen> {
   int _heartCount = 0; // 0 = ซ่อน, 1-2 = แสดง, 3 = rainbow
   bool _showWheelModal = false;
   bool _showUnlockDate = false;
+  bool _showSpinWheel = false;
+  bool firstTime = true;
+  int talkCount = 0;
 
   bool _isLoadingMessages = true;
   bool _isLoadingMore = false;
@@ -74,7 +77,7 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen> {
 
   // ข้อความแชท
   List<ChatMessage> _messages = [];
-  
+
   // index ของข้อความที่ถูกกดเพื่อดูเวลาส่ง (-1 = ไม่มี)
   int _selectedMessageIndex = -1;
 
@@ -332,8 +335,7 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen> {
       final roomData = await chatService.getChatMessages(roomId);
       if (!mounted) return;
       final readMap = <String, bool>{
-        for (final message in roomData.messages)
-          message.id: message.isSeen,
+        for (final message in roomData.messages) message.id: message.isSeen,
       };
       bool hasUpdate = false;
       final updated = _messages.map((message) {
@@ -378,37 +380,45 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen> {
     final bool isSvg = _isSvgImage(avatar);
     final Widget image = isSvg
         ? (avatar.startsWith('http')
-            ? SvgPicture.network(
-                avatar,
-                width: size,
-                height: size,
-                fit: BoxFit.cover,
-              )
-            : SvgPicture.asset(
-                avatar,
-                width: size,
-                height: size,
-                fit: BoxFit.cover,
-              ))
+              ? SvgPicture.network(
+                  avatar,
+                  width: size,
+                  height: size,
+                  fit: BoxFit.cover,
+                )
+              : SvgPicture.asset(
+                  avatar,
+                  width: size,
+                  height: size,
+                  fit: BoxFit.cover,
+                ))
         : (avatar.startsWith('http')
-            ? Image.network(
-                avatar,
-                width: size,
-                height: size,
-                fit: BoxFit.cover,
-                errorBuilder: (context, error, stackTrace) {
-                  return Icon(Icons.person, color: Colors.grey[400], size: 32);
-                },
-              )
-            : Image.asset(
-                avatar,
-                width: size,
-                height: size,
-                fit: BoxFit.cover,
-                errorBuilder: (context, error, stackTrace) {
-                  return Icon(Icons.person, color: Colors.grey[400], size: 32);
-                },
-              ));
+              ? Image.network(
+                  avatar,
+                  width: size,
+                  height: size,
+                  fit: BoxFit.cover,
+                  errorBuilder: (context, error, stackTrace) {
+                    return Icon(
+                      Icons.person,
+                      color: Colors.grey[400],
+                      size: 32,
+                    );
+                  },
+                )
+              : Image.asset(
+                  avatar,
+                  width: size,
+                  height: size,
+                  fit: BoxFit.cover,
+                  errorBuilder: (context, error, stackTrace) {
+                    return Icon(
+                      Icons.person,
+                      color: Colors.grey[400],
+                      size: 32,
+                    );
+                  },
+                ));
 
     return Container(
       width: size,
@@ -425,7 +435,7 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen> {
   String _formatChatTimestamp(DateTime time) {
     // แปลงเป็นเวลาไทย (UTC+7)
     final thailandTime = time.toUtc().add(const Duration(hours: 7));
-    
+
     const weekdays = [
       'วันจันทร์',
       'วันอังคาร',
@@ -444,10 +454,7 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen> {
   Widget _buildChatTimestamp(DateTime time) {
     return Text(
       _formatChatTimestamp(time),
-      style: const TextStyle(
-        color: AppColors.textMuted,
-        fontSize: 12,
-      ),
+      style: const TextStyle(color: AppColors.textMuted, fontSize: 12),
     );
   }
 
@@ -455,7 +462,7 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen> {
   String _formatMessageTime(DateTime time) {
     // แปลงเป็นเวลาไทย (UTC+7)
     final thailandTime = time.toUtc().add(const Duration(hours: 7));
-    
+
     final hour = thailandTime.hour.toString().padLeft(2, '0');
     final minute = thailandTime.minute.toString().padLeft(2, '0');
     return '$hour:$minute';
@@ -474,10 +481,7 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen> {
         ),
         child: Text(
           _formatMessageTime(time),
-          style: const TextStyle(
-            color: AppColors.textMuted,
-            fontSize: 10,
-          ),
+          style: const TextStyle(color: AppColors.textMuted, fontSize: 10),
         ),
       ),
     );
@@ -631,7 +635,30 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen> {
         message: text,
       );
       if (!mounted) return;
+
       setState(() {
+        if (firstTime) {
+          _currentPercent = 0.05;
+          firstTime = false;
+          talkCount += 1;
+        } else {
+          talkCount += 1;
+          if (talkCount >= 5) {
+            _currentPercent += 0.08;
+          }
+          if (talkCount == 6) {
+            _currentPercent = 1.0;
+            if (_currentPercent == 1.0) {
+              FocusManager.instance.primaryFocus?.unfocus();
+              Future.delayed(const Duration(milliseconds: 1000), () {
+                if (mounted) {
+                  _headerVariant = ChatHeaderVariant.chat2;
+                  _triggerUnlockDate();
+                }
+              });
+            }
+          }
+        }
         if (!_messageIds.contains(sentMessage.id)) {
           _messages.add(sentMessage);
           _messages.sort((a, b) => a.timestamp.compareTo(b.timestamp));
@@ -750,6 +777,8 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen> {
       if (mounted) {
         setState(() {
           _showUnlockDate = false;
+          _currentPercent = 0.0;
+          _heartCount = 1;
         });
       }
     });
@@ -790,7 +819,8 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen> {
     // 3. เป็นข้อความล่าสุดของเรา (index == latestOwnIndex)
     // 4. ข้อความล่าสุดในแชทเป็นของเรา (ไม่มีข้อความอีกฝ่ายตามหลังมา)
     final isLastMessageOurs = _messages.isNotEmpty && _messages.last.isOwn;
-    final showSeen = message.isOwn &&
+    final showSeen =
+        message.isOwn &&
         message.isSeen &&
         index == latestOwnIndex &&
         isLastMessageOurs;
@@ -804,7 +834,9 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen> {
           GestureDetector(
             onTap: () {
               setState(() {
-                _selectedMessageIndex = _selectedMessageIndex == index ? -1 : index;
+                _selectedMessageIndex = _selectedMessageIndex == index
+                    ? -1
+                    : index;
               });
             },
             child: ChatTextComponent(
@@ -855,7 +887,9 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen> {
                 child: GestureDetector(
                   onTap: () {
                     setState(() {
-                      _selectedMessageIndex = _selectedMessageIndex == index ? -1 : index;
+                      _selectedMessageIndex = _selectedMessageIndex == index
+                          ? -1
+                          : index;
                     });
                   },
                   child: ChatTextComponent(
@@ -926,7 +960,7 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen> {
                     onCalendar: () {
                       debugPrint('Calendar tapped');
                     },
-                    onSpinwheel: _triggerUnlockDate,
+                    onSpinwheel: _handleSpinwheelTap,
                     onFlag: () {
                       Navigator.pushReplacementNamed(
                         context,
@@ -970,113 +1004,100 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen> {
                           child: _isLoadingMessages
                               ? const Center(child: CircularProgressIndicator())
                               : _messageError != null
-                                  ? Center(
-                                      child: Column(
-                                        mainAxisAlignment:
-                                            MainAxisAlignment.center,
-                                        children: [
-                                          Text(
-                                            _messageError!,
-                                            style: const TextStyle(
-                                              color: Colors.red,
-                                            ),
-                                            textAlign: TextAlign.center,
-                                          ),
-                                          const SizedBox(height: 16),
-                                          ElevatedButton(
-                                            onPressed: _loadChatRoomMessages,
-                                            child: const Text('ลองใหม่'),
-                                          ),
-                                        ],
-                                      ),
-                                    )
-                                  : _messages.isEmpty
-                                      ? const Center(
-                                          child: Text(
-                                            'ยังไม่มีข้อความ',
-                                            style: TextStyle(
-                                              color: Colors.grey,
-                                              fontSize: 16,
-                                            ),
-                                          ),
-                                        )
-                                      : ListView.builder(
-                                          controller: _scrollController,
-                                          padding: const EdgeInsets.fromLTRB(
-                                            20,
-                                            12,
-                                            20,
-                                            12,
-                                          ),
-                                          itemCount: _messages.length +
-                                              (_isLoadingMore ? 1 : 0),
-                                          itemBuilder: (context, index) {
-                                            final int offset =
-                                                _isLoadingMore ? 1 : 0;
-                                            if (_isLoadingMore && index == 0) {
-                                              return const Padding(
-                                                padding: EdgeInsets.only(
-                                                  bottom: 12,
-                                                ),
-                                                child: Center(
-                                                  child:
-                                                      CircularProgressIndicator(),
-                                                ),
-                                              );
-                                            }
-
-                                            final messageIndex =
-                                                index - offset;
-                                            final message =
-                                                _messages[messageIndex];
-                                            final bool isGroupedWithNext =
-                                                messageIndex <
-                                                    _messages.length - 1 &&
-                                                _messages[messageIndex + 1]
-                                                        .isOwn ==
-                                                    message.isOwn &&
-                                                !_messages[messageIndex + 1]
-                                                    .isBot &&
-                                                !message.isBot;
-                                            final double bottomGap =
-                                                isGroupedWithNext ? 10 : 12;
-                                            final bool showTimestamp =
-                                                _shouldShowTimestamp(
-                                              messageIndex,
-                                            );
-
-                                            return Column(
-                                              crossAxisAlignment:
-                                                  CrossAxisAlignment.stretch,
-                                              children: [
-                                                if (showTimestamp)
-                                                  Padding(
-                                                    padding:
-                                                        const EdgeInsets.only(
-                                                      bottom: 8,
-                                                    ),
-                                                    child: Center(
-                                                      child:
-                                                          _buildChatTimestamp(
-                                                        message.timestamp,
-                                                      ),
-                                                    ),
-                                                  ),
-                                                Padding(
-                                                  padding: EdgeInsets.only(
-                                                    bottom: bottomGap,
-                                                  ),
-                                                  child: _buildMessageWidget(
-                                                    message,
-                                                    messageIndex,
-                                                    latestOwnIndex:
-                                                        latestOwnIndex,
-                                                  ),
-                                                ),
-                                              ],
-                                            );
-                                          },
+                              ? Center(
+                                  child: Column(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      Text(
+                                        _messageError!,
+                                        style: const TextStyle(
+                                          color: Colors.red,
                                         ),
+                                        textAlign: TextAlign.center,
+                                      ),
+                                      const SizedBox(height: 16),
+                                      ElevatedButton(
+                                        onPressed: _loadChatRoomMessages,
+                                        child: const Text('ลองใหม่'),
+                                      ),
+                                    ],
+                                  ),
+                                )
+                              : _messages.isEmpty
+                              ? const Center(
+                                  child: Text(
+                                    'ยังไม่มีข้อความ',
+                                    style: TextStyle(
+                                      color: Colors.grey,
+                                      fontSize: 16,
+                                    ),
+                                  ),
+                                )
+                              : ListView.builder(
+                                  controller: _scrollController,
+                                  padding: const EdgeInsets.fromLTRB(
+                                    20,
+                                    12,
+                                    20,
+                                    12,
+                                  ),
+                                  itemCount:
+                                      _messages.length +
+                                      (_isLoadingMore ? 1 : 0),
+                                  itemBuilder: (context, index) {
+                                    final int offset = _isLoadingMore ? 1 : 0;
+                                    if (_isLoadingMore && index == 0) {
+                                      return const Padding(
+                                        padding: EdgeInsets.only(bottom: 12),
+                                        child: Center(
+                                          child: CircularProgressIndicator(),
+                                        ),
+                                      );
+                                    }
+
+                                    final messageIndex = index - offset;
+                                    final message = _messages[messageIndex];
+                                    final bool isGroupedWithNext =
+                                        messageIndex < _messages.length - 1 &&
+                                        _messages[messageIndex + 1].isOwn ==
+                                            message.isOwn &&
+                                        !_messages[messageIndex + 1].isBot &&
+                                        !message.isBot;
+                                    final double bottomGap = isGroupedWithNext
+                                        ? 10
+                                        : 12;
+                                    final bool showTimestamp =
+                                        _shouldShowTimestamp(messageIndex);
+
+                                    return Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.stretch,
+                                      children: [
+                                        if (showTimestamp)
+                                          Padding(
+                                            padding: const EdgeInsets.only(
+                                              bottom: 8,
+                                            ),
+                                            child: Center(
+                                              child: _buildChatTimestamp(
+                                                message.timestamp,
+                                              ),
+                                            ),
+                                          ),
+                                        Padding(
+                                          padding: EdgeInsets.only(
+                                            bottom: bottomGap,
+                                          ),
+                                          child: _buildMessageWidget(
+                                            message,
+                                            messageIndex,
+                                            latestOwnIndex: latestOwnIndex,
+                                          ),
+                                        ),
+                                      ],
+                                    );
+                                  },
+                                ),
                         ),
                         InputChatComponent(
                           svgPath: 'assets/icons/icon_more-options.svg',
@@ -1084,14 +1105,16 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen> {
                           leftIconColor: AppColors.surfaceLight,
                           sendIconColor: null,
                           sendIconBackgroundColor: null,
-                          isSendEnabled: _hasText &&
+                          isSendEnabled:
+                              _hasText &&
                               !_isSending &&
                               (widget.roomId?.isNotEmpty ?? false),
                           controller: _messageController,
                           onChanged: (value) => setState(
                             () => _hasText = value.trim().isNotEmpty,
                           ),
-                          onSend: _hasText &&
+                          onSend:
+                              _hasText &&
                                   !_isSending &&
                                   (widget.roomId?.isNotEmpty ?? false)
                               ? () => _sendMessage()
@@ -1102,6 +1125,67 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen> {
                   ),
                 ],
               ),
+              if (_showWheelModal) ...[
+                // 1. ฉากหลังสีเทาจาง (Dim background)
+                Positioned.fill(
+                  child: GestureDetector(
+                    onTap: () => setState(() => _showWheelModal = false),
+                    child: Container(color: Colors.black.withOpacity(0.5)),
+                  ),
+                ),
+
+                // 2. ตัว SpinDateComponent
+                // ✅ ใช้ Positioned.fill เพื่อกำหนดขอบเขตพื้นที่ที่เหลือจาก Header
+                Positioned.fill(
+                  top: 85, // เริ่มต้นที่ขอบล่างของ Header
+                  child: Align(
+                    alignment: Alignment.center, // จัดกลางใน "พื้นที่ที่เหลือ"
+                    child: SingleChildScrollView(
+                      // ✅ กันบั๊กกรณีจอเตี้ยเกินไปหรือ Content ยาวเกินจอ
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 20,
+                          vertical: 20,
+                        ), // ✅ เพิ่ม vertical padding กันติดขอบ
+                        child: Container(
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(24),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withOpacity(0.2),
+                                blurRadius: 20,
+                                offset: const Offset(0, 10),
+                              ),
+                            ],
+                          ),
+                          child: ClipRRect(
+                            borderRadius: BorderRadius.circular(24),
+                            child: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                SpinDateComponent(
+                                  onCloseModal: () =>
+                                      setState(() => _showWheelModal = false),
+                                  onSpinComplete: _onSpinComplete,
+                                  prizes: const [
+                                    {'label': 'Coffee'},
+                                    {'label': 'Pizza'},
+                                    {'label': 'Movie'},
+                                    {'label': 'Book'},
+                                    {'label': 'Gift'},
+                                    {'label': 'Ice-cream'},
+                                  ],
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
               if (_showUnlockDate) ...[
                 // 1. Full Screen Blur
                 Positioned.fill(
@@ -1203,8 +1287,9 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen> {
                                             colors: [
                                               AppColors.brandPrimary200
                                                   .withOpacity(0.6),
-                                              AppColors.background
-                                                  .withOpacity(0.0),
+                                              AppColors.background.withOpacity(
+                                                0.0,
+                                              ),
                                             ],
                                           ),
                                         ),
@@ -1320,8 +1405,9 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen> {
                                           vertical: 16,
                                         ),
                                         shape: RoundedRectangleBorder(
-                                          borderRadius:
-                                              BorderRadius.circular(20),
+                                          borderRadius: BorderRadius.circular(
+                                            20,
+                                          ),
                                         ),
                                       ),
                                       child: const Text(
