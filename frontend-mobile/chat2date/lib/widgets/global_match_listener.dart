@@ -53,6 +53,13 @@ class GlobalMatchListener extends ConsumerWidget {
             return;
           }
 
+          // ✅ ป้องกันการ navigate ซ้ำ: เช็คว่ามี match success screen อยู่บนสุดแล้วหรือยัง
+          final currentRoute = ModalRoute.of(context)?.settings.name;
+          if (currentRoute == MatchSuccessScreen.routeName) {
+            print('[GlobalMatchListener] Match success screen already showing, skip navigation');
+            return;
+          }
+
           navigator.pushNamed(
             MatchSuccessScreen.routeName,
             arguments: MatchSuccessArgs(

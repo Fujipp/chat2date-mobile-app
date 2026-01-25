@@ -423,6 +423,9 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen> {
   }
 
   String _formatChatTimestamp(DateTime time) {
+    // แปลงเป็นเวลาไทย (UTC+7)
+    final thailandTime = time.toUtc().add(const Duration(hours: 7));
+    
     const weekdays = [
       'วันจันทร์',
       'วันอังคาร',
@@ -432,9 +435,9 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen> {
       'วันเสาร์',
       'วันอาทิตย์',
     ];
-    final weekday = weekdays[time.weekday - 1];
-    final hour = time.hour.toString().padLeft(2, '0');
-    final minute = time.minute.toString().padLeft(2, '0');
+    final weekday = weekdays[thailandTime.weekday - 1];
+    final hour = thailandTime.hour.toString().padLeft(2, '0');
+    final minute = thailandTime.minute.toString().padLeft(2, '0');
     return '$weekday $hour:$minute';
   }
 
@@ -450,8 +453,11 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen> {
 
   /// Format เวลาส่งจริงของข้อความ (แสดงเมื่อกดที่ข้อความ)
   String _formatMessageTime(DateTime time) {
-    final hour = time.hour.toString().padLeft(2, '0');
-    final minute = time.minute.toString().padLeft(2, '0');
+    // แปลงเป็นเวลาไทย (UTC+7)
+    final thailandTime = time.toUtc().add(const Duration(hours: 7));
+    
+    final hour = thailandTime.hour.toString().padLeft(2, '0');
+    final minute = thailandTime.minute.toString().padLeft(2, '0');
     return '$hour:$minute';
   }
 

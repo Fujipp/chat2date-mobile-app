@@ -98,9 +98,36 @@ class ChatMessage {
     final senderId = json['senderId']?.toString() ?? '';
     final message = json['message']?.toString() ?? '';
     final createdRaw = json['created']?.toString();
-    final timestamp = createdRaw != null
-        ? DateTime.tryParse(createdRaw) ?? DateTime.now()
-        : DateTime.now();
+    
+    // แปลง timestamp จาก UTC เป็น Local time (Thailand: UTC+7)
+    DateTime timestamp;
+    if (createdRaw != null) {
+      final parsedTime = DateTime.tryParse(createdRaw);
+      if (parsedTime != null) {
+        final hasTimezone = RegExp(r'(Z|[+-]\d{2}:?\d{2})$')
+            .hasMatch(createdRaw);
+        if (hasTimezone) {
+          // ถ้า timestamp จาก API เป็น UTC ให้แปลงเป็น local time
+          timestamp = parsedTime.isUtc ? parsedTime.toLocal() : parsedTime;
+        } else {
+          final assumedUtc = DateTime.utc(
+            parsedTime.year,
+            parsedTime.month,
+            parsedTime.day,
+            parsedTime.hour,
+            parsedTime.minute,
+            parsedTime.second,
+            parsedTime.millisecond,
+            parsedTime.microsecond,
+          );
+          timestamp = assumedUtc.toLocal();
+        }
+      } else {
+        timestamp = DateTime.now();
+      }
+    } else {
+      timestamp = DateTime.now();
+    }
     final isOwn = senderId == currentUserId;
     final rawRead =
         json['isRead'] ?? json['is_read'] ?? json['isread'] ?? json['read'];

@@ -1,11 +1,16 @@
+import 'dart:async';
+
 import 'package:chat2date/components/card/card_chat_component.dart';
 import 'package:chat2date/components/chat/content_switcher.dart';
 import 'package:chat2date/components/layout/header.dart';
 import 'package:chat2date/components/layout/menu_bar.dart';
 import 'package:chat2date/models/chat_room.dart';
 import 'package:chat2date/models/match.dart';
+import 'package:chat2date/models/user.dart';
 import 'package:chat2date/screens/main_tabs.dart';
+import 'package:chat2date/services/chat_list_socket_service.dart';
 import 'package:chat2date/services/chat_service.dart';
+import 'package:chat2date/stores/user_store.dart';
 import 'package:chat2date/theme/app_colors.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -33,10 +38,68 @@ class _ChatListScreenState extends ConsumerState<ChatListScreen> {
   String? _chatError;
   String? _matchError;
 
+  // WebSocket for realtime updates
+  ChatListSocketService? _chatListSocket;
+  StreamSubscription<ChatListUpdateEvent>? _chatListSubscription;
+
   @override
   void initState() {
     super.initState();
     _loadData();
+    _initChatListSocket();
+  }
+
+  void _initChatListSocket() {
+    final userState = ref.read(userStoreProvider);
+    final user = userState['user'] as User?;
+    final userId = user?.userId;
+    final accessToken = userState['accessToken'] as String?;
+
+    if (userId == null || userId.isEmpty) return;
+
+    _chatListSocket = ChatListSocketService(
+      userId: userId,
+      accessToken: accessToken,
+    );
+    _chatListSocket?.connect();
+
+    _chatListSubscription = _chatListSocket?.updateStream.listen((event) {
+      if (!mounted) return;
+      _handleChatListUpdate(event);
+    });
+  }
+
+  void _handleChatListUpdate(ChatListUpdateEvent event) {
+    // อัพเดท unread count แบบ realtime
+    setState(() {
+      final roomIndex = _chatRooms.indexWhere(
+        (room) => room.roomId == event.roomId,
+      );
+      
+      if (roomIndex >= 0) {
+        // อัพเดทห้องที่มีอยู่แล้ว
+        final updatedRoom = _chatRooms[roomIndex].copyWith(
+          unreadCount: event.unreadCount,
+          lastMessage: event.lastMessage ?? _chatRooms[roomIndex].lastMessage,
+        );
+        _chatRooms[roomIndex] = updatedRoom;
+        
+        // ถ้า unread count > 0 ให้ลบออกจาก cleared list
+        if (event.unreadCount > 0) {
+          _clearedUnreadRoomIds.remove(event.roomId);
+        }
+      } else if (event.unreadCount > 0) {
+        // ห้องใหม่ที่ยังไม่มีใน list - reload เพื่อดึงข้อมูลเต็ม
+        _loadChatRooms();
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _chatListSubscription?.cancel();
+    _chatListSocket?.dispose();
+    super.dispose();
   }
 
   Future<void> _loadData() async {

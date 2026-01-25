@@ -42,4 +42,24 @@ class ChatRoom {
       'type': type,
     };
   }
+
+  ChatRoom copyWith({
+    String? roomId,
+    String? partnerId,
+    String? partnerName,
+    String? partnerImage,
+    String? lastMessage,
+    int? unreadCount,
+    String? type,
+  }) {
+    return ChatRoom(
+      roomId: roomId ?? this.roomId,
+      partnerId: partnerId ?? this.partnerId,
+      partnerName: partnerName ?? this.partnerName,
+      partnerImage: partnerImage ?? this.partnerImage,
+      lastMessage: lastMessage ?? this.lastMessage,
+      unreadCount: unreadCount ?? this.unreadCount,
+      type: type ?? this.type,
+    );
+  }
 }
