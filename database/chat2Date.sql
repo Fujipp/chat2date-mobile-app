@@ -446,7 +446,7 @@ CREATE TABLE IF NOT EXISTS `chat2date`.`relationship_stats` (
 
 -- 6. Table: GameSession
 CREATE TABLE IF NOT EXISTS `chat2date`.`game_sessions` (
-  `gameId` VARCHAR(50) NOT NULL, -- ใช้ VARCHAR รองรับ ID จาก Backend
+  `gameId` VARCHAR(50) NOT NULL,
   `roomId` INT NOT NULL,
   `totalScore` INT NOT NULL DEFAULT 0,
   `status` ENUM('ACTIVE', 'COMPLETED', 'FAILED') NOT NULL DEFAULT 'ACTIVE',
@@ -463,14 +463,34 @@ CREATE TABLE IF NOT EXISTS `chat2date`.`game_questions` (
   `questionId` VARCHAR(50) NOT NULL,
   `gameId` VARCHAR(50) NOT NULL,
   `question` TEXT NOT NULL,
-  `options` JSON NOT NULL, -- เก็บ Array ตัวเลือก
+  `options` JSON NOT NULL, 
   `correctAnswer` VARCHAR(255) NOT NULL,
-  `userSelectedOption` VARCHAR(255) NULL,
-  `isCorrect` BOOLEAN NULL,
-  PRIMARY KEY (`questionId`, `gameId`), -- PK คู่
+  PRIMARY KEY (`questionId`), 
   CONSTRAINT `fk_questions_session`
     FOREIGN KEY (`gameId`)
     REFERENCES `chat2date`.`game_sessions` (`gameId`)
+    ON DELETE CASCADE
+) ENGINE = InnoDB DEFAULT CHARACTER SET = utf8mb4;
+
+-- 8. Table: GameAnswer 
+CREATE TABLE IF NOT EXISTS `chat2date`.`game_answers` (
+  `id` BIGINT NOT NULL AUTO_INCREMENT,
+  `gameId` VARCHAR(50) NOT NULL,
+  `questionId` VARCHAR(50) NOT NULL,
+  `userId` VARCHAR(50) NOT NULL, 
+  `selectedOption` VARCHAR(255) NOT NULL,
+  `isCorrect` BOOLEAN NOT NULL,
+  `answeredAt` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uq_user_question` (`userId`, `questionId`),
+
+  CONSTRAINT `fk_answers_session`
+    FOREIGN KEY (`gameId`)
+    REFERENCES `chat2date`.`game_sessions` (`gameId`)
+    ON DELETE CASCADE,
+  CONSTRAINT `fk_answers_question`
+    FOREIGN KEY (`questionId`)
+    REFERENCES `chat2date`.`game_questions` (`questionId`)
     ON DELETE CASCADE
 ) ENGINE = InnoDB DEFAULT CHARACTER SET = utf8mb4;
 
