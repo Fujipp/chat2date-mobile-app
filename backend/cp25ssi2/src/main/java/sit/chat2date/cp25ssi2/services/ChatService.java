@@ -2,6 +2,7 @@ package sit.chat2date.cp25ssi2.services;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -228,5 +229,19 @@ public class ChatService {
                 } catch (Exception e) {
                         return new ArrayList<>();
                 }
+        }
+
+        public String getAnonymizedChatHistory(Integer roomId) {
+            List<Message> messages = messageRepository.findLast50ByRoomIdOrderByCreatedAtDesc(roomId);
+
+            Collections.reverse(messages);
+
+            StringBuilder chatLog = new StringBuilder();
+            for (Message msg : messages) {
+                String senderName = msg.getSenderId().substring(0, 4); // ตัดมาแค่ 4 ตัวท้ายเพื่อปิดบัง
+
+                chatLog.append(senderName).append(": ").append(msg.getMessage()).append("\n");
+            }
+            return chatLog.toString();
         }
 }

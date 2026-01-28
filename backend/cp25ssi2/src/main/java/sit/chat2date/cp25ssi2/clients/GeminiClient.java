@@ -1,32 +1,41 @@
 package sit.chat2date.cp25ssi2.clients;
 
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.http.*;
 import java.util.*;
 
-@RestController
-@RequestMapping(("/demo"))
+@Service
 public class GeminiClient {
+
     @Value("${gemini.apiKey}")
     private String apiKey;
-//    // ใช้ Model Flash เพราะเร็วและฟรี (หรือเปลี่ยนเป็น gemini-1.5-pro ก็ได้)
-//    private final String GEMINI_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=" + apiKey;
 
-    @GetMapping("/ask-ai")
-    public String askGemini() {
+    public String generateQuestions(String chatLog) {
         String geminiUrl = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=" + apiKey;
 
         RestTemplate restTemplate = new RestTemplate();
 
-        // 2. เตรียมคำสั่ง (Prompt)
-        // บังคับให้ตอบเป็น JSON Array เท่านั้น
-        String prompt = "Generate 1 funny dating question with 4 options. in Thai language Return ONLY raw JSON. Format: [{\"question\":\"...\", \"options\":[\"A\",\"B\",\"C\",\"D\"], \"correct\":\"A\"}]";
+        // Prompt
+        String prompt = "Analyze the following chat history and generate 5 multiple-choice trivia questions to test how well the users know each other. In Thai language only\n" +
+                "\n" +
+                "Chat History:\n" +
+                chatLog + "\n" +
+                "\n" +
+                "Strict Rules:\n" +
+                "1. Questions must be based **STRICTLY AND ONLY** on facts explicitly mentioned in the chat history.\n" +
+                "2. **DO NOT** invent, hallucinate, or assume details that are not in the text. (e.g. Do not mention Liverpool or Elden Ring if not explicitly said).\n" +
+                "3. If the chat is in Thai, generate questions and options in **Thai**. If English, use English.\n" +
+                "4. Return ONLY a raw JSON Array. Do not use Markdown code blocks (```json).\n" +
+                "5. JSON Format: [{\"question\":\"...\", \"options\":[\"Option A\",\"Option B\",\"Option C\",\"Option D\"], \"correct\":\"Option A\"}]\n" +
+                "6. The 'correct' field must match exactly one of the strings in 'options'.";
 
-        // 3. สร้าง Body ตาม Format ของ Google
+        System.out.println("==========================================");
+        System.out.println("DEBUG CHAT LOG (Sending to AI):");
+        System.out.println(chatLog);
+        System.out.println("==========================================");
+
         Map<String, Object> requestBody = Map.of(
                 "contents", List.of(
                         Map.of("parts", List.of(Map.of("text", prompt)))
@@ -38,11 +47,9 @@ public class GeminiClient {
         HttpEntity<Map<String, Object>> entity = new HttpEntity<>(requestBody, headers);
 
         try {
-            // 4. ยิงไปหา Google
             ResponseEntity<Map> response = restTemplate.postForEntity(geminiUrl, entity, Map.class);
 
-            // 5. แกะกล่องของขวัญ (JSON ที่ Google ส่งกลับมาซ้อนหลายชั้น)
-            // path: candidates[0].content.parts[0].text
+            // แกะ Response
             Map body = response.getBody();
             List candidates = (List) body.get("candidates");
             Map firstCandidate = (Map) candidates.get(0);
@@ -51,15 +58,12 @@ public class GeminiClient {
             Map firstPart = (Map) parts.get(0);
             String text = (String) firstPart.get("text");
 
-            // 6. ส่งข้อความ Clean ๆ กลับไปให้ Flutter
-            return text
-                    .replace("```json", "") // ล้าง Markdown
-                    .replace("```", "")
-                    .trim();
+            return text.replace("```json", "").replace("```", "").trim();
 
         } catch (Exception e) {
             e.printStackTrace();
-            return "{\"error\": \"Failed to connect Gemini\"}";
+            // ใน Service จริง อาจจะ throw exception ให้ Controller รู้ว่า Gen ไม่ผ่าน
+            throw new RuntimeException("Gemini generation failed: " + e.getMessage());
         }
     }
 }

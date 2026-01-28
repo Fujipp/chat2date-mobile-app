@@ -32,6 +32,7 @@ public class SecurityConfig {
                                 .requestMatchers("/ws/**").permitAll()
                                 .requestMatchers("/users/*/restore").permitAll()
                                 .requestMatchers("/demo/**").permitAll()
+                                .requestMatchers("/games/**").permitAll()
                                 .requestMatchers(HttpMethod.POST, "/users/phone").permitAll()
                                 .requestMatchers(HttpMethod.GET, "/users").hasRole(Role.ADMIN.name())
                                 .anyRequest().hasAnyRole(Role.USER.name(), Role.ADMIN.name())

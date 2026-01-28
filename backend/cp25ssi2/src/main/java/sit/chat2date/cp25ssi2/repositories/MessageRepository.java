@@ -8,6 +8,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import sit.chat2date.cp25ssi2.entities.Message;
 
+import java.util.List;
 import java.util.Optional;
 
 public interface MessageRepository extends JpaRepository<Message, Long> {
@@ -22,4 +23,6 @@ public interface MessageRepository extends JpaRepository<Message, Long> {
     @Modifying
     @Query("UPDATE Message m SET m.isRead = true WHERE m.roomId = :roomId AND m.senderId != :userId AND m.isRead = false")
     void markMessagesAsRead(@Param("roomId") Integer roomId, @Param("userId") String userId);
+
+    List<Message> findLast50ByRoomIdOrderByCreatedAtDesc(Integer roomId);
 }
