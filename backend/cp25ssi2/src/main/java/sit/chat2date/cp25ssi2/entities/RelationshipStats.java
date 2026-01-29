@@ -42,6 +42,9 @@ public class RelationshipStats {
     @Column(name = "dailyDate")
     private LocalDate dailyDate;
 
+    @Column(name = "version")
+    private Integer version;
+
     @ColumnDefault("CURRENT_TIMESTAMP")
     @Column(name = "createdAt", nullable = false, updatable = false)
     private LocalDateTime createdAt;

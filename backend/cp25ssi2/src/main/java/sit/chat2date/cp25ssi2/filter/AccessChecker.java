@@ -3,25 +3,34 @@ package sit.chat2date.cp25ssi2.filter;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
+import sit.chat2date.cp25ssi2.entities.Match;
 import sit.chat2date.cp25ssi2.entities.User;
 import sit.chat2date.cp25ssi2.exceptions.ErrorResponse;
+import sit.chat2date.cp25ssi2.repositories.MatchRepository;
 
 import java.io.IOException;
 import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Objects;
+import java.util.Optional;
 
 public class AccessChecker {
     private final HttpServletRequest request;
     private final HttpServletResponse response;
     private final User currentUser;
+    private final String matchUser1;
+    private final String matchUser2;
 
-    public AccessChecker(HttpServletRequest request, HttpServletResponse response, User currentUser) {
+    public AccessChecker(HttpServletRequest request, HttpServletResponse response, User currentUser, String matchUser1, String matchUser2) {
         this.request = request;
         this.response = response;
         this.currentUser = currentUser;
+        this.matchUser1 = matchUser1;
+        this.matchUser2 = matchUser2;
     }
 
     public boolean checkUserAccess() throws IOException {
@@ -83,6 +92,13 @@ public class AccessChecker {
             String requestParamId = request.getParameter("userId");
 
             if ((requestParamId != null && !requestParamId.equals(currentUser.getUserId()))) {
+                sendErrorResponse(response, "Forbidden: cannot access another user's data", request, HttpStatus.FORBIDDEN);
+                return false;
+            }
+        }
+
+        if (method.matches("GET|PUT") && path.startsWith("/api/v1/relationship")) {
+            if (!Objects.equals(matchUser1, currentUser.getUserId()) && !Objects.equals(matchUser2, currentUser.getUserId())) {
                 sendErrorResponse(response, "Forbidden: cannot access another user's data", request, HttpStatus.FORBIDDEN);
                 return false;
             }

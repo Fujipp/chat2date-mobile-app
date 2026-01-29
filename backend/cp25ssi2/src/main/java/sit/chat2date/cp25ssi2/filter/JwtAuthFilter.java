@@ -16,9 +16,12 @@ import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
+import sit.chat2date.cp25ssi2.entities.Match;
 import sit.chat2date.cp25ssi2.entities.User;
 import sit.chat2date.cp25ssi2.enums.Role;
+import sit.chat2date.cp25ssi2.exceptions.BadRequestException;
 import sit.chat2date.cp25ssi2.exceptions.ErrorResponse;
+import sit.chat2date.cp25ssi2.repositories.MatchRepository;
 import sit.chat2date.cp25ssi2.repositories.UserRepository;
 import sit.chat2date.cp25ssi2.services.JwtTokenUtil;
 import com.auth0.jwt.interfaces.DecodedJWT;
@@ -33,6 +36,8 @@ public class JwtAuthFilter extends OncePerRequestFilter {
 
     @Autowired
     private JwtTokenUtil jwtTokenUtil;
+    @Autowired
+    private MatchRepository matchRepository;
 
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain) throws ServletException, IOException, java.io.IOException {
@@ -40,6 +45,8 @@ public class JwtAuthFilter extends OncePerRequestFilter {
         String subject = null;
         String jwtToken = null;
         Optional<User> user = null;
+        String matchUser1 = null;
+        String matchUser2 = null;
         String path = request.getRequestURI();
 
         // ✅ Skip JWT validation สำหรับ endpoint ที่ไม่ต้องการ authentication
@@ -86,7 +93,27 @@ public class JwtAuthFilter extends OncePerRequestFilter {
                 }
 
                 if (user.isPresent() && user.get().getRole() == Role.USER) {
-                    AccessChecker checker = new AccessChecker(request, response, user.get());
+                    if (path.startsWith("/api/v1/relationship") && (request.getMethod().equals("GET") || request.getMethod().equals("PUT"))) {
+                        String[] pathParts = path.split("/");
+                        String requestParamId = pathParts[pathParts.length - 1];
+                        int roomId = 0;
+                        try {
+                            roomId = Integer.parseInt(requestParamId);
+                        } catch (NumberFormatException e) {
+                            sendErrorResponse(response, "Invalid room id: "+roomId, request, HttpStatus.BAD_REQUEST);
+                            return;
+                        }
+                        Optional<Match> matchById = matchRepository.findById(roomId);
+                        if (matchById.isPresent()) {
+                            matchUser1 = matchById.get().getUserId1().getUserId();
+                            matchUser2 = matchById.get().getUserId2().getUserId();
+                        } else {
+                            sendErrorResponse(response, "Room id: " + roomId + " not found", request, HttpStatus.NOT_FOUND);
+                            return;
+                        }
+                        
+                    }
+                    AccessChecker checker = new AccessChecker(request, response, user.get(), matchUser1, matchUser2);
                     if (!checker.checkUserAccess()) {
                         return; // ถ้า check ไม่ผ่าน
                     }
