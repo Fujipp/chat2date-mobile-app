@@ -10,7 +10,7 @@ import org.hibernate.annotations.GenericGenerator;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-@Table(name = "gameQuestions")
+@Table(name = "game_questions")
 public class GameQuestions {
     @Id
     @GeneratedValue(generator = "uuid2")
@@ -32,5 +32,5 @@ public class GameQuestions {
 
     @ManyToOne
     @JoinColumn(name = "gameId", referencedColumnName = "gameId", insertable = false, updatable = false)
-    private GameSession gameSession;
+    private GameSessions gameSessions;
 }

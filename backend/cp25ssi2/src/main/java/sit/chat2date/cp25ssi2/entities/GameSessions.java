@@ -7,7 +7,6 @@ import org.hibernate.annotations.GenericGenerator;
 import sit.chat2date.cp25ssi2.enums.GameSessionStatus;
 
 import java.time.LocalDateTime;
-import java.util.UUID;
 
 @Getter
 @Setter
@@ -15,8 +14,8 @@ import java.util.UUID;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-@Table(name = "gameSession")
-public class GameSession {
+@Table(name = "game_sessions")
+public class GameSessions {
     @Id
     @GeneratedValue(generator = "uuid2")
     @GenericGenerator(name = "uuid2", strategy = "uuid2")

@@ -2,7 +2,6 @@ package sit.chat2date.cp25ssi2.entities;
 
 import jakarta.persistence.*;
 import lombok.*;
-import org.hibernate.annotations.GenericGenerator;
 
 
 @Getter
@@ -11,8 +10,8 @@ import org.hibernate.annotations.GenericGenerator;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-@Table(name = "gameAnswer")
-public class GameAnswer {
+@Table(name = "game_answers")
+public class GameAnswers {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
@@ -25,7 +24,7 @@ public class GameAnswer {
 
     @ManyToOne
     @JoinColumn(name = "gameId")
-    private GameSession gameSession;
+    private GameSessions gameSessions;
 
     private String selectedOption;
     private Boolean isCorrect;
