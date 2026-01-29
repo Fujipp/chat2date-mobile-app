@@ -5,11 +5,13 @@ import 'package:chat2date/components/chat/content_switcher.dart';
 import 'package:chat2date/components/layout/header.dart';
 import 'package:chat2date/components/layout/menu_bar.dart';
 import 'package:chat2date/models/chat_room.dart';
+import 'package:chat2date/models/dto/match_event_dto.dart';
 import 'package:chat2date/models/match.dart';
 import 'package:chat2date/models/user.dart';
 import 'package:chat2date/screens/main_tabs.dart';
 import 'package:chat2date/services/chat_list_socket_service.dart';
 import 'package:chat2date/services/chat_service.dart';
+import 'package:chat2date/services/match_socket_service.dart';
 import 'package:chat2date/stores/user_store.dart';
 import 'package:chat2date/theme/app_colors.dart';
 import 'package:flutter/material.dart';
@@ -24,7 +26,8 @@ class ChatListScreen extends ConsumerStatefulWidget {
   ConsumerState<ChatListScreen> createState() => _ChatListScreenState();
 }
 
-class _ChatListScreenState extends ConsumerState<ChatListScreen> {
+class _ChatListScreenState extends ConsumerState<ChatListScreen>
+    with WidgetsBindingObserver {
   int _selectedIndex = 1;
   int selectedIndex1 = 0;
   final Set<String> _viewedMatchIds = {};
@@ -41,12 +44,25 @@ class _ChatListScreenState extends ConsumerState<ChatListScreen> {
   // WebSocket for realtime updates
   ChatListSocketService? _chatListSocket;
   StreamSubscription<ChatListUpdateEvent>? _chatListSubscription;
+  MatchSocketService? _matchSocket;
+  StreamSubscription<MatchEventDto>? _matchSubscription;
 
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _loadData();
     _initChatListSocket();
+    _initMatchSocket();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    super.didChangeAppLifecycleState(state);
+    // Refresh data when app resumes from background
+    if (state == AppLifecycleState.resumed) {
+      _loadData();
+    }
   }
 
   void _initChatListSocket() {
@@ -66,6 +82,27 @@ class _ChatListScreenState extends ConsumerState<ChatListScreen> {
     _chatListSubscription = _chatListSocket?.updateStream.listen((event) {
       if (!mounted) return;
       _handleChatListUpdate(event);
+    });
+  }
+
+  void _initMatchSocket() {
+    final userState = ref.read(userStoreProvider);
+    final user = userState['user'] as User?;
+    final userId = user?.userId;
+    final accessToken = userState['accessToken'] as String?;
+
+    if (userId == null || userId.isEmpty) return;
+
+    _matchSocket = MatchSocketService(
+      userId: userId,
+      accessToken: accessToken,
+    );
+    _matchSocket?.connect();
+
+    _matchSubscription = _matchSocket?.stream.listen((event) {
+      if (!mounted) return;
+      // New match received - reload matches list
+      _loadMatches();
     });
   }
 
@@ -97,8 +134,11 @@ class _ChatListScreenState extends ConsumerState<ChatListScreen> {
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _chatListSubscription?.cancel();
     _chatListSocket?.dispose();
+    _matchSubscription?.cancel();
+    _matchSocket?.dispose();
     super.dispose();
   }
 

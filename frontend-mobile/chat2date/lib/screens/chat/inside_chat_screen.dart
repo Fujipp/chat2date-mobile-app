@@ -36,7 +36,8 @@ class InsideChatScreen extends ConsumerStatefulWidget {
   ConsumerState<InsideChatScreen> createState() => _InsideChatScreenState();
 }
 
-class _InsideChatScreenState extends ConsumerState<InsideChatScreen> {
+class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
+    with WidgetsBindingObserver {
   final TextEditingController _messageController = TextEditingController();
   final ScrollController _scrollController = ScrollController();
   static const int _pageSize = 20;
@@ -63,6 +64,7 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen> {
   String? _currentUserId;
   bool _hasEntered = false;
   bool _hasExited = false;
+  Timer? _seenStatusTimer;
 
   // === Chat User Data (ดึงจากข้อมูลจริง) ===
   String _chatUserName = 'Name';
@@ -84,6 +86,8 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen> {
   @override
   void initState() {
     super.initState();
+    // Register keyboard observer
+    WidgetsBinding.instance.addObserver(this);
     // รับข้อมูลจาก arguments
     _chatUserId = widget.targetUserId;
     _chatUserName = widget.userName ?? 'Name';
@@ -97,6 +101,21 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen> {
     if (!_scrollController.hasClients) return;
     if (_scrollController.position.pixels <= 80) {
       _loadMoreMessages();
+    }
+  }
+
+  @override
+  void didChangeMetrics() {
+    super.didChangeMetrics();
+    // Scroll to bottom when keyboard opens
+    final bottomInset = WidgetsBinding.instance.platformDispatcher.views.first.viewInsets.bottom;
+    if (bottomInset > 0) {
+      // Keyboard is visible - scroll to bottom after a short delay
+      Future.delayed(const Duration(milliseconds: 100), () {
+        if (mounted && _scrollController.hasClients) {
+          _scrollToBottom();
+        }
+      });
     }
   }
 
@@ -277,6 +296,14 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen> {
     _chatSocketService = service;
     _messageSubscription = service.messageStream.listen(_handleIncomingMessage);
     _accessSubscription = service.accessStream.listen(_handleAccessStatus);
+
+    // Setup periodic timer to refresh seen status every 10 seconds
+    _seenStatusTimer?.cancel();
+    _seenStatusTimer = Timer.periodic(const Duration(seconds: 10), (_) {
+      if (mounted) {
+        _refreshReadStatus();
+      }
+    });
   }
 
   Future<void> _syncAccessStatus() async {
@@ -318,13 +345,8 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen> {
   void _handleAccessStatus(ChatAccessStatus status) {
     final currentUserId = _currentUserId;
     if (currentUserId == null || currentUserId.isEmpty) return;
-    final other = status.roomMember.firstWhere(
-      (member) => member.userId != currentUserId,
-      orElse: () => const ChatAccessMember(userId: '', type: ''),
-    );
-    if (other.type == 'ENTER') {
-      _refreshReadStatus();
-    }
+    // Refresh read status on any access event to ensure real-time updates
+    _refreshReadStatus();
   }
 
   Future<void> _refreshReadStatus() async {
@@ -917,6 +939,8 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen> {
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    _seenStatusTimer?.cancel();
     _messageSubscription?.cancel();
     _accessSubscription?.cancel();
     _chatSocketService?.dispose();
