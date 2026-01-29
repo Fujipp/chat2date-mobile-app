@@ -47,7 +47,6 @@ public class JwtAuthFilter extends OncePerRequestFilter {
                 path.startsWith("/api/v1/preferences") ||
                 path.equals("/api/v1/users/phone") ||
                 path.startsWith("/api/v1/demo") ||
-                path.startsWith("/api/v1/games") ||
                 path.matches("/api/v1/users/[^/]+/restore")) {
             filterChain.doFilter(request, response);
             return;
@@ -78,10 +77,12 @@ public class JwtAuthFilter extends OncePerRequestFilter {
 
                 subject = jwt.getSubject();
 
-                if (jwtTokenUtil.validateToken(jwtToken, subject) && user != null) {
+                if (jwtTokenUtil.validateToken(jwtToken, subject) && user != null && user.isPresent()) {
+
                     UsernamePasswordAuthenticationToken authToken =
                             new UsernamePasswordAuthenticationToken(user, null, List.of(new SimpleGrantedAuthority("ROLE_" + user.get().getRole())));
                     SecurityContextHolder.getContext().setAuthentication(authToken);
+                    request.setAttribute("userId", user.get().getUserId());
                 }
 
                 if (user.isPresent() && user.get().getRole() == Role.USER) {
