@@ -5,10 +5,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
-import sit.chat2date.cp25ssi2.dto.GameAnswerRequest;
-import sit.chat2date.cp25ssi2.dto.GameAnswerResponse;
-import sit.chat2date.cp25ssi2.dto.GameRequest;
-import sit.chat2date.cp25ssi2.dto.GameStartResponse;
+import sit.chat2date.cp25ssi2.dto.*;
 import sit.chat2date.cp25ssi2.services.GameService;
 
 @RestController
@@ -28,5 +25,18 @@ public class GameController {
     public ResponseEntity<GameAnswerResponse> answer(@RequestBody GameAnswerRequest request,@RequestAttribute("userId") String userId) {
         GameAnswerResponse response  = gameService.answerQuestion(request,userId);
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
+    }
+
+    @GetMapping("/check/{roomId}")
+    public ResponseEntity<GameCheckResponse> checkGame(@PathVariable Integer roomId) {
+        return ResponseEntity.ok(gameService.checkGameStatus(roomId));
+    }
+
+    @GetMapping("/{gameId}")
+    public ResponseEntity<GameResumeResponse> getGame(
+            @PathVariable String gameId,
+            @RequestAttribute("userId") String userId
+    ) {
+        return ResponseEntity.ok(gameService.getGameInfo(gameId, userId));
     }
 }

@@ -7,10 +7,7 @@ import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import sit.chat2date.cp25ssi2.clients.GeminiClient;
-import sit.chat2date.cp25ssi2.dto.GameAnswerRequest;
-import sit.chat2date.cp25ssi2.dto.GameAnswerResponse;
-import sit.chat2date.cp25ssi2.dto.GameQuestionDTO;
-import sit.chat2date.cp25ssi2.dto.GameStartResponse;
+import sit.chat2date.cp25ssi2.dto.*;
 import sit.chat2date.cp25ssi2.entities.*;
 import sit.chat2date.cp25ssi2.enums.GameSessionStatus;
 import sit.chat2date.cp25ssi2.exceptions.ConflictException;
@@ -31,6 +28,7 @@ public class GameService {
     private final GameSessionRepository gameSessionRepository;
     private final MatchRepository matchRepository;
     private final UserPhotoRepository userPhotoRepository;
+    private final RelationshipStatsRepository relationshipStatsRepository;
     private final GeminiClient geminiClient;
     private final ObjectMapper objectMapper;
     private final SimpMessagingTemplate messagingTemplate;
@@ -230,6 +228,96 @@ public class GameService {
                 .correctAnswer(question.getCorrectAnswer())
                 .totalScore(session.getTotalScore())
                 .isGameOver(isGameOver)
+                .build();
+    }
+
+    public GameCheckResponse checkGameStatus(Integer roomId) {
+        Optional<GameSessions> lastSessionOpt = gameSessionRepository.findTopByRoomIdOrderByCreatedAtDesc(roomId.toString());
+
+        if (lastSessionOpt.isEmpty()) {
+            return GameCheckResponse.builder().canPlay(true).gameStatus("NEW").build();
+        }
+
+        GameSessions lastSession = lastSessionOpt.get();
+
+        if (lastSession.getStatus() == GameSessionStatus.ACTIVE) {
+            return GameCheckResponse.builder()
+                    .canPlay(true)
+                    .gameStatus("RESUME")
+                    .gameId(lastSession.getGameId())
+                    .build();
+        }
+
+        LocalDateTime lastPlayed = lastSession.getCreatedAt();
+        LocalDateTime now = LocalDateTime.now();
+        LocalDateTime unlockTime = lastPlayed.plusHours(24);
+
+        if (now.isBefore(unlockTime)) {
+            long secondsLeft = java.time.Duration.between(now, unlockTime).getSeconds();
+            return GameCheckResponse.builder()
+                    .canPlay(false)
+                    .gameStatus("COOLDOWN")
+                    .remainingSeconds(secondsLeft)
+                    .build();
+        }
+
+        return GameCheckResponse.builder().canPlay(true).gameStatus("NEW").build();
+    }
+
+    public GameResumeResponse getGameInfo(String gameId, String userId) {
+        GameSessions session = gameSessionRepository.findById(gameId)
+                .orElseThrow(() -> new NotFoundException("Game not found"));
+
+        List<GameQuestions> questionsEntity = gameQuestionRepository.findAllByGameId(gameId);
+
+        List<GameQuestionDTO> questionDTOs = new ArrayList<>();
+        try {
+            for (GameQuestions q : questionsEntity) {
+                GameQuestionDTO dto = new GameQuestionDTO();
+                dto.setQuestionId(q.getQuestionId());
+                dto.setText(q.getQuestion());
+                dto.setCorrect(q.getCorrectAnswer());
+
+                dto.setOptions(objectMapper.readValue(q.getOptions(), new TypeReference<>() {
+                }));
+                questionDTOs.add(dto);
+            }
+        } catch (Exception e) {
+            throw new RuntimeException("Error parsing questions");
+        }
+
+        List<String> myAnsweredIds = gameAnswerRepository.findQuestionIdsByUserIdAndGameId(userId, gameId);
+
+        Integer roomId = Integer.valueOf(session.getRoomId());
+
+        Match match = matchRepository.findById(roomId)
+                .orElseThrow(() -> new NotFoundException("Match not found"));
+
+        User partnerUser;
+        if (match.getUserId1().getUserId().equals(userId)) {
+            partnerUser = match.getUserId2();
+        } else {
+            partnerUser = match.getUserId1();
+        }
+
+        String myAvatar = userPhotoRepository.findFirstAvatarUrl(userId);
+        String partnerAvatar = userPhotoRepository.findFirstAvatarUrl(partnerUser.getUserId());
+
+        Integer relScore = 0;
+        Optional<RelationshipStats> statsOpt = relationshipStatsRepository.findByRoomId(roomId);
+        if (statsOpt.isPresent()) {
+            relScore = statsOpt.get().getScore();
+        }
+
+        return GameResumeResponse.builder()
+                .gameId(gameId)
+                .status(session.getStatus().toString())
+                .totalScore(session.getTotalScore())
+                .questions(questionDTOs)
+                .myAnsweredQuestionIds(myAnsweredIds)
+                .myAvatar(myAvatar)
+                .partnerAvatar(partnerAvatar)
+                .relationshipScore(relScore)
                 .build();
     }
 }
