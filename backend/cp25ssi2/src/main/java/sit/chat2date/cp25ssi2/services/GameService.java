@@ -30,11 +30,12 @@ public class GameService {
     private final GameAnswerRepository gameAnswerRepository;
     private final GameSessionRepository gameSessionRepository;
     private final MatchRepository matchRepository;
+    private final UserPhotoRepository userPhotoRepository;
     private final GeminiClient geminiClient;
     private final ObjectMapper objectMapper;
     private final SimpMessagingTemplate messagingTemplate;
 
-    public GameStartResponse createGame(Integer roomId) {
+    public GameStartResponse createGame(Integer roomId,String userId) {
         System.out.println("Processing Game for Room ID: " + roomId);
 
         List<Message> messages = messageRepository.findLast50ByRoomIdOrderByCreatedAtDesc(roomId);
@@ -118,10 +119,24 @@ public class GameService {
             }
 
             gameQuestionRepository.saveAll(dbQuestions);
+            Match match = matchRepository.findById(roomId)
+                    .orElseThrow(() -> new NotFoundException("Match not found"));
+            String myAvatar = userPhotoRepository.findFirstAvatarUrl(userId);
+
+            User partnerUser;
+            if (match.getUserId1().getUserId().equals(userId)) {
+                partnerUser = match.getUserId2();
+            }else {
+                partnerUser = match.getUserId1();
+            }
+
+            String partnerAvatar = userPhotoRepository.findFirstAvatarUrl(partnerUser.getUserId());
 
             GameStartResponse response = new GameStartResponse();
             response.setQuestions(questions);
             response.setGameId(session.getGameId());
+            response.setMyAvatar(myAvatar);
+            response.setPartnerAvatar(partnerAvatar);
 
             return response;
 

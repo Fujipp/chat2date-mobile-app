@@ -19,8 +19,8 @@ public class GameController {
     private final GameService gameService;
 
     @PostMapping("/question")
-    public ResponseEntity<GameStartResponse> question(@RequestBody GameRequest roomId) {
-        GameStartResponse response  = gameService.createGame(roomId.getRoomId());
+    public ResponseEntity<GameStartResponse> question(@RequestBody GameRequest roomId,@RequestAttribute("userId") String userId) {
+        GameStartResponse response  = gameService.createGame(roomId.getRoomId(),userId);
         return ResponseEntity.ok(response);
     }
 

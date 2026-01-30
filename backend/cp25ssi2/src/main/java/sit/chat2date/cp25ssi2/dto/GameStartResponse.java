@@ -13,4 +13,7 @@ import java.util.List;
 public class GameStartResponse {
     private String gameId;
     private List<GameQuestionDTO> questions;
+    private Integer relationshipScore;
+    private String myAvatar;
+    private String partnerAvatar;
 }
