@@ -33,44 +33,46 @@ public class GameService {
     private final ObjectMapper objectMapper;
     private final SimpMessagingTemplate messagingTemplate;
 
-    public GameStartResponse createGame(Integer roomId,String userId) {
+    @Transactional  
+    public GameStartResponse createGame(Integer roomId, String userId) {
         System.out.println("Processing Game for Room ID: " + roomId);
 
-        List<Message> messages = messageRepository.findLast50ByRoomIdOrderByCreatedAtDesc(roomId);
-        Collections.reverse(messages);
+        Match match = matchRepository.findById(roomId)
+                .orElseThrow(() -> new NotFoundException("Match not found")); // Check 404
 
-        Map<String, String> idToPlaceholder = new HashMap<>();
-        Map<String, String> placeholderToNickname = new HashMap<>();
+        boolean isP1 = match.getUserId1() != null && match.getUserId1().getUserId().equals(userId);
+        boolean isP2 = match.getUserId2() != null && match.getUserId2().getUserId().equals(userId);
 
-        String[] placeholders = {"Person A", "Person B"};
-        int counter = 0;
-
-        StringBuilder chatLogForAI = new StringBuilder();
-
-        for (Message msg : messages) {
-            String senderId = msg.getSenderId();
-            if (!idToPlaceholder.containsKey(senderId)) {
-                String ph = placeholders[counter % 2];
-                idToPlaceholder.put(senderId, ph);
-                counter++;
-
-                User user = userRepository.findById(senderId).orElse(null);
-                String realNickname = (user != null && user.getNickname() != null) ? user.getNickname() : "Unknown";
-                placeholderToNickname.put(ph, realNickname);
-            }
-
-            String ph = idToPlaceholder.get(senderId);
-            chatLogForAI.append(ph).append(": ").append(msg.getMessage()).append("\n");
+        if (!isP1 && !isP2) {
+            throw new ForbiddenAccessException("You are not allowed to create a game for this room."); // Check 403
         }
 
-        String jsonResult = geminiClient.generateQuestions(chatLogForAI.toString());
-
         try {
-            List<GameQuestionDTO> questions = objectMapper.readValue(
-                    jsonResult,
-                    new TypeReference<>() {
-                    }
-            );
+            List<Message> messages = messageRepository.findLast50ByRoomIdOrderByCreatedAtDesc(roomId);
+            Collections.reverse(messages);
+
+            Map<String, String> idToPlaceholder = new HashMap<>();
+            Map<String, String> placeholderToNickname = new HashMap<>();
+            String[] placeholders = {"Person A", "Person B"};
+            int counter = 0;
+            StringBuilder chatLogForAI = new StringBuilder();
+
+            for (Message msg : messages) {
+                String senderId = msg.getSenderId();
+                if (!idToPlaceholder.containsKey(senderId)) {
+                    String ph = placeholders[counter % 2];
+                    idToPlaceholder.put(senderId, ph);
+                    counter++;
+                    User user = userRepository.findById(senderId).orElse(null);
+                    String realNickname = (user != null && user.getNickname() != null) ? user.getNickname() : "Unknown";
+                    placeholderToNickname.put(ph, realNickname);
+                }
+                String ph = idToPlaceholder.get(senderId);
+                chatLogForAI.append(ph).append(": ").append(msg.getMessage()).append("\n");
+            }
+
+            String jsonResult = geminiClient.generateQuestions(chatLogForAI.toString());
+            List<GameQuestionDTO> questions = objectMapper.readValue(jsonResult, new TypeReference<>() {});
 
             GameSessions session = new GameSessions();
             session.setRoomId(roomId.toString());
@@ -80,7 +82,6 @@ public class GameService {
             session = gameSessionRepository.save(session);
 
             List<GameQuestions> dbQuestions = new ArrayList<>();
-
             for (GameQuestionDTO q : questions) {
                 String text = q.getText();
                 String correct = q.getCorrect();
@@ -100,34 +101,23 @@ public class GameService {
                     }
                     newOptions.add(newOpt);
                 }
-
                 q.setText(text);
                 q.setCorrect(correct);
                 q.setOptions(newOptions);
                 q.setQuestionId(UUID.randomUUID().toString());
-
 
                 GameQuestions entity = new GameQuestions();
                 entity.setGameId(session.getGameId());
                 entity.setQuestion(text);
                 entity.setCorrectAnswer(correct);
                 entity.setOptions(objectMapper.writeValueAsString(newOptions));
-
                 dbQuestions.add(entity);
             }
-
             gameQuestionRepository.saveAll(dbQuestions);
-            Match match = matchRepository.findById(roomId)
-                    .orElseThrow(() -> new NotFoundException("Match not found"));
+
             String myAvatar = userPhotoRepository.findFirstAvatarUrl(userId);
 
-            User partnerUser;
-            if (match.getUserId1().getUserId().equals(userId)) {
-                partnerUser = match.getUserId2();
-            }else {
-                partnerUser = match.getUserId1();
-            }
-
+            User partnerUser = isP1 ? match.getUserId2() : match.getUserId1();
             String partnerAvatar = userPhotoRepository.findFirstAvatarUrl(partnerUser.getUserId());
 
             GameStartResponse response = new GameStartResponse();
@@ -135,6 +125,7 @@ public class GameService {
             response.setGameId(session.getGameId());
             response.setMyAvatar(myAvatar);
             response.setPartnerAvatar(partnerAvatar);
+            response.setRelationshipScore(0);
 
             return response;
 
@@ -146,7 +137,6 @@ public class GameService {
 
     @Transactional
     public GameAnswerResponse answerQuestion(GameAnswerRequest request, String currentUserId) {
-
         String gameId = request.getGameId();
         String questionId = request.getQuestionId();
         String selectedOption = request.getSelectedOption();
@@ -168,26 +158,12 @@ public class GameService {
         Match match = matchRepository.findById(roomId)
                 .orElseThrow(() -> new NotFoundException("Match not found"));
 
-        // [DEBUG]
-        System.out.println("==== DEBUG PERMISSION ====");
-        String player1IdFromObj = (match.getUserId1() != null) ? match.getUserId1().getUserId() : "null";
-        String player2IdFromObj = (match.getUserId2() != null) ? match.getUserId2().getUserId() : "null";
-
-        System.out.println("Current User: [" + currentUserId + "]");
-        System.out.println("Player 1 ID : [" + player1IdFromObj + "]");
-        System.out.println("Player 2 ID : [" + player2IdFromObj + "]");
-
+        String player1Id = (match.getUserId1() != null) ? match.getUserId1().getUserId() : "";
+        String player2Id = (match.getUserId2() != null) ? match.getUserId2().getUserId() : "";
         String cleanCurrentUser = currentUserId.trim();
 
-        String cleanPlayer1 = match.getUserId1() != null ? match.getUserId1().getUserId() : "";
-        String cleanPlayer2 = match.getUserId2() != null ? match.getUserId2().getUserId() : "";
-
-        boolean isPlayer1 = cleanPlayer1.equalsIgnoreCase(cleanCurrentUser);
-        boolean isPlayer2 = cleanPlayer2.equalsIgnoreCase(cleanCurrentUser);
-
-        System.out.println("Is Player 1? : " + isPlayer1);
-        System.out.println("Is Player 2? : " + isPlayer2);
-        System.out.println("==========================");
+        boolean isPlayer1 = player1Id.equalsIgnoreCase(cleanCurrentUser);
+        boolean isPlayer2 = player2Id.equalsIgnoreCase(cleanCurrentUser);
 
         if (!isPlayer1 && !isPlayer2) {
             throw new ForbiddenAccessException("You are not allowed to answer this question.");
@@ -231,7 +207,18 @@ public class GameService {
                 .build();
     }
 
-    public GameCheckResponse checkGameStatus(Integer roomId) {
+    public GameCheckResponse checkGameStatus(Integer roomId, String userId) {
+
+        Match match = matchRepository.findById(roomId)
+                .orElseThrow(() -> new NotFoundException("Match not found"));
+
+        boolean isP1 = match.getUserId1() != null && match.getUserId1().getUserId().equals(userId);
+        boolean isP2 = match.getUserId2() != null && match.getUserId2().getUserId().equals(userId);
+
+        if (!isP1 && !isP2) {
+            throw new ForbiddenAccessException("You are not allowed to access this room.");
+        }
+
         Optional<GameSessions> lastSessionOpt = gameSessionRepository.findTopByRoomIdOrderByCreatedAtDesc(roomId.toString());
 
         if (lastSessionOpt.isEmpty()) {
@@ -268,8 +255,18 @@ public class GameService {
         GameSessions session = gameSessionRepository.findById(gameId)
                 .orElseThrow(() -> new NotFoundException("Game not found"));
 
-        List<GameQuestions> questionsEntity = gameQuestionRepository.findAllByGameId(gameId);
+        Integer roomId = Integer.valueOf(session.getRoomId());
+        Match match = matchRepository.findById(roomId)
+                .orElseThrow(() -> new NotFoundException("Match not found"));
 
+        boolean isP1 = match.getUserId1() != null && match.getUserId1().getUserId().equals(userId);
+        boolean isP2 = match.getUserId2() != null && match.getUserId2().getUserId().equals(userId);
+
+        if (!isP1 && !isP2) {
+            throw new ForbiddenAccessException("You are not allowed to view this game.");
+        }
+
+        List<GameQuestions> questionsEntity = gameQuestionRepository.findAllByGameId(gameId);
         List<GameQuestionDTO> questionDTOs = new ArrayList<>();
         try {
             for (GameQuestions q : questionsEntity) {
@@ -277,9 +274,7 @@ public class GameService {
                 dto.setQuestionId(q.getQuestionId());
                 dto.setText(q.getQuestion());
                 dto.setCorrect(q.getCorrectAnswer());
-
-                dto.setOptions(objectMapper.readValue(q.getOptions(), new TypeReference<>() {
-                }));
+                dto.setOptions(objectMapper.readValue(q.getOptions(), new TypeReference<>() {}));
                 questionDTOs.add(dto);
             }
         } catch (Exception e) {
@@ -288,18 +283,7 @@ public class GameService {
 
         List<String> myAnsweredIds = gameAnswerRepository.findQuestionIdsByUserIdAndGameId(userId, gameId);
 
-        Integer roomId = Integer.valueOf(session.getRoomId());
-
-        Match match = matchRepository.findById(roomId)
-                .orElseThrow(() -> new NotFoundException("Match not found"));
-
-        User partnerUser;
-        if (match.getUserId1().getUserId().equals(userId)) {
-            partnerUser = match.getUserId2();
-        } else {
-            partnerUser = match.getUserId1();
-        }
-
+        User partnerUser = isP1 ? match.getUserId2() : match.getUserId1();
         String myAvatar = userPhotoRepository.findFirstAvatarUrl(userId);
         String partnerAvatar = userPhotoRepository.findFirstAvatarUrl(partnerUser.getUserId());
 

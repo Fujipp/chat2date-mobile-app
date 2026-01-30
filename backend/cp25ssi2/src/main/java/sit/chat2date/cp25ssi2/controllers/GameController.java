@@ -28,8 +28,8 @@ public class GameController {
     }
 
     @GetMapping("/check/{roomId}")
-    public ResponseEntity<GameCheckResponse> checkGame(@PathVariable Integer roomId) {
-        return ResponseEntity.ok(gameService.checkGameStatus(roomId));
+    public ResponseEntity<GameCheckResponse> checkGame(@PathVariable Integer roomId,@RequestAttribute("userId") String userId) {
+        return ResponseEntity.ok(gameService.checkGameStatus(roomId,userId));
     }
 
     @GetMapping("/{gameId}")
