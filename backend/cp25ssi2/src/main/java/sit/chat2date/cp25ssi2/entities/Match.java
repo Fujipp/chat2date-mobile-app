@@ -33,6 +33,9 @@ public class Match {
     @Column(name = "createdAt", nullable = false, updatable = false)
     private LocalDateTime createdAt;
 
+    @OneToOne(mappedBy = "match", cascade = CascadeType.ALL, orphanRemoval = true)
+    private RelationshipStats relationshipStats;
+
     @PrePersist
     protected void onCreate() {
         if (createdAt == null) {

@@ -1,6 +1,8 @@
 package sit.chat2date.cp25ssi2.entities;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
+import jakarta.validation.constraints.NotNull;
 import lombok.*;
 import org.hibernate.annotations.ColumnDefault;
 import org.hibernate.annotations.GenericGenerator;
@@ -18,8 +20,6 @@ import java.util.UUID;
 @Table(name = "relationship_stats")
 public class RelationshipStats {
     @Id
-    @GeneratedValue(generator = "uuid2")
-    @GenericGenerator(name = "uuid2", strategy = "uuid2")
     @Column(name = "relationshipId", nullable = false)
     private String relationshipId;
 
@@ -42,6 +42,7 @@ public class RelationshipStats {
     @Column(name = "dailyDate")
     private LocalDate dailyDate;
 
+    @NotNull
     @Column(name = "version")
     private Integer version;
 
@@ -74,6 +75,12 @@ public class RelationshipStats {
             dailyMessageCount = 0;
         }
     }
+
+    @OneToOne
+    @MapsId // ใช้ ID ร่วมกับ Match
+    @JoinColumn(name = "relationshipId")
+    @JsonIgnore
+    private Match match;
 
     @PreUpdate
     protected void onUpdate() {
