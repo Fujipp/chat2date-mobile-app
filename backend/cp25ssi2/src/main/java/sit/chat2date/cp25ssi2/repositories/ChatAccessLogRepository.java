@@ -11,13 +11,17 @@ import java.util.Optional;
 
 public interface ChatAccessLogRepository extends JpaRepository<ChatAccessLog, Long> {
 
-    @Query("SELECT c FROM ChatAccessLog c WHERE c.roomId = :roomId AND c.userId = :userId ORDER BY c.createdAt DESC LIMIT 1")
-    Optional<ChatAccessLog> findLatestByRoomIdAndUserId(@Param("roomId") Integer roomId,
-            @Param("userId") String userId);
+        /**
+         * Find existing access record by roomId and userId
+         */
+        Optional<ChatAccessLog> findByRoomIdAndUserId(Integer roomId, String userId);
 
-    @Query("SELECT c FROM ChatAccessLog c WHERE c.roomId = :roomId AND c.createdAt = " +
-            "(SELECT MAX(c2.createdAt) FROM ChatAccessLog c2 WHERE c2.roomId = c.roomId AND c2.userId = c.userId)")
-    List<ChatAccessLog> findLatestStatusByRoomId(@Param("roomId") Integer roomId);
+        @Query("SELECT c FROM ChatAccessLog c WHERE c.roomId = :roomId AND c.userId = :userId ORDER BY c.updatedAt DESC LIMIT 1")
+        Optional<ChatAccessLog> findLatestByRoomIdAndUserId(@Param("roomId") Integer roomId,
+                        @Param("userId") String userId);
 
-    boolean existsByRoomIdAndUserIdAndActionType(Integer roomId, String userId, ChatAccessActionType actionType);
+        @Query("SELECT c FROM ChatAccessLog c WHERE c.roomId = :roomId")
+        List<ChatAccessLog> findAllByRoomId(@Param("roomId") Integer roomId);
+
+        boolean existsByRoomIdAndUserIdAndActionType(Integer roomId, String userId, ChatAccessActionType actionType);
 }
