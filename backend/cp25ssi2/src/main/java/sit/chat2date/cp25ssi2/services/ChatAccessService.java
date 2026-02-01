@@ -76,25 +76,32 @@ public class ChatAccessService {
                 ? match.getUserId2().getUserId()
                 : match.getUserId1().getUserId();
 
-        // Broadcast "messages read" event for real-time "เห็นแล้ว" status
-        MessagesReadPayload readPayload = MessagesReadPayload.builder()
-                .roomId(request.getRoomId())
-                .readByUserId(userId)
-                .senderId(partnerId)
-                .readAt(LocalDateTime.now())
-                .build();
-        chatSocketService.broadcastMessagesRead(request.getRoomId(), readPayload);
+        // Broadcast events (wrapped in try-catch to prevent failures from breaking the
+        // method)
+        try {
+            // Broadcast "messages read" event for real-time "เห็นแล้ว" status
+            MessagesReadPayload readPayload = MessagesReadPayload.builder()
+                    .roomId(request.getRoomId())
+                    .readByUserId(userId)
+                    .senderId(partnerId)
+                    .readAt(LocalDateTime.now())
+                    .build();
+            chatSocketService.broadcastMessagesRead(request.getRoomId(), readPayload);
 
-        // Partner's unread count for this room = 0 because we just read all their
-        // messages
-        chatSocketService.broadcastChatListUpdate(partnerId, request.getRoomId(), 0, null);
+            // Partner's unread count for this room = 0 because we just read all their
+            // messages
+            chatSocketService.broadcastChatListUpdate(partnerId, request.getRoomId(), 0, null);
 
-        // Also broadcast to SELF that their unread count is now 0
-        chatSocketService.broadcastChatListUpdate(userId, request.getRoomId(), 0, null);
+            // Also broadcast to SELF that their unread count is now 0
+            chatSocketService.broadcastChatListUpdate(userId, request.getRoomId(), 0, null);
 
-        // Broadcast status change
-        ChatAccessStatusResponse status = getRoomAccessStatus(request.getRoomId());
-        chatSocketService.broadcastAccessStatus(request.getRoomId(), status);
+            // Broadcast status change
+            ChatAccessStatusResponse status = getRoomAccessStatus(request.getRoomId());
+            chatSocketService.broadcastAccessStatus(request.getRoomId(), status);
+        } catch (Exception e) {
+            // Log but don't fail - the messages are already marked as read
+            System.err.println("[ChatAccessService] Failed to broadcast events: " + e.getMessage());
+        }
     }
 
     /**
