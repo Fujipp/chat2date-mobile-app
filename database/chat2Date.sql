@@ -434,6 +434,7 @@ CREATE TABLE IF NOT EXISTS `chat2date`.`relationship_stats` (
   `streakDays` INT NOT NULL DEFAULT 0,
   `isFirstMessageBonus` BOOLEAN NOT NULL DEFAULT FALSE,
   `dailyMessageCount` INT NOT NULL DEFAULT 0,
+  `isDailyMessageBonus` BOOLEAN NOT NULL DEFAULT FALSE,
   `dailyDate` DATE NULL, -- เอาไว้นับวันสำหรับ dailyMessageCount
   `createdAt` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `updatedAt` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,

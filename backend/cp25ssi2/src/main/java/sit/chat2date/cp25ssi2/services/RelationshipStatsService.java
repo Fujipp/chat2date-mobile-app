@@ -91,6 +91,7 @@ public class RelationshipStatsService {
         relationshipStats.setStreakDays(0);
         relationshipStats.setIsFirstMessageBonus(false);
         relationshipStats.setDailyMessageCount(0);
+        relationshipStats.setIsDailyMessageBonus(false);
         relationshipStats.setDailyDate(localDate.toLocalDate());
 
         return relationshipStatsRepository.saveAndFlush(relationshipStats);
@@ -148,6 +149,7 @@ public class RelationshipStatsService {
                 }
                 relationshipStatsById.get().setDailyMessageCount(0);
                 relationshipStatsById.get().setDailyDate(today);
+                relationshipStatsById.get().setIsDailyMessageBonus(false);
             }
 
             List<Message> messageList = messageRepository.findTodayMessagesByRoom(roomId);
@@ -183,8 +185,9 @@ public class RelationshipStatsService {
                 }
             }
             relationshipStatsById.get().setDailyMessageCount(totalConversationCount);
-            if (totalConversationCount >= 30) {
+            if (totalConversationCount >= 30 && relationshipStatsById.get().getIsDailyMessageBonus() == false) {
                 score += 8;
+                relationshipStatsById.get().setIsDailyMessageBonus(true);
             }
         }
         relationshipStatsById.get().setScore(relationshipStatsById.get().getScore() + score);
