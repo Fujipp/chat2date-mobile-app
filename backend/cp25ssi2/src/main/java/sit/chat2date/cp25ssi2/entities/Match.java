@@ -33,8 +33,11 @@ public class Match {
     @Column(name = "createdAt", nullable = false, updatable = false)
     private LocalDateTime createdAt;
 
-    @OneToOne(mappedBy = "match", cascade = CascadeType.ALL, orphanRemoval = true)
-    private RelationshipStats relationshipStats;
+    // Temporarily disabled - causes JPA ID type conflict (Match uses Integer,
+    // RelationshipStats uses String)
+    // @OneToOne(mappedBy = "match", cascade = CascadeType.ALL, orphanRemoval =
+    // true)
+    // private RelationshipStats relationshipStats;
 
     @PrePersist
     protected void onCreate() {

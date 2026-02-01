@@ -77,8 +77,7 @@ public class RelationshipStats {
     }
 
     @OneToOne
-    @MapsId // ใช้ ID ร่วมกับ Match
-    @JoinColumn(name = "relationshipId")
+    @JoinColumn(name = "relationshipId", referencedColumnName = "matchId", insertable = false, updatable = false)
     @JsonIgnore
     private Match match;
 

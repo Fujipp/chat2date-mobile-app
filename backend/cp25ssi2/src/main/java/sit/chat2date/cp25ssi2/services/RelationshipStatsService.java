@@ -39,7 +39,8 @@ public class RelationshipStatsService {
 
     public ResponseEntity<RelationshipBarDTO> getRelationshipBarByRoomId(String roomIdStr) {
         int roomId = Integer.valueOf(roomIdStr);
-        Optional<RelationshipStats> relationshipStats = relationshipStatsRepository.findByRoomId(roomId);
+        Optional<RelationshipStats> relationshipStats = relationshipStatsRepository
+                .findByRoomId(String.valueOf(roomId));
         RelationshipBarDTO relationshipBarDTO = new RelationshipBarDTO();
         relationshipBarDTO.setRoomId(roomId);
         relationshipBarDTO.setRelationship_score(relationshipStats.get().getScore());
@@ -75,7 +76,7 @@ public class RelationshipStatsService {
             throw new ForbiddenAccessException("Forbidden: cannot access another user's data");
         }
 
-        Optional<RelationshipStats> relationshipById = relationshipStatsRepository.findById(roomId);
+        Optional<RelationshipStats> relationshipById = relationshipStatsRepository.findById(String.valueOf(roomId));
 
         if (relationshipById.isPresent()) {
             throw new ConflictException("Room id: " + roomId + " already exists");
@@ -97,7 +98,8 @@ public class RelationshipStatsService {
 
     public RelationshipStats updateRelationshipBar(RelationshipUpdateDTO relationshipStats, String roomIdStr) {
         Integer roomId = Integer.parseInt(roomIdStr);
-        Optional<RelationshipStats> relationshipStatsById = relationshipStatsRepository.findByRoomId(roomId);
+        Optional<RelationshipStats> relationshipStatsById = relationshipStatsRepository
+                .findByRoomId(String.valueOf(roomId));
         int score = 0;
 
         LocalDate today = LocalDate.now(ZoneId.of("Asia/Bangkok"));
@@ -108,7 +110,8 @@ public class RelationshipStatsService {
             }
 
             if (!today.equals(relationshipStatsById.get().getDailyDate())) {
-                long daysBetween = java.time.temporal.ChronoUnit.DAYS.between(relationshipStatsById.get().getDailyDate(), today);
+                long daysBetween = java.time.temporal.ChronoUnit.DAYS
+                        .between(relationshipStatsById.get().getDailyDate(), today);
 
                 if (daysBetween > 0) {
                     int currentStreak = relationshipStatsById.get().getStreakDays();
