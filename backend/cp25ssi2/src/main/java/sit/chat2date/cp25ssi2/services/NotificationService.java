@@ -25,14 +25,16 @@ public class NotificationService {
                         .setTitle("Chat2Date Test")
                         .setBody("This is a test notification from backend.")
                         .build())
-                .putData("type", "TEST")  // data เผื่อใช้ในอนาคต
+                .putData("type", "TEST") // data เผื่อใช้ในอนาคต
                 .build();
 
         // ส่งข้อความ
         return FirebaseMessaging.getInstance().send(message);
     }
-    // ★ ใหม่: ส่งแจ้งเตือนเมื่อ match
-    public void sendMatchNotification(String receiverUserId, String partnerNickname) {
+
+    // ★ ใหม่: ส่งแจ้งเตือนเมื่อ match (รองรับ deep link ไป chat)
+    public void sendMatchNotification(String receiverUserId, String partnerNickname,
+            Integer roomId, String partnerUserId, String partnerAvatarUrl) {
         // ดึง FCM token ของ user คนที่จะได้รับแจ้งเตือน
         List<String> tokens = deviceTokenService.getTokensForUser(receiverUserId);
         if (tokens == null || tokens.isEmpty()) {
@@ -47,19 +49,57 @@ public class NotificationService {
                             Notification.builder()
                                     .setTitle("It's a match! 🎉")
                                     .setBody("คุณกับ " + partnerNickname + " match กันแล้ว ลองเริ่มคุยกันดูสิ")
-                                    .build()
-                    )
+                                    .build())
                     .putData("type", "MATCH")
-                    .putData("partnerNickname", partnerNickname)
-                    // ถ้าอนาคตมี chatRoomId ก็ putData เพิ่มได้
+                    .putData("roomId", roomId != null ? roomId.toString() : "")
+                    .putData("targetUserId", partnerUserId != null ? partnerUserId : "")
+                    .putData("userName", partnerNickname != null ? partnerNickname : "")
+                    .putData("avatarUrl", partnerAvatarUrl != null ? partnerAvatarUrl : "")
                     .build();
 
-            // จะใช้ sendAsync ก็ได้ แต่ระหว่าง dev ใช้ send ธรรมดาก่อน
             try {
                 String msgId = FirebaseMessaging.getInstance().send(message);
                 System.out.println("[FCM] Sent MATCH to " + receiverUserId + " msgId=" + msgId);
             } catch (FirebaseMessagingException e) {
                 System.out.println("[FCM] Failed to send MATCH to " + receiverUserId + " : " + e.getMessage());
+            }
+        }
+    }
+
+    // ★ ใหม่: ส่งแจ้งเตือนเมื่อมีข้อความใหม่
+    public void sendChatMessageNotification(String receiverUserId, String senderNickname,
+            String messagePreview, Integer roomId, String senderUserId, String senderAvatarUrl) {
+        List<String> tokens = deviceTokenService.getTokensForUser(receiverUserId);
+        if (tokens == null || tokens.isEmpty()) {
+            System.out.println("[FCM] No device token for user " + receiverUserId);
+            return;
+        }
+
+        // ตัดข้อความให้สั้นลงถ้ายาวเกินไป
+        String preview = messagePreview != null && messagePreview.length() > 50
+                ? messagePreview.substring(0, 47) + "..."
+                : messagePreview;
+
+        for (String token : tokens) {
+            Message message = Message.builder()
+                    .setToken(token)
+                    .setNotification(
+                            Notification.builder()
+                                    .setTitle("ข้อความใหม่จาก " + senderNickname + " 💬")
+                                    .setBody(preview)
+                                    .build())
+                    .putData("type", "CHAT_MESSAGE")
+                    .putData("roomId", roomId != null ? roomId.toString() : "")
+                    .putData("targetUserId", senderUserId != null ? senderUserId : "")
+                    .putData("userName", senderNickname != null ? senderNickname : "")
+                    .putData("avatarUrl", senderAvatarUrl != null ? senderAvatarUrl : "")
+                    .build();
+
+            try {
+                String msgId = FirebaseMessaging.getInstance().send(message);
+                System.out.println("[FCM] Sent CHAT_MESSAGE to " + receiverUserId + " msgId=" + msgId);
+            } catch (FirebaseMessagingException e) {
+                System.out.println("[FCM] Failed to send CHAT_MESSAGE to " + receiverUserId + " : " + e.getMessage());
             }
         }
     }

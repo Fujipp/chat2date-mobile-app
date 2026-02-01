@@ -10,6 +10,7 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 public class MatchEventPayload {
+    private Integer matchId; // roomId for navigating to chat
     private String selfUserId;
     private String selfName;
     private String selfAvatarUrl;

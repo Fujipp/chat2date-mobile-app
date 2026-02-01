@@ -33,6 +33,7 @@ public class ChatService {
         private final UserPhotoRepository userPhotoRepository;
         private final RelationshipStatsRepository relationshipStatsRepository;
         private final ChatSocketService chatSocketService;
+        private final NotificationService notificationService;
         private final ObjectMapper objectMapper;
         private final RedisTemplate<String, Object> redisTemplate;
 
@@ -171,9 +172,34 @@ public class ChatService {
                                 .type(message.getMessageType())
                                 .build();
 
-                // Broadcast via WebSocket
+                // Broadcast via WebSocket to room
                 chatSocketService.broadcastMessage(request.getRoomId(), match.getUserId1().getUserId(),
                                 match.getUserId2().getUserId(), response);
+
+                // Broadcast chat list update to EACH user with THEIR unread count
+                String partnerId = match.getUserId1().getUserId().equals(userId)
+                                ? match.getUserId2().getUserId()
+                                : match.getUserId1().getUserId();
+
+                // For sender: unread count = 0 (they sent it, so no unread for them)
+                chatSocketService.broadcastChatListUpdate(userId, request.getRoomId(), 0, request.getMessage());
+
+                // For receiver: calculate their actual unread count
+                Integer receiverUnreadCount = messageRepository.countUnreadMessages(roomId, partnerId);
+                chatSocketService.broadcastChatListUpdate(partnerId, request.getRoomId(), receiverUnreadCount,
+                                request.getMessage());
+
+                // ★ ส่ง push notification แจ้งเตือนข้อความใหม่ให้ receiver
+                try {
+                        User sender = userRepository.findByUserId(userId).orElse(null);
+                        String senderNickname = sender != null ? sender.getNickname() : "Someone";
+                        String senderAvatarUrl = getFirstPhoto(userId);
+                        notificationService.sendChatMessageNotification(
+                                        partnerId, senderNickname, request.getMessage(), roomId, userId,
+                                        senderAvatarUrl);
+                } catch (Exception e) {
+                        System.out.println("[Chat] Failed to send notification: " + e.getMessage());
+                }
 
                 return response;
         }
@@ -232,16 +258,16 @@ public class ChatService {
         }
 
         public String getAnonymizedChatHistory(Integer roomId) {
-            List<Message> messages = messageRepository.findLast50ByRoomIdOrderByCreatedAtDesc(roomId);
+                List<Message> messages = messageRepository.findLast50ByRoomIdOrderByCreatedAtDesc(roomId);
 
-            Collections.reverse(messages);
+                Collections.reverse(messages);
 
-            StringBuilder chatLog = new StringBuilder();
-            for (Message msg : messages) {
-                String senderName = msg.getSenderId().substring(0, 4); // ตัดมาแค่ 4 ตัวท้ายเพื่อปิดบัง
+                StringBuilder chatLog = new StringBuilder();
+                for (Message msg : messages) {
+                        String senderName = msg.getSenderId().substring(0, 4); // ตัดมาแค่ 4 ตัวท้ายเพื่อปิดบัง
 
-                chatLog.append(senderName).append(": ").append(msg.getMessage()).append("\n");
-            }
-            return chatLog.toString();
+                        chatLog.append(senderName).append(": ").append(msg.getMessage()).append("\n");
+                }
+                return chatLog.toString();
         }
 }

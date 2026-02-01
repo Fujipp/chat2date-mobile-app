@@ -67,6 +67,17 @@ public class ChatAccessService {
         // Mark messages as read for this user
         messageRepository.markMessagesAsRead(roomId, userId);
 
+        // Broadcast to SENDER that their messages have been read
+        // Partner = the person who SENT the messages (they should know their messages
+        // are now read)
+        String partnerId = match.getUserId1().getUserId().equals(userId)
+                ? match.getUserId2().getUserId()
+                : match.getUserId1().getUserId();
+
+        // Partner's unread count for this room = 0 because we just read all their
+        // messages
+        chatSocketService.broadcastChatListUpdate(partnerId, request.getRoomId(), 0, null);
+
         // Broadcast status change
         ChatAccessStatusResponse status = getRoomAccessStatus(request.getRoomId());
         chatSocketService.broadcastAccessStatus(request.getRoomId(), status);

@@ -1,4 +1,5 @@
 class MatchEventDto {
+  final int? matchId;  // roomId for navigating to chat
   final String selfUserId;
   final String selfName;
   final String? selfAvatarUrl;
@@ -8,6 +9,7 @@ class MatchEventDto {
   final DateTime? matchedAt;
 
   MatchEventDto({
+    this.matchId,
     required this.selfUserId,
     required this.selfName,
     this.selfAvatarUrl,
@@ -19,6 +21,7 @@ class MatchEventDto {
 
   factory MatchEventDto.fromJson(Map<String, dynamic> json) {
     return MatchEventDto(
+      matchId: json['matchId'] as int?,
       selfUserId: json['selfUserId']?.toString() ?? '',
       selfName: json['selfName']?.toString() ?? '',
       selfAvatarUrl: json['selfAvatarUrl'] as String?,

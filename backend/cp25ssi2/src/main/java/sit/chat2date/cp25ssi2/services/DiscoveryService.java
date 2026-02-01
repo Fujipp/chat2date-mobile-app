@@ -28,10 +28,10 @@ public class DiscoveryService {
     private UserRepository userRepository;
 
     @Autowired
-    private  ActionRepository actionRepository;
+    private ActionRepository actionRepository;
 
     @Autowired
-    private  MatchRepository matchRepository;
+    private MatchRepository matchRepository;
 
     @Autowired
     private TravelStyleRepository travelStyleRepository;
@@ -63,14 +63,12 @@ public class DiscoveryService {
     public List<DiscoveryResponse> getCandidates(
             String userId,
             int minDistance,
-            int maxDistance
-    ) {
+            int maxDistance) {
         int limit = 10;
         PreferenceMatch pref = preferenceRepository.findByUser_UserId(userId);
         if (pref == null) {
             throw new NotFoundException("User not found");
         }
-
 
         UserLocation myLocation = locationRepository.findFirstByUser_UserId(userId);
 
@@ -78,10 +76,9 @@ public class DiscoveryService {
         List<String> userLifestyles = lifestyleRepository.findLifeStylesByUserId(userId);
         List<String> userInterests = interestRepository.findInterestsByUserId(userId);
 
-        boolean allUnnecessary =
-                "UNNECESSARY".equals(pref.getInterestedTravelStyle().name()) &&
-                        "UNNECESSARY".equals(pref.getInterestedLifeStyle().name()) &&
-                        "UNNECESSARY".equals(pref.getInterestedInterest().name());
+        boolean allUnnecessary = "UNNECESSARY".equals(pref.getInterestedTravelStyle().name()) &&
+                "UNNECESSARY".equals(pref.getInterestedLifeStyle().name()) &&
+                "UNNECESSARY".equals(pref.getInterestedInterest().name());
 
         List<User> candidates;
 
@@ -96,8 +93,7 @@ public class DiscoveryService {
                     pref.getInterestedAgeMin(),
                     pref.getInterestedAgeMax(),
                     pref.getInterestedGender().name(),
-                    limit
-            );
+                    limit);
         } else {
             // Filter ตาม attribute
             candidates = userRepository.findCandidatesWithPreference(
@@ -115,25 +111,26 @@ public class DiscoveryService {
                     userTravelStyles.size(),
                     userLifestyles.size(),
                     userInterests.size(),
-                    limit
-            );
+                    limit);
         }
 
         // map ไปเป็น DiscoveryResponse พร้อม score และเรียงตาม logic ที่ตอบไว้
         return candidates.stream()
                 .map(candidate -> {
-                    List<String> candidateTravelStyles = travelStyleRepository.findTravelStylesByUserId(candidate.getUserId());
-                    List<String> candidateLifestyles = lifestyleRepository.findLifeStylesByUserId(candidate.getUserId());
+                    List<String> candidateTravelStyles = travelStyleRepository
+                            .findTravelStylesByUserId(candidate.getUserId());
+                    List<String> candidateLifestyles = lifestyleRepository
+                            .findLifeStylesByUserId(candidate.getUserId());
                     List<String> candidateInterests = interestRepository.findInterestsByUserId(candidate.getUserId());
                     List<String> candidatePhotos = getPhotoUrls(candidate.getUserId());
                     List<String> candidateTags = tagRepository.findTagsByUserId(candidate.getUserId());
 
-                    double distance = calculateDistance(myLocation, locationRepository.findFirstByUser_UserId(candidate.getUserId()));
+                    double distance = calculateDistance(myLocation,
+                            locationRepository.findFirstByUser_UserId(candidate.getUserId()));
                     int score = compatibilityCalculator.calculateCompatibilityWithPreference(
                             userTravelStyles, candidateTravelStyles, pref.getInterestedTravelStyle().name(),
                             userLifestyles, candidateLifestyles, pref.getInterestedLifeStyle().name(),
-                            userInterests, candidateInterests, pref.getInterestedInterest().name()
-                    );
+                            userInterests, candidateInterests, pref.getInterestedInterest().name());
 
                     return new DiscoveryResponse(
                             candidate.getUserId(),
@@ -146,15 +143,13 @@ public class DiscoveryService {
                             candidateInterests,
                             candidateLifestyles,
                             distance,
-                            score
-                    );
+                            score);
                 })
                 .sorted(Comparator
                         .comparingInt(DiscoveryResponse::getCompatibilityScore).reversed()
                         .thenComparingDouble(DiscoveryResponse::getDistance))
                 .collect(Collectors.toList());
     }
-
 
     private List<String> getPhotoUrls(String userId) {
         String jsonString = userPhotoRepository.findAttributesJsonByUser_UserId(userId);
@@ -166,7 +161,7 @@ public class DiscoveryService {
             ObjectMapper objectMapper = new ObjectMapper();
             PhotoDTO photoDTO = objectMapper.readValue(jsonString, PhotoDTO.class);
             return photoDTO.getUrls();
-        } catch (Exception e) {  // JsonProcessingException
+        } catch (Exception e) { // JsonProcessingException
             e.printStackTrace();
             return Collections.emptyList();
         }
@@ -207,9 +202,10 @@ public class DiscoveryService {
     /**
      * ใช้ตอน user กด like/dislike
      * - บันทึก action ลง actiontable
-     * - ถ้าอีกฝั่งเคยกด LIKE เราไว้ → สร้าง Match ใน matchtable และส่ง matched = true กลับไป
+     * - ถ้าอีกฝั่งเคยกด LIKE เราไว้ → สร้าง Match ใน matchtable และส่ง matched =
+     * true กลับไป
      */
-    public FeedbackResponse submitFeedback(String userId,String targetUserId, ActionType action) {
+    public FeedbackResponse submitFeedback(String userId, String targetUserId, ActionType action) {
         if (targetUserId == null || action == null) {
             throw new BadRequestException("targetUserId/action is required");
         }
@@ -218,14 +214,14 @@ public class DiscoveryService {
         User targetUser = userRepository.findByUserId(targetUserId)
                 .orElseThrow(() -> new NotFoundException("target user not found: " + targetUserId));
 
-//        // 2) ดึง current user จาก JWT
-//        String jwtToken = accessToken.substring(7); // ตัด "Bearer "
-//        DecodedJWT jwt = JWT.decode(jwtToken);
-//        String sub = jwt.getClaim("sub").asString();
-//
-//        User currentUser = (sub.length() == 10)
-//                ? userRepository.findByPhoneNumber(sub).orElseThrow()
-//                : userRepository.findByEmail(sub).orElseThrow();
+        // // 2) ดึง current user จาก JWT
+        // String jwtToken = accessToken.substring(7); // ตัด "Bearer "
+        // DecodedJWT jwt = JWT.decode(jwtToken);
+        // String sub = jwt.getClaim("sub").asString();
+        //
+        // User currentUser = (sub.length() == 10)
+        // ? userRepository.findByPhoneNumber(sub).orElseThrow()
+        // : userRepository.findByEmail(sub).orElseThrow();
 
         User currentUser = userRepository.findUsersByUserId(userId);
 
@@ -247,42 +243,61 @@ public class DiscoveryService {
                         "notmatch",
                         false,
                         targetUserId,
-                        targetUser.getFirstname() + " " + targetUser.getLastname()
-                );
+                        targetUser.getFirstname() + " " + targetUser.getLastname());
             }
 
             // 5) ถ้าเป็น LIKE → เช็คว่าอีกฝั่งเคย LIKE เรามั้ย
             boolean targetLikedMe = actionRepository
                     .existsByUserUserIdAndTargetUserUserIdAndActionType(
-                            targetUser.getUserId(),      // เขา
-                            currentUser.getUserId(),     // เรา
-                            ActionType.LIKE.name()
-                    );
+                            targetUser.getUserId(), // เขา
+                            currentUser.getUserId(), // เรา
+                            ActionType.LIKE.name());
 
             if (targetLikedMe) {
                 // 5.1 สร้าง Match ใน matchtable (กัน A-B/B-A ซ้ำด้วยการ sort)
                 User u1 = currentUser.getUserId().compareTo(targetUser.getUserId()) < 0
-                        ? currentUser : targetUser;
+                        ? currentUser
+                        : targetUser;
                 User u2 = (u1 == currentUser) ? targetUser : currentUser;
 
+                Match savedMatch;
                 if (!matchRepository.existsByUserId1AndUserId2(u1, u2)) {
                     Match m = new Match();
                     m.setUserId1(u1);
                     m.setUserId2(u2);
-                    matchRepository.save(m);
+                    savedMatch = matchRepository.save(m);
+                } else {
+                    // ดึง match ที่มีอยู่แล้ว
+                    savedMatch = matchRepository.findByUsers(u1.getUserId(), u2.getUserId()).orElse(null);
                 }
 
-                // ★ 5.2 ยิง push แจ้งเตือนให้ทั้งสองฝั่ง
+                Integer matchId = savedMatch != null ? savedMatch.getId() : null;
+
+                // ★ 5.2 ยิง push แจ้งเตือนให้ทั้งสองฝั่ง (พร้อม deep link ไป chat)
                 try {
+                    // ดึง avatar URL ของแต่ละคน
+                    String currentUserAvatar = getPhotoUrls(currentUser.getUserId()).isEmpty()
+                            ? null
+                            : getPhotoUrls(currentUser.getUserId()).get(0);
+                    String targetUserAvatar = getPhotoUrls(targetUser.getUserId()).isEmpty()
+                            ? null
+                            : getPhotoUrls(targetUser.getUserId()).get(0);
+
+                    // ส่งให้ currentUser (partner = targetUser)
                     notificationService.sendMatchNotification(
                             currentUser.getUserId(),
-                            targetUser.getNickname()
-                    );
+                            targetUser.getNickname(),
+                            matchId,
+                            targetUser.getUserId(),
+                            targetUserAvatar);
+                    // ส่งให้ targetUser (partner = currentUser)
                     notificationService.sendMatchNotification(
                             targetUser.getUserId(),
-                            currentUser.getNickname()
-                    );
-                    matchSocketService.broadcastMatch(currentUser, targetUser);
+                            currentUser.getNickname(),
+                            matchId,
+                            currentUser.getUserId(),
+                            currentUserAvatar);
+                    matchSocketService.broadcastMatch(currentUser, targetUser, matchId);
                 } catch (Exception e) {
                     System.out.println("[Discovery] Failed to send match notifications: " + e.getMessage());
                 }
@@ -292,8 +307,7 @@ public class DiscoveryService {
                         "match",
                         true,
                         targetUserId,
-                        targetUser.getFirstname() + " " + targetUser.getLastname()
-                );
+                        targetUser.getFirstname() + " " + targetUser.getLastname());
             }
 
             // 6) ยังไม่ match แค่บันทึก Action ไว้เฉย ๆ
@@ -301,8 +315,7 @@ public class DiscoveryService {
                     "notmatch",
                     false,
                     targetUserId,
-                    targetUser.getFirstname() + " " + targetUser.getLastname()
-            );
+                    targetUser.getFirstname() + " " + targetUser.getLastname());
 
         } catch (RuntimeException e) {
             throw new ServiceException("internal processing error");

@@ -98,6 +98,13 @@ class ChatListSocketService {
         if (body == null) return;
         try {
           final json = jsonDecode(body) as Map<String, dynamic>;
+          
+          // Only process ChatListUpdateEvent messages (have unreadCount field)
+          // Ignore other message types like SendMessageResponse
+          if (!json.containsKey('unreadCount')) {
+            return;
+          }
+          
           final event = ChatListUpdateEvent.fromJson(json);
           _updateController.add(event);
         } catch (e) {

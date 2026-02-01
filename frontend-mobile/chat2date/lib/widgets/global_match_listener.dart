@@ -63,6 +63,8 @@ class GlobalMatchListener extends ConsumerWidget {
           navigator.pushNamed(
             MatchSuccessScreen.routeName,
             arguments: MatchSuccessArgs(
+              matchId: event.matchId,
+              partnerUserId: event.partnerUserId,
               myName: event.selfName,
               partnerName: event.partnerName,
               myAvatarUrl: event.selfAvatarUrl,

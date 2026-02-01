@@ -21,9 +21,9 @@ public class MatchSocketService {
     private final UserPhotoRepository userPhotoRepository;
     private final ObjectMapper objectMapper;
 
-    public void broadcastMatch(User self, User partner) {
-        MatchEventPayload payloadForSelf = buildPayload(self, partner);
-        MatchEventPayload payloadForPartner = buildPayload(partner, self);
+    public void broadcastMatch(User self, User partner, Integer matchId) {
+        MatchEventPayload payloadForSelf = buildPayload(self, partner, matchId);
+        MatchEventPayload payloadForPartner = buildPayload(partner, self, matchId);
 
         sendToUser(self.getUserId(), payloadForSelf);
         sendToUser(partner.getUserId(), payloadForPartner);
@@ -33,8 +33,9 @@ public class MatchSocketService {
         messagingTemplate.convertAndSend("/topic/matches/" + userId, payload);
     }
 
-    private MatchEventPayload buildPayload(User self, User partner) {
+    private MatchEventPayload buildPayload(User self, User partner, Integer matchId) {
         return MatchEventPayload.builder()
+                .matchId(matchId)
                 .selfUserId(self.getUserId())
                 .selfName(self.getNickname())
                 .selfAvatarUrl(primaryPhoto(self.getUserId()))

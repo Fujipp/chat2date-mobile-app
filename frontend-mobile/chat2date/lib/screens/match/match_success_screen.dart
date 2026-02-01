@@ -3,12 +3,16 @@ import 'package:flutter/material.dart';
 import 'package:chat2date/theme/app_colors.dart';
 
 class MatchSuccessArgs {
+  final int? matchId;  // roomId for navigating to chat
+  final String partnerUserId;  // target user for chat
   final String myName;
   final String partnerName;
   final String? myAvatarUrl;
   final String? partnerAvatarUrl;
 
   const MatchSuccessArgs({
+    this.matchId,
+    required this.partnerUserId,
     required this.myName,
     required this.partnerName,
     this.myAvatarUrl,
@@ -83,10 +87,20 @@ class _MatchSuccessScreenState extends State<MatchSuccessScreen>
     // Trigger entrance animation
     _mainController.forward();
 
-    // ✅ ตั้ง timer 5 วิ แล้ว pop กลับหน้าเดิม (Discovery)
+    // ✅ ตั้ง timer 5 วิ แล้วไปหน้า chat
     Future.delayed(const Duration(seconds: 5), () {
       if (!mounted) return;
-      Navigator.of(context).pop();
+      final args = widget.args;
+      // Navigate to chat screen with matchId as roomId
+      Navigator.of(context).pushReplacementNamed(
+        '/chat',
+        arguments: {
+          'roomId': args.matchId?.toString(),
+          'targetUserId': args.partnerUserId,
+          'userName': args.partnerName,
+          'avatarUrl': args.partnerAvatarUrl,
+        },
+      );
     });
   }
 
