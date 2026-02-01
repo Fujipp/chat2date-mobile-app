@@ -35,9 +35,9 @@ public class Match {
 
     // Temporarily disabled - causes JPA ID type conflict (Match uses Integer,
     // RelationshipStats uses String)
-    // @OneToOne(mappedBy = "match", cascade = CascadeType.ALL, orphanRemoval =
-    // true)
-    // private RelationshipStats relationshipStats;
+     @OneToOne(mappedBy = "match", cascade = CascadeType.ALL, orphanRemoval =
+     true)
+     private RelationshipStats relationshipStats;
 
     @PrePersist
     protected void onCreate() {

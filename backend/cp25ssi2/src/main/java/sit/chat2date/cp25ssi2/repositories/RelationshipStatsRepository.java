@@ -7,14 +7,8 @@ import sit.chat2date.cp25ssi2.entities.RelationshipStats;
 
 import java.util.Optional;
 
-public interface RelationshipStatsRepository extends JpaRepository<RelationshipStats, String> {
+public interface RelationshipStatsRepository extends JpaRepository<RelationshipStats, Integer> {
 
     @Query("SELECT r FROM RelationshipStats r WHERE r.relationshipId = :roomId")
-    Optional<RelationshipStats> findByRoomId(@Param("roomId") String roomId);
-
-    // Overloaded method for Integer roomId (for backward compatibility with
-    // GameService)
-    default Optional<RelationshipStats> findByRoomId(Integer roomId) {
-        return findByRoomId(String.valueOf(roomId));
-    }
+    Optional<RelationshipStats> findByRoomId(@Param("roomId") Integer roomId);
 }

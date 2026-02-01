@@ -21,7 +21,7 @@ import java.util.UUID;
 public class RelationshipStats {
     @Id
     @Column(name = "relationshipId", nullable = false)
-    private String relationshipId;
+    private Integer relationshipId;
 
     @ColumnDefault("0")
     @Column(name = "score", nullable = false)

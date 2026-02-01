@@ -119,7 +119,7 @@ public class ChatService {
                 Integer unreadCount = messageRepository.countUnreadMessages(roomId, userId);
                 Boolean isRead = unreadCount == 0;
 
-                Integer relationshipScore = relationshipStatsRepository.findByRoomId(String.valueOf(roomId))
+                Integer relationshipScore = relationshipStatsRepository.findByRoomId(roomId)
                                 .map(RelationshipStats::getScore)
                                 .orElse(0);
 

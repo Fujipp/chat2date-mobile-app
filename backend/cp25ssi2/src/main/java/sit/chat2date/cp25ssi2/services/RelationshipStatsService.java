@@ -40,7 +40,7 @@ public class RelationshipStatsService {
     public ResponseEntity<RelationshipBarDTO> getRelationshipBarByRoomId(String roomIdStr) {
         int roomId = Integer.valueOf(roomIdStr);
         Optional<RelationshipStats> relationshipStats = relationshipStatsRepository
-                .findByRoomId(String.valueOf(roomId));
+                .findByRoomId(roomId);
         RelationshipBarDTO relationshipBarDTO = new RelationshipBarDTO();
         relationshipBarDTO.setRoomId(roomId);
         relationshipBarDTO.setRelationship_score(relationshipStats.get().getScore());
@@ -76,7 +76,7 @@ public class RelationshipStatsService {
             throw new ForbiddenAccessException("Forbidden: cannot access another user's data");
         }
 
-        Optional<RelationshipStats> relationshipById = relationshipStatsRepository.findById(String.valueOf(roomId));
+        Optional<RelationshipStats> relationshipById = relationshipStatsRepository.findById(roomId);
 
         if (relationshipById.isPresent()) {
             throw new ConflictException("Room id: " + roomId + " already exists");
@@ -85,7 +85,7 @@ public class RelationshipStatsService {
         ZonedDateTime localDate = ZonedDateTime.now(ZoneId.of("Asia/Bangkok"));
 
         RelationshipStats relationshipStats = new RelationshipStats();
-        relationshipStats.setRelationshipId(roomIdStr);
+        relationshipStats.setRelationshipId(roomId);
         relationshipStats.setScore(0);
         relationshipStats.setStreakDays(0);
         relationshipStats.setIsFirstMessageBonus(false);
@@ -99,7 +99,7 @@ public class RelationshipStatsService {
     public RelationshipStats updateRelationshipBar(RelationshipUpdateDTO relationshipStats, String roomIdStr) {
         Integer roomId = Integer.parseInt(roomIdStr);
         Optional<RelationshipStats> relationshipStatsById = relationshipStatsRepository
-                .findByRoomId(String.valueOf(roomId));
+                .findByRoomId(roomId);
         int score = 0;
 
         LocalDate today = LocalDate.now(ZoneId.of("Asia/Bangkok"));
@@ -131,9 +131,7 @@ public class RelationshipStatsService {
                     int updatedStreak = relationshipStatsById.get().getStreakDays();
                     if (updatedStreak <= 0) {
                         score -= (int) daysBetween;
-                        ; // ลดพื้นฐาน 1 คะแนนเมื่อ streak หลุด
 
-                        // ใช้ <= เพื่อให้ครอบคลุมกรณีที่วันหายไปเยอะๆ แล้ว streak กระโดดข้ามขั้น
                         if (updatedStreak <= -30) {
                             Optional<Match> match = matchRepository.findById(roomId);
                             if (match.isPresent()) {
