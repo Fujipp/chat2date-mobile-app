@@ -5,6 +5,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import sit.chat2date.cp25ssi2.dto.ChatAccessRequest;
 import sit.chat2date.cp25ssi2.dto.ChatAccessStatusResponse;
+import sit.chat2date.cp25ssi2.dto.MessagesReadPayload;
 import sit.chat2date.cp25ssi2.entities.ChatAccessLog;
 import sit.chat2date.cp25ssi2.entities.Match;
 import sit.chat2date.cp25ssi2.enums.ChatAccessActionType;
@@ -15,6 +16,7 @@ import sit.chat2date.cp25ssi2.repositories.ChatAccessLogRepository;
 import sit.chat2date.cp25ssi2.repositories.MatchRepository;
 import sit.chat2date.cp25ssi2.repositories.MessageRepository;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -74,9 +76,21 @@ public class ChatAccessService {
                 ? match.getUserId2().getUserId()
                 : match.getUserId1().getUserId();
 
+        // Broadcast "messages read" event for real-time "เห็นแล้ว" status
+        MessagesReadPayload readPayload = MessagesReadPayload.builder()
+                .roomId(request.getRoomId())
+                .readByUserId(userId)
+                .senderId(partnerId)
+                .readAt(LocalDateTime.now())
+                .build();
+        chatSocketService.broadcastMessagesRead(request.getRoomId(), readPayload);
+
         // Partner's unread count for this room = 0 because we just read all their
         // messages
         chatSocketService.broadcastChatListUpdate(partnerId, request.getRoomId(), 0, null);
+
+        // Also broadcast to SELF that their unread count is now 0
+        chatSocketService.broadcastChatListUpdate(userId, request.getRoomId(), 0, null);
 
         // Broadcast status change
         ChatAccessStatusResponse status = getRoomAccessStatus(request.getRoomId());

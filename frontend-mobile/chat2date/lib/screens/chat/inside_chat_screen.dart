@@ -61,6 +61,7 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
   ChatSocketService? _chatSocketService;
   StreamSubscription<ChatMessage>? _messageSubscription;
   StreamSubscription<ChatAccessStatus>? _accessSubscription;
+  StreamSubscription<Map<String, dynamic>>? _readSubscription;
   String? _currentUserId;
   bool _hasEntered = false;
   bool _hasExited = false;
@@ -296,10 +297,11 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
     _chatSocketService = service;
     _messageSubscription = service.messageStream.listen(_handleIncomingMessage);
     _accessSubscription = service.accessStream.listen(_handleAccessStatus);
+    _readSubscription = service.readStream.listen(_handleReadEvent);
 
-    // Setup periodic timer to refresh seen status every 10 seconds
+    // Setup periodic timer as fallback (in case WebSocket events are missed)
     _seenStatusTimer?.cancel();
-    _seenStatusTimer = Timer.periodic(const Duration(seconds: 10), (_) {
+    _seenStatusTimer = Timer.periodic(const Duration(seconds: 30), (_) {
       if (mounted) {
         _refreshReadStatus();
       }
@@ -345,8 +347,25 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
   void _handleAccessStatus(ChatAccessStatus status) {
     final currentUserId = _currentUserId;
     if (currentUserId == null || currentUserId.isEmpty) return;
-    // Refresh read status on any access event to ensure real-time updates
+    // Access status changed - may need to refresh for edge cases
     _refreshReadStatus();
+  }
+
+  /// Handle real-time read event from WebSocket
+  void _handleReadEvent(Map<String, dynamic> payload) {
+    if (!mounted) return;
+    final senderId = payload['senderId'] as String?;
+    // If the senderId matches current user, it means our messages were read
+    if (_currentUserId == senderId) {
+      setState(() {
+        _messages = _messages.map((msg) {
+          if (msg.isOwn && !msg.isSeen) {
+            return msg.copyWith(isSeen: true);
+          }
+          return msg;
+        }).toList();
+      });
+    }
   }
 
   Future<void> _refreshReadStatus() async {
@@ -943,6 +962,7 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
     _seenStatusTimer?.cancel();
     _messageSubscription?.cancel();
     _accessSubscription?.cancel();
+    _readSubscription?.cancel();
     _chatSocketService?.dispose();
     _chatSocketService = null;
     _scrollController.removeListener(_handleScroll);

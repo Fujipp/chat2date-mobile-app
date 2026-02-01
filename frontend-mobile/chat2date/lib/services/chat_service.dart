@@ -143,6 +143,7 @@ class ChatService {
   /// เข้าห้อง (Mark as Read)
   /// POST /api/v1/chats/access
   Future<void> enterRoom(String roomId) async {
+    print('[ChatService] enterRoom called for roomId=$roomId');
     final userState = ref.read(userStoreProvider);
     final accessToken = "${userState['accessToken']}";
     final userId = _currentUserId(userState);
@@ -151,6 +152,7 @@ class ChatService {
     }
 
     final uri = Uri.parse('${ApiBase.baseUrl}/chats/access');
+    print('[ChatService] POST $uri');
     final response = await http.post(
       uri,
       headers: {
@@ -163,6 +165,8 @@ class ChatService {
         'type': 'ENTER',
       }),
     );
+
+    print('[ChatService] enterRoom response: ${response.statusCode}');
 
     if (response.statusCode == 201 || response.statusCode == 409) {
       return;

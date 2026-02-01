@@ -3,6 +3,7 @@ package sit.chat2date.cp25ssi2.services;
 import lombok.RequiredArgsConstructor;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
+import sit.chat2date.cp25ssi2.dto.MessagesReadPayload;
 import sit.chat2date.cp25ssi2.dto.SendMessageResponse;
 
 import java.time.LocalDateTime;
@@ -53,5 +54,13 @@ public class ChatSocketService {
      */
     public void broadcastAccessStatus(String roomId, Object status) {
         messagingTemplate.convertAndSend("/topic/chat/" + roomId + "/access", status);
+    }
+
+    /**
+     * Broadcast that messages were read (for real-time "เห็นแล้ว" status)
+     * Sends to /topic/chat/{roomId}/read
+     */
+    public void broadcastMessagesRead(String roomId, MessagesReadPayload payload) {
+        messagingTemplate.convertAndSend("/topic/chat/" + roomId + "/read", payload);
     }
 }

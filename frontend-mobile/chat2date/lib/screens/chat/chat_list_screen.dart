@@ -121,8 +121,11 @@ class _ChatListScreenState extends ConsumerState<ChatListScreen>
         );
         _chatRooms[roomIndex] = updatedRoom;
         
-        // ถ้า unread count > 0 ให้ลบออกจาก cleared list
-        if (event.unreadCount > 0) {
+        // ถ้า unread count = 0 ให้เพิ่มเข้า cleared list เพื่อแสดง 0 ทันที
+        if (event.unreadCount == 0) {
+          _clearedUnreadRoomIds.add(event.roomId);
+        } else {
+          // ถ้า unread count > 0 ให้ลบออกจาก cleared list
           _clearedUnreadRoomIds.remove(event.roomId);
         }
       } else if (event.unreadCount > 0) {
@@ -161,11 +164,13 @@ class _ChatListScreenState extends ConsumerState<ChatListScreen>
       if (mounted) {
         setState(() {
           _chatRooms = rooms.where((room) => room.type != 'new').toList();
-          final unreadRoomIds = _chatRooms
-              .where((room) => room.unreadCount > 0)
+          // เมื่อ API คืน unreadCount = 0 แสดงว่าข้อมูลถูก sync แล้ว
+          // ลบ roomId ออกจาก clearedUnreadRoomIds เพราะไม่จำเป็นต้อง override อีกต่อไป
+          final syncedRoomIds = _chatRooms
+              .where((room) => room.unreadCount == 0)
               .map((room) => room.roomId)
               .toSet();
-          _clearedUnreadRoomIds.removeWhere(unreadRoomIds.contains);
+          _clearedUnreadRoomIds.removeWhere(syncedRoomIds.contains);
           _isLoadingChats = false;
         });
       }
@@ -308,10 +313,9 @@ class _ChatListScreenState extends ConsumerState<ChatListScreen>
           final room = _chatRooms[index];
           final avatarPath = room.partnerImage;
           final isSvgAvatar = _isSvgImage(avatarPath);
-          final int displayUnreadCount =
-              _clearedUnreadRoomIds.contains(room.roomId)
-                  ? 0
-                  : room.unreadCount;
+          final bool isCleared = _clearedUnreadRoomIds.contains(room.roomId);
+          final int displayUnreadCount = isCleared ? 0 : room.unreadCount;
+          print('[ChatList] roomId=${room.roomId}, isCleared=$isCleared, room.unreadCount=${room.unreadCount}, display=$displayUnreadCount');
           return CardChatComponent(
             svgPath: isSvgAvatar ? avatarPath : null,
             imagePath: isSvgAvatar ? null : avatarPath,

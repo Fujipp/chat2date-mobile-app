@@ -22,6 +22,7 @@ class ChatSocketService {
 
   final _messageController = StreamController<ChatMessage>.broadcast();
   final _accessController = StreamController<ChatAccessStatus>.broadcast();
+  final _readController = StreamController<Map<String, dynamic>>.broadcast();
   StompClient? _client;
   bool _connecting = false;
   bool _disposed = false;
@@ -29,6 +30,7 @@ class ChatSocketService {
 
   Stream<ChatMessage> get messageStream => _messageController.stream;
   Stream<ChatAccessStatus> get accessStream => _accessController.stream;
+  Stream<Map<String, dynamic>> get readStream => _readController.stream;
 
   void connect() {
     if (_client != null || _connecting) return;
@@ -99,6 +101,19 @@ class ChatSocketService {
         } catch (_) {}
       },
     );
+
+    // Subscribe to read status for real-time "เห็นแล้ว" updates
+    _client?.subscribe(
+      destination: '/topic/chat/$roomId/read',
+      callback: (frame) {
+        final body = frame.body;
+        if (body == null) return;
+        try {
+          final json = jsonDecode(body) as Map<String, dynamic>;
+          _readController.add(json);
+        } catch (_) {}
+      },
+    );
   }
 
   void _scheduleReconnect() {
@@ -130,5 +145,9 @@ class ChatSocketService {
     try {
       _accessController.close();
     } catch (_) {}
+    try {
+      _readController.close();
+    } catch (_) {}
   }
 }
+
