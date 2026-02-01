@@ -435,7 +435,6 @@ CREATE TABLE IF NOT EXISTS `chat2date`.`relationship_stats` (
   `isFirstMessageBonus` BOOLEAN NOT NULL DEFAULT FALSE,
   `dailyMessageCount` INT NOT NULL DEFAULT 0,
   `dailyDate` DATE NULL, -- เอาไว้นับวันสำหรับ dailyMessageCount
-  `version` INT NOT NULL,
   `createdAt` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `updatedAt` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   PRIMARY KEY (`relationshipId`),

@@ -25,4 +25,11 @@ public interface MessageRepository extends JpaRepository<Message, Long> {
     void markMessagesAsRead(@Param("roomId") Integer roomId, @Param("userId") String userId);
 
     List<Message> findLast50ByRoomIdOrderByCreatedAtDesc(Integer roomId);
+
+    @Query(value = "SELECT * FROM messages " +
+            "WHERE roomId = :roomId " +
+            "AND DATE(createdAt) = CURRENT_DATE " +
+            "AND CHAR_LENGTH(TRIM(message)) >= 3 " + // เพิ่มเงื่อนไข 3 ตัวอักษรขึ้นไป
+            "ORDER BY createdAt ASC", nativeQuery = true)
+    List<Message> findTodayMessagesByRoom(@Param("roomId") Integer roomId);
 }

@@ -1,6 +1,5 @@
 package sit.chat2date.cp25ssi2.controllers;
 
-import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.StringRedisTemplate;
@@ -8,10 +7,8 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import sit.chat2date.cp25ssi2.dto.RelationshipBarDTO;
-import sit.chat2date.cp25ssi2.dto.RelationshipUpdateDTO;
 import sit.chat2date.cp25ssi2.entities.RelationshipStats;
 import sit.chat2date.cp25ssi2.exceptions.TooManyRequestException;
-import sit.chat2date.cp25ssi2.services.NotificationService;
 import sit.chat2date.cp25ssi2.services.RelationshipStatsService;
 
 import java.util.Map;
@@ -45,7 +42,7 @@ public class RelationshipStatsController {
     }
 
     @PutMapping("/{roomId}")
-    public RelationshipStats updateRelationshipStats(@Valid @RequestBody RelationshipUpdateDTO relationshipStats, @PathVariable String roomId) {
+    public RelationshipStats updateRelationshipStats(@PathVariable String roomId) {
         String key = "rate_limit:relationship:" + roomId;
 
         if (redis.hasKey(key)) {
@@ -56,6 +53,6 @@ public class RelationshipStatsController {
 
         redis.opsForValue().set(key, "locked", 10, TimeUnit.SECONDS);
 
-        return relationshipStatsService.updateRelationshipBar(relationshipStats, roomId);
+        return relationshipStatsService.updateRelationshipBar(roomId);
     }
 }

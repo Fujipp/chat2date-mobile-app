@@ -4,14 +4,11 @@ import com.auth0.jwt.JWT;
 import com.auth0.jwt.interfaces.DecodedJWT;
 import jakarta.transaction.Transactional;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.dao.DataIntegrityViolationException;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.orm.ObjectOptimisticLockingFailureException;
 import org.springframework.stereotype.Service;
 import sit.chat2date.cp25ssi2.dto.RelationshipBarDTO;
-import sit.chat2date.cp25ssi2.dto.RelationshipUpdateDTO;
 import sit.chat2date.cp25ssi2.entities.Match;
+import sit.chat2date.cp25ssi2.entities.Message;
 import sit.chat2date.cp25ssi2.entities.RelationshipStats;
 import sit.chat2date.cp25ssi2.entities.User;
 import sit.chat2date.cp25ssi2.exceptions.BadRequestException;
@@ -19,12 +16,14 @@ import sit.chat2date.cp25ssi2.exceptions.ConflictException;
 import sit.chat2date.cp25ssi2.exceptions.ForbiddenAccessException;
 import sit.chat2date.cp25ssi2.exceptions.NotFoundException;
 import sit.chat2date.cp25ssi2.repositories.MatchRepository;
+import sit.chat2date.cp25ssi2.repositories.MessageRepository;
 import sit.chat2date.cp25ssi2.repositories.RelationshipStatsRepository;
 import sit.chat2date.cp25ssi2.repositories.UserRepository;
 
 import java.time.LocalDate;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
+import java.util.List;
 import java.util.Optional;
 
 @Service
@@ -36,9 +35,11 @@ public class RelationshipStatsService {
     private MatchRepository matchRepository;
     @Autowired
     private UserRepository userRepository;
+    @Autowired
+    private MessageRepository messageRepository;
 
     public ResponseEntity<RelationshipBarDTO> getRelationshipBarByRoomId(String roomIdStr) {
-        int roomId = Integer.valueOf(roomIdStr);
+        int roomId = Integer.parseInt(roomIdStr);
         Optional<RelationshipStats> relationshipStats = relationshipStatsRepository
                 .findByRoomId(roomId);
         RelationshipBarDTO relationshipBarDTO = new RelationshipBarDTO();
@@ -53,7 +54,7 @@ public class RelationshipStatsService {
         try {
             roomId = Integer.parseInt(roomIdStr);
         } catch (Exception e) {
-            throw new BadRequestException("Invalid room ID");
+            throw new BadRequestException("Invalid room ID: " + roomIdStr);
         }
 
         Optional<User> user;
@@ -90,13 +91,12 @@ public class RelationshipStatsService {
         relationshipStats.setStreakDays(0);
         relationshipStats.setIsFirstMessageBonus(false);
         relationshipStats.setDailyMessageCount(0);
-        relationshipStats.setVersion(0);
         relationshipStats.setDailyDate(localDate.toLocalDate());
 
         return relationshipStatsRepository.saveAndFlush(relationshipStats);
     }
 
-    public RelationshipStats updateRelationshipBar(RelationshipUpdateDTO relationshipStats, String roomIdStr) {
+    public RelationshipStats updateRelationshipBar(String roomIdStr) {
         Integer roomId = Integer.parseInt(roomIdStr);
         Optional<RelationshipStats> relationshipStatsById = relationshipStatsRepository
                 .findByRoomId(roomId);
@@ -105,10 +105,6 @@ public class RelationshipStatsService {
         LocalDate today = LocalDate.now(ZoneId.of("Asia/Bangkok"));
 
         if (relationshipStatsById.isPresent()) {
-            if (!relationshipStatsById.get().getVersion().equals(relationshipStats.getVersion())) {
-                throw new ConflictException("Version mismatch");
-            }
-
             if (!today.equals(relationshipStatsById.get().getDailyDate())) {
                 long daysBetween = java.time.temporal.ChronoUnit.DAYS
                         .between(relationshipStatsById.get().getDailyDate(), today);
@@ -154,39 +150,44 @@ public class RelationshipStatsService {
                 relationshipStatsById.get().setDailyDate(today);
             }
 
-            int oldMessageCount = relationshipStatsById.get().getDailyMessageCount();
+            List<Message> messageList = messageRepository.findTodayMessagesByRoom(roomId);
 
-            if (oldMessageCount < 30) {
-                if (oldMessageCount == 0 && relationshipStats.getDaily_message_count() >= 1) {
-                    if (relationshipStatsById.get().getIsFirstMessageBonus() == false) {
-                        relationshipStatsById.get().setIsFirstMessageBonus(true);
-                        score += 5;
-                    }
-                    relationshipStatsById.get().setStreakDays(relationshipStatsById.get().getStreakDays() + 1);
-                    switch (relationshipStatsById.get().getStreakDays()) {
-                        case 3:
-                            score += 7;
-                            break;
-                        case 7:
-                            score += 10;
-                            break;
-                        case 10:
-                            score += 20;
-                            break;
-                        default:
-                            break;
-                    }
-                }
-                int newMessageCount = oldMessageCount + relationshipStats.getDaily_message_count();
-                relationshipStatsById.get().setDailyMessageCount(newMessageCount);
-                if (newMessageCount >= 30) {
-                    score += 8;
+            int totalConversationCount = 0;
+            String lastSenderId = "";
+
+            for (Message msg : messageList) {
+                if (!msg.getSenderId().equals(lastSenderId)) {
+                    totalConversationCount++;
+                    lastSenderId = msg.getSenderId();
                 }
             }
-        }
 
+            if (totalConversationCount >= 1) {
+                if (relationshipStatsById.get().getIsFirstMessageBonus() == false) {
+                    relationshipStatsById.get().setIsFirstMessageBonus(true);
+                    score += 5;
+                }
+                relationshipStatsById.get().setStreakDays(relationshipStatsById.get().getStreakDays() + 1);
+                switch (relationshipStatsById.get().getStreakDays()) {
+                    case 3:
+                        score += 7;
+                        break;
+                    case 7:
+                        score += 10;
+                        break;
+                    case 10:
+                        score += 20;
+                        break;
+                    default:
+                        break;
+                }
+            }
+            relationshipStatsById.get().setDailyMessageCount(totalConversationCount);
+            if (totalConversationCount >= 30) {
+                score += 8;
+            }
+        }
         relationshipStatsById.get().setScore(relationshipStatsById.get().getScore() + score);
-        relationshipStatsById.get().setVersion(relationshipStats.getVersion() + 1);
         return relationshipStatsRepository.save(relationshipStatsById.get());
     }
 }

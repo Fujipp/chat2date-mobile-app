@@ -100,7 +100,7 @@ public class JwtAuthFilter extends OncePerRequestFilter {
                         try {
                             roomId = Integer.parseInt(requestParamId);
                         } catch (NumberFormatException e) {
-                            sendErrorResponse(response, "Invalid room id: "+roomId, request, HttpStatus.BAD_REQUEST);
+                            sendErrorResponse(response, "Invalid room id: "+ requestParamId, request, HttpStatus.BAD_REQUEST);
                             return;
                         }
                         Optional<Match> matchById = matchRepository.findById(roomId);
