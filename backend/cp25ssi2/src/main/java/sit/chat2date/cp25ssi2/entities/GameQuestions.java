@@ -13,8 +13,6 @@ import org.hibernate.annotations.GenericGenerator;
 @Table(name = "game_questions")
 public class GameQuestions {
     @Id
-    @GeneratedValue(generator = "uuid2")
-    @GenericGenerator(name = "uuid2", strategy = "uuid2")
     @Column(name = "questionId", nullable = false)
     private String questionId;
 

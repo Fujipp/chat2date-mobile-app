@@ -33,7 +33,7 @@ public class GameService {
     private final ObjectMapper objectMapper;
     private final SimpMessagingTemplate messagingTemplate;
 
-    @Transactional  
+    @Transactional
     public GameStartResponse createGame(Integer roomId, String userId) {
         System.out.println("Processing Game for Room ID: " + roomId);
 
@@ -106,12 +106,13 @@ public class GameService {
                 q.setOptions(newOptions);
                 q.setQuestionId(UUID.randomUUID().toString());
 
-                GameQuestions entity = new GameQuestions();
-                entity.setGameId(session.getGameId());
-                entity.setQuestion(text);
-                entity.setCorrectAnswer(correct);
-                entity.setOptions(objectMapper.writeValueAsString(newOptions));
-                dbQuestions.add(entity);
+                GameQuestions question = new GameQuestions();
+                question.setQuestionId(q.getQuestionId());
+                question.setGameId(session.getGameId());
+                question.setQuestion(text);
+                question.setCorrectAnswer(correct);
+                question.setOptions(objectMapper.writeValueAsString(newOptions));
+                dbQuestions.add(question);
             }
             gameQuestionRepository.saveAll(dbQuestions);
 
