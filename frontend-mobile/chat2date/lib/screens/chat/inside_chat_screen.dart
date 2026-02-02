@@ -10,13 +10,14 @@ import 'package:chat2date/components/status_bar/score_row.dart';
 import 'package:chat2date/models/chat_access_status.dart';
 import 'package:chat2date/models/chat_message.dart';
 import 'package:chat2date/models/user.dart';
+import 'package:chat2date/screens/game/guessing_game_screen.dart';
 import 'package:chat2date/services/chat_service.dart';
 import 'package:chat2date/services/chat_socket_service.dart';
 import 'package:chat2date/stores/user_store.dart';
 import 'package:chat2date/theme/app_colors.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_svg/flutter_svg.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 
 class InsideChatScreen extends ConsumerStatefulWidget {
   final String? roomId;
@@ -110,7 +111,13 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
   void didChangeMetrics() {
     super.didChangeMetrics();
     // Scroll to bottom when keyboard opens
-    final bottomInset = WidgetsBinding.instance.platformDispatcher.views.first.viewInsets.bottom;
+    final bottomInset = WidgetsBinding
+        .instance
+        .platformDispatcher
+        .views
+        .first
+        .viewInsets
+        .bottom;
     if (bottomInset > 0) {
       // Keyboard is visible - scroll to bottom after a short delay
       Future.delayed(const Duration(milliseconds: 100), () {
@@ -1191,6 +1198,38 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
                     ),
                   ),
                 ],
+              ),
+
+              //ปุ่มเทสเกม
+              Positioned(
+                top: 100, // ปรับตำแหน่งแนวตั้ง (ให้หลบ Header)
+                right: 0, // ชิดขวา
+                child: Container(
+                  decoration: const BoxDecoration(
+                    color: Colors.red, // สีแดงเด่นๆ ให้รู้ว่าเป็นปุ่ม Test
+                    borderRadius: BorderRadius.only(
+                      topLeft: Radius.circular(20),
+                      bottomLeft: Radius.circular(20),
+                    ),
+                  ),
+                  child: IconButton(
+                    icon: const Icon(
+                      Icons.videogame_asset,
+                      color: Colors.white,
+                    ),
+                    onPressed: () {
+                      final int? realRoomId = int.tryParse(widget.roomId ?? '');
+
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) =>
+                              GuessingGameScreen(roomId: realRoomId),
+                        ),
+                      );
+                    },
+                  ),
+                ),
               ),
               if (_showWheelModal) ...[
                 // 1. ฉากหลังสีเทาจาง (Dim background)

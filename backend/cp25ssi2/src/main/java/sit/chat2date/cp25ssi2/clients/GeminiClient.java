@@ -13,7 +13,11 @@ public class GeminiClient {
     private String apiKey;
 
     public String generateQuestions(String chatLog) {
-        String geminiUrl = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=" + apiKey;
+        String modelName = "gemini-2.5-flash";
+        String geminiUrl = String.format(
+                "https://generativelanguage.googleapis.com/v1beta/models/%s:generateContent?key=%s",
+                modelName, apiKey
+        );
 
         RestTemplate restTemplate = new RestTemplate();
 

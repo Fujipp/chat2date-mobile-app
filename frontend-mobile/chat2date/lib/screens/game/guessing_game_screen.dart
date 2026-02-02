@@ -1,92 +1,107 @@
-import 'package:chat2date/screens/game/views/loading_view.dart';
+import 'package:chat2date/screens/game/views/loading_view.dart'; // อย่าลืม import
+import 'package:chat2date/screens/game/views/question_view.dart';
 import 'package:chat2date/screens/game/views/result_view.dart';
+import 'package:chat2date/screens/game/views/waiting_view.dart'; // อย่าลืม import
+import 'package:chat2date/stores/game_store.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import 'views/question_view.dart';
-import 'views/waiting_view.dart';
+class GuessingGameScreen extends ConsumerStatefulWidget {
+  final int? roomId;
+  final String? resumeGameId;
 
-class GuessingGameScreen extends StatefulWidget {
-  const GuessingGameScreen({super.key});
+  const GuessingGameScreen({super.key, this.roomId, this.resumeGameId});
 
   @override
-  State<GuessingGameScreen> createState() => _GuessingGameScreenState();
+  ConsumerState<GuessingGameScreen> createState() => _GuessingGameScreenState();
 }
 
-class _GuessingGameScreenState extends State<GuessingGameScreen> {
-  String currentView = 'question'; // waiting, question, loading, result
-
-  // Game State
-  int currentQuestion = 0;
-  List<int> userAnswers = [];
-  int score = 0;
+class _GuessingGameScreenState extends ConsumerState<GuessingGameScreen> {
+  @override
+  void initState() {
+    super.initState();
+    // โหลดข้อมูลเกมมารอไว้ก่อน
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      ref
+          .read(gameProvider.notifier)
+          .initGame(roomId: widget.roomId, resumeGameId: widget.resumeGameId);
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(backgroundColor: Colors.white, body: _buildCurrentView());
+    final gameState = ref.watch(gameProvider);
+
+    return Scaffold(
+      backgroundColor: Colors.white,
+      body: _buildCurrentView(gameState),
+    );
   }
 
-  Widget _buildCurrentView() {
-    switch (currentView) {
-      case 'waiting':
-        return WaitingView(onReady: _goToQuestion);
-
-      case 'question':
-        return QuestionView(
-          currentQuestion: currentQuestion,
-          onAnswer: _handleAnswer,
-        );
-
-      case 'loading':
-        return LoadingView(onBothComplete: _goToResult);
-
-      case 'result':
-        return ResultView(
-          score: score,
-          matchedAnswers: 4,
-          totalQuestions: 5,
-          // onFinish: _exitGame,
-          onFinish: _goToWaiting,
-        );
-
-      default:
-        return WaitingView(onReady: _goToQuestion);
+  Widget _buildCurrentView(GameState state) {
+    // 1. Loading (ตอนดึงข้อมูลครั้งแรก)
+    if (state.isLoading) {
+      return const Center(child: CircularProgressIndicator());
     }
-  }
 
-  // Navigation methods
-  void _goToQuestion() {
-    setState(() {
-      currentView = 'question';
-    });
-  }
+    // 2. Error
+    if (state.error != null) {
+      return Center(child: Text('Error: ${state.error}')); // แต่งสวยๆ ได้
+    }
 
-  void _handleAnswer(int answerIndex) {
-    setState(() {
-      userAnswers.add(answerIndex);
-      currentQuestion++;
+    // 3. Result View (เกมจบสมบูรณ์)
+    if (state.isGameOver) {
+      return ResultView(
+        score: state.totalScore,
+        myScore: state.myScore,
+        partnerScore: state.partnerScore,
+        matchedAnswers: state.totalScore,
+        totalQuestions: state.questions.length,
+        relationshipScore: state.relationshipScore,
+        myAvatarUrl: state.myAvatar,
+        partnerAvatarUrl: state.partnerAvatar,
+        onFinish: () => Navigator.pop(context),
+      );
+    }
 
-      // ถ้าตอบครบ 5 ข้อแล้ว ไปหน้าโหลด
-      if (currentQuestion >= 5) {
-        currentView = 'loading';
-      }
-    });
-  }
+    // 4. Waiting View (ยังไม่ได้กดเริ่ม)
+    if (!state.hasStartedGame) {
+      return WaitingView(
+        myAvatarUrl: state.myAvatar,
+        partnerAvatarUrl: state.partnerAvatar,
+        onReady: () {
+          // กดปุ่มแล้วเปลี่ยน State เพื่อเข้าสู่คำถาม
+          ref.read(gameProvider.notifier).state = state.copyWith(
+            hasStartedGame: true,
+          );
+        },
+      );
+    }
 
-  void _goToResult() {
-    setState(() {
-      // TODO: คำนวณคะแนนจริง
-      score = 80; // Mock score
-      currentView = 'result';
-    });
-  }
+    // 5. Loading View (ตอบครบแล้ว แต่รอคู่)
+    // ถ้า index เกินจำนวนข้อ แสดงว่าเราตอบหมดแล้ว แต่ isGameOver ยังไม่ true (เพราะรออีกคน)
+    if (state.hasUserFinishedAll) {
+      return LoadingView(
+        onBothComplete: () {
+          // หน้านี้จะรอ WebSocket/API update state.isGameOver เป็น true
+          // เมื่อ true มันจะเด้งไป case ที่ 3 (Result) เองอัตโนมัติ
+        },
+      );
+    }
 
-  void _exitGame() {
-    Navigator.pop(context);
-  }
+    // 6. Question View (กำลังเล่น)
+    if (state.questions.isNotEmpty) {
+      final currentQ = state.questions[state.currentIndex];
+      return QuestionView(
+        currentQuestionIndex: state.currentIndex,
+        totalQuestions: state.questions.length,
+        questionData: currentQ,
+        onAnswer: (selectedOption) {
+          ref.read(gameProvider.notifier).submitAnswer(selectedOption);
+        },
+      );
+    }
 
-  void _goToWaiting() {
-    setState(() {
-      currentView = 'waiting';
-    });
+    return const SizedBox(); // Fallback
   }
 }

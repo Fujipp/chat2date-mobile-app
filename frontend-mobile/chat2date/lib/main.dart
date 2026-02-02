@@ -105,7 +105,13 @@ class MyApp extends StatelessWidget {
           '/settings': (context) => const SettingsScreen(),
           '/auth': (context) => const AuthCheckPage(),
           '/chatList': (context) => const ChatListScreen(),
-          '/guessingGame': (context) => const GuessingGameScreen(),
+          '/guessingGame': (context) {
+            final args =
+                ModalRoute.of(context)?.settings.arguments
+                    as Map<String, dynamic>?;
+
+            return GuessingGameScreen(roomId: args?['roomId']);
+          },
 
           //Hutch
           '/discovery': (context) => const DiscoveryScreen(),

@@ -7,6 +7,10 @@ class ResultView extends StatelessWidget {
   final int totalQuestions;
   final VoidCallback onFinish;
   final int? relationshipScore;
+  final String myAvatarUrl;
+  final String partnerAvatarUrl;
+  final int myScore;
+  final int partnerScore;
 
   const ResultView({
     super.key,
@@ -14,13 +18,12 @@ class ResultView extends StatelessWidget {
     required this.matchedAnswers,
     required this.totalQuestions,
     required this.onFinish,
+    required this.myAvatarUrl,
+    required this.partnerAvatarUrl,
+    required this.myScore,
+    required this.partnerScore,
     this.relationshipScore,
   });
-
-  String get userAvatarUrl =>
-      'https://res.cloudinary.com/dov7wgzv1/image/upload/v1764667953/chat2date_users/q1vahx2j70ixeluypklw.jpg';
-  String get partnerAvatarUrl =>
-      'https://res.cloudinary.com/dov7wgzv1/image/upload/v1764668236/chat2date_users/xflsgk1stvlx48ntfe84.png';
 
   @override
   Widget build(BuildContext context) {
@@ -82,13 +85,13 @@ class ResultView extends StatelessWidget {
                 children: [
                   _buildPlayerScore(
                     label: 'คุณ',
-                    score: (matchedAnswers / 2).ceil(),
-                    avatarUrl: userAvatarUrl,
+                    score: myScore,
+                    avatarUrl: myAvatarUrl,
                   ),
                   const SizedBox(width: 50),
                   _buildPlayerScore(
                     label: 'คู่',
-                    score: (matchedAnswers / 2).floor(),
+                    score: partnerScore,
                     avatarUrl: partnerAvatarUrl,
                   ),
                 ],
