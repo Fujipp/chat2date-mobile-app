@@ -15,4 +15,12 @@ public interface ReportRepository extends JpaRepository<Report, Integer> {
     Optional<Report> findByReporterIdAndTargetUserId(String reporterId, String targetUserId);
 
     boolean existsByReporterIdAndTargetUserId(String reporterId, String targetUserId);
+
+    /**
+     * Check if report exists between two users (in either direction)
+     * Used to disable chat when one user has reported the other
+     */
+    boolean existsByReporterIdAndTargetUserIdOrReporterIdAndTargetUserId(
+            String reporterId1, String targetUserId1,
+            String reporterId2, String targetUserId2);
 }

@@ -32,6 +32,7 @@ public class ChatService {
         private final UserRepository userRepository;
         private final UserPhotoRepository userPhotoRepository;
         private final RelationshipStatsRepository relationshipStatsRepository;
+        private final ReportRepository reportRepository;
         private final ChatSocketService chatSocketService;
         private final NotificationService notificationService;
         private final ObjectMapper objectMapper;
@@ -123,10 +124,16 @@ public class ChatService {
                                 .map(RelationshipStats::getScore)
                                 .orElse(0);
 
+                // Check if chat is disabled due to report between users
+                boolean isChatDisabled = reportRepository.existsByReporterIdAndTargetUserIdOrReporterIdAndTargetUserId(
+                                userId, partner.getUserId(),
+                                partner.getUserId(), userId);
+
                 return ChatRoomDetailResponse.builder()
                                 .room(ChatRoomDetailResponse.RoomInfo.builder()
                                                 .roomId(roomIdStr)
                                                 .isRead(isRead)
+                                                .isChatDisabled(isChatDisabled)
                                                 .build())
                                 .chat(chatMessages)
                                 .partner(ChatRoomDetailResponse.PartnerInfo.builder()
@@ -153,6 +160,15 @@ public class ChatService {
                         throw new ForbiddenAccessException("Access denied to this room");
                 }
 
+                // Check if chat is disabled due to report
+                String partnerId = match.getUserId1().getUserId().equals(userId)
+                                ? match.getUserId2().getUserId()
+                                : match.getUserId1().getUserId();
+                if (reportRepository.existsByReporterIdAndTargetUserIdOrReporterIdAndTargetUserId(
+                                userId, partnerId, partnerId, userId)) {
+                        throw new ForbiddenAccessException("ไม่สามารถส่งข้อความได้เนื่องจากมีการรายงานผู้ใช้");
+                }
+
                 Message message = Message.builder()
                                 .roomId(roomId)
                                 .senderId(userId)
@@ -177,9 +193,7 @@ public class ChatService {
                                 match.getUserId2().getUserId(), response);
 
                 // Broadcast chat list update to EACH user with THEIR unread count
-                String partnerId = match.getUserId1().getUserId().equals(userId)
-                                ? match.getUserId2().getUserId()
-                                : match.getUserId1().getUserId();
+                // partnerId already defined above for report check
 
                 // For sender: unread count = 0 (they sent it, so no unread for them)
                 chatSocketService.broadcastChatListUpdate(userId, request.getRoomId(), 0, request.getMessage());

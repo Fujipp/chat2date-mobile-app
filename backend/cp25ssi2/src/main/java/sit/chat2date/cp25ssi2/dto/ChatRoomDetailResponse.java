@@ -24,6 +24,7 @@ public class ChatRoomDetailResponse {
     public static class RoomInfo {
         private String roomId;
         private Boolean isRead;
+        private Boolean isChatDisabled; // true if report exists between users
     }
 
     @Data

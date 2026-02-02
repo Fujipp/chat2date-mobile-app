@@ -66,6 +66,7 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
   bool _hasEntered = false;
   bool _hasExited = false;
   Timer? _seenStatusTimer;
+  bool _isChatDisabled = false; // true if report exists between users
 
   // === Chat User Data (ดึงจากข้อมูลจริง) ===
   String _chatUserName = 'Name';
@@ -158,6 +159,7 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
           ..addAll(sortedMessages.map((message) => message.id));
         _hasMoreMessages = sortedMessages.length >= _pageSize;
         _relationshipScore = roomData.relationshipScore;
+        _isChatDisabled = roomData.isChatDisabled;
         _applyRelationshipScore(roomData.relationshipScore);
         if (widget.userName == null && roomData.partnerName != null) {
           _chatUserName = roomData.partnerName!;
@@ -1143,27 +1145,48 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
                                   },
                                 ),
                         ),
-                        InputChatComponent(
-                          svgPath: 'assets/icons/icon_more-options.svg',
-                          svgPathLast: 'assets/icons/icon_send.svg',
-                          leftIconColor: AppColors.surfaceLight,
-                          sendIconColor: null,
-                          sendIconBackgroundColor: null,
-                          isSendEnabled:
-                              _hasText &&
-                              !_isSending &&
-                              (widget.roomId?.isNotEmpty ?? false),
-                          controller: _messageController,
-                          onChanged: (value) => setState(
-                            () => _hasText = value.trim().isNotEmpty,
+                        if (_isChatDisabled)
+                          Container(
+                            width: double.infinity,
+                            padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+                            decoration: BoxDecoration(
+                              color: Colors.grey.shade200,
+                              border: Border(top: BorderSide(color: Colors.grey.shade300)),
+                            ),
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Icon(Icons.block, color: Colors.grey.shade600, size: 18),
+                                const SizedBox(width: 8),
+                                Text(
+                                  'ไม่สามารถส่งข้อความได้เนื่องจากมีการรายงาน',
+                                  style: TextStyle(color: Colors.grey.shade600, fontSize: 14),
+                                ),
+                              ],
+                            ),
+                          )
+                        else
+                          InputChatComponent(
+                            svgPath: 'assets/icons/icon_more-options.svg',
+                            svgPathLast: 'assets/icons/icon_send.svg',
+                            leftIconColor: AppColors.surfaceLight,
+                            sendIconColor: null,
+                            sendIconBackgroundColor: null,
+                            isSendEnabled:
+                                _hasText &&
+                                !_isSending &&
+                                (widget.roomId?.isNotEmpty ?? false),
+                            controller: _messageController,
+                            onChanged: (value) => setState(
+                              () => _hasText = value.trim().isNotEmpty,
+                            ),
+                            onSend:
+                                _hasText &&
+                                    !_isSending &&
+                                    (widget.roomId?.isNotEmpty ?? false)
+                                ? () => _sendMessage()
+                                : null,
                           ),
-                          onSend:
-                              _hasText &&
-                                  !_isSending &&
-                                  (widget.roomId?.isNotEmpty ?? false)
-                              ? () => _sendMessage()
-                              : null,
-                        ),
                       ],
                     ),
                   ),

@@ -3,6 +3,7 @@ import 'package:chat2date/models/chat_message.dart';
 class ChatRoomMessages {
   final String roomId;
   final bool isRead;
+  final bool isChatDisabled; // NEW: true if report exists between users
   final String? partnerName;
   final List<String> partnerImages;
   final int? relationshipScore;
@@ -11,6 +12,7 @@ class ChatRoomMessages {
   const ChatRoomMessages({
     required this.roomId,
     required this.isRead,
+    required this.isChatDisabled,
     required this.partnerName,
     required this.partnerImages,
     required this.relationshipScore,
@@ -23,6 +25,7 @@ class ChatRoomMessages {
   }) {
     final room = (json['room'] as Map<String, dynamic>?) ?? {};
     final isRead = room['isRead'] == true;
+    final isChatDisabled = room['isChatDisabled'] == true;
     final roomId = room['roomId']?.toString() ?? '';
 
     final partner = (json['partner'] as Map<String, dynamic>?) ?? {};
@@ -45,6 +48,7 @@ class ChatRoomMessages {
     return ChatRoomMessages(
       roomId: roomId,
       isRead: isRead,
+      isChatDisabled: isChatDisabled,
       partnerName: partnerName,
       partnerImages: partnerImages,
       relationshipScore: json['relationshipScore'] as int?,
