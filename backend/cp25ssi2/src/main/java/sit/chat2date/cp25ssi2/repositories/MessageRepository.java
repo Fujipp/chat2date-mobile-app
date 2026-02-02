@@ -8,6 +8,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import sit.chat2date.cp25ssi2.entities.Message;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
@@ -28,8 +29,13 @@ public interface MessageRepository extends JpaRepository<Message, Long> {
 
     @Query(value = "SELECT * FROM messages " +
             "WHERE roomId = :roomId " +
-            "AND DATE(createdAt) = CURRENT_DATE " +
-            "AND CHAR_LENGTH(TRIM(message)) >= 3 " + // เพิ่มเงื่อนไข 3 ตัวอักษรขึ้นไป
+            "AND createdAt >= :startOfDay " +
+            "AND createdAt <= :endOfDay " +
+            "AND CHAR_LENGTH(TRIM(message)) >= 3 " +
             "ORDER BY createdAt ASC", nativeQuery = true)
-    List<Message> findTodayMessagesByRoom(@Param("roomId") Integer roomId);
+    List<Message> findTodayMessagesByRoom(
+            @Param("roomId") Integer roomId,
+            @Param("startOfDay") LocalDateTime startOfDay,
+            @Param("endOfDay") LocalDateTime endOfDay
+    );
 }

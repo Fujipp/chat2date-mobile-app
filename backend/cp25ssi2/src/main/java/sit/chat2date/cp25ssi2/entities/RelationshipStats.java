@@ -41,7 +41,7 @@ public class RelationshipStats {
 
     @ColumnDefault("false")
     @Column(name = "isDailyMessageBonus", nullable = false)
-    private Boolean isDailyMessageBonus;
+    private Boolean isDailyMessagesBonus;
 
     @Column(name = "dailyDate")
     private LocalDate dailyDate;

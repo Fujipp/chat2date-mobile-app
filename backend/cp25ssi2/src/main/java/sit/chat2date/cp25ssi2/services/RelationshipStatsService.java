@@ -6,7 +6,6 @@ import jakarta.transaction.Transactional;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
-import sit.chat2date.cp25ssi2.dto.RelationshipBarDTO;
 import sit.chat2date.cp25ssi2.entities.Match;
 import sit.chat2date.cp25ssi2.entities.Message;
 import sit.chat2date.cp25ssi2.entities.RelationshipStats;
@@ -20,9 +19,7 @@ import sit.chat2date.cp25ssi2.repositories.MessageRepository;
 import sit.chat2date.cp25ssi2.repositories.RelationshipStatsRepository;
 import sit.chat2date.cp25ssi2.repositories.UserRepository;
 
-import java.time.LocalDate;
-import java.time.ZoneId;
-import java.time.ZonedDateTime;
+import java.time.*;
 import java.util.List;
 import java.util.Optional;
 
@@ -38,14 +35,11 @@ public class RelationshipStatsService {
     @Autowired
     private MessageRepository messageRepository;
 
-    public ResponseEntity<RelationshipBarDTO> getRelationshipBarByRoomId(String roomIdStr) {
+    public ResponseEntity<Optional<RelationshipStats>> getRelationshipBarByRoomId(String roomIdStr) {
         int roomId = Integer.parseInt(roomIdStr);
         Optional<RelationshipStats> relationshipStats = relationshipStatsRepository
                 .findByRoomId(roomId);
-        RelationshipBarDTO relationshipBarDTO = new RelationshipBarDTO();
-        relationshipBarDTO.setRoomId(roomId);
-        relationshipBarDTO.setRelationship_score(relationshipStats.get().getScore());
-        return ResponseEntity.ok(relationshipBarDTO);
+        return ResponseEntity.ok(relationshipStats);
     }
 
     @Transactional
@@ -91,7 +85,7 @@ public class RelationshipStatsService {
         relationshipStats.setStreakDays(0);
         relationshipStats.setIsFirstMessageBonus(false);
         relationshipStats.setDailyMessageCount(0);
-        relationshipStats.setIsDailyMessageBonus(false);
+        relationshipStats.setIsDailyMessagesBonus(false);
         relationshipStats.setDailyDate(localDate.toLocalDate());
 
         return relationshipStatsRepository.saveAndFlush(relationshipStats);
@@ -112,7 +106,6 @@ public class RelationshipStatsService {
 
                 if (daysBetween > 0) {
                     int currentStreak = relationshipStatsById.get().getStreakDays();
-
                     if (daysBetween > 1) {
                         int penaltyDays = (int) (daysBetween - 1);
 
@@ -149,10 +142,13 @@ public class RelationshipStatsService {
                 }
                 relationshipStatsById.get().setDailyMessageCount(0);
                 relationshipStatsById.get().setDailyDate(today);
-                relationshipStatsById.get().setIsDailyMessageBonus(false);
+                relationshipStatsById.get().setIsDailyMessagesBonus(false);
             }
 
-            List<Message> messageList = messageRepository.findTodayMessagesByRoom(roomId);
+            LocalDateTime start = today.atStartOfDay();
+            LocalDateTime end = today.atTime(LocalTime.MAX);
+
+            List<Message> messageList = messageRepository.findTodayMessagesByRoom(roomId, start, end);
 
             int totalConversationCount = 0;
             String lastSenderId = "";
@@ -185,9 +181,9 @@ public class RelationshipStatsService {
                 }
             }
             relationshipStatsById.get().setDailyMessageCount(totalConversationCount);
-            if (totalConversationCount >= 30 && relationshipStatsById.get().getIsDailyMessageBonus() == false) {
+            if (totalConversationCount >= 30 && relationshipStatsById.get().getIsDailyMessagesBonus() == false) {
                 score += 8;
-                relationshipStatsById.get().setIsDailyMessageBonus(true);
+                relationshipStatsById.get().setIsDailyMessagesBonus(true);
             }
         }
         relationshipStatsById.get().setScore(relationshipStatsById.get().getScore() + score);

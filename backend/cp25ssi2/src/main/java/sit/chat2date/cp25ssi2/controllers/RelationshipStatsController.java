@@ -6,7 +6,6 @@ import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-import sit.chat2date.cp25ssi2.dto.RelationshipBarDTO;
 import sit.chat2date.cp25ssi2.entities.RelationshipStats;
 import sit.chat2date.cp25ssi2.exceptions.TooManyRequestException;
 import sit.chat2date.cp25ssi2.services.RelationshipStatsService;
@@ -25,7 +24,7 @@ public class RelationshipStatsController {
     private StringRedisTemplate redis;
 
     @GetMapping("/{roomId}")
-    public ResponseEntity<RelationshipBarDTO> getRelationshipBarByRoomId(@PathVariable String roomId) {
+    public ResponseEntity<Optional<RelationshipStats>> getRelationshipBarByRoomId(@PathVariable String roomId) {
         return relationshipStatsService.getRelationshipBarByRoomId(roomId);
     }
 
