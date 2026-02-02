@@ -6,9 +6,11 @@ import 'package:chat2date/components/chat/chat_text_component.dart';
 import 'package:chat2date/components/chat/input_chat_component.dart';
 import 'package:chat2date/components/chat/spin_date_component.dart';
 import 'package:chat2date/components/layout/header.dart';
+import 'package:chat2date/components/page/unlock_date_modal.dart';
 import 'package:chat2date/components/status_bar/score_row.dart';
 import 'package:chat2date/models/chat_access_status.dart';
 import 'package:chat2date/models/chat_message.dart';
+import 'package:chat2date/models/relationship_bar.dart';
 import 'package:chat2date/models/user.dart';
 import 'package:chat2date/screens/game/guessing_game_screen.dart';
 import 'package:chat2date/services/chat_service.dart';
@@ -51,6 +53,9 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
   bool _showSpinWheel = false;
   bool firstTime = true;
   int talkCount = 0;
+  int _steakDays = 0;
+  bool _isFirstMessageBonus = false;
+  int _dailyMessagesCount = 0;
 
   bool _isLoadingMessages = true;
   bool _isLoadingMore = false;
@@ -95,6 +100,7 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
     _chatUserId = widget.targetUserId;
     _chatUserName = widget.userName ?? 'Name';
     _chatUserAvatar = widget.avatarUrl;
+    _initUpdateRelationshipBar(false);
 
     _scrollController.addListener(_handleScroll);
     _initializeChat();
@@ -104,6 +110,64 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
     if (!_scrollController.hasClients) return;
     if (_scrollController.position.pixels <= 80) {
       _loadMoreMessages();
+    }
+  }
+
+  Future<void> _initUpdateRelationshipBar(bool onUpdate) async {
+    if (onUpdate) {
+      final chatService = ref.read(chatServiceProvider);
+      final roomData =
+          await chatService.updateRelationshipBar(widget.roomId!)
+              as RelationshipBar?;
+      if (!mounted) return;
+      setState(() {
+        _heartCount = roomData != null ? (roomData.score ~/ 100) : 0;
+        _currentPercent = roomData != null
+            ? (roomData.score % 100) / 100.0
+            : 0.0;
+        _steakDays = roomData != null ? roomData.streakDays : 0;
+        _isFirstMessageBonus = roomData != null
+            ? roomData.isFirstMessageBonus
+            : false;
+        _dailyMessagesCount = roomData != null
+            ? roomData.dailyMessageCount
+            : 0;
+      });
+
+      if (widget.roomId != null &&
+          widget.roomId!.isNotEmpty &&
+          _currentPercent >= 0.25) {
+        print("Trigger Game Ai +++++++++++");
+      }
+
+      if (_heartCount == 0 && _currentPercent == 1.00) {
+        _triggerUnlockDate();
+      }
+    } else {
+      final chatService = ref.read(chatServiceProvider);
+      final roomData =
+          await chatService.getRelationshipBar(widget.roomId!) as RelationshipBar?;
+      if (!mounted) return;
+      setState(() {
+        _heartCount = roomData != null ? (roomData.score ~/ 100) : 0;
+        _currentPercent = roomData != null
+            ? (roomData.score % 100) / 100.0
+            : 0.0;
+        _steakDays = roomData != null ? roomData.streakDays : 0;
+        _isFirstMessageBonus = roomData != null
+            ? roomData.isFirstMessageBonus
+            : false;
+        _dailyMessagesCount = roomData != null
+            ? roomData.dailyMessageCount
+            : 0;
+      });
+
+      if (widget.roomId != null &&
+          widget.roomId!.isNotEmpty &&
+          _currentPercent >= 0.25) {
+        print("Trigger Game Ai +++++++++++");
+      }
+      return;
     }
   }
 
@@ -167,7 +231,7 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
         _hasMoreMessages = sortedMessages.length >= _pageSize;
         _relationshipScore = roomData.relationshipScore;
         _isChatDisabled = roomData.isChatDisabled;
-        _applyRelationshipScore(roomData.relationshipScore);
+        //  _applyRelationshipScore(roomData.relationshipScore);
         if (widget.userName == null && roomData.partnerName != null) {
           _chatUserName = roomData.partnerName!;
         }
@@ -238,22 +302,22 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
     }
   }
 
-  void _applyRelationshipScore(int? score) {
-    final int safeScore = score ?? 0;
-    final double percent = (safeScore / 100).clamp(0.0, 1.0);
-    int heart;
-    if (safeScore >= 90) {
-      heart = 3;
-    } else if (safeScore >= 60) {
-      heart = 2;
-    } else if (safeScore >= 30) {
-      heart = 1;
-    } else {
-      heart = 0;
-    }
-    _currentPercent = percent;
-    _heartCount = heart;
-  }
+  // void _applyRelationshipScore(int? score) {
+  //   final int safeScore = score ?? 0;
+  //   final double percent = (safeScore / 100).clamp(0.0, 1.0);
+  //   int heart;
+  //   if (safeScore >= 90) {
+  //     heart = 3;
+  //   } else if (safeScore >= 60) {
+  //     heart = 2;
+  //   } else if (safeScore >= 30) {
+  //     heart = 1;
+  //   } else {
+  //     heart = 0;
+  //   }
+  //   _currentPercent = percent;
+  //   _heartCount = heart;
+  // }
 
   Future<void> _enterRoom() async {
     final roomId = widget.roomId;
@@ -617,6 +681,7 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
   bool _checkUserEligibility() {
     // เงื่อนไขผ่าน: จำนวนหัวใจ >= 1 (0,1,2,3 โดย 3 จะเป็นรุ้ง)
     // ไม่ต้องเช็ค percent เพราะถ้าเต็มจะเป็น 1 อยู่แล้ว
+    
     return _heartCount >= 1;
   }
 
@@ -687,28 +752,6 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
       if (!mounted) return;
 
       setState(() {
-        if (firstTime) {
-          _currentPercent = 0.05;
-          firstTime = false;
-          talkCount += 1;
-        } else {
-          talkCount += 1;
-          if (talkCount >= 5) {
-            _currentPercent += 0.08;
-          }
-          if (talkCount == 6) {
-            _currentPercent = 1.0;
-            if (_currentPercent == 1.0) {
-              FocusManager.instance.primaryFocus?.unfocus();
-              Future.delayed(const Duration(milliseconds: 1000), () {
-                if (mounted) {
-                  _headerVariant = ChatHeaderVariant.chat2;
-                  _triggerUnlockDate();
-                }
-              });
-            }
-          }
-        }
         if (!_messageIds.contains(sentMessage.id)) {
           _messages.add(sentMessage);
           _messages.sort((a, b) => a.timestamp.compareTo(b.timestamp));
@@ -717,6 +760,7 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
         _isSending = false;
       });
       _scrollToBottom();
+      _initUpdateRelationshipBar(true);
     } catch (e) {
       if (!mounted) return;
       setState(() {
@@ -1155,19 +1199,31 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
                         if (_isChatDisabled)
                           Container(
                             width: double.infinity,
-                            padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+                            padding: const EdgeInsets.symmetric(
+                              vertical: 12,
+                              horizontal: 16,
+                            ),
                             decoration: BoxDecoration(
                               color: Colors.grey.shade200,
-                              border: Border(top: BorderSide(color: Colors.grey.shade300)),
+                              border: Border(
+                                top: BorderSide(color: Colors.grey.shade300),
+                              ),
                             ),
                             child: Row(
                               mainAxisAlignment: MainAxisAlignment.center,
                               children: [
-                                Icon(Icons.block, color: Colors.grey.shade600, size: 18),
+                                Icon(
+                                  Icons.block,
+                                  color: Colors.grey.shade600,
+                                  size: 18,
+                                ),
                                 const SizedBox(width: 8),
                                 Text(
                                   'ไม่สามารถส่งข้อความได้เนื่องจากมีการรายงาน',
-                                  style: TextStyle(color: Colors.grey.shade600, fontSize: 14),
+                                  style: TextStyle(
+                                    color: Colors.grey.shade600,
+                                    fontSize: 14,
+                                  ),
                                 ),
                               ],
                             ),
@@ -1292,250 +1348,14 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
                   ),
                 ),
               ],
-              if (_showUnlockDate) ...[
-                // 1. Full Screen Blur
-                Positioned.fill(
-                  child: BackdropFilter(
-                    filter: ImageFilter.blur(sigmaX: 15.0, sigmaY: 15.0),
-                    child: Container(
-                      decoration: BoxDecoration(
-                        color: AppColors.info.withOpacity(0.1),
-                      ),
-                    ),
-                  ),
-                ),
-
-                // 2. Animated Content
-                Positioned.fill(
-                  child: TweenAnimationBuilder<double>(
-                    tween: Tween(begin: 0.0, end: 1.0),
-                    duration: const Duration(milliseconds: 800),
-                    curve: Curves.elasticOut,
-                    builder: (context, value, child) {
-                      return Transform.scale(scale: value, child: child);
-                    },
-                    child: Center(
-                      child: Container(
-                        width: MediaQuery.of(context).size.width * 0.88,
-                        decoration: BoxDecoration(
-                          color: AppColors.background.withOpacity(0.95),
-                          borderRadius: BorderRadius.circular(45),
-                          boxShadow: [
-                            BoxShadow(
-                              color: AppColors.brandPrimary.withOpacity(0.2),
-                              blurRadius: 40,
-                              offset: const Offset(0, 20),
-                            ),
-                          ],
-                        ),
-                        child: Column(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            // --- ด้านบนสุด: ตกแต่งด้วยรูปทรงวงกลมฟุ้งๆ ---
-                            ClipRRect(
-                              borderRadius: const BorderRadius.only(
-                                topLeft: Radius.circular(45),
-                                topRight: Radius.circular(45),
-                              ),
-                              child: SizedBox(
-                                height: 100,
-                                child: Stack(
-                                  children: [
-                                    Positioned(
-                                      top: -50,
-                                      left: -20,
-                                      child: CircleAvatar(
-                                        radius: 60,
-                                        backgroundColor: AppColors.info
-                                            .withOpacity(0.3),
-                                      ),
-                                    ),
-                                    Positioned(
-                                      top: -20,
-                                      right: -10,
-                                      child: CircleAvatar(
-                                        radius: 40,
-                                        backgroundColor: AppColors
-                                            .brandPrimary200
-                                            .withOpacity(0.5),
-                                      ),
-                                    ),
-                                    Center(
-                                      child: Text(
-                                        "IT'S DATE TIME!",
-                                        style: TextStyle(
-                                          color: AppColors.brandPrimary700,
-                                          fontWeight: FontWeight.w900,
-                                          letterSpacing: 2,
-                                          fontSize: 14,
-                                        ),
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ),
-
-                            Padding(
-                              padding: const EdgeInsets.fromLTRB(32, 0, 32, 40),
-                              child: Column(
-                                children: [
-                                  // --- ไอคอน: กล้อง + หัวใจ ---
-                                  Stack(
-                                    alignment: Alignment.center,
-                                    children: [
-                                      Container(
-                                        width: 140,
-                                        height: 140,
-                                        decoration: BoxDecoration(
-                                          shape: BoxShape.circle,
-                                          gradient: RadialGradient(
-                                            colors: [
-                                              AppColors.brandPrimary200
-                                                  .withOpacity(0.6),
-                                              AppColors.background.withOpacity(
-                                                0.0,
-                                              ),
-                                            ],
-                                          ),
-                                        ),
-                                      ),
-                                      Container(
-                                        width: 100,
-                                        height: 100,
-                                        decoration: BoxDecoration(
-                                          gradient: const LinearGradient(
-                                            colors: [
-                                              AppColors.brandPrimary,
-                                              AppColors.brandPrimary700,
-                                            ],
-                                            begin: Alignment.topLeft,
-                                            end: Alignment.bottomRight,
-                                          ),
-                                          shape: BoxShape.circle,
-                                          boxShadow: [
-                                            BoxShadow(
-                                              color: AppColors.brandPrimary
-                                                  .withOpacity(0.4),
-                                              blurRadius: 15,
-                                              offset: const Offset(0, 10),
-                                            ),
-                                          ],
-                                        ),
-                                        padding: const EdgeInsets.all(5),
-                                        child: SvgPicture.asset(
-                                          'assets/icons/icon_spinwheel.svg',
-                                          width: 25,
-                                          height: 25,
-                                          fit: BoxFit.contain,
-                                        ),
-                                      ),
-                                      Positioned(
-                                        top: 5,
-                                        right: 5,
-                                        child: SvgPicture.asset(
-                                          'assets/icons/HEART_STATUS_BAR.svg',
-                                          width: 28,
-                                          height: 28,
-                                        ),
-                                      ),
-                                      Positioned(
-                                        bottom: 0,
-                                        left: 10,
-                                        child: Container(
-                                          padding: const EdgeInsets.all(8),
-                                          decoration: const BoxDecoration(
-                                            color: AppColors.textPrimary,
-                                            shape: BoxShape.circle,
-                                          ),
-                                          child: SvgPicture.asset(
-                                            'assets/icons/icon_unlock.svg',
-                                            width: 20,
-                                            height: 20,
-                                            color: AppColors.warning,
-                                          ),
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                  const SizedBox(height: 32),
-
-                                  const Text(
-                                    'Unlock Your Date!',
-                                    textAlign: TextAlign.center,
-                                    style: TextStyle(
-                                      fontSize: 24,
-                                      fontWeight: FontWeight.bold,
-                                      color: AppColors.textPrimary,
-                                    ),
-                                  ),
-                                  const SizedBox(height: 12),
-                                  Text(
-                                    'เตรียมตัวไปสร้างเดทสุดพิเศษ\nกับคู่ของคุณกัน!',
-                                    textAlign: TextAlign.center,
-                                    style: TextStyle(
-                                      fontSize: 16,
-                                      color: AppColors.textSecondary,
-                                      height: 1.5,
-                                    ),
-                                  ),
-
-                                  const SizedBox(height: 32),
-
-                                  Container(
-                                    width: double.infinity,
-                                    decoration: BoxDecoration(
-                                      borderRadius: BorderRadius.circular(20),
-                                      gradient: const LinearGradient(
-                                        colors: [
-                                          AppColors.btnPrimary,
-                                          AppColors.btnHoverPrimary,
-                                        ],
-                                      ),
-                                      boxShadow: [
-                                        BoxShadow(
-                                          color: AppColors.btnPrimary
-                                              .withOpacity(0.3),
-                                          blurRadius: 15,
-                                          offset: const Offset(0, 8),
-                                        ),
-                                      ],
-                                    ),
-                                    child: ElevatedButton(
-                                      onPressed: () {},
-                                      style: ElevatedButton.styleFrom(
-                                        backgroundColor: Colors.transparent,
-                                        shadowColor: Colors.transparent,
-                                        padding: const EdgeInsets.symmetric(
-                                          horizontal: 16,
-                                          vertical: 16,
-                                        ),
-                                        shape: RoundedRectangleBorder(
-                                          borderRadius: BorderRadius.circular(
-                                            20,
-                                          ),
-                                        ),
-                                      ),
-                                      child: const Text(
-                                        'ไปเดทกันเลย!',
-                                        style: TextStyle(
-                                          color: AppColors.btnTextPrimary,
-                                          fontSize: 18,
-                                          fontWeight: FontWeight.bold,
-                                        ),
-                                      ),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-              ],
+              UnlockDateModal(
+                isVisible: _showUnlockDate,
+                onConfirm: () {
+                  setState(() {
+                    _showUnlockDate = false;
+                  });
+                },
+              ),
             ],
           ),
         ),

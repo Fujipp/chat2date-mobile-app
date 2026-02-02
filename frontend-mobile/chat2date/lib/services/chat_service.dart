@@ -6,6 +6,7 @@ import 'package:chat2date/models/chat_message.dart';
 import 'package:chat2date/models/chat_room.dart';
 import 'package:chat2date/models/chat_room_messages.dart';
 import 'package:chat2date/models/match.dart';
+import 'package:chat2date/models/relationship_bar.dart';
 import 'package:chat2date/models/user.dart' show User;
 import 'package:chat2date/stores/user_store.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -260,5 +261,93 @@ class ChatService {
     }
 
     throw Exception('ไม่สามารถดึงรายการ matches ได้: ${response.body}');
+  }
+
+  Future<RelationshipBar> getRelationshipBar(String roomId) async {
+    final userState = ref.read(userStoreProvider);
+    final accessToken = "${userState['accessToken']}";
+
+    final uri = Uri.parse(
+      '${ApiBase.baseUrl}/relationship/$roomId',
+    );
+    final response = await http.get(
+      uri,
+      headers: {
+        'Authorization': 'Bearer $accessToken',
+        'Content-Type': 'application/json',
+      },
+    );
+
+    if (response.statusCode == 200) {
+      final data = jsonDecode(response.body);
+      return RelationshipBar.fromJson(data as Map<String, dynamic>);
+    }
+
+    if (response.statusCode == 401) {
+      throw Exception('กรุณาเข้าสู่ระบบใหม่');
+    }
+
+    if (response.statusCode == 404) {
+      return createRelationshipBar(roomId);
+    }
+
+    throw Exception('ไม่สามารถดึงข้อมูลความสัมพันธ์ได้: ${response.body}');
+  }
+
+  Future<RelationshipBar> createRelationshipBar(String roomId) async {
+    final userState = ref.read(userStoreProvider);
+    final accessToken = "${userState['accessToken']}";
+
+    final uri = Uri.parse(
+      '${ApiBase.baseUrl}/relationship',
+    );
+    final response = await http.post(
+      uri,
+      headers: {
+        'Authorization': 'Bearer $accessToken',
+        'Content-Type': 'application/json',
+      },
+      body: jsonEncode({
+        'roomId': roomId,
+      }),
+    );
+
+    if (response.statusCode == 201) {
+      final data = jsonDecode(response.body);
+      return RelationshipBar.fromJson(data as Map<String, dynamic>);
+    }
+
+    if (response.statusCode == 401) {
+      throw Exception('กรุณาเข้าสู่ระบบใหม่');
+    }
+
+    throw Exception('ไม่สามารถดึงข้อมูลความสัมพันธ์ได้: ${response.body}');
+  }
+
+  Future<RelationshipBar> updateRelationshipBar(String roomId) async {
+    final userState = ref.read(userStoreProvider);
+    final accessToken = "${userState['accessToken']}";
+
+    final uri = Uri.parse(
+      '${ApiBase.baseUrl}/relationship/$roomId',
+    );
+    final response = await http.put(
+      uri,
+      headers: {
+        'Authorization': 'Bearer $accessToken',
+        'Content-Type': 'application/json',
+      },
+    );
+
+    if (response.statusCode == 200) {
+      final data = jsonDecode(response.body);
+      return RelationshipBar.fromJson(data as Map<String, dynamic>);
+    }
+
+    if (response.statusCode == 401) {
+      throw Exception('กรุณาเข้าสู่ระบบใหม่');
+    }
+
+    throw Exception('ไม่สามารถดึงข้อมูลความสัมพันธ์ได้: ${response.body}');
   }
 }
