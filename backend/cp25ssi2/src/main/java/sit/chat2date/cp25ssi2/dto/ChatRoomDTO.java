@@ -5,6 +5,8 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.time.LocalDateTime;
+
 @Data
 @Builder
 @NoArgsConstructor
@@ -15,6 +17,7 @@ public class ChatRoomDTO {
     private String partnerName;
     private String partnerImage;
     private String lastMessage;
+    private LocalDateTime lastMessageTime; // for sorting by latest message
     private Integer unreadCount;
     private String type; // "new" or "old"
 }

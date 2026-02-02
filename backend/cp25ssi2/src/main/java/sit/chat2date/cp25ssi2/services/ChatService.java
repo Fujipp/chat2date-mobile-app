@@ -57,15 +57,15 @@ public class ChatService {
                                         ? match.getUserId2()
                                         : match.getUserId1();
 
-                        String lastMessage = messageRepository.findFirstByRoomIdOrderByCreatedAtDesc(roomId)
-                                        .map(Message::getMessage)
-                                        .orElse("");
+                        // Get latest message for this room
+                        var latestMessage = messageRepository.findFirstByRoomIdOrderByCreatedAtDesc(roomId);
+                        String lastMessage = latestMessage.map(Message::getMessage).orElse("");
+                        var lastMessageTime = latestMessage.map(Message::getCreatedAt).orElse(match.getCreatedAt());
 
                         Integer unreadCount = messageRepository.countUnreadMessages(roomId, userId);
 
                         // Determine if new (no messages yet) or old
-                        boolean hasMessages = messageRepository.findFirstByRoomIdOrderByCreatedAtDesc(roomId)
-                                        .isPresent();
+                        boolean hasMessages = latestMessage.isPresent();
                         String type = hasMessages ? "old" : "new";
 
                         return ChatRoomDTO.builder()
@@ -74,10 +74,14 @@ public class ChatService {
                                         .partnerName(partner.getNickname())
                                         .partnerImage(getFirstPhoto(partner.getUserId()))
                                         .lastMessage(lastMessage)
+                                        .lastMessageTime(lastMessageTime)
                                         .unreadCount(unreadCount)
                                         .type(type)
                                         .build();
-                }).collect(Collectors.toList());
+                })
+                                // Sort by lastMessageTime descending (latest first)
+                                .sorted((a, b) -> b.getLastMessageTime().compareTo(a.getLastMessageTime()))
+                                .collect(Collectors.toList());
 
                 return ChatRoomListResponse.builder().rooms(roomDTOs).build();
         }

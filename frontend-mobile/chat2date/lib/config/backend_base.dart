@@ -7,7 +7,7 @@ class ApiBase {
   // ============================================
   // 🔧 SWITCH: เปลี่ยนเป็น true เพื่อใช้ Backend บนเครื่อง
   // ============================================
-  static const bool useLocalBackend = false;
+  static const bool useLocalBackend = true;
   
   // URLs สำหรับ Local Backend (บนเครื่อง)
   // 🔧 เปลี่ยน IP นี้เป็น IP ของ Mac เมื่อรันบนเครื่องจริง
