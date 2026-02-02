@@ -110,9 +110,9 @@ class ChatMessage {
           // ถ้ามี timezone marker (Z หรือ +07:00) ให้แปลงเป็น local time
           timestamp = parsedTime.isUtc ? parsedTime.toLocal() : parsedTime;
         } else {
-          // ไม่มี timezone marker = Backend ส่งเป็น local time อยู่แล้ว
-          // ใช้ตรงๆ ไม่ต้องแปลง
-          timestamp = parsedTime;
+          // ไม่มี timezone marker = Backend VM ใช้ UTC
+          // ต้องบวก 7 ชั่วโมงให้เป็น Thailand time (UTC+7)
+          timestamp = parsedTime.add(const Duration(hours: 7));
         }
       } else {
         timestamp = DateTime.now();
