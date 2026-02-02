@@ -36,28 +36,38 @@ public class ChatAccessService {
      */
     @Transactional
     public void enterRoom(String userId, ChatAccessRequest request) {
+        System.out
+                .println("[ChatAccessService] enterRoom called - userId=" + userId + ", roomId=" + request.getRoomId());
+
         if (request.getType() != ChatAccessActionType.ENTER) {
             throw new BadRequestException("Invalid action type for enter");
         }
 
         Integer roomId = Integer.parseInt(request.getRoomId());
+        System.out.println("[ChatAccessService] Looking for match with roomId=" + roomId);
+
         Match match = matchRepository.findByIdAndUserId(roomId, userId)
                 .orElseThrow(() -> new NotFoundException("Room not found"));
+        System.out.println("[ChatAccessService] Found match: " + match.getId());
 
         if (!match.getUserId1().getUserId().equals(userId) && !match.getUserId2().getUserId().equals(userId)) {
             throw new ForbiddenAccessException("Access denied to this room");
         }
 
         // Find existing record or create new one
-        Optional<ChatAccessLog> existingLog = chatAccessLogRepository.findByRoomIdAndUserId(roomId, userId);
+        System.out.println("[ChatAccessService] Looking for existing access log");
+        Optional<ChatAccessLog> existingLog = chatAccessLogRepository
+                .findFirstByRoomIdAndUserIdOrderByCreatedAtDesc(roomId, userId);
 
         if (existingLog.isPresent()) {
             // Update existing record
+            System.out.println("[ChatAccessService] Updating existing access log");
             ChatAccessLog accessLog = existingLog.get();
             accessLog.setActionType(ChatAccessActionType.ENTER);
             chatAccessLogRepository.save(accessLog);
         } else {
             // Create new record
+            System.out.println("[ChatAccessService] Creating new access log");
             ChatAccessLog accessLog = ChatAccessLog.builder()
                     .userId(userId)
                     .roomId(roomId)
@@ -67,7 +77,9 @@ public class ChatAccessService {
         }
 
         // Mark messages as read for this user
+        System.out.println("[ChatAccessService] Marking messages as read");
         messageRepository.markMessagesAsRead(roomId, userId);
+        System.out.println("[ChatAccessService] Messages marked as read successfully");
 
         // Broadcast to SENDER that their messages have been read
         // Partner = the person who SENT the messages (they should know their messages
@@ -123,7 +135,8 @@ public class ChatAccessService {
         }
 
         // Find existing record or create new one
-        Optional<ChatAccessLog> existingLog = chatAccessLogRepository.findByRoomIdAndUserId(roomId, userId);
+        Optional<ChatAccessLog> existingLog = chatAccessLogRepository
+                .findFirstByRoomIdAndUserIdOrderByCreatedAtDesc(roomId, userId);
 
         if (existingLog.isPresent()) {
             // Update existing record

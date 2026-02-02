@@ -12,11 +12,11 @@ import java.util.Optional;
 public interface ChatAccessLogRepository extends JpaRepository<ChatAccessLog, Long> {
 
         /**
-         * Find existing access record by roomId and userId
+         * Find existing access record by roomId and userId (returns the latest one)
          */
-        Optional<ChatAccessLog> findByRoomIdAndUserId(Integer roomId, String userId);
+        Optional<ChatAccessLog> findFirstByRoomIdAndUserIdOrderByCreatedAtDesc(Integer roomId, String userId);
 
-        @Query("SELECT c FROM ChatAccessLog c WHERE c.roomId = :roomId AND c.userId = :userId ORDER BY c.updatedAt DESC LIMIT 1")
+        @Query("SELECT c FROM ChatAccessLog c WHERE c.roomId = :roomId AND c.userId = :userId ORDER BY c.createdAt DESC LIMIT 1")
         Optional<ChatAccessLog> findLatestByRoomIdAndUserId(@Param("roomId") Integer roomId,
                         @Param("userId") String userId);
 

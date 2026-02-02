@@ -34,21 +34,10 @@ public class ChatAccessLog {
     @Column(name = "createdAt", nullable = false, updatable = false)
     private LocalDateTime createdAt;
 
-    @ColumnDefault("CURRENT_TIMESTAMP")
-    @Column(name = "updatedAt", nullable = false)
-    private LocalDateTime updatedAt;
-
     @PrePersist
     protected void onCreate() {
-        LocalDateTime now = LocalDateTime.now();
         if (createdAt == null) {
-            createdAt = now;
+            createdAt = LocalDateTime.now();
         }
-        updatedAt = now;
-    }
-
-    @PreUpdate
-    protected void onUpdate() {
-        updatedAt = LocalDateTime.now();
     }
 }
