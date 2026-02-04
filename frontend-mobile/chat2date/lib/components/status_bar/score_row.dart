@@ -22,6 +22,7 @@ class ScoreRow extends StatelessWidget {
     this.leadingHeight = 22,
     this.rightIconSize = 20,
     this.showRightIcon = true,
+    this.onRightIconTap,
   });
 
   final double basePercent;
@@ -38,6 +39,7 @@ class ScoreRow extends StatelessWidget {
   final double leadingHeight;
   final double rightIconSize;
   final bool showRightIcon;
+  final VoidCallback? onRightIconTap;
 
   // Gradient สีรุ้ง
   static const LinearGradient _rainbow = LinearGradient(
@@ -152,10 +154,15 @@ class ScoreRow extends StatelessWidget {
 
         // ไอคอนขวา
         if (showRightIcon)
-          SvgPicture.asset(
-            rightSvg,
-            width: rightIconSize,
-            height: rightIconSize,
+          GestureDetector(
+            onTap: onRightIconTap, // เรียกฟังก์ชันเมื่อกด
+            behavior:
+                HitTestBehavior.opaque, // ช่วยให้กดง่ายขึ้นแม้พื้นที่โปร่งใส
+            child: SvgPicture.asset(
+              rightSvg,
+              width: rightIconSize,
+              height: rightIconSize,
+            ),
           ),
       ],
     );

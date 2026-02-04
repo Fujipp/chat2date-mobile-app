@@ -6,6 +6,7 @@ import 'package:chat2date/components/chat/chat_text_component.dart';
 import 'package:chat2date/components/chat/input_chat_component.dart';
 import 'package:chat2date/components/chat/spin_date_component.dart';
 import 'package:chat2date/components/layout/header.dart';
+import 'package:chat2date/components/modal/relationship_mission_modal.dart';
 import 'package:chat2date/components/page/unlock_date_modal.dart';
 import 'package:chat2date/components/status_bar/score_row.dart';
 import 'package:chat2date/models/chat_access_status.dart';
@@ -100,9 +101,8 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
     _chatUserId = widget.targetUserId;
     _chatUserName = widget.userName ?? 'Name';
     _chatUserAvatar = widget.avatarUrl;
-    _initUpdateRelationshipBar(false);
-
     _scrollController.addListener(_handleScroll);
+    _initUpdateRelationshipBar(false);
     _initializeChat();
   }
 
@@ -129,9 +129,7 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
         _isFirstMessageBonus = roomData != null
             ? roomData.isFirstMessageBonus
             : false;
-        _dailyMessagesCount = roomData != null
-            ? roomData.dailyMessageCount
-            : 0;
+        _dailyMessagesCount = roomData != null ? roomData.dailyMessageCount : 0;
       });
 
       if (widget.roomId != null &&
@@ -146,7 +144,8 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
     } else {
       final chatService = ref.read(chatServiceProvider);
       final roomData =
-          await chatService.getRelationshipBar(widget.roomId!) as RelationshipBar?;
+          await chatService.getRelationshipBar(widget.roomId!)
+              as RelationshipBar?;
       if (!mounted) return;
       setState(() {
         _heartCount = roomData != null ? (roomData.score ~/ 100) : 0;
@@ -157,9 +156,7 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
         _isFirstMessageBonus = roomData != null
             ? roomData.isFirstMessageBonus
             : false;
-        _dailyMessagesCount = roomData != null
-            ? roomData.dailyMessageCount
-            : 0;
+        _dailyMessagesCount = roomData != null ? roomData.dailyMessageCount : 0;
       });
 
       if (widget.roomId != null &&
@@ -681,7 +678,7 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
   bool _checkUserEligibility() {
     // เงื่อนไขผ่าน: จำนวนหัวใจ >= 1 (0,1,2,3 โดย 3 จะเป็นรุ้ง)
     // ไม่ต้องเช็ค percent เพราะถ้าเต็มจะเป็น 1 อยู่แล้ว
-    
+
     return _heartCount >= 1;
   }
 
@@ -1092,6 +1089,21 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
                                 barWidth: barWidth,
                                 barHeight: 8,
                                 rightIconSize: 18,
+                                onRightIconTap: () => {
+                                  showModalBottomSheet(
+                                    context: context,
+                                    isScrollControlled: true,
+                                    backgroundColor: Colors
+                                        .transparent, // เพื่อให้เห็นเงาโค้งของ Container ข้างใน
+                                    builder: (context) => RelationshipMissionModal(
+                                      isFirstMessageBonus: true,
+                                      streakDays:
+                                          _steakDays, // ใช้ตัวแปรใน State ของคุณ
+                                      dailyMessages:
+                                          _dailyMessagesCount , // ใช้ตัวแปรใน State ของคุณ
+                                    ),
+                                  ),
+                                },
                               );
                             },
                           ),
@@ -1257,36 +1269,36 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
               ),
 
               //ปุ่มเทสเกม
-              Positioned(
-                top: 100, // ปรับตำแหน่งแนวตั้ง (ให้หลบ Header)
-                right: 0, // ชิดขวา
-                child: Container(
-                  decoration: const BoxDecoration(
-                    color: Colors.red, // สีแดงเด่นๆ ให้รู้ว่าเป็นปุ่ม Test
-                    borderRadius: BorderRadius.only(
-                      topLeft: Radius.circular(20),
-                      bottomLeft: Radius.circular(20),
-                    ),
-                  ),
-                  child: IconButton(
-                    icon: const Icon(
-                      Icons.videogame_asset,
-                      color: Colors.white,
-                    ),
-                    onPressed: () {
-                      final int? realRoomId = int.tryParse(widget.roomId ?? '');
+              // Positioned(
+              //   top: 100, // ปรับตำแหน่งแนวตั้ง (ให้หลบ Header)
+              //   right: 0, // ชิดขวา
+              //   child: Container(
+              //     decoration: const BoxDecoration(
+              //       color: Colors.red, // สีแดงเด่นๆ ให้รู้ว่าเป็นปุ่ม Test
+              //       borderRadius: BorderRadius.only(
+              //         topLeft: Radius.circular(20),
+              //         bottomLeft: Radius.circular(20),
+              //       ),
+              //     ),
+              //     child: IconButton(
+              //       icon: const Icon(
+              //         Icons.videogame_asset,
+              //         color: Colors.white,
+              //       ),
+              //       onPressed: () {
+              //         final int? realRoomId = int.tryParse(widget.roomId ?? '');
 
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) =>
-                              GuessingGameScreen(roomId: realRoomId),
-                        ),
-                      );
-                    },
-                  ),
-                ),
-              ),
+              //         Navigator.push(
+              //           context,
+              //           MaterialPageRoute(
+              //             builder: (context) =>
+              //                 GuessingGameScreen(roomId: realRoomId),
+              //           ),
+              //         );
+              //       },
+              //     ),
+              //   ),
+              // ),
               if (_showWheelModal) ...[
                 // 1. ฉากหลังสีเทาจาง (Dim background)
                 Positioned.fill(

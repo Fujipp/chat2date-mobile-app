@@ -116,18 +116,12 @@ class ChatService {
         'Authorization': 'Bearer $accessToken',
         'Content-Type': 'application/json',
       },
-      body: jsonEncode({
-        'roomId': roomId,
-        'message': message,
-      }),
+      body: jsonEncode({'roomId': roomId, 'message': message}),
     );
 
     if (response.statusCode == 201) {
       final data = jsonDecode(response.body);
-      return ChatMessage.fromApi(
-        json: data,
-        currentUserId: currentUserId,
-      );
+      return ChatMessage.fromApi(json: data, currentUserId: currentUserId);
     }
 
     if (response.statusCode == 401) {
@@ -160,11 +154,7 @@ class ChatService {
         'Authorization': 'Bearer $accessToken',
         'Content-Type': 'application/json',
       },
-      body: jsonEncode({
-        'roomId': roomId,
-        'userId': userId,
-        'type': 'ENTER',
-      }),
+      body: jsonEncode({'roomId': roomId, 'userId': userId, 'type': 'ENTER'}),
     );
 
     print('[ChatService] enterRoom response: ${response.statusCode}');
@@ -197,11 +187,7 @@ class ChatService {
         'Authorization': 'Bearer $accessToken',
         'Content-Type': 'application/json',
       },
-      body: jsonEncode({
-        'roomId': roomId,
-        'userId': userId,
-        'type': 'EXIT',
-      }),
+      body: jsonEncode({'roomId': roomId, 'userId': userId, 'type': 'EXIT'}),
     );
 
     if (response.statusCode == 200 || response.statusCode == 409) {
@@ -267,9 +253,7 @@ class ChatService {
     final userState = ref.read(userStoreProvider);
     final accessToken = "${userState['accessToken']}";
 
-    final uri = Uri.parse(
-      '${ApiBase.baseUrl}/relationship/$roomId',
-    );
+    final uri = Uri.parse('${ApiBase.baseUrl}/relationship/$roomId');
     final response = await http.get(
       uri,
       headers: {
@@ -298,18 +282,14 @@ class ChatService {
     final userState = ref.read(userStoreProvider);
     final accessToken = "${userState['accessToken']}";
 
-    final uri = Uri.parse(
-      '${ApiBase.baseUrl}/relationship',
-    );
+    final uri = Uri.parse('${ApiBase.baseUrl}/relationship');
     final response = await http.post(
       uri,
       headers: {
         'Authorization': 'Bearer $accessToken',
         'Content-Type': 'application/json',
       },
-      body: jsonEncode({
-        'roomId': roomId,
-      }),
+      body: jsonEncode({'roomId': roomId}),
     );
 
     if (response.statusCode == 201) {
@@ -324,13 +304,11 @@ class ChatService {
     throw Exception('ไม่สามารถดึงข้อมูลความสัมพันธ์ได้: ${response.body}');
   }
 
-  Future<RelationshipBar> updateRelationshipBar(String roomId) async {
+  Future<RelationshipBar?> updateRelationshipBar(String roomId) async {
     final userState = ref.read(userStoreProvider);
     final accessToken = "${userState['accessToken']}";
 
-    final uri = Uri.parse(
-      '${ApiBase.baseUrl}/relationship/$roomId',
-    );
+    final uri = Uri.parse('${ApiBase.baseUrl}/relationship/$roomId');
     final response = await http.put(
       uri,
       headers: {
@@ -346,6 +324,11 @@ class ChatService {
 
     if (response.statusCode == 401) {
       throw Exception('กรุณาเข้าสู่ระบบใหม่');
+    }
+
+    if (response.statusCode == 429) {
+      print("Rate limit hit for room $roomId - skipping update.");
+      return null;
     }
 
     throw Exception('ไม่สามารถดึงข้อมูลความสัมพันธ์ได้: ${response.body}');

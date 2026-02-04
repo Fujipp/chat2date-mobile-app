@@ -93,10 +93,7 @@ class _ChatListScreenState extends ConsumerState<ChatListScreen>
 
     if (userId == null || userId.isEmpty) return;
 
-    _matchSocket = MatchSocketService(
-      userId: userId,
-      accessToken: accessToken,
-    );
+    _matchSocket = MatchSocketService(userId: userId, accessToken: accessToken);
     _matchSocket?.connect();
 
     _matchSubscription = _matchSocket?.stream.listen((event) {
@@ -112,7 +109,7 @@ class _ChatListScreenState extends ConsumerState<ChatListScreen>
       final roomIndex = _chatRooms.indexWhere(
         (room) => room.roomId == event.roomId,
       );
-      
+
       if (roomIndex >= 0) {
         // อัพเดทห้องที่มีอยู่แล้ว
         final updatedRoom = _chatRooms[roomIndex].copyWith(
@@ -120,7 +117,7 @@ class _ChatListScreenState extends ConsumerState<ChatListScreen>
           lastMessage: event.lastMessage ?? _chatRooms[roomIndex].lastMessage,
         );
         _chatRooms[roomIndex] = updatedRoom;
-        
+
         // ถ้า unread count = 0 ให้เพิ่มเข้า cleared list เพื่อแสดง 0 ทันที
         if (event.unreadCount == 0) {
           _clearedUnreadRoomIds.add(event.roomId);
@@ -146,10 +143,7 @@ class _ChatListScreenState extends ConsumerState<ChatListScreen>
   }
 
   Future<void> _loadData() async {
-    await Future.wait([
-      _loadChatRooms(),
-      _loadMatches(),
-    ]);
+    await Future.wait([_loadChatRooms(), _loadMatches()]);
   }
 
   Future<void> _loadChatRooms() async {
@@ -160,6 +154,12 @@ class _ChatListScreenState extends ConsumerState<ChatListScreen>
 
     try {
       final chatService = ref.read(chatServiceProvider);
+      final roomsRefresh = await chatService.getChatRooms();
+      if (roomsRefresh.isNotEmpty) {
+        await Future.wait(
+          roomsRefresh.map((room) => chatService.updateRelationshipBar(room.roomId)),
+        );
+      }
       final rooms = await chatService.getChatRooms();
       if (mounted) {
         setState(() {
@@ -266,9 +266,7 @@ class _ChatListScreenState extends ConsumerState<ChatListScreen>
   Widget _buildChatTab() {
     // Loading state
     if (_isLoadingChats) {
-      return const Center(
-        child: CircularProgressIndicator(),
-      );
+      return const Center(child: CircularProgressIndicator());
     }
 
     // Error state
@@ -315,7 +313,9 @@ class _ChatListScreenState extends ConsumerState<ChatListScreen>
           final isSvgAvatar = _isSvgImage(avatarPath);
           final bool isCleared = _clearedUnreadRoomIds.contains(room.roomId);
           final int displayUnreadCount = isCleared ? 0 : room.unreadCount;
-          print('[ChatList] roomId=${room.roomId}, isCleared=$isCleared, room.unreadCount=${room.unreadCount}, display=$displayUnreadCount');
+          print(
+            '[ChatList] roomId=${room.roomId}, isCleared=$isCleared, room.unreadCount=${room.unreadCount}, display=$displayUnreadCount',
+          );
           return CardChatComponent(
             svgPath: isSvgAvatar ? avatarPath : null,
             imagePath: isSvgAvatar ? null : avatarPath,
@@ -349,9 +349,7 @@ class _ChatListScreenState extends ConsumerState<ChatListScreen>
   Widget _buildMatchTab() {
     // Loading state
     if (_isLoadingMatches) {
-      return const Center(
-        child: CircularProgressIndicator(),
-      );
+      return const Center(child: CircularProgressIndicator());
     }
 
     // Error state
@@ -421,10 +419,7 @@ class _ChatListScreenState extends ConsumerState<ChatListScreen>
                 },
               );
               if (!mounted) return;
-              await Future.wait([
-                _loadMatches(),
-                _loadChatRooms(),
-              ]);
+              await Future.wait([_loadMatches(), _loadChatRooms()]);
             },
           );
         },
