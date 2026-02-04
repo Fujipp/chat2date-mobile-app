@@ -107,13 +107,9 @@ public class RelationshipStatsService {
                 if (daysBetween > 0) {
                     int currentStreak = relationshipStatsById.get().getStreakDays();
                     if (daysBetween > 1) {
-                        int penaltyDays = (int) (daysBetween - 1);
-
-                        if (currentStreak > 0) {
-                            relationshipStatsById.get().setStreakDays(-penaltyDays);
-                        } else {
-                            relationshipStatsById.get().setStreakDays(currentStreak - penaltyDays);
-                        }
+                        int penaltyDays = (int) (daysBetween);
+                        int newStreak = (currentStreak > 0) ? -penaltyDays : currentStreak - penaltyDays;
+                        relationshipStatsById.get().setStreakDays(newStreak);
                     } else {
                         relationshipStatsById.get().setStreakDays(0);
                     }
