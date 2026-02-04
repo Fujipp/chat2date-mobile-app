@@ -29,6 +29,7 @@ public class GameService {
     private final MatchRepository matchRepository;
     private final UserPhotoRepository userPhotoRepository;
     private final RelationshipStatsRepository relationshipStatsRepository;
+    private final ChatAccessLogRepository chatAccessLogRepository;
     private final GeminiClient geminiClient;
     private final ObjectMapper objectMapper;
     private final SimpMessagingTemplate messagingTemplate;
@@ -192,6 +193,17 @@ public class GameService {
         int totalQuestions = gameQuestionRepository.countByGameId(gameId);
         boolean isGameOver = myAnsweredCount >= totalQuestions;
 
+        if (isGameOver && session.getStatus() != GameSessionStatus.COMPLETED) {
+            session.setStatus(GameSessionStatus.COMPLETED);
+            gameSessionRepository.save(session);
+
+            RelationshipStats relStats = relationshipStatsRepository.findByRoomId(roomId)
+                    .orElseThrow(() -> new NotFoundException("Relationship stats not found"));
+
+            relStats.setScore(relStats.getScore() + session.getTotalScore());
+            relationshipStatsRepository.save(relStats);
+        }
+
         Map<String, Object> socketPayload = new HashMap<>();
         socketPayload.put("type", "SCORE_UPDATE");
         socketPayload.put("roomTotalScore", session.getTotalScore());
@@ -292,6 +304,10 @@ public class GameService {
         Optional<RelationshipStats> statsOpt = relationshipStatsRepository.findByRoomId(roomId);
         if (statsOpt.isPresent()) {
             relScore = statsOpt.get().getScore();
+
+            if (session.getStatus() == GameSessionStatus.COMPLETED) {
+                relScore = relScore - session.getTotalScore();
+            }
         }
 
         return GameResumeResponse.builder()
@@ -304,5 +320,54 @@ public class GameService {
                 .partnerAvatar(partnerAvatar)
                 .relationshipScore(relScore)
                 .build();
+    }
+
+    public void checkAndTriggerGame(Integer roomId, int currentScore) {
+        int targetScore = 0;
+        if (currentScore >= 75) {
+            targetScore = 75;
+        } else if (currentScore >= 50) {
+            targetScore = 50;
+        } else if (currentScore >= 25) {
+            targetScore = 25;
+        }
+
+        if (targetScore == 0) return;
+
+        boolean hasActiveGame = gameSessionRepository.existsByRoomIdAndStatus(
+                roomId.toString(), GameSessionStatus.ACTIVE
+        );
+        if (hasActiveGame) return;
+
+        long completedGamesCount = gameSessionRepository.countByRoomIdAndStatus(
+                roomId.toString(), GameSessionStatus.COMPLETED
+        );
+
+        boolean shouldTrigger = false;
+        if (targetScore == 25 && completedGamesCount == 0) shouldTrigger = true;
+        else if (targetScore == 50 && completedGamesCount == 1) shouldTrigger = true;
+        else if (targetScore == 75 && completedGamesCount == 2) shouldTrigger = true;
+
+        if (!shouldTrigger) return;
+
+        Match match = matchRepository.findById(roomId).orElseThrow();
+        String user1 = match.getUserId1().getUserId();
+        String user2 = match.getUserId2().getUserId();
+
+        if (isUserOnline(roomId, user1) && isUserOnline(roomId, user2)) {
+            System.out.println("🚀 AUTO TRIGGER GAME Level " + targetScore + " for Room: " + roomId);
+
+            Map<String, Object> payload = new HashMap<>();
+            payload.put("type", "GAME_START");
+            payload.put("level", targetScore);
+
+            messagingTemplate.convertAndSend("/topic/games/" + roomId, payload);
+        }
+    }
+
+    private boolean isUserOnline(Integer roomId, String userId) {
+        return chatAccessLogRepository.findFirstByRoomIdAndUserIdOrderByCreatedAtDesc(roomId, userId)
+                .map(log -> sit.chat2date.cp25ssi2.enums.ChatAccessActionType.ENTER.equals(log.getActionType()))
+                .orElse(false);
     }
 }
