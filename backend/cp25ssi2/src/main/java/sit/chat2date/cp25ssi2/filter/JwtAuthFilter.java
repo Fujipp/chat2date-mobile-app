@@ -53,7 +53,7 @@ public class JwtAuthFilter extends OncePerRequestFilter {
         if (path.startsWith("/api/v1/auth") ||
                 path.startsWith("/api/v1/preferences") ||
                 path.equals("/api/v1/users/phone") ||
-                path.startsWith("/api/v1//test") ||
+                path.startsWith("/api/v1/test") ||
                 path.matches("/api/v1/users/[^/]+/restore")) {
             filterChain.doFilter(request, response);
             return;
