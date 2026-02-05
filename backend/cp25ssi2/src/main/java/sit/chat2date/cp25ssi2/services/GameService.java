@@ -184,7 +184,7 @@ public class GameService {
 
         Map<String, Object> payload = new HashMap<>();
         payload.put("type", "PLAYER_READY");
-        payload.put("players", players);
+        payload.put("readyPlayerIds", players);
         messagingTemplate.convertAndSend("/topic/games/" + roomId, payload);
 
         if (players.size() == 2) {
