@@ -97,6 +97,11 @@ public class RelationshipStatsService {
                 .findByRoomId(roomId);
         int score = 0;
 
+        Optional<Match> matchById = matchRepository.findById(roomId);
+        if (matchById.isEmpty()) {
+            throw new NotFoundException("Room id: " + roomId + " not found");
+        }
+
         LocalDate today = LocalDate.now(ZoneId.of("Asia/Bangkok"));
 
         if (relationshipStatsById.isPresent()) {
@@ -111,12 +116,24 @@ public class RelationshipStatsService {
                         int newStreak = (currentStreak > 0) ? -penaltyDays : currentStreak - penaltyDays;
                         relationshipStatsById.get().setStreakDays(newStreak);
                     } else {
-                        relationshipStatsById.get().setStreakDays(0);
+                        if (currentStreak > 0) {
+                            relationshipStatsById.get().setStreakDays(0);
+                        } else {
+                            relationshipStatsById.get().setStreakDays(currentStreak - 1);
+                        }
                     }
 
                     int updatedStreak = relationshipStatsById.get().getStreakDays();
                     if (updatedStreak <= 0) {
                         score -= (int) daysBetween;
+
+                        if (!relationshipStatsById.get().getIsFirstMessageBonus() && updatedStreak <= -7) {
+                            Optional<Match> match = matchRepository.findById(roomId);
+                            if (match.isPresent()) {
+                                matchRepository.delete(match.get());
+                                return null;
+                            }
+                        }
 
                         if (updatedStreak <= -30) {
                             Optional<Match> match = matchRepository.findById(roomId);
@@ -181,8 +198,18 @@ public class RelationshipStatsService {
                 score += 8;
                 relationshipStatsById.get().setIsDailyMessagesBonus(true);
             }
+            relationshipStatsById.get().setScore(relationshipStatsById.get().getScore() + score);
+            return relationshipStatsRepository.save(relationshipStatsById.get());
+        } else {
+            RelationshipStats relationshipStats = new RelationshipStats();
+            relationshipStats.setRelationshipId(roomId);
+            relationshipStats.setScore(0);
+            relationshipStats.setStreakDays(0);
+            relationshipStats.setIsFirstMessageBonus(false);
+            relationshipStats.setDailyMessageCount(0);
+            relationshipStats.setIsDailyMessagesBonus(false);
+            relationshipStats.setDailyDate(today);
+            return relationshipStatsRepository.saveAndFlush(relationshipStats);
         }
-        relationshipStatsById.get().setScore(relationshipStatsById.get().getScore() + score);
-        return relationshipStatsRepository.save(relationshipStatsById.get());
     }
 }
