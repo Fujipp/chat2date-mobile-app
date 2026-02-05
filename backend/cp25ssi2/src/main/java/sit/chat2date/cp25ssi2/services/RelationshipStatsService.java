@@ -112,23 +112,21 @@ public class RelationshipStatsService {
             if (!today.equals(relationshipStatsById.get().getDailyDate())) {
                 daysBetween = java.time.temporal.ChronoUnit.DAYS
                         .between(relationshipStatsById.get().getDailyDate(), today);
-
                 if (daysBetween > 0) {
                     int currentStreak = relationshipStatsById.get().getStreakDays();
                     if (daysBetween > 1) {
                         int penaltyDays = (int) (daysBetween);
-                        int newStreak = (currentStreak > 0) ? -penaltyDays : currentStreak - penaltyDays;
-                        relationshipStatsById.get().setStreakDays(newStreak);
-                    } else {
+                        int newStreak;
                         if (currentStreak > 0) {
-                            relationshipStatsById.get().setStreakDays(0);
+                            newStreak = -(penaltyDays - 1);
                         } else {
-                            relationshipStatsById.get().setStreakDays(currentStreak - 1);
+                            newStreak = currentStreak - penaltyDays;
                         }
+                        relationshipStatsById.get().setStreakDays(newStreak);
                     }
 
                     int updatedStreak = relationshipStatsById.get().getStreakDays();
-                    if (updatedStreak <= 0) {
+                    if (updatedStreak <= 0 && daysBetween != 1 && relationshipStatsById.get().getDailyMessageCount() == 0) {
                         score -= (int) daysBetween;
 
                         if (!relationshipStatsById.get().getIsFirstMessageBonus() && updatedStreak <= -7) {
@@ -157,9 +155,17 @@ public class RelationshipStatsService {
                         }
                     }
                 }
+
                 if (relationshipStatsById.get().getDailyMessageCount() > 0 && daysBetween == 1) {
                     relationshipStatsById.get().setStreakDays(relationshipStatsById.get().getStreakDays() + 1);
+                } else if (relationshipStatsById.get().getDailyMessageCount() == 0 && daysBetween == 1) {
+                    if (relationshipStatsById.get().getStreakDays() > 0) {
+                        relationshipStatsById.get().setStreakDays(0);
+                    } else {
+                        relationshipStatsById.get().setStreakDays(relationshipStatsById.get().getStreakDays() - 1);
+                    }
                 }
+
                 relationshipStatsById.get().setDailyMessageCount(0);
                 relationshipStatsById.get().setDailyDate(today);
                 relationshipStatsById.get().setIsDailyMessagesBonus(false);
@@ -184,6 +190,9 @@ public class RelationshipStatsService {
                 if (relationshipStatsById.get().getIsFirstMessageBonus() == false) {
                     relationshipStatsById.get().setIsFirstMessageBonus(true);
                     score += 5;
+                }
+                if (relationshipStatsById.get().getStreakDays() < 0) {
+                    relationshipStatsById.get().setStreakDays(0);
                 }
                 switch (relationshipStatsById.get().getStreakDays()) {
                     case 3:
