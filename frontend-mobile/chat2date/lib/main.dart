@@ -11,7 +11,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'firebase_options.dart';
 import 'screens/index.dart';
 import 'screens/main_tabs.dart';
-import 'screens/chat/chat_list_screen.dart';
 
 final GlobalKey<NavigatorState> rootNavigatorKey = GlobalKey<NavigatorState>();
 
@@ -117,8 +116,9 @@ class MyApp extends StatelessWidget {
           '/discovery': (context) => const DiscoveryScreen(),
           '/main': (context) => const MainTabs(),
           '/report': (context) {
-            final args = ModalRoute.of(context)?.settings.arguments
-                as Map<String, dynamic>?;
+            final args =
+                ModalRoute.of(context)?.settings.arguments
+                    as Map<String, dynamic>?;
             return UserReportScreen(
               roomId: args?['roomId'],
               targetUserId: args?['targetUserId'],
@@ -139,8 +139,9 @@ class MyApp extends StatelessWidget {
           '/kyc-result-fail': (context) => const KycResultFailScreen(),
           '/chat-list': (context) => const ChatListScreen(),
           '/chat': (context) {
-            final args = ModalRoute.of(context)?.settings.arguments
-                as Map<String, dynamic>?;
+            final args =
+                ModalRoute.of(context)?.settings.arguments
+                    as Map<String, dynamic>?;
             return InsideChatScreen(
               roomId: args?['roomId'],
               targetUserId: args?['targetUserId'],
