@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:ui';
 
 import 'package:chat2date/components/chat/bot_message_component.dart';
 import 'package:chat2date/components/chat/chat_text_component.dart';
@@ -16,6 +15,7 @@ import 'package:chat2date/models/user.dart';
 import 'package:chat2date/screens/game/guessing_game_screen.dart';
 import 'package:chat2date/services/chat_service.dart';
 import 'package:chat2date/services/chat_socket_service.dart';
+import 'package:chat2date/services/game_socket_service.dart';
 import 'package:chat2date/stores/user_store.dart';
 import 'package:chat2date/theme/app_colors.dart';
 import 'package:flutter/material.dart';
@@ -51,7 +51,7 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
   int _heartCount = 0; // 0 = ซ่อน, 1-2 = แสดง, 3 = rainbow
   bool _showWheelModal = false;
   bool _showUnlockDate = false;
-  bool _showSpinWheel = false;
+  final bool _showSpinWheel = false;
   bool firstTime = true;
   int talkCount = 0;
   int _steakDays = 0;
@@ -92,6 +92,39 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
   // index ของข้อความที่ถูกกดเพื่อดูเวลาส่ง (-1 = ไม่มี)
   int _selectedMessageIndex = -1;
 
+  //Game
+  GameSocketService? _gameSocketService;
+  StreamSubscription? _gameSubscription;
+
+  void _initGameSocket() {
+    final roomId = widget.roomId;
+    if (roomId == null || roomId.isEmpty) return;
+
+    final userState = ref.read(userStoreProvider);
+    final accessToken = userState['accessToken'] as String?;
+
+    _gameSocketService = GameSocketService(
+      roomId: roomId,
+      accessToken: accessToken,
+    );
+    _gameSocketService!.connect();
+
+    _gameSubscription = _gameSocketService!.gameStream.listen((payload) {
+      if (payload['type'] == 'GAME_START') {
+        print("🎮 Received GAME_START via Socket!");
+        if (mounted) {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) =>
+                  GuessingGameScreen(roomId: int.tryParse(roomId)),
+            ),
+          );
+        }
+      }
+    });
+  }
+
   @override
   void initState() {
     super.initState();
@@ -104,6 +137,7 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
     _scrollController.addListener(_handleScroll);
     _initUpdateRelationshipBar(false);
     _initializeChat();
+    _initGameSocket();
   }
 
   void _handleScroll() {
@@ -116,9 +150,7 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
   Future<void> _initUpdateRelationshipBar(bool onUpdate) async {
     if (onUpdate) {
       final chatService = ref.read(chatServiceProvider);
-      final roomData =
-          await chatService.updateRelationshipBar(widget.roomId!)
-              as RelationshipBar?;
+      final roomData = await chatService.updateRelationshipBar(widget.roomId!);
       if (!mounted) return;
       setState(() {
         _heartCount = roomData != null ? (roomData.score ~/ 100) : 0;
@@ -250,6 +282,8 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
       });
     }
   }
+
+  StreamSubscription? _scoreSubscription;
 
   Future<void> _loadMoreMessages() async {
     if (_isLoadingMessages || _isLoadingMore || !_hasMoreMessages) return;
@@ -1020,6 +1054,8 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
     _exitRoomOnce();
     _messageController.dispose();
     _scrollController.dispose();
+    _gameSocketService?.dispose();
+    _gameSubscription?.cancel();
     super.dispose();
   }
 
@@ -1101,7 +1137,7 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
                                       streakDays:
                                           _steakDays, // ใช้ตัวแปรใน State ของคุณ
                                       dailyMessages:
-                                          _dailyMessagesCount , // ใช้ตัวแปรใน State ของคุณ
+                                          _dailyMessagesCount, // ใช้ตัวแปรใน State ของคุณ
                                     ),
                                   ),
                                 },
@@ -1286,16 +1322,19 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
               //         Icons.videogame_asset,
               //         color: Colors.white,
               //       ),
-              //       onPressed: () {
-              //         final int? realRoomId = int.tryParse(widget.roomId ?? '');
-
-              //         Navigator.push(
-              //           context,
-              //           MaterialPageRoute(
-              //             builder: (context) =>
-              //                 GuessingGameScreen(roomId: realRoomId),
-              //           ),
+              //       onPressed: () async {
+              //         // ✅ แบบที่ถูก: ยิงไปบอก Server ให้ Server สั่งเปิดเกมพร้อมกัน
+              //         final roomId = widget.roomId;
+              //         // ⚠️ เปลี่ยน IP เป็น IP เครื่องคอมคุณ
+              //         final url = Uri.parse(
+              //           'http://cp25ssi2.sit.kmutt.ac.th:8080/api/v1/test/trigger-game/$roomId',
               //         );
+              //         try {
+              //           print("Shooting trigger to $url");
+              //           await http.post(url);
+              //         } catch (e) {
+              //           print("Error triggering game: $e");
+              //         }
               //       },
               //     ),
               //   ),

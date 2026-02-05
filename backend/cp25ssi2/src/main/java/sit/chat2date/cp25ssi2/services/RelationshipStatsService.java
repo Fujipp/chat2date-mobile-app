@@ -34,6 +34,8 @@ public class RelationshipStatsService {
     private UserRepository userRepository;
     @Autowired
     private MessageRepository messageRepository;
+    @Autowired
+    private GameService gameService;
 
     public ResponseEntity<Optional<RelationshipStats>> getRelationshipBarByRoomId(String roomIdStr) {
         int roomId = Integer.parseInt(roomIdStr);
@@ -199,6 +201,8 @@ public class RelationshipStatsService {
                 relationshipStatsById.get().setIsDailyMessagesBonus(true);
             }
             relationshipStatsById.get().setScore(relationshipStatsById.get().getScore() + score);
+            RelationshipStats savedStats = relationshipStatsRepository.save(relationshipStatsById.get());
+            gameService.checkAndTriggerGame(roomId, savedStats.getScore());
             return relationshipStatsRepository.save(relationshipStatsById.get());
         } else {
             RelationshipStats relationshipStats = new RelationshipStats();

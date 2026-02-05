@@ -1,7 +1,7 @@
-import 'package:chat2date/screens/game/views/loading_view.dart'; // อย่าลืม import
+import 'package:chat2date/screens/game/views/loading_view.dart';
 import 'package:chat2date/screens/game/views/question_view.dart';
 import 'package:chat2date/screens/game/views/result_view.dart';
-import 'package:chat2date/screens/game/views/waiting_view.dart'; // อย่าลืม import
+import 'package:chat2date/screens/game/views/waiting_view.dart';
 import 'package:chat2date/stores/game_store.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
