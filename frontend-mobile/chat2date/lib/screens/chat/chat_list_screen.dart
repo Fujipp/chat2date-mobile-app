@@ -157,7 +157,7 @@ class _ChatListScreenState extends ConsumerState<ChatListScreen>
       final roomsRefresh = await chatService.getChatRooms();
       if (roomsRefresh.isNotEmpty) {
         await Future.wait(
-          roomsRefresh.map((room) => chatService.updateRelationshipBar(room.roomId)),
+          roomsRefresh.map((room) => chatService.updateRelationshipBar(room.roomId).catchError((e) => print('Failed to update room ${room.roomId}: $e'))),
         );
       }
       final rooms = await chatService.getChatRooms();
@@ -193,6 +193,11 @@ class _ChatListScreenState extends ConsumerState<ChatListScreen>
     try {
       final chatService = ref.read(chatServiceProvider);
       final matches = await chatService.getMatches();
+      if (matches.isNotEmpty) {
+        await Future.wait(
+          matches.map((match) => chatService.updateRelationshipBar(match.matchId).catchError((e) => print('Failed to update room ${match.matchId}: $e'))),
+        );
+      }
       if (mounted) {
         setState(() {
           _matches = matches.where((match) => match.type == 'new').toList();

@@ -398,6 +398,7 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
       _messageIds.add(message.id);
     });
     _scrollToBottom();
+    _initUpdateRelationshipBar(false);
   }
 
   void _scrollToBottom({bool animated = true}) {
