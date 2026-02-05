@@ -34,6 +34,8 @@ public class GameService {
     private final ObjectMapper objectMapper;
     private final SimpMessagingTemplate messagingTemplate;
 
+    private final Map<String, Set<String>> readyPlayers = new java.util.concurrent.ConcurrentHashMap<>();
+
     @Transactional
     public GameStartResponse createGame(Integer roomId, String userId) {
         System.out.println("Processing Game for Room ID: " + roomId);
@@ -137,6 +139,29 @@ public class GameService {
         }
     }
 
+    public void playerReady(String gameId, String userId) {
+        GameSessions session = gameSessionRepository.findById(gameId)
+                .orElseThrow(() -> new NotFoundException("Game not found"));
+
+        String roomId = session.getRoomId();
+
+        readyPlayers.computeIfAbsent(gameId, k -> new HashSet<>()).add(userId);
+        Set<String> players = readyPlayers.get(gameId);
+
+        Map<String, Object> payload = new HashMap<>();
+        payload.put("type", "PLAYER_READY");
+        payload.put("players", players);
+        messagingTemplate.convertAndSend("/topic/games/" + roomId, payload);
+
+        if (players.size() == 2) {
+            Map<String, Object> startPayload = new HashMap<>();
+            startPayload.put("type", "GAME_START");
+            messagingTemplate.convertAndSend("/topic/games/" + roomId, startPayload);
+
+            readyPlayers.remove(gameId);
+        }
+    }
+
     @Transactional
     public GameAnswerResponse answerQuestion(GameAnswerRequest request, String currentUserId) {
         String gameId = request.getGameId();
@@ -210,7 +235,7 @@ public class GameService {
         socketPayload.put("answeredBy", currentUserId);
         socketPayload.put("isCorrect", isCorrect);
 
-        messagingTemplate.convertAndSend("/topic/games/" + gameId, socketPayload);
+        messagingTemplate.convertAndSend("/topic/games/" + roomId, socketPayload);
 
         return GameAnswerResponse.builder()
                 .isCorrect(isCorrect)

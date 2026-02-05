@@ -21,6 +21,11 @@ public class GameController {
         return ResponseEntity.ok(response);
     }
 
+    @PostMapping("/ready/{gameId}")
+    public void ready(@PathVariable String gameId,@RequestAttribute("userId") String userId) {
+        gameService.playerReady(gameId,userId);
+    }
+
     @PostMapping("/answer")
     public ResponseEntity<GameAnswerResponse> answer(@RequestBody GameAnswerRequest request,@RequestAttribute("userId") String userId) {
         GameAnswerResponse response  = gameService.answerQuestion(request,userId);
