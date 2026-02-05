@@ -20,8 +20,6 @@ import java.util.concurrent.TimeUnit;
 public class RelationshipStatsController {
     @Autowired
     private RelationshipStatsService relationshipStatsService;
-    @Autowired
-    private StringRedisTemplate redis;
 
     @GetMapping("/{roomId}")
     public ResponseEntity<Optional<RelationshipStats>> getRelationshipBarByRoomId(@PathVariable String roomId) {
@@ -42,16 +40,6 @@ public class RelationshipStatsController {
 
     @PutMapping("/{roomId}")
     public RelationshipStats updateRelationshipStats(@PathVariable String roomId) {
-        String key = "rate_limit:relationship:" + roomId;
-
-        if (redis.hasKey(key)) {
-            long waitSec = Optional.ofNullable(redis.getExpire(key, TimeUnit.SECONDS)).orElse(10L);
-
-            throw new TooManyRequestException("This roomId: "+ roomId +" update too many! Waiting to update "  + waitSec + " วินาที");
-        }
-
-        redis.opsForValue().set(key, "locked", 10, TimeUnit.SECONDS);
-
         return relationshipStatsService.updateRelationshipBar(roomId);
     }
 }
