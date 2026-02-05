@@ -184,10 +184,10 @@ public class GameService {
 
         Map<String, Object> payload = new HashMap<>();
         payload.put("type", "PLAYER_READY");
-        payload.put("readyPlayerIds", players);
+        payload.put("readyPlayerIds", new ArrayList<>(players));
         messagingTemplate.convertAndSend("/topic/games/" + roomId, payload);
 
-        if (players.size() == 2) {
+        if (players.size() >= 2) {
             Map<String, Object> startPayload = new HashMap<>();
             startPayload.put("type", "GAME_START");
             messagingTemplate.convertAndSend("/topic/games/" + roomId, startPayload);
