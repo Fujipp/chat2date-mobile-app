@@ -106,9 +106,11 @@ public class RelationshipStatsService {
 
         LocalDate today = LocalDate.now(ZoneId.of("Asia/Bangkok"));
 
+        long daysBetween = 0;
+
         if (relationshipStatsById.isPresent()) {
             if (!today.equals(relationshipStatsById.get().getDailyDate())) {
-                long daysBetween = java.time.temporal.ChronoUnit.DAYS
+                daysBetween = java.time.temporal.ChronoUnit.DAYS
                         .between(relationshipStatsById.get().getDailyDate(), today);
 
                 if (daysBetween > 0) {
@@ -155,6 +157,9 @@ public class RelationshipStatsService {
                         }
                     }
                 }
+                if (relationshipStatsById.get().getDailyMessageCount() > 0 && daysBetween == 1) {
+                    relationshipStatsById.get().setStreakDays(relationshipStatsById.get().getStreakDays() + 1);
+                }
                 relationshipStatsById.get().setDailyMessageCount(0);
                 relationshipStatsById.get().setDailyDate(today);
                 relationshipStatsById.get().setIsDailyMessagesBonus(false);
@@ -180,7 +185,6 @@ public class RelationshipStatsService {
                     relationshipStatsById.get().setIsFirstMessageBonus(true);
                     score += 5;
                 }
-                relationshipStatsById.get().setStreakDays(relationshipStatsById.get().getStreakDays() + 1);
                 switch (relationshipStatsById.get().getStreakDays()) {
                     case 3:
                         score += 7;
