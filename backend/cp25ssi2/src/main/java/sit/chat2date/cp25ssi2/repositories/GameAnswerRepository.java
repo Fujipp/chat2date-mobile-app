@@ -8,9 +8,11 @@ import sit.chat2date.cp25ssi2.entities.GameAnswers;
 import java.util.List;
 
 public interface GameAnswerRepository extends JpaRepository<GameAnswers, Long> {
-    int countByGameId(String gameId);
     @Query("SELECT CASE WHEN COUNT(a) > 0 THEN true ELSE false END FROM GameAnswers a WHERE a.userId = :userId AND a.question.questionId = :questionId")
     boolean existsByUserIdAndQuestionId(@Param("userId") String userId, @Param("questionId") String questionId);
+
+    @Query("SELECT COUNT(a) FROM GameAnswers a WHERE a.gameSessions.gameId = :gameId")
+    int countByGameId(@Param("gameId") String gameId);
 
     @Query("SELECT COUNT(a) FROM GameAnswers a WHERE a.gameSessions.gameId = :gameId AND a.userId = :userId")
     int countByGameIdAndUserId(@Param("gameId") String gameId, @Param("userId") String userId);
