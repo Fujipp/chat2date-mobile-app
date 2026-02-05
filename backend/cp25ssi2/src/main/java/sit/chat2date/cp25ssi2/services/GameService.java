@@ -221,12 +221,8 @@ public class GameService {
 
         String player1Id = (match.getUserId1() != null) ? match.getUserId1().getUserId() : "";
         String player2Id = (match.getUserId2() != null) ? match.getUserId2().getUserId() : "";
-        String cleanCurrentUser = currentUserId.trim();
 
-        boolean isPlayer1 = player1Id.equalsIgnoreCase(cleanCurrentUser);
-        boolean isPlayer2 = player2Id.equalsIgnoreCase(cleanCurrentUser);
-
-        if (!isPlayer1 && !isPlayer2) {
+        if (!currentUserId.equals(player1Id) && !currentUserId.equals(player2Id)) {
             throw new ForbiddenAccessException("You are not allowed to answer this question.");
         }
 
@@ -250,9 +246,12 @@ public class GameService {
 
         int myAnsweredCount = gameAnswerRepository.countByGameIdAndUserId(gameId, currentUserId);
         int totalQuestions = gameQuestionRepository.countByGameId(gameId);
-        boolean isGameOver = myAnsweredCount >= totalQuestions;
+        boolean hasUserFinishedAll = myAnsweredCount >= totalQuestions;
+        int totalAnswersInGame = gameAnswerRepository.countByGameId(gameId);
+        boolean isGameTrulyOver = totalAnswersInGame >= (totalQuestions * 2);
 
-        if (isGameOver && session.getStatus() != GameSessionStatus.COMPLETED) {
+        if (isGameTrulyOver && session.getStatus() != GameSessionStatus.COMPLETED) {
+            System.out.println("🏁 All players finished! Closing game session.");
             session.setStatus(GameSessionStatus.COMPLETED);
             gameSessionRepository.save(session);
 
@@ -268,6 +267,7 @@ public class GameService {
         socketPayload.put("roomTotalScore", session.getTotalScore());
         socketPayload.put("answeredBy", currentUserId);
         socketPayload.put("isCorrect", isCorrect);
+        socketPayload.put("isGameOver", isGameTrulyOver); // ส่งสถานะจบจริงของเกม
 
         messagingTemplate.convertAndSend("/topic/games/" + roomId, socketPayload);
 
@@ -275,7 +275,7 @@ public class GameService {
                 .isCorrect(isCorrect)
                 .correctAnswer(question.getCorrectAnswer())
                 .totalScore(session.getTotalScore())
-                .isGameOver(isGameOver)
+                .isGameOver(hasUserFinishedAll)
                 .build();
     }
 
