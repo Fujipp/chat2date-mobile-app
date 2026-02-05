@@ -17,6 +17,7 @@ import sit.chat2date.cp25ssi2.repositories.*;
 
 import java.time.LocalDateTime;
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 
 @Service
 @RequiredArgsConstructor
@@ -35,101 +36,107 @@ public class GameService {
     private final SimpMessagingTemplate messagingTemplate;
 
     private final Map<String, Set<String>> readyPlayers = new java.util.concurrent.ConcurrentHashMap<>();
+    private final Map<String, Object> roomLocks = new ConcurrentHashMap<>();
 
-    @Transactional
     public GameStartResponse createGame(Integer roomId, String userId) {
         System.out.println("Processing Game for Room ID: " + roomId);
 
-        Match match = matchRepository.findById(roomId)
-                .orElseThrow(() -> new NotFoundException("Match not found")); // Check 404
+        Object lock = roomLocks.computeIfAbsent(roomId.toString(), k -> new Object());
 
-        boolean isP1 = match.getUserId1() != null && match.getUserId1().getUserId().equals(userId);
-        boolean isP2 = match.getUserId2() != null && match.getUserId2().getUserId().equals(userId);
+        synchronized (lock) {
 
-        if (!isP1 && !isP2) {
-            throw new ForbiddenAccessException("You are not allowed to create a game for this room."); // Check 403
-        }
+            Match match = matchRepository.findById(roomId)
+                    .orElseThrow(() -> new NotFoundException("Match not found"));
 
-        Optional<GameSessions> existingSession = gameSessionRepository.findTopByRoomIdOrderByCreatedAtDesc(roomId.toString());
+            boolean isP1 = match.getUserId1() != null && match.getUserId1().getUserId().equals(userId);
+            boolean isP2 = match.getUserId2() != null && match.getUserId2().getUserId().equals(userId);
 
-        if (existingSession.isPresent() && existingSession.get().getStatus() == GameSessionStatus.ACTIVE) {
-            return buildGameResponse(existingSession.get(), userId, match);
-        }
-
-        try {
-            List<Message> messages = messageRepository.findLast50ByRoomIdOrderByCreatedAtDesc(roomId);
-            Collections.reverse(messages);
-
-            Map<String, String> idToPlaceholder = new HashMap<>();
-            Map<String, String> placeholderToNickname = new HashMap<>();
-            String[] placeholders = {"Person A", "Person B"};
-            int counter = 0;
-            StringBuilder chatLogForAI = new StringBuilder();
-
-            for (Message msg : messages) {
-                String senderId = msg.getSenderId();
-                if (!idToPlaceholder.containsKey(senderId)) {
-                    String ph = placeholders[counter % 2];
-                    idToPlaceholder.put(senderId, ph);
-                    counter++;
-                    User user = userRepository.findById(senderId).orElse(null);
-                    String realNickname = (user != null && user.getNickname() != null) ? user.getNickname() : "Unknown";
-                    placeholderToNickname.put(ph, realNickname);
-                }
-                String ph = idToPlaceholder.get(senderId);
-                chatLogForAI.append(ph).append(": ").append(msg.getMessage()).append("\n");
+            if (!isP1 && !isP2) {
+                throw new ForbiddenAccessException("You are not allowed to create a game for this room.");
             }
 
-            String jsonResult = geminiClient.generateQuestions(chatLogForAI.toString());
-            List<GameQuestionDTO> questions = objectMapper.readValue(jsonResult, new TypeReference<>() {});
+            Optional<GameSessions> existingSession = gameSessionRepository.findTopByRoomIdOrderByCreatedAtDesc(roomId.toString());
 
-            GameSessions session = new GameSessions();
-            session.setRoomId(roomId.toString());
-            session.setStatus(GameSessionStatus.ACTIVE);
-            session.setTotalScore(0);
-            session.setCreatedAt(LocalDateTime.now());
-            session = gameSessionRepository.save(session);
+            if (existingSession.isPresent() && existingSession.get().getStatus() == GameSessionStatus.ACTIVE) {
+                return buildGameResponse(existingSession.get(), userId, match);
+            }
 
-            List<GameQuestions> dbQuestions = new ArrayList<>();
-            for (GameQuestionDTO q : questions) {
-                String text = q.getText();
-                String correct = q.getCorrect();
-                List<String> options = q.getOptions();
-                List<String> newOptions = new ArrayList<>();
+            try {
+                List<Message> messages = messageRepository.findLast50ByRoomIdOrderByCreatedAtDesc(roomId);
+                Collections.reverse(messages);
 
-                for (Map.Entry<String, String> entry : placeholderToNickname.entrySet()) {
-                    String placeholder = entry.getKey();
-                    String nickname = entry.getValue();
-                    if (text != null) text = text.replace(placeholder, nickname);
-                    if (correct != null) correct = correct.replace(placeholder, nickname);
-                }
-                for (String opt : options) {
-                    String newOpt = opt;
-                    for (Map.Entry<String, String> entry : placeholderToNickname.entrySet()) {
-                        newOpt = newOpt.replace(entry.getKey(), entry.getValue());
+                Map<String, String> idToPlaceholder = new HashMap<>();
+                Map<String, String> placeholderToNickname = new HashMap<>();
+                String[] placeholders = {"Person A", "Person B"};
+                int counter = 0;
+                StringBuilder chatLogForAI = new StringBuilder();
+
+                for (Message msg : messages) {
+                    String senderId = msg.getSenderId();
+                    if (!idToPlaceholder.containsKey(senderId)) {
+                        String ph = placeholders[counter % 2];
+                        idToPlaceholder.put(senderId, ph);
+                        counter++;
+                        User user = userRepository.findById(senderId).orElse(null);
+                        String realNickname = (user != null && user.getNickname() != null) ? user.getNickname() : "Unknown";
+                        placeholderToNickname.put(ph, realNickname);
                     }
-                    newOptions.add(newOpt);
+                    String ph = idToPlaceholder.get(senderId);
+                    chatLogForAI.append(ph).append(": ").append(msg.getMessage()).append("\n");
                 }
-                q.setText(text);
-                q.setCorrect(correct);
-                q.setOptions(newOptions);
-                q.setQuestionId(UUID.randomUUID().toString());
 
-                GameQuestions question = new GameQuestions();
-                question.setQuestionId(q.getQuestionId());
-                question.setGameId(session.getGameId());
-                question.setQuestion(text);
-                question.setCorrectAnswer(correct);
-                question.setOptions(objectMapper.writeValueAsString(newOptions));
-                dbQuestions.add(question);
+                String jsonResult = geminiClient.generateQuestions(chatLogForAI.toString());
+                List<GameQuestionDTO> questions = objectMapper.readValue(jsonResult, new TypeReference<>() {
+                });
+
+                GameSessions session = new GameSessions();
+                session.setRoomId(roomId.toString());
+                session.setStatus(GameSessionStatus.ACTIVE);
+                session.setTotalScore(0);
+                session.setCreatedAt(LocalDateTime.now());
+                session = gameSessionRepository.save(session);
+
+                List<GameQuestions> dbQuestions = new ArrayList<>();
+                for (GameQuestionDTO q : questions) {
+                    String text = q.getText();
+                    String correct = q.getCorrect();
+                    List<String> options = q.getOptions();
+                    List<String> newOptions = new ArrayList<>();
+
+                    for (Map.Entry<String, String> entry : placeholderToNickname.entrySet()) {
+                        String placeholder = entry.getKey();
+                        String nickname = entry.getValue();
+                        if (text != null) text = text.replace(placeholder, nickname);
+                        if (correct != null) correct = correct.replace(placeholder, nickname);
+                    }
+                    for (String opt : options) {
+                        String newOpt = opt;
+                        for (Map.Entry<String, String> entry : placeholderToNickname.entrySet()) {
+                            newOpt = newOpt.replace(entry.getKey(), entry.getValue());
+                        }
+                        newOptions.add(newOpt);
+                    }
+                    q.setText(text);
+                    q.setCorrect(correct);
+                    q.setOptions(newOptions);
+                    q.setQuestionId(UUID.randomUUID().toString());
+
+                    GameQuestions question = new GameQuestions();
+                    question.setQuestionId(q.getQuestionId());
+                    question.setGameId(session.getGameId());
+                    question.setQuestion(text);
+                    question.setCorrectAnswer(correct);
+                    question.setOptions(objectMapper.writeValueAsString(newOptions));
+                    dbQuestions.add(question);
+                }
+                gameQuestionRepository.saveAll(dbQuestions);
+
+                return buildGameResponse(session, userId, match);
+
+            } catch (Exception e) {
+                e.printStackTrace();
+                throw new RuntimeException("Error processing AI response: " + e.getMessage());
             }
-            gameQuestionRepository.saveAll(dbQuestions);
-
-            return buildGameResponse(session, userId, match);
-
-        } catch (Exception e) {
-            e.printStackTrace();
-            throw new RuntimeException("Error processing AI response: " + e.getMessage());
         }
     }
 
