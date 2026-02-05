@@ -366,6 +366,7 @@ public class GameService {
     }
 
     private boolean isUserOnline(Integer roomId, String userId) {
+        System.out.println("test");
         return chatAccessLogRepository.findFirstByRoomIdAndUserIdOrderByCreatedAtDesc(roomId, userId)
                 .map(log -> sit.chat2date.cp25ssi2.enums.ChatAccessActionType.ENTER.equals(log.getActionType()))
                 .orElse(false);
