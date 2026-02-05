@@ -50,6 +50,12 @@ public class GameService {
             throw new ForbiddenAccessException("You are not allowed to create a game for this room."); // Check 403
         }
 
+        Optional<GameSessions> existingSession = gameSessionRepository.findTopByRoomIdOrderByCreatedAtDesc(roomId.toString());
+
+        if (existingSession.isPresent() && existingSession.get().getStatus() == GameSessionStatus.ACTIVE) {
+            return buildGameResponse(existingSession.get(), userId, match);
+        }
+
         try {
             List<Message> messages = messageRepository.findLast50ByRoomIdOrderByCreatedAtDesc(roomId);
             Collections.reverse(messages);
@@ -119,24 +125,45 @@ public class GameService {
             }
             gameQuestionRepository.saveAll(dbQuestions);
 
-            String myAvatar = userPhotoRepository.findFirstAvatarUrl(userId);
-
-            User partnerUser = isP1 ? match.getUserId2() : match.getUserId1();
-            String partnerAvatar = userPhotoRepository.findFirstAvatarUrl(partnerUser.getUserId());
-
-            GameStartResponse response = new GameStartResponse();
-            response.setQuestions(questions);
-            response.setGameId(session.getGameId());
-            response.setMyAvatar(myAvatar);
-            response.setPartnerAvatar(partnerAvatar);
-            response.setRelationshipScore(0);
-
-            return response;
+            return buildGameResponse(session, userId, match);
 
         } catch (Exception e) {
             e.printStackTrace();
             throw new RuntimeException("Error processing AI response: " + e.getMessage());
         }
+    }
+
+    private GameStartResponse buildGameResponse(GameSessions session, String userId, Match match) {
+        List<GameQuestions> questionsEntity = gameQuestionRepository.findAllByGameId(session.getGameId());
+
+        List<GameQuestionDTO> questions = new ArrayList<>();
+        try {
+            for (GameQuestions q : questionsEntity) {
+                GameQuestionDTO dto = new GameQuestionDTO();
+                dto.setQuestionId(q.getQuestionId());
+                dto.setText(q.getQuestion());
+                dto.setCorrect(q.getCorrectAnswer());
+                dto.setOptions(objectMapper.readValue(q.getOptions(), new TypeReference<>() {}));
+                questions.add(dto);
+            }
+        } catch (Exception e) {
+            throw new RuntimeException("Error parsing questions");
+        }
+
+        boolean isP1 = match.getUserId1() != null && match.getUserId1().getUserId().equals(userId);
+        User partnerUser = isP1 ? match.getUserId2() : match.getUserId1();
+
+        String myAvatar = userPhotoRepository.findFirstAvatarUrl(userId);
+        String partnerAvatar = userPhotoRepository.findFirstAvatarUrl(partnerUser.getUserId());
+
+        GameStartResponse response = new GameStartResponse();
+        response.setQuestions(questions);
+        response.setGameId(session.getGameId());
+        response.setMyAvatar(myAvatar);
+        response.setPartnerAvatar(partnerAvatar);
+        response.setRelationshipScore(0);
+
+        return response;
     }
 
     public void playerReady(String gameId, String userId) {
