@@ -44,15 +44,15 @@ public class GameService {
         Map<String, Object> payload = new HashMap<>();
         payload.put("type", "WAITING_START");
         messagingTemplate.convertAndSend("/topic/games/" + roomId, payload);
-        try {
-            chatService.sendSystemMessage(
-                    Integer.parseInt(roomId),
-                    "มีคนกดเริ่มเกม! กดที่นี่เพื่อเข้าร่วม",
-                    sit.chat2date.cp25ssi2.enums.MessageType.GAME
-            );
-        } catch (Exception e) {
-            System.err.println("Failed to save waiting start message: " + e.getMessage());
-        }
+//        try {
+//            chatService.sendSystemMessage(
+//                    Integer.parseInt(roomId),
+//                    "มีคนกดเริ่มเกม! กดที่นี่เพื่อเข้าร่วม",
+//                    sit.chat2date.cp25ssi2.enums.MessageType.GAME
+//            );
+//        } catch (Exception e) {
+//            System.err.println("Failed to save waiting start message: " + e.getMessage());
+//        }
     }
 
     public GameStartResponse createGame(Integer roomId, String userId) {
@@ -483,6 +483,10 @@ public class GameService {
                 } catch (Exception e) {
                     System.err.println("Error saving timeout message: " + e.getMessage());
                 }
+
+                Map<String, Object> payload = new HashMap<>();
+                payload.put("type", "GAME_CANCELLED");
+                messagingTemplate.convertAndSend("/topic/games/" + session.getRoomId(), payload);
             }
         }
     }
