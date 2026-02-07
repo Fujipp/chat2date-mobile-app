@@ -44,15 +44,6 @@ public class GameService {
         Map<String, Object> payload = new HashMap<>();
         payload.put("type", "WAITING_START");
         messagingTemplate.convertAndSend("/topic/games/" + roomId, payload);
-//        try {
-//            chatService.sendSystemMessage(
-//                    Integer.parseInt(roomId),
-//                    "มีคนกดเริ่มเกม! กดที่นี่เพื่อเข้าร่วม",
-//                    sit.chat2date.cp25ssi2.enums.MessageType.GAME
-//            );
-//        } catch (Exception e) {
-//            System.err.println("Failed to save waiting start message: " + e.getMessage());
-//        }
     }
 
     public GameStartResponse createGame(Integer roomId, String userId) {
@@ -82,7 +73,7 @@ public class GameService {
                 } else {
                     System.out.println("⚠️ Overwriting FAILED session: " + existingSession.get().getGameId());
                     GameSessions oldSession = existingSession.get();
-                    oldSession.setStatus(GameSessionStatus.COMPLETED);
+                    oldSession.setStatus(GameSessionStatus.FAILED);
                     gameSessionRepository.save(oldSession);
                 }
 
@@ -333,29 +324,43 @@ public class GameService {
         }
 
         GameSessions lastSession = lastSessionOpt.get();
-        LocalDateTime lastPlayed = lastSession.getCreatedAt();
+        LocalDateTime createdAt = lastSession.getCreatedAt();
         LocalDateTime now = LocalDateTime.now();
-        LocalDateTime unlockTime = lastPlayed.plusHours(24);
+        LocalDateTime unlockTime = createdAt.plusHours(24);
 
+        // 🟢 กรณี: ยังอยู่ในเวลา 24 ชม.
         if (now.isBefore(unlockTime)) {
             long secondsLeft = java.time.Duration.between(now, unlockTime).getSeconds();
-            if (lastSession.getStatus() == GameSessionStatus.COMPLETED) {
-                return GameCheckResponse.builder()
-                        .canPlay(false)
-                        .gameStatus("COOLDOWN")
-                        .remainingSeconds(secondsLeft)
-                        .build();
-            }
 
-            int totalAnswers = gameAnswerRepository.countByGameId(lastSession.getGameId());
-
-            if (totalAnswers > 0){
-                return GameCheckResponse.builder().canPlay(true).gameStatus("FAILED").remainingSeconds(secondsLeft).build();
-            }else{
+            if (lastSession.getStatus() == GameSessionStatus.ACTIVE) {
                 return GameCheckResponse.builder()
                         .canPlay(true)
                         .gameStatus("RESUME")
                         .gameId(lastSession.getGameId())
+                        .build();
+            }
+
+            if (lastSession.getStatus() == GameSessionStatus.COMPLETED) {
+                return GameCheckResponse.builder()
+                        .canPlay(false)
+                        .gameStatus("COMPLETED_FINISHED") 
+                        .remainingSeconds(secondsLeft)
+                        .build();
+            }
+
+            if (lastSession.getStatus() == GameSessionStatus.FAILED) {
+                return GameCheckResponse.builder()
+                        .canPlay(true)
+                        .gameStatus("RETRY_AVAILABLE")
+                        .remainingSeconds(secondsLeft)
+                        .build();
+            }
+        }
+        else {
+            if (lastSession.getStatus() != GameSessionStatus.COMPLETED) {
+                return GameCheckResponse.builder()
+                        .canPlay(false)
+                        .gameStatus("EXPIRED")
                         .build();
             }
         }
@@ -471,7 +476,7 @@ public class GameService {
             GameSessions session = sessionOpt.get();
 
             if (session.getStatus() == GameSessionStatus.ACTIVE) {
-                session.setStatus(GameSessionStatus.COMPLETED);
+                session.setStatus(GameSessionStatus.FAILED);
                 gameSessionRepository.save(session);
 
                 try {
