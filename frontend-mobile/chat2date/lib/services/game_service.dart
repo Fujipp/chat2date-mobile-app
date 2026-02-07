@@ -1,7 +1,7 @@
 import 'dart:convert';
 
 import 'package:chat2date/config/backend_base.dart';
-import 'package:chat2date/models/dto/game_dto.dart'; 
+import 'package:chat2date/models/dto/game_dto.dart';
 import 'package:chat2date/stores/user_store.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:http/http.dart' as http;
@@ -42,6 +42,13 @@ class GameService {
       'selectedOption': selectedOption,
     });
     return GameAnswerResponseDto.fromJson(jsonDecode(response.body));
+  }
+
+  Future<http.Response> sendPlayerReady(String gameId) async {
+    final uri = Uri.parse('${ApiBase.baseUrl}/games/ready/$gameId');
+    final response = await http.post(uri, headers: _headers());
+    _checkError(response);
+    return response;
   }
 
   // --- Helper Methods ---

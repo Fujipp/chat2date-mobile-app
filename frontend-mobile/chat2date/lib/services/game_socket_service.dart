@@ -28,7 +28,6 @@ class GameSocketService {
     if (_client != null || _connecting) return;
     _connecting = true;
 
-    // ใช้ config เดียวกับ Chat เลย
     final wsUrl = '${ApiBase.websocketBase}${ApiBase.websocketPath}';
     final headers = <String, String>{
       if (accessToken?.isNotEmpty == true)

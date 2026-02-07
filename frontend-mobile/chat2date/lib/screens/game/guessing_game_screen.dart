@@ -1,8 +1,13 @@
+import 'dart:async';
+
+import 'package:chat2date/models/user.dart';
 import 'package:chat2date/screens/game/views/loading_view.dart';
 import 'package:chat2date/screens/game/views/question_view.dart';
 import 'package:chat2date/screens/game/views/result_view.dart';
 import 'package:chat2date/screens/game/views/waiting_view.dart';
+import 'package:chat2date/services/game_socket_service.dart';
 import 'package:chat2date/stores/game_store.dart';
+import 'package:chat2date/stores/user_store.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -17,15 +22,60 @@ class GuessingGameScreen extends ConsumerStatefulWidget {
 }
 
 class _GuessingGameScreenState extends ConsumerState<GuessingGameScreen> {
+  GameSocketService? _socketService;
+  StreamSubscription? _socketSubscription;
+
   @override
   void initState() {
     super.initState();
-    // โหลดข้อมูลเกมมารอไว้ก่อน
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      ref
+
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      await ref
           .read(gameProvider.notifier)
           .initGame(roomId: widget.roomId, resumeGameId: widget.resumeGameId);
+
+      _connectSocket();
     });
+  }
+
+  // ในไฟล์ guessing_game_screen.dart
+  void _connectSocket() {
+    final gameState = ref.read(gameProvider);
+    final userStore = ref.read(userStoreProvider);
+
+    final User? userObj = userStore['user'] as User?;
+
+    final myUserId = userObj?.userId;
+
+
+    if (myUserId == null) {
+      print("❌ CRITICAL ERROR: UserID is still NULL. Please Re-Login.");
+      return;
+    }
+
+    if (gameState.gameId != null && widget.roomId != null) {
+      _socketService = GameSocketService(
+        roomId: widget.roomId.toString(),
+        accessToken: userStore['accessToken'].toString(),
+      );
+
+      _socketService!.connect();
+
+      _socketSubscription = _socketService!.gameStream.listen((payload) {
+        print("🎧 Socket Received in Screen: $payload");
+
+        ref
+            .read(gameProvider.notifier)
+            .socketMessage(payload, myUserId.toString());
+      });
+    }
+  }
+
+  @override
+  void dispose() {
+    _socketSubscription?.cancel();
+    _socketService?.dispose();
+    super.dispose();
   }
 
   @override
@@ -69,11 +119,10 @@ class _GuessingGameScreenState extends ConsumerState<GuessingGameScreen> {
       return WaitingView(
         myAvatarUrl: state.myAvatar,
         partnerAvatarUrl: state.partnerAvatar,
+        isMeReady: state.isImReady,
+        isPartnerReady: state.isPartnerReady,
         onReady: () {
-          // กดปุ่มแล้วเปลี่ยน State เพื่อเข้าสู่คำถาม
-          ref.read(gameProvider.notifier).state = state.copyWith(
-            hasStartedGame: true,
-          );
+          ref.read(gameProvider.notifier).sendReady();
         },
       );
     }
