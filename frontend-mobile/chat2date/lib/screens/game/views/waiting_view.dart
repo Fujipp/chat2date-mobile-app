@@ -6,6 +6,7 @@ import 'package:flutter_svg/flutter_svg.dart';
 
 class WaitingView extends StatefulWidget {
   final VoidCallback onReady;
+  final VoidCallback onTimeout;
   final String? myAvatarUrl;
   final String? partnerAvatarUrl;
 
@@ -15,6 +16,7 @@ class WaitingView extends StatefulWidget {
   const WaitingView({
     super.key,
     required this.onReady,
+    required this.onTimeout,
     this.myAvatarUrl,
     this.partnerAvatarUrl,
     required this.isMeReady,
@@ -72,10 +74,7 @@ class _WaitingViewState extends State<WaitingView> {
           setState(() => _remainingSeconds = _remainingSeconds! - 1);
         } else {
           _countdownTimer?.cancel();
-          // ❌ ลบบรรทัดนี้ทิ้งครับ! อย่า pop เอง ให้ผู้ใช้กดออกเองหรือรอเกมเริ่ม
-          // Navigator.pop(context);
-
-          // ✅ เปลี่ยนเป็นแค่หยุดเวลา หรือแสดงข้อความว่าหมดเวลา
+          widget.onTimeout();
           debugPrint("⏰ Timer expired!");
         }
       }

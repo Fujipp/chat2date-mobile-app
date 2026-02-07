@@ -1,5 +1,3 @@
-import 'dart:ui';
-
 import 'package:chat2date/components/chat/bot_message_component.dart';
 import 'package:chat2date/components/chat/chat_text_component.dart';
 import 'package:chat2date/components/chat/input_chat_component.dart';
@@ -11,7 +9,7 @@ import 'package:chat2date/theme/app_colors.dart';
 import 'package:flutter/material.dart';
 
 /// Chat Screen ที่รองรับ Figma variants ทั้งหมด:
-/// 
+///
 /// - Design 1 (4131-16076): Inside Chat View - ข้อความปกติ
 /// - Design 2 (4131-14998): Inside Chat View - ข้อความ + เห็นแล้ว
 /// - Design 3 (4131-16486): Bot Chat View - Bot Minigame
@@ -22,26 +20,26 @@ import 'package:flutter/material.dart';
 enum ChatScreenVariant {
   /// Design 1 & 2: ข้อความปกติ
   normalChat,
-  
+
   /// Design 3: Bot Minigame
   botMinigame,
-  
+
   /// Design 4: Bot Ask Success
   botSuccess,
-  
+
   /// Design 5: มี keyboard
   withKeyboard,
-  
+
   /// Design 6: Rainbow progress bar (Level 3)
   level3Rainbow,
-  
+
   /// Design 7: Bot Ask Fail
   botFail,
 }
 
 class ChatScreenDemo extends StatefulWidget {
   final ChatScreenVariant variant;
-  
+
   const ChatScreenDemo({
     super.key,
     this.variant = ChatScreenVariant.normalChat,
@@ -55,7 +53,7 @@ class _ChatScreenDemoState extends State<ChatScreenDemo> {
   final TextEditingController _messageController = TextEditingController();
   bool _hasText = false;
   bool _showWheelModal = false;
-  
+
   // ค่าตาม Figma
   double get _currentPercent {
     switch (widget.variant) {
@@ -65,7 +63,7 @@ class _ChatScreenDemoState extends State<ChatScreenDemo> {
         return 0.35; // 90px / 255px ≈ 35%
     }
   }
-  
+
   int get _heartNumber {
     switch (widget.variant) {
       case ChatScreenVariant.level3Rainbow:
@@ -74,7 +72,7 @@ class _ChatScreenDemoState extends State<ChatScreenDemo> {
         return 0; // ไม่แสดงเลข
     }
   }
-  
+
   ChatHeaderVariant get _headerVariant {
     switch (widget.variant) {
       case ChatScreenVariant.normalChat:
@@ -119,9 +117,7 @@ class _ChatScreenDemoState extends State<ChatScreenDemo> {
                           fontSize: 12,
                         ),
                       ),
-                      Expanded(
-                        child: _buildMessageList(),
-                      ),
+                      Expanded(child: _buildMessageList()),
                       _buildInputArea(),
                     ],
                   ),
@@ -158,7 +154,10 @@ class _ChatScreenDemoState extends State<ChatScreenDemo> {
       padding: const EdgeInsets.symmetric(horizontal: 20),
       child: LayoutBuilder(
         builder: (context, constraints) {
-          final double barWidth = (constraints.maxWidth - 25 - 20).clamp(140.0, 260.0);
+          final double barWidth = (constraints.maxWidth - 25 - 20).clamp(
+            140.0,
+            260.0,
+          );
           return ScoreRow(
             basePercent: _currentPercent,
             number: _heartNumber,
@@ -173,7 +172,7 @@ class _ChatScreenDemoState extends State<ChatScreenDemo> {
 
   Widget _buildMessageList() {
     final messages = _getMessagesForVariant();
-    
+
     return ListView.builder(
       padding: const EdgeInsets.fromLTRB(20, 12, 20, 12),
       itemCount: messages.length,
@@ -197,19 +196,20 @@ class _ChatScreenDemoState extends State<ChatScreenDemo> {
           ChatMessage.received(id: '3', text: 'text message'),
           ChatMessage.sent(id: '4', text: 'text message', isSeen: true),
         ];
-        
+
       case ChatScreenVariant.botMinigame:
         return [
           ChatMessage.sent(id: '1', text: 'text message'),
           ChatMessage.botMinigame(
             id: '2',
             text: 'กลับไปเล่นใหม่อีกรอบ',
-            description: 'หมายเหตุ เมื่อกดเริ่มแล้วจะไม่สามารถกลับมาเล่นอีกรอบได้ควรคุยหรือรอคู่ของคุณก่อน',
+            description:
+                'หมายเหตุ เมื่อกดเริ่มแล้วจะไม่สามารถกลับมาเล่นอีกรอบได้ควรคุยหรือรอคู่ของคุณก่อน',
             subDescription: 'เหลือเวลาเริ่มใหม่ 24 ชั่วโมง',
             actionButtonText: 'เริ่ม',
           ),
         ];
-        
+
       case ChatScreenVariant.botSuccess:
         return [
           ChatMessage.sent(id: '1', text: 'text message'),
@@ -222,7 +222,7 @@ class _ChatScreenDemoState extends State<ChatScreenDemo> {
             description: 'กรุณากรอกวันที่ออกเดตของคุณในปฏิทิน',
           ),
         ];
-        
+
       case ChatScreenVariant.level3Rainbow:
         return [
           ChatMessage.sent(id: '1', text: 'text message'),
@@ -235,7 +235,7 @@ class _ChatScreenDemoState extends State<ChatScreenDemo> {
             description: 'กรุณากรอกวันที่ออกเดตของคุณในปฏิทิน',
           ),
         ];
-        
+
       case ChatScreenVariant.botFail:
         return [
           ChatMessage.sent(id: '1', text: 'text message'),
@@ -267,11 +267,11 @@ class _ChatScreenDemoState extends State<ChatScreenDemo> {
         },
       );
     }
-    
+
     // User message
     return Column(
-      crossAxisAlignment: message.isOwn 
-          ? CrossAxisAlignment.end 
+      crossAxisAlignment: message.isOwn
+          ? CrossAxisAlignment.end
           : CrossAxisAlignment.start,
       children: [
         ChatTextComponent(
@@ -328,7 +328,10 @@ class _ChatScreenDemoState extends State<ChatScreenDemo> {
             alignment: Alignment.center,
             child: SingleChildScrollView(
               child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 20,
+                  vertical: 20,
+                ),
                 child: Container(
                   decoration: BoxDecoration(
                     color: Colors.white,
@@ -347,7 +350,8 @@ class _ChatScreenDemoState extends State<ChatScreenDemo> {
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         SpinDateComponent(
-                          onCloseModal: () => setState(() => _showWheelModal = false),
+                          onCloseModal: () =>
+                              setState(() => _showWheelModal = false),
                           prizes: const [
                             {'label': 'Coffee'},
                             {'label': 'Pizza'},

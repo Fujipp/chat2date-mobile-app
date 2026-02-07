@@ -15,12 +15,14 @@ import 'package:chat2date/models/user.dart';
 import 'package:chat2date/screens/game/guessing_game_screen.dart';
 import 'package:chat2date/services/chat_service.dart';
 import 'package:chat2date/services/chat_socket_service.dart';
+import 'package:chat2date/services/game_service.dart';
 import 'package:chat2date/services/game_socket_service.dart';
 import 'package:chat2date/stores/user_store.dart';
 import 'package:chat2date/theme/app_colors.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'package:http/http.dart' as http;
 
 class InsideChatScreen extends ConsumerStatefulWidget {
   final String? roomId;
@@ -110,16 +112,24 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
     _gameSocketService!.connect();
 
     _gameSubscription = _gameSocketService!.gameStream.listen((payload) {
-      if (payload['type'] == 'GAME_START') {
+      final type = payload['type'];
+      if (type == 'WAITING_START') {
+        print("⏳ Received WAITING_START. Going to Waiting Room...");
+        if (mounted) {
+          _navigateToGameScreen(roomId);
+        }
+      }
+      if (type == 'GAME_START') {
         print("🎮 Received GAME_START via Socket!");
         if (mounted) {
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (context) =>
-                  GuessingGameScreen(roomId: int.tryParse(roomId)),
-            ),
-          );
+          // Navigator.push(
+          //   context,
+          //   MaterialPageRoute(
+          //     builder: (context) =>
+          //         GuessingGameScreen(roomId: int.tryParse(roomId)),
+          //   ),
+          // );
+          _navigateToGameScreen(roomId);
         }
       }
     });
@@ -147,6 +157,111 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
     }
   }
 
+  //game
+  Future<void> _handleGameStart() async {
+    final roomId = widget.roomId;
+    if (roomId == null) return;
+
+    try {
+      final statusData = await ref
+          .read(gameServiceProvider)
+          .checkGameStatus(roomId as int);
+
+      // ✅ อัปเดต Switch Case ให้ตรงกับ Backend
+      switch (statusData.gameStatus) {
+        case 'NEW':
+        case 'RESUME':
+          _navigateToGameScreen(roomId);
+          break;
+
+        case 'RETRY_AVAILABLE':
+          _addLocalBotMessage(
+            type: BotMessageType.minigameFail,
+            text: "เกมรอบที่แล้วยังไม่จบ/หลุด",
+            description: "คุณสามารถเริ่มเกมใหม่ได้ทันที",
+            actionText: "เริ่มเกมใหม่",
+            isDisabled: false,
+            remainingSeconds: statusData.remainingSeconds?.toInt() ?? 0,
+            onAction: () {
+              _navigateToGameScreen(roomId);
+            },
+          );
+          break;
+
+        // 🟢 กรณีชนะ/จบสมบูรณ์ (ต้องรอหลอดถัดไป)
+        // case 'COMPLETED_FINISHED':
+        //   _addLocalBotMessage(
+        //     type: BotMessageType.askSuccess, // หรือ minigameFail แล้วแต่ดีไซน์
+        //     text: "คุณเล่นเกมรอบนี้สำเร็จแล้ว",
+        //     description: "กรุณารอสะสมหลอดความสัมพันธ์เพื่อเล่นรอบถัดไป",
+        //     actionText: "เจอกันรอบหน้า",
+        //     isDisabled: true, // ❌ ปุ่มกดไม่ได้
+        //   );
+        //   break;
+
+        // 🔴 กรณีหมดเวลา 24 ชม. แล้วยังไม่ชนะ (หมดสิทธิ์)
+        case 'EXPIRED':
+          _addLocalBotMessage(
+            type: BotMessageType.minigameFail,
+            text: "หมดเวลาการเล่นรอบนี้",
+            description: "คุณพลาดโอกาสในรอบนี้ไปแล้ว",
+            actionText: "ไม่สามารถเล่นได้",
+            isDisabled: true,
+          );
+          break;
+      }
+    } catch (e) {
+      print("Error checking game: $e");
+    }
+  }
+
+  void _addLocalBotMessage({
+    required BotMessageType type,
+    required String text,
+    String? description,
+    String? actionText,
+    bool isDisabled = false,
+    int? remainingSeconds,
+    VoidCallback? onAction,
+  }) {
+    final botMsg = ChatMessage(
+      id: DateTime.now().toString(),
+      text: text,
+      isOwn: false,
+      isBot: true,
+      timestamp: DateTime.now(),
+      botType: type,
+      description: description,
+      actionButtonText: actionText,
+      isActionDisabled: isDisabled,
+      remainingSeconds: remainingSeconds,
+    );
+
+    setState(() {
+      _messages.add(botMsg);
+      _scrollToBottom();
+    });
+  }
+
+  Future<void> _navigateToGameScreen(String roomId) async {
+    print("🚀 Navigating to Game Screen...");
+
+    final result = await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => GuessingGameScreen(roomId: int.tryParse(roomId)),
+      ),
+    );
+
+    print("🔙 Returned from Game with result: $result");
+  }
+
+  String _formatDuration(int? seconds) {
+    if (seconds == null) return "-";
+    final duration = Duration(seconds: seconds);
+    return "${duration.inHours} ชม. ${duration.inMinutes % 60} นาที";
+  }
+
   Future<void> _initUpdateRelationshipBar(bool onUpdate) async {
     if (onUpdate) {
       final chatService = ref.read(chatServiceProvider);
@@ -163,12 +278,6 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
             : false;
         _dailyMessagesCount = roomData != null ? roomData.dailyMessageCount : 0;
       });
-
-      if (widget.roomId != null &&
-          widget.roomId!.isNotEmpty &&
-          _currentPercent >= 0.25) {
-        print("Trigger Game Ai +++++++++++");
-      }
 
       if (_heartCount == 0 && _currentPercent == 1.00) {
         _triggerUnlockDate();
@@ -921,8 +1030,14 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
       return BotMessageComponent.fromMessage(
         message: message,
         onActionPressed: () {
-          // Handle action button press
-          debugPrint('Action pressed for message: ${message.id}');
+          print("🔘 Bot Button Clicked: ${message.botType}");
+          if (message.botType == BotMessageType.minigame ||
+              message.botType == BotMessageType.minigameFail) {
+            print("🚀 Navigating to Game...");
+            _navigateToGameScreen(widget.roomId!);
+          } else {
+            print("⚠️ Unhandled bot type: ${message.botType}");
+          }
         },
         onFirstChoice: () {
           // Handle "ใช่" choice
@@ -1306,39 +1421,39 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
               ),
 
               //ปุ่มเทสเกม
-              // Positioned(
-              //   top: 100, // ปรับตำแหน่งแนวตั้ง (ให้หลบ Header)
-              //   right: 0, // ชิดขวา
-              //   child: Container(
-              //     decoration: const BoxDecoration(
-              //       color: Colors.red, // สีแดงเด่นๆ ให้รู้ว่าเป็นปุ่ม Test
-              //       borderRadius: BorderRadius.only(
-              //         topLeft: Radius.circular(20),
-              //         bottomLeft: Radius.circular(20),
-              //       ),
-              //     ),
-              //     child: IconButton(
-              //       icon: const Icon(
-              //         Icons.videogame_asset,
-              //         color: Colors.white,
-              //       ),
-              //       onPressed: () async {
-              //         // ✅ แบบที่ถูก: ยิงไปบอก Server ให้ Server สั่งเปิดเกมพร้อมกัน
-              //         final roomId = widget.roomId;
-              //         // ⚠️ เปลี่ยน IP เป็น IP เครื่องคอมคุณ
-              //         final url = Uri.parse(
-              //           'http://cp25ssi2.sit.kmutt.ac.th:8080/api/v1/test/trigger-game/$roomId',
-              //         );
-              //         try {
-              //           print("Shooting trigger to $url");
-              //           await http.post(url);
-              //         } catch (e) {
-              //           print("Error triggering game: $e");
-              //         }
-              //       },
-              //     ),
-              //   ),
-              // ),
+              Positioned(
+                top: 100, // ปรับตำแหน่งแนวตั้ง (ให้หลบ Header)
+                right: 0, // ชิดขวา
+                child: Container(
+                  decoration: const BoxDecoration(
+                    color: Colors.red, // สีแดงเด่นๆ ให้รู้ว่าเป็นปุ่ม Test
+                    borderRadius: BorderRadius.only(
+                      topLeft: Radius.circular(20),
+                      bottomLeft: Radius.circular(20),
+                    ),
+                  ),
+                  child: IconButton(
+                    icon: const Icon(
+                      Icons.videogame_asset,
+                      color: Colors.white,
+                    ),
+                    onPressed: () async {
+                      // ✅ แบบที่ถูก: ยิงไปบอก Server ให้ Server สั่งเปิดเกมพร้อมกัน
+                      final roomId = widget.roomId;
+                      // ⚠️ เปลี่ยน IP เป็น IP เครื่องคอมคุณ
+                      final url = Uri.parse(
+                        'http://cp25ssi2.sit.kmutt.ac.th:8080/api/v1/test/trigger-game/$roomId',
+                      );
+                      try {
+                        print("Shooting trigger to $url");
+                        await http.post(url);
+                      } catch (e) {
+                        print("Error triggering game: $e");
+                      }
+                    },
+                  ),
+                ),
+              ),
               if (_showWheelModal) ...[
                 // 1. ฉากหลังสีเทาจาง (Dim background)
                 Positioned.fill(

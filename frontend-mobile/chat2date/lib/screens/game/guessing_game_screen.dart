@@ -5,6 +5,7 @@ import 'package:chat2date/screens/game/views/loading_view.dart';
 import 'package:chat2date/screens/game/views/question_view.dart';
 import 'package:chat2date/screens/game/views/result_view.dart';
 import 'package:chat2date/screens/game/views/waiting_view.dart';
+import 'package:chat2date/services/game_service.dart';
 import 'package:chat2date/services/game_socket_service.dart';
 import 'package:chat2date/stores/game_store.dart';
 import 'package:chat2date/stores/user_store.dart';
@@ -25,6 +26,9 @@ class _GuessingGameScreenState extends ConsumerState<GuessingGameScreen> {
   GameSocketService? _socketService;
   StreamSubscription? _socketSubscription;
 
+  bool _canPop = false;
+  bool _isExiting = false;
+
   @override
   void initState() {
     super.initState();
@@ -42,11 +46,8 @@ class _GuessingGameScreenState extends ConsumerState<GuessingGameScreen> {
   void _connectSocket() {
     final gameState = ref.read(gameProvider);
     final userStore = ref.read(userStoreProvider);
-
     final User? userObj = userStore['user'] as User?;
-
     final myUserId = userObj?.userId;
-
 
     if (myUserId == null) {
       print("❌ CRITICAL ERROR: UserID is still NULL. Please Re-Login.");
@@ -64,6 +65,27 @@ class _GuessingGameScreenState extends ConsumerState<GuessingGameScreen> {
       _socketSubscription = _socketService!.gameStream.listen((payload) {
         print("🎧 Socket Received in Screen: $payload");
 
+        final type = payload['type'];
+
+        if (type == 'GAME_CANCELLED') {
+          print("🚫 Game Cancelled by partner/server");
+
+          if (mounted && !_isExiting) {
+            setState(() {
+              _isExiting = true; // ล็อคไม่ให้ทำซ้ำ
+              _canPop = true; // ปลดล็อค PopScope
+            });
+
+
+            Future.microtask(() {
+              if (mounted && Navigator.canPop(context)) {
+                Navigator.pop(context, 'FAILED');
+              }
+            });
+          }
+          return;
+        }
+
         ref
             .read(gameProvider.notifier)
             .socketMessage(payload, myUserId.toString());
@@ -78,13 +100,43 @@ class _GuessingGameScreenState extends ConsumerState<GuessingGameScreen> {
     super.dispose();
   }
 
+  void quitGame({bool isTimeout = false}) {
+    // 1. เช็คว่ากำลังออกอยู่แล้วหรือยัง (กัน Socket สั่งซ้ำ)
+    if (mounted && !_isExiting) {
+      final gameId = ref.read(gameProvider).gameId;
+      if (gameId != null) {
+        ref.read(gameServiceProvider).sendTimeout(gameId);
+      }
+
+      setState(() {
+        _isExiting =
+            true; // 2. ล็อคทันที! เพื่อบอก Socket ว่า "ฉันกำลังออกแล้วนะ อย่า Pop ซ้ำ"
+        _canPop = true;
+      });
+
+      Future.microtask(() {
+        if (mounted && Navigator.canPop(context)) {
+          Navigator.pop(context, 'FAILED');
+        }
+      });
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final gameState = ref.watch(gameProvider);
 
-    return Scaffold(
-      backgroundColor: Colors.white,
-      body: _buildCurrentView(gameState),
+    return PopScope(
+      canPop: _canPop,
+      onPopInvoked: (didPop) {
+        if (didPop) return;
+        // เมื่อกด Back ให้ถือว่า Failed
+        quitGame();
+      },
+      child: Scaffold(
+        backgroundColor: Colors.white,
+        body: _buildCurrentView(gameState),
+      ),
     );
   }
 
@@ -123,6 +175,9 @@ class _GuessingGameScreenState extends ConsumerState<GuessingGameScreen> {
         isPartnerReady: state.isPartnerReady,
         onReady: () {
           ref.read(gameProvider.notifier).sendReady();
+        },
+        onTimeout: () {
+          quitGame(isTimeout: true);
         },
       );
     }

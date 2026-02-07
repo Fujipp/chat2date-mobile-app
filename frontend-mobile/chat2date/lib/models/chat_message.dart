@@ -2,16 +2,16 @@
 enum BotMessageType {
   /// Bot Minigame - พื้นเหลือง พร้อมปุ่ม "เริ่ม" สีฟ้า (enabled)
   minigame,
-  
+
   /// Bot Minigame Fail - พื้นเหลือง ปุ่ม disabled "หมดเวลาแล้ว"
   minigameFail,
-  
+
   /// Bot Ask - พื้นเหลือง พร้อมปุ่ม choice 2 ปุ่ม (ใช่/ไม่)
   ask,
-  
+
   /// Bot Ask Success - พื้นเขียว "สำเร็จ!"
   askSuccess,
-  
+
   /// Bot Ask Fail - พื้นแดง "เสียใจด้วย!"
   askFail,
 }
@@ -23,7 +23,8 @@ class ChatMessage {
   final bool isOwn;
   final DateTime timestamp;
   final bool isSeen;
-  
+  final int? remainingSeconds;
+
   // สำหรับ Bot messages
   final bool isBot;
   final BotMessageType? botType;
@@ -35,7 +36,7 @@ class ChatMessage {
   final String? secondChoiceText;
   final int? answeredCount;
   final int? totalCount;
-  
+
   const ChatMessage({
     required this.id,
     required this.text,
@@ -52,6 +53,7 @@ class ChatMessage {
     this.secondChoiceText,
     this.answeredCount,
     this.totalCount,
+    this.remainingSeconds,
   });
 
   ChatMessage copyWith({
@@ -100,6 +102,9 @@ class ChatMessage {
     final createdRaw = json['created']?.toString();
     
     // แปลง timestamp - Backend ส่งมาเป็น local time (Thailand) ไม่มี timezone marker
+    final typeStr =
+        json['messageType']?.toString() ?? json['type']?.toString() ?? 'TEXT';
+
     DateTime timestamp;
     if (createdRaw != null) {
       final parsedTime = DateTime.tryParse(createdRaw);
@@ -126,21 +131,57 @@ class ChatMessage {
     final bool messageRead = rawRead is bool
         ? rawRead
         : rawRead is num
-            ? rawRead != 0
-            : rawRead is String
-                ? rawRead == '1' || rawRead.toLowerCase() == 'true'
-                : false;
+        ? rawRead != 0
+        : rawRead is String
+        ? rawRead == '1' || rawRead.toLowerCase() == 'true'
+        : false;
+
+    // --- ส่วน Logic Bot ---
+    bool isBotMessage = false;
+    BotMessageType? mappedBotType;
+    String? displayTitle;
+    String? displayDescription;
+    String? btnText;
+
+    if (senderId == 'SYSTEM' || typeStr != 'TEXT') {
+      if (typeStr == 'GAME') {
+        isBotMessage = true;
+        mappedBotType = BotMessageType.minigame;
+        displayTitle = "🎮 Guessing Game";
+
+        displayDescription = message;
 
     // Debug log เพื่อตรวจสอบค่า isRead ที่ได้รับจาก API
     print('[ChatMessage.fromApi] messageId=${json['messageId']}, senderId=$senderId, currentUserId=$currentUserId, isOwn=$isOwn, rawRead=$rawRead (${rawRead.runtimeType}), messageRead=$messageRead, isSeen=${isOwn && messageRead}');
+        btnText = "เข้าร่วม / เริ่มเกม";
+      } else if (typeStr == 'FAIL') {
+        isBotMessage = true;
+        mappedBotType = BotMessageType.minigameFail;
+        displayTitle = "⚠️ เกมจบไม่สมบูรณ์";
+
+        displayDescription = message;
+
+        btnText = "เริ่มเกมใหม่";
+      }
+    }
 
     return ChatMessage(
-      id: json['messageId']?.toString() ??
+      id:
+          json['messageId']?.toString() ??
           timestamp.millisecondsSinceEpoch.toString(),
-      text: message,
+
+      text: isBotMessage ? (displayTitle ?? message) : message,
+
       isOwn: isOwn,
       timestamp: timestamp,
       isSeen: isOwn && messageRead,
+
+      // bot fields
+      isBot: isBotMessage,
+      botType: mappedBotType,
+      description: displayDescription,
+      actionButtonText: btnText,
+      isActionDisabled: false,
     );
   }
   
@@ -173,7 +214,7 @@ class ChatMessage {
       timestamp: timestamp ?? DateTime.now(),
     );
   }
-  
+
   /// สร้าง Bot Minigame message
   factory ChatMessage.botMinigame({
     required String id,
@@ -189,7 +230,9 @@ class ChatMessage {
       text: text,
       isOwn: false,
       isBot: true,
-      botType: isDisabled ? BotMessageType.minigameFail : BotMessageType.minigame,
+      botType: isDisabled
+          ? BotMessageType.minigameFail
+          : BotMessageType.minigame,
       description: description,
       subDescription: subDescription,
       actionButtonText: actionButtonText,
@@ -197,7 +240,7 @@ class ChatMessage {
       timestamp: timestamp ?? DateTime.now(),
     );
   }
-  
+
   /// สร้าง Bot Ask message (พร้อมปุ่ม ใช่/ไม่)
   factory ChatMessage.botAsk({
     required String id,
@@ -223,7 +266,7 @@ class ChatMessage {
       timestamp: timestamp ?? DateTime.now(),
     );
   }
-  
+
   /// สร้าง Bot Ask Success message
   factory ChatMessage.botAskSuccess({
     required String id,
@@ -241,7 +284,7 @@ class ChatMessage {
       timestamp: timestamp ?? DateTime.now(),
     );
   }
-  
+
   /// สร้าง Bot Ask Fail message
   factory ChatMessage.botAskFail({
     required String id,

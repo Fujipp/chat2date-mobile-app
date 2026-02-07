@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:chat2date/models/chat_message.dart';
 import 'package:chat2date/theme/app_colors.dart';
 import 'package:flutter/material.dart';
@@ -10,7 +11,7 @@ import 'package:flutter_svg/flutter_svg.dart';
 /// - Bot Ask: พื้นเหลือง + ปุ่ม choice 2 ปุ่ม
 /// - Bot Ask Success: พื้นเขียว + ข้อความสำเร็จ
 /// - Bot Ask Fail: พื้นแดง + ข้อความเสียใจ
-class BotMessageComponent extends StatelessWidget {
+class BotMessageComponent extends StatefulWidget {
   final BotMessageType type;
   final String title;
   final String? description;
@@ -24,6 +25,7 @@ class BotMessageComponent extends StatelessWidget {
   final VoidCallback? onSecondChoice;
   final int answeredCount;
   final int totalCount;
+  final int? remainingSeconds;
 
   const BotMessageComponent({
     super.key,
@@ -40,6 +42,7 @@ class BotMessageComponent extends StatelessWidget {
     this.onSecondChoice,
     this.answeredCount = 0,
     this.totalCount = 2,
+    this.remainingSeconds,
   });
 
   /// สร้างจาก ChatMessage model
@@ -63,7 +66,54 @@ class BotMessageComponent extends StatelessWidget {
       onSecondChoice: onSecondChoice,
       answeredCount: message.answeredCount ?? 0,
       totalCount: message.totalCount ?? 2,
+      remainingSeconds: message.remainingSeconds,
     );
+  }
+
+  @override
+  State<BotMessageComponent> createState() => _BotMessageComponentState();
+}
+
+class _BotMessageComponentState extends State<BotMessageComponent> {
+  Timer? _timer;
+  int _currentSeconds = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    // รับค่าเวลาเริ่มต้น
+    _currentSeconds = widget.remainingSeconds ?? 0;
+    // ถ้ามีเวลาเหลือ ให้เริ่มนับถอยหลัง
+    if (_currentSeconds > 0) {
+      _startTimer();
+    }
+  }
+
+  void _startTimer() {
+    _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      if (!mounted) return;
+      setState(() {
+        if (_currentSeconds > 0) {
+          _currentSeconds--;
+        } else {
+          _timer?.cancel();
+        }
+      });
+    });
+  }
+
+  @override
+  void dispose() {
+    _timer?.cancel();
+    super.dispose();
+  }
+
+  String _formatDuration(int totalSeconds) {
+    final duration = Duration(seconds: totalSeconds);
+    final hours = duration.inHours.toString().padLeft(2, '0');
+    final minutes = (duration.inMinutes % 60).toString().padLeft(2, '0');
+    final seconds = (duration.inSeconds % 60).toString().padLeft(2, '0');
+    return "$hours:$minutes:$seconds";
   }
 
   @override
@@ -76,7 +126,7 @@ class BotMessageComponent extends StatelessWidget {
           width: 36,
           height: 36,
           margin: const EdgeInsets.only(right: 8),
-          decoration: BoxDecoration(
+          decoration: const BoxDecoration(
             color: AppColors.textMuted,
             shape: BoxShape.circle,
           ),
@@ -114,7 +164,7 @@ class BotMessageComponent extends StatelessWidget {
   }
 
   Color _getBackgroundColor() {
-    switch (type) {
+    switch (widget.type) {
       case BotMessageType.minigame:
       case BotMessageType.minigameFail:
       case BotMessageType.ask:
@@ -127,7 +177,7 @@ class BotMessageComponent extends StatelessWidget {
   }
 
   Color _getDescriptionColor() {
-    switch (type) {
+    switch (widget.type) {
       case BotMessageType.minigame:
       case BotMessageType.minigameFail:
       case BotMessageType.ask:
@@ -140,7 +190,7 @@ class BotMessageComponent extends StatelessWidget {
   }
 
   Widget _buildContent() {
-    switch (type) {
+    switch (widget.type) {
       case BotMessageType.minigame:
       case BotMessageType.minigameFail:
         return _buildMinigameContent();
@@ -160,7 +210,7 @@ class BotMessageComponent extends StatelessWidget {
       children: [
         // Title
         Text(
-          title,
+          widget.title,
           textAlign: TextAlign.center,
           style: const TextStyle(
             color: AppColors.textPrimary,
@@ -170,10 +220,10 @@ class BotMessageComponent extends StatelessWidget {
             height: 1.43,
           ),
         ),
-        if (description != null) ...[
+        if (widget.description != null) ...[
           const SizedBox(height: 8),
           Text(
-            description!,
+            widget.description!,
             textAlign: TextAlign.center,
             style: TextStyle(
               color: _getDescriptionColor(),
@@ -184,10 +234,10 @@ class BotMessageComponent extends StatelessWidget {
             ),
           ),
         ],
-        if (subDescription != null) ...[
+        if (widget.subDescription != null) ...[
           const SizedBox(height: 8),
           Text(
-            subDescription!,
+            widget.subDescription!,
             textAlign: TextAlign.center,
             style: const TextStyle(
               color: AppColors.error,
@@ -198,6 +248,21 @@ class BotMessageComponent extends StatelessWidget {
             ),
           ),
         ],
+
+        // 🔥 เพิ่มส่วนแสดงเวลา Real-time ตรงนี้
+        if (_currentSeconds > 0) ...[
+          const SizedBox(height: 4),
+          Text(
+            "เหลือเวลาเริ่มใหม่ ${_formatDuration(_currentSeconds)}",
+            style: const TextStyle(
+              color: Color(0xFFE53935), // สีแดงตามธีม Alert
+              fontSize: 10,
+              fontWeight: FontWeight.w700,
+              fontFamily: 'Inter',
+            ),
+          ),
+        ],
+
         const SizedBox(height: 12),
         // Action Button
         _buildActionButton(),
@@ -213,7 +278,7 @@ class BotMessageComponent extends StatelessWidget {
       children: [
         // Title
         Text(
-          title,
+          widget.title,
           textAlign: TextAlign.center,
           style: const TextStyle(
             color: AppColors.textPrimary,
@@ -223,10 +288,10 @@ class BotMessageComponent extends StatelessWidget {
             height: 1.43,
           ),
         ),
-        if (description != null) ...[
+        if (widget.description != null) ...[
           const SizedBox(height: 8),
           Text(
-            description!,
+            widget.description!,
             textAlign: TextAlign.center,
             style: TextStyle(
               color: _getDescriptionColor(),
@@ -240,7 +305,7 @@ class BotMessageComponent extends StatelessWidget {
         // Answered counter
         const SizedBox(height: 4),
         Text(
-          'ตอบแล้ว $answeredCount/$totalCount',
+          'ตอบแล้ว ${widget.answeredCount}/${widget.totalCount}',
           textAlign: TextAlign.center,
           style: const TextStyle(
             color: AppColors.textMuted,
@@ -256,16 +321,16 @@ class BotMessageComponent extends StatelessWidget {
           children: [
             // ปุ่ม "ไม่" (แดง)
             _buildChoiceButton(
-              text: secondChoiceText ?? 'ไม่',
+              text: widget.secondChoiceText ?? 'ไม่',
               color: const Color(0xFFFF6B6B),
-              onPressed: onSecondChoice,
+              onPressed: widget.onSecondChoice,
             ),
             const SizedBox(width: 12),
             // ปุ่ม "ใช่" (เขียว)
             _buildChoiceButton(
-              text: firstChoiceText ?? 'ใช่',
+              text: widget.firstChoiceText ?? 'ใช่',
               color: const Color(0xFF98FB98),
-              onPressed: onFirstChoice,
+              onPressed: widget.onFirstChoice,
             ),
           ],
         ),
@@ -281,7 +346,7 @@ class BotMessageComponent extends StatelessWidget {
       children: [
         // Title (bold)
         Text(
-          title,
+          widget.title,
           textAlign: TextAlign.center,
           style: const TextStyle(
             color: AppColors.textPrimary,
@@ -291,10 +356,10 @@ class BotMessageComponent extends StatelessWidget {
             height: 1.43,
           ),
         ),
-        if (description != null) ...[
+        if (widget.description != null) ...[
           const SizedBox(height: 8),
           Text(
-            description!,
+            widget.description!,
             textAlign: TextAlign.center,
             style: TextStyle(
               color: _getDescriptionColor(),
@@ -310,10 +375,10 @@ class BotMessageComponent extends StatelessWidget {
   }
 
   Widget _buildActionButton() {
-    final bool disabled = isActionDisabled || type == BotMessageType.minigameFail;
-    
+    final bool disabled = widget.isActionDisabled;
+
     return GestureDetector(
-      onTap: disabled ? null : onActionPressed,
+      onTap: disabled ? null : widget.onActionPressed,
       child: Container(
         width: double.infinity,
         padding: const EdgeInsets.symmetric(vertical: 10),
@@ -324,7 +389,7 @@ class BotMessageComponent extends StatelessWidget {
           borderRadius: BorderRadius.circular(16),
         ),
         child: Text(
-          actionButtonText ?? 'เริ่ม',
+          widget.actionButtonText ?? 'เริ่ม',
           textAlign: TextAlign.center,
           style: TextStyle(
             color: disabled ? AppColors.textMuted : AppColors.textPrimary,

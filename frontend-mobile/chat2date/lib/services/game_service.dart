@@ -51,6 +51,11 @@ class GameService {
     return response;
   }
 
+  Future<void> sendTimeout(String gameId) async {
+    final uri = Uri.parse('${ApiBase.baseUrl}/games/timeout/$gameId');
+    await http.post(uri, headers: _headers());
+  }
+
   // --- Helper Methods ---
   Future<http.Response> _get(Uri uri) async {
     print('🌐 GET: $uri');
