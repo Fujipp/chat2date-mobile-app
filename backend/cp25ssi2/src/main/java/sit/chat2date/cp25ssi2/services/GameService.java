@@ -464,6 +464,29 @@ public class GameService {
         }
     }
 
+    public void gameTimeout(String gameId) {
+        Optional<GameSessions> sessionOpt = gameSessionRepository.findById(gameId);
+
+        if (sessionOpt.isPresent()) {
+            GameSessions session = sessionOpt.get();
+
+            if (session.getStatus() == GameSessionStatus.ACTIVE) {
+                session.setStatus(GameSessionStatus.COMPLETED);
+                gameSessionRepository.save(session);
+
+                try {
+                    chatService.sendSystemMessage(
+                            Integer.parseInt(session.getRoomId()),
+                            "เกมรอบที่แล้วจบไม่สมบูรณ์ หรือหมดเวลา",
+                            sit.chat2date.cp25ssi2.enums.MessageType.FAIL
+                    );
+                } catch (Exception e) {
+                    System.err.println("Error saving timeout message: " + e.getMessage());
+                }
+            }
+        }
+    }
+
     private boolean isUserOnline(Integer roomId, String userId) {
         System.out.println("test");
         return chatAccessLogRepository.findFirstByRoomIdAndUserIdOrderByCreatedAtDesc(roomId, userId)

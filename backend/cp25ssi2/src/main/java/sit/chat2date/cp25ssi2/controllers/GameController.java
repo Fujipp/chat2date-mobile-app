@@ -44,4 +44,10 @@ public class GameController {
     ) {
         return ResponseEntity.ok(gameService.getGameInfo(gameId, userId));
     }
+
+    @PostMapping("/timeout/{gameId}")
+    public ResponseEntity<Void> reportTimeout(@PathVariable String gameId) {
+        gameService.gameTimeout(gameId);
+        return ResponseEntity.ok().build();
+    }
 }
