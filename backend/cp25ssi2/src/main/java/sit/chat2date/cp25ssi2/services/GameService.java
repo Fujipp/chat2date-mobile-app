@@ -343,7 +343,7 @@ public class GameService {
             if (lastSession.getStatus() == GameSessionStatus.COMPLETED) {
                 return GameCheckResponse.builder()
                         .canPlay(false)
-                        .gameStatus("COMPLETED_FINISHED") 
+                        .gameStatus("COMPLETED_FINISHED")
                         .remainingSeconds(secondsLeft)
                         .build();
             }
@@ -474,24 +474,36 @@ public class GameService {
 
         if (sessionOpt.isPresent()) {
             GameSessions session = sessionOpt.get();
+            String roomId = session.getRoomId();
 
-            if (session.getStatus() == GameSessionStatus.ACTIVE) {
-                session.setStatus(GameSessionStatus.FAILED);
-                gameSessionRepository.save(session);
+            Object lock = roomLocks.computeIfAbsent(roomId, k -> new Object());
 
-                try {
-                    chatService.sendSystemMessage(
-                            Integer.parseInt(session.getRoomId()),
-                            "เกมรอบที่แล้วจบไม่สมบูรณ์ หรือหมดเวลา",
-                            sit.chat2date.cp25ssi2.enums.MessageType.FAIL
-                    );
-                } catch (Exception e) {
-                    System.err.println("Error saving timeout message: " + e.getMessage());
+            synchronized (lock) {
+                GameSessions currentSession = gameSessionRepository.findById(gameId)
+                        .orElseThrow(() -> new NotFoundException("Game session not found"));
+
+                if (currentSession.getStatus() == GameSessionStatus.ACTIVE) {
+                    currentSession.setStatus(GameSessionStatus.FAILED);
+                    gameSessionRepository.save(currentSession);
+
+                    try {
+                        chatService.sendSystemMessage(
+                                Integer.parseInt(currentSession.getRoomId()),
+                                "เกมรอบที่แล้วจบไม่สมบูรณ์ หรือหมดเวลา",
+                                sit.chat2date.cp25ssi2.enums.MessageType.FAIL
+                        );
+                    } catch (Exception e) {
+                        System.err.println("Error saving timeout message: " + e.getMessage());
+                    }
+
+                    LocalDateTime unlockTime = currentSession.getCreatedAt().plusHours(24);
+                    long secondsLeft = java.time.Duration.between(LocalDateTime.now(), unlockTime).getSeconds();
+
+                    Map<String, Object> payload = new HashMap<>();
+                    payload.put("type", "GAME_CANCELLED");
+                    payload.put("remainingSeconds", secondsLeft);
+                    messagingTemplate.convertAndSend("/topic/games/" + currentSession.getRoomId(), payload);
                 }
-
-                Map<String, Object> payload = new HashMap<>();
-                payload.put("type", "GAME_CANCELLED");
-                messagingTemplate.convertAndSend("/topic/games/" + session.getRoomId(), payload);
             }
         }
     }
