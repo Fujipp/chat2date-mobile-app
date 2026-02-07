@@ -38,6 +38,12 @@ public class GameService {
     private final Map<String, Set<String>> readyPlayers = new java.util.concurrent.ConcurrentHashMap<>();
     private final Map<String, Object> roomLocks = new ConcurrentHashMap<>();
 
+    private void notifyGameStart(String roomId) {
+        Map<String, Object> payload = new HashMap<>();
+        payload.put("type", "GAME_START");
+        messagingTemplate.convertAndSend("/topic/games/" + roomId, payload);
+    }
+
     public GameStartResponse createGame(Integer roomId, String userId) {
         System.out.println("Processing Game for Room ID: " + roomId);
 
@@ -61,6 +67,7 @@ public class GameService {
                 int totalAnswers = gameAnswerRepository.countByGameId(existingSession.get().getGameId());
 
                 if (totalAnswers == 0) {
+                    notifyGameStart(roomId.toString());
                     return buildGameResponse(existingSession.get(), userId, match);
                 } else {
                     System.out.println("⚠️ Overwriting FAILED session: " + existingSession.get().getGameId());
@@ -139,6 +146,7 @@ public class GameService {
                     dbQuestions.add(question);
                 }
                 gameQuestionRepository.saveAll(dbQuestions);
+                notifyGameStart(roomId.toString());
 
                 return buildGameResponse(session, userId, match);
 
