@@ -288,4 +288,38 @@ public class ChatService {
                 }
                 return chatLog.toString();
         }
+
+    @Transactional
+    public void sendSystemMessage(Integer roomId, String content, MessageType type) {
+        Match match = matchRepository.findById(roomId)
+                .orElseThrow(() -> new NotFoundException("Match not found"));
+
+        Message message = Message.builder()
+                .roomId(roomId)
+                .senderId("SYSTEM")
+                .message(content)
+                .messageType(type)
+                .isRead(false)
+                .build();
+
+        message = messageRepository.save(message);
+
+
+        SendMessageResponse response = SendMessageResponse.builder()
+                .roomId(String.valueOf(message.getRoomId()))
+                .messageId(message.getMessageId())
+                .message(message.getMessage())
+                .senderId("SYSTEM")
+                .created(message.getCreatedAt())
+                .type(message.getMessageType())
+                .build();
+
+        // REUSE: ใช้ chatSocketService ของเพื่อนเพื่อ Broadcast ไปหา User
+        chatSocketService.broadcastMessage(
+                String.valueOf(roomId),
+                match.getUserId1().getUserId(),
+                match.getUserId2().getUserId(),
+                response
+        );
+    }
 }

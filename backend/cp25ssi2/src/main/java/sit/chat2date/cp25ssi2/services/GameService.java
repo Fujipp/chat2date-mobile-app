@@ -35,13 +35,24 @@ public class GameService {
     private final ObjectMapper objectMapper;
     private final SimpMessagingTemplate messagingTemplate;
 
+    private final ChatService chatService;
+
     private final Map<String, Set<String>> readyPlayers = new java.util.concurrent.ConcurrentHashMap<>();
     private final Map<String, Object> roomLocks = new ConcurrentHashMap<>();
 
-    private void notifyGameStart(String roomId) {
+    private void notifyWaitingStart(String roomId) {
         Map<String, Object> payload = new HashMap<>();
-        payload.put("type", "GAME_START");
+        payload.put("type", "WAITING_START");
         messagingTemplate.convertAndSend("/topic/games/" + roomId, payload);
+        try {
+            chatService.sendSystemMessage(
+                    Integer.parseInt(roomId),
+                    "มีคนกดเริ่มเกม! กดที่นี่เพื่อเข้าร่วม",
+                    sit.chat2date.cp25ssi2.enums.MessageType.GAME
+            );
+        } catch (Exception e) {
+            System.err.println("Failed to save waiting start message: " + e.getMessage());
+        }
     }
 
     public GameStartResponse createGame(Integer roomId, String userId) {
@@ -67,7 +78,6 @@ public class GameService {
                 int totalAnswers = gameAnswerRepository.countByGameId(existingSession.get().getGameId());
 
                 if (totalAnswers == 0) {
-                    notifyGameStart(roomId.toString());
                     return buildGameResponse(existingSession.get(), userId, match);
                 } else {
                     System.out.println("⚠️ Overwriting FAILED session: " + existingSession.get().getGameId());
@@ -75,6 +85,14 @@ public class GameService {
                     oldSession.setStatus(GameSessionStatus.COMPLETED);
                     gameSessionRepository.save(oldSession);
                 }
+
+                try {
+                    chatService.sendSystemMessage(
+                            roomId,
+                            "เกมรอบที่แล้วจบไม่สมบูรณ์ หรือหมดเวลา",
+                            sit.chat2date.cp25ssi2.enums.MessageType.FAIL
+                    );
+                } catch (Exception e) {}
             }
 
             try {
@@ -146,8 +164,8 @@ public class GameService {
                     dbQuestions.add(question);
                 }
                 gameQuestionRepository.saveAll(dbQuestions);
-                notifyGameStart(roomId.toString());
 
+                notifyWaitingStart(roomId.toString());
                 return buildGameResponse(session, userId, match);
 
             } catch (Exception e) {
