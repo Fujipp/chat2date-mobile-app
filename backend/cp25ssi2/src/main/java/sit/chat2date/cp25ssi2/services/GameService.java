@@ -58,7 +58,16 @@ public class GameService {
             Optional<GameSessions> existingSession = gameSessionRepository.findTopByRoomIdOrderByCreatedAtDesc(roomId.toString());
 
             if (existingSession.isPresent() && existingSession.get().getStatus() == GameSessionStatus.ACTIVE) {
-                return buildGameResponse(existingSession.get(), userId, match);
+                int totalAnswers = gameAnswerRepository.countByGameId(existingSession.get().getGameId());
+
+                if (totalAnswers == 0) {
+                    return buildGameResponse(existingSession.get(), userId, match);
+                } else {
+                    System.out.println("⚠️ Overwriting FAILED session: " + existingSession.get().getGameId());
+                    GameSessions oldSession = existingSession.get();
+                    oldSession.setStatus(GameSessionStatus.COMPLETED);
+                    gameSessionRepository.save(oldSession);
+                }
             }
 
             try {
@@ -298,26 +307,31 @@ public class GameService {
         }
 
         GameSessions lastSession = lastSessionOpt.get();
-
-        if (lastSession.getStatus() == GameSessionStatus.ACTIVE) {
-            return GameCheckResponse.builder()
-                    .canPlay(true)
-                    .gameStatus("RESUME")
-                    .gameId(lastSession.getGameId())
-                    .build();
-        }
-
         LocalDateTime lastPlayed = lastSession.getCreatedAt();
         LocalDateTime now = LocalDateTime.now();
         LocalDateTime unlockTime = lastPlayed.plusHours(24);
 
         if (now.isBefore(unlockTime)) {
             long secondsLeft = java.time.Duration.between(now, unlockTime).getSeconds();
-            return GameCheckResponse.builder()
-                    .canPlay(false)
-                    .gameStatus("COOLDOWN")
-                    .remainingSeconds(secondsLeft)
-                    .build();
+            if (lastSession.getStatus() == GameSessionStatus.COMPLETED) {
+                return GameCheckResponse.builder()
+                        .canPlay(false)
+                        .gameStatus("COOLDOWN")
+                        .remainingSeconds(secondsLeft)
+                        .build();
+            }
+
+            int totalAnswers = gameAnswerRepository.countByGameId(lastSession.getGameId());
+
+            if (totalAnswers > 0){
+                return GameCheckResponse.builder().canPlay(true).gameStatus("FAILED").remainingSeconds(secondsLeft).build();
+            }else{
+                return GameCheckResponse.builder()
+                        .canPlay(true)
+                        .gameStatus("RESUME")
+                        .gameId(lastSession.getGameId())
+                        .build();
+            }
         }
 
         return GameCheckResponse.builder().canPlay(true).gameStatus("NEW").build();
