@@ -189,6 +189,8 @@ class _GuessingGameScreenState extends ConsumerState<GuessingGameScreen> {
     // 5. Loading View (ตอบครบแล้ว แต่รอคู่)
     if (state.hasUserFinishedAll) {
       return LoadingView(
+        partnerProgress: state.partnerAnsweredCount, 
+        totalQuestions: state.questions.length, 
         onBothComplete: () async {
           print("🔄 Loading complete callback triggered");
 

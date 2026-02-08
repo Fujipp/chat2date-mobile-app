@@ -1,10 +1,17 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_svg/flutter_svg.dart';
+import 'package:flutter_svg/svg.dart';
 
 class LoadingView extends StatefulWidget {
   final VoidCallback onBothComplete;
+  final int partnerProgress;
+  final int totalQuestions;
 
-  const LoadingView({super.key, required this.onBothComplete});
+  const LoadingView({
+    super.key,
+    required this.onBothComplete,
+    required this.partnerProgress,
+    required this.totalQuestions,
+  });
 
   @override
   State<LoadingView> createState() => _LoadingViewState();
@@ -12,22 +19,16 @@ class LoadingView extends StatefulWidget {
 
 class _LoadingViewState extends State<LoadingView>
     with SingleTickerProviderStateMixin {
-  int _partnerProgress = 0;
-  final int _totalQuestions = 5;
-
   late AnimationController _rotationController;
 
   @override
   void initState() {
     super.initState();
 
-    // controller สำหรับหมุน SVG
     _rotationController = AnimationController(
       vsync: this,
       duration: const Duration(seconds: 2),
     )..repeat();
-
-    _simulatePartnerProgress();
   }
 
   @override
@@ -36,27 +37,11 @@ class _LoadingViewState extends State<LoadingView>
     super.dispose();
   }
 
-  void _simulatePartnerProgress() {
-    // Mock: คู่ทำข้อละ 1.5 วินาที
-    Future.delayed(const Duration(milliseconds: 1500), () {
-      if (!mounted) return;
-
-      if (_partnerProgress < _totalQuestions) {
-        setState(() => _partnerProgress++);
-        _simulatePartnerProgress();
-      } else {
-        // คู่ตอบครบแล้ว รออีกนิดแล้วไปหน้า result
-        Future.delayed(const Duration(seconds: 1), () {
-          if (mounted) {
-            widget.onBothComplete();
-          }
-        });
-      }
-    });
-  }
-
   @override
   Widget build(BuildContext context) {
+    final partnerProgress = widget.partnerProgress;
+    final totalQuestions = widget.totalQuestions;
+
     return SafeArea(
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 32.0),
@@ -136,7 +121,7 @@ class _LoadingViewState extends State<LoadingView>
                           ),
                         ),
                         Text(
-                          '$_partnerProgress/$_totalQuestions ข้อ',
+                          '$partnerProgress/$totalQuestions ข้อ',
                           style: const TextStyle(
                             color: Color(0xFF5CE1E6),
                             fontSize: 16,
@@ -154,7 +139,9 @@ class _LoadingViewState extends State<LoadingView>
                   ClipRRect(
                     borderRadius: BorderRadius.circular(8),
                     child: LinearProgressIndicator(
-                      value: _partnerProgress / _totalQuestions,
+                      value: totalQuestions > 0
+                          ? partnerProgress / totalQuestions
+                          : 0.0,
                       backgroundColor: const Color(0xFFE2E8F0),
                       valueColor: const AlwaysStoppedAnimation<Color>(
                         Color(0xFF5CE1E6),

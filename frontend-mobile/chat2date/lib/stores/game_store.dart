@@ -22,6 +22,8 @@ class GameState {
   final String partnerAvatar;
   final int relationshipScore;
 
+  final int partnerAnsweredCount;
+
   bool get hasUserFinishedAll =>
       questions.isNotEmpty && currentIndex >= questions.length;
 
@@ -41,6 +43,7 @@ class GameState {
     this.myAvatar = '',
     this.partnerAvatar = '',
     this.relationshipScore = 0,
+    this.partnerAnsweredCount = 0, 
   });
 
   GameState copyWith({
@@ -59,6 +62,7 @@ class GameState {
     String? myAvatar,
     String? partnerAvatar,
     int? relationshipScore,
+    int? partnerAnsweredCount, 
   }) {
     return GameState(
       isLoading: isLoading ?? this.isLoading,
@@ -76,6 +80,8 @@ class GameState {
       myAvatar: myAvatar ?? this.myAvatar,
       partnerAvatar: partnerAvatar ?? this.partnerAvatar,
       relationshipScore: relationshipScore ?? this.relationshipScore,
+      partnerAnsweredCount:
+          partnerAnsweredCount ?? this.partnerAnsweredCount, 
     );
   }
 }
@@ -93,10 +99,6 @@ class GameNotifier extends StateNotifier<GameState> {
 
     if (type == 'PLAYER_READY') {
       final List<dynamic> readyPlayerIds = payload['readyPlayerIds'] ?? [];
-      final int readyCount = payload['readyCount'] ?? 0;
-
-      print("👥 Ready Players: $readyPlayerIds");
-      print("🆔 My User ID: $userId");
 
       final bool isImReady = readyPlayerIds.any(
         (id) => id.toString() == userId.toString(),
@@ -106,13 +108,10 @@ class GameNotifier extends StateNotifier<GameState> {
         (id) => id.toString() != userId.toString(),
       );
 
-      print("✅ Am I Ready? $isImReady");
-      print("✅ Is Partner Ready? $isMyPartnerReady");
-
       state = state.copyWith(
         isImReady: isImReady,
         isPartnerReady: isMyPartnerReady,
-        hasStartedGame: state.hasStartedGame, // ห้าม override
+        hasStartedGame: state.hasStartedGame,
       );
     }
 
@@ -136,15 +135,25 @@ class GameNotifier extends StateNotifier<GameState> {
           ? (scores[partnerId] ?? state.partnerScore)
           : state.partnerScore;
 
+      final String answeredBy = payload['answeredBy'] ?? "";
+      int newPartnerAnsweredCount = state.partnerAnsweredCount;
+
+      if (answeredBy.toString() != myUserIdStr) {
+        newPartnerAnsweredCount =
+            payload['answeredCount'] ?? state.partnerAnsweredCount;
+      }
+
       print("🔢 Updating Scores from Socket:");
       print("   My Score: $myNewScore");
       print("   Partner Score: $partnerNewScore");
       print("   Total Score: ${payload['roomTotalScore']}");
+      print("   Partner Answered Count: $newPartnerAnsweredCount"); 
 
       state = state.copyWith(
         totalScore: payload['roomTotalScore'],
         myScore: myNewScore,
         partnerScore: partnerNewScore,
+        partnerAnsweredCount: newPartnerAnsweredCount, 
         isGameOver: (payload['isGameOver'] ?? false) || state.isGameOver,
       );
     }
