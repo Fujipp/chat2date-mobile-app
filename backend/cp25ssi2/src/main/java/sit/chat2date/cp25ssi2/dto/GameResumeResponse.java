@@ -16,4 +16,7 @@ public class GameResumeResponse {
     private String myAvatar;
     private String partnerAvatar;
     private Integer relationshipScore;
+
+    private Integer myScore;
+    private Integer partnerScore;
 }

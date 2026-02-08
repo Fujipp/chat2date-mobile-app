@@ -287,13 +287,20 @@ public class GameService {
             relStats.setScore(relStats.getScore() + session.getTotalScore());
             relationshipStatsRepository.save(relStats);
         }
+        int scoreP1 = gameAnswerRepository.countByGameIdAndUserIdAndIsCorrect(gameId, player1Id, true);
+        int scoreP2 = gameAnswerRepository.countByGameIdAndUserIdAndIsCorrect(gameId, player2Id, true);
+
+        int myCurrentScore = currentUserId.equals(player1Id) ? scoreP1 : scoreP2;
+        int partnerCurrentScore = currentUserId.equals(player1Id) ? scoreP2 : scoreP1;
 
         Map<String, Object> socketPayload = new HashMap<>();
         socketPayload.put("type", "SCORE_UPDATE");
         socketPayload.put("roomTotalScore", session.getTotalScore());
         socketPayload.put("answeredBy", currentUserId);
         socketPayload.put("isCorrect", isCorrect);
-        socketPayload.put("isGameOver", isGameTrulyOver); // ส่งสถานะจบจริงของเกม
+        socketPayload.put("isGameOver", isGameTrulyOver);
+        socketPayload.put("myScore", myCurrentScore);
+        socketPayload.put("partnerScore", partnerCurrentScore);
 
         messagingTemplate.convertAndSend("/topic/games/" + roomId, socketPayload);
 
@@ -414,6 +421,9 @@ public class GameService {
             }
         }
 
+        int myScore = gameAnswerRepository.countByGameIdAndUserIdAndIsCorrect(gameId, userId, true);
+        int partnerScore = gameAnswerRepository.countByGameIdAndUserIdAndIsCorrect(gameId, partnerUser.getUserId(), true);
+
         return GameResumeResponse.builder()
                 .gameId(gameId)
                 .status(session.getStatus().toString())
@@ -422,6 +432,8 @@ public class GameService {
                 .myAnsweredQuestionIds(myAnsweredIds)
                 .myAvatar(myAvatar)
                 .partnerAvatar(partnerAvatar)
+                .myScore(myScore)
+                .partnerScore(partnerScore)
                 .relationshipScore(relScore)
                 .build();
     }
