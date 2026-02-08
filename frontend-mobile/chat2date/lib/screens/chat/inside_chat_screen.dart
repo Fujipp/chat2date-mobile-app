@@ -23,7 +23,6 @@ import 'package:chat2date/theme/app_colors.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/flutter_svg.dart';
-import 'package:http/http.dart' as http;
 
 class InsideChatScreen extends ConsumerStatefulWidget {
   final String? roomId;
@@ -76,7 +75,8 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
   bool _hasEntered = false;
   bool _hasExited = false;
   Timer? _seenStatusTimer;
-  Timer? _markReadDebounce; // Debounce timer for marking incoming messages as read
+  Timer?
+  _markReadDebounce; // Debounce timer for marking incoming messages as read
   bool _isChatDisabled = false; // true if report exists between users
 
   // === Chat User Data (ดึงจากข้อมูลจริง) ===
@@ -1458,39 +1458,39 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
               ),
 
               //ปุ่มเทสเกม
-              Positioned(
-                top: 100, // ปรับตำแหน่งแนวตั้ง (ให้หลบ Header)
-                right: 0, // ชิดขวา
-                child: Container(
-                  decoration: const BoxDecoration(
-                    color: Colors.red, // สีแดงเด่นๆ ให้รู้ว่าเป็นปุ่ม Test
-                    borderRadius: BorderRadius.only(
-                      topLeft: Radius.circular(20),
-                      bottomLeft: Radius.circular(20),
-                    ),
-                  ),
-                  child: IconButton(
-                    icon: const Icon(
-                      Icons.videogame_asset,
-                      color: Colors.white,
-                    ),
-                    onPressed: () async {
-                      // ✅ แบบที่ถูก: ยิงไปบอก Server ให้ Server สั่งเปิดเกมพร้อมกัน
-                      final roomId = widget.roomId;
-                      // ⚠️ เปลี่ยน IP เป็น IP เครื่องคอมคุณ
-                      final url = Uri.parse(
-                        'http://cp25ssi2.sit.kmutt.ac.th:8080/api/v1/test/trigger-game/$roomId',
-                      );
-                      try {
-                        print("Shooting trigger to $url");
-                        await http.post(url);
-                      } catch (e) {
-                        print("Error triggering game: $e");
-                      }
-                    },
-                  ),
-                ),
-              ),
+              // Positioned(
+              //   top: 100, // ปรับตำแหน่งแนวตั้ง (ให้หลบ Header)
+              //   right: 0, // ชิดขวา
+              //   child: Container(
+              //     decoration: const BoxDecoration(
+              //       color: Colors.red, // สีแดงเด่นๆ ให้รู้ว่าเป็นปุ่ม Test
+              //       borderRadius: BorderRadius.only(
+              //         topLeft: Radius.circular(20),
+              //         bottomLeft: Radius.circular(20),
+              //       ),
+              //     ),
+              //     child: IconButton(
+              //       icon: const Icon(
+              //         Icons.videogame_asset,
+              //         color: Colors.white,
+              //       ),
+              //       onPressed: () async {
+              //         // ✅ แบบที่ถูก: ยิงไปบอก Server ให้ Server สั่งเปิดเกมพร้อมกัน
+              //         final roomId = widget.roomId;
+              //         // ⚠️ เปลี่ยน IP เป็น IP เครื่องคอมคุณ
+              //         final url = Uri.parse(
+              //           'http://cp25ssi2.sit.kmutt.ac.th:8080/api/v1/test/trigger-game/$roomId',
+              //         );
+              //         try {
+              //           print("Shooting trigger to $url");
+              //           await http.post(url);
+              //         } catch (e) {
+              //           print("Error triggering game: $e");
+              //         }
+              //       },
+              //     ),
+              //   ),
+              // ),
               if (_showWheelModal) ...[
                 // 1. ฉากหลังสีเทาจาง (Dim background)
                 Positioned.fill(
