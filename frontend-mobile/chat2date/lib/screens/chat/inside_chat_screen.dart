@@ -5,6 +5,7 @@ import 'package:chat2date/components/chat/chat_text_component.dart';
 import 'package:chat2date/components/chat/input_chat_component.dart';
 import 'package:chat2date/components/chat/spin_date_component.dart';
 import 'package:chat2date/components/layout/header.dart';
+import 'package:chat2date/components/modal/feature_guide_modal.dart';
 import 'package:chat2date/components/modal/relationship_mission_modal.dart';
 import 'package:chat2date/components/page/unlock_date_modal.dart';
 import 'package:chat2date/components/status_bar/score_row.dart';
@@ -288,11 +289,16 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
   }
 
   Future<void> _initUpdateRelationshipBar(bool onUpdate) async {
+    int oldHeartCount = 0;
+    double oldPercent = 0.0;
+
     if (onUpdate) {
       final chatService = ref.read(chatServiceProvider);
       final roomData = await chatService.updateRelationshipBar(widget.roomId!);
       if (!mounted) return;
       setState(() {
+        oldHeartCount = _heartCount;
+        oldPercent = _currentPercent;
         _heartCount = roomData != null ? (roomData.score ~/ 100) : 0;
         _currentPercent = roomData != null
             ? (roomData.score % 100) / 100.0
@@ -304,7 +310,7 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
         _dailyMessagesCount = roomData != null ? roomData.dailyMessageCount : 0;
       });
 
-      if (_heartCount == 0 && _currentPercent == 1.00) {
+      if (oldHeartCount == 0 && oldPercent < 1.00 && _heartCount == 1) {
         _triggerUnlockDate();
       }
     } else {
@@ -330,6 +336,14 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
           _currentPercent >= 0.25) {
         print("Trigger Game Ai +++++++++++");
       }
+
+      if (oldHeartCount == 0 &&
+          oldPercent < 1.00 &&
+          oldPercent != 0.00 &&
+          _heartCount == 1) {
+        _triggerUnlockDate();
+      }
+
       return;
     }
   }
@@ -359,6 +373,12 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
     await _enterRoomOnce();
     await _loadChatRoomMessages();
     _checkSpinWheelCondition();
+
+    if (mounted) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _showFeatureGuide();
+      });
+    }
   }
 
   Future<void> _loadChatRoomMessages() async {
@@ -1044,12 +1064,10 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
     });
 
     // นับถอยหลัง 5 วินาทีแล้วปิด
-    Future.delayed(const Duration(seconds: 5), () {
+    Future.delayed(const Duration(seconds: 8), () {
       if (mounted) {
         setState(() {
           _showUnlockDate = false;
-          _currentPercent = 0.0;
-          _heartCount = 1;
         });
       }
     });
@@ -1192,6 +1210,15 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
     }
   }
 
+  void _showFeatureGuide() {
+    showDialog(
+      context: context,
+      barrierDismissible:
+          false, // ป้องกันการกดปิดนอกหน้าต่าง (ต้องกด "รับทราบ" เท่านั้น)
+      builder: (context) => const FeatureGuideModal(),
+    );
+  }
+
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
@@ -1241,7 +1268,7 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
                       Navigator.maybePop(context);
                     },
                     onCalendar: () {
-                      debugPrint('Calendar tapped');
+                      //debugPrint('Calendar tapped');
                     },
                     onSpinwheel: _handleSpinwheelTap,
                     onFlag: () {
