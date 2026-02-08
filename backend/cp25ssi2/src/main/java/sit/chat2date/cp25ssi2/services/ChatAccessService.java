@@ -100,11 +100,12 @@ public class ChatAccessService {
                     .build();
             chatSocketService.broadcastMessagesRead(request.getRoomId(), readPayload);
 
-            // Partner's unread count for this room = 0 because we just read all their
-            // messages
-            chatSocketService.broadcastChatListUpdate(partnerId, request.getRoomId(), 0, null);
+            // Calculate partner's ACTUAL unread count (messages sent by current user that partner hasn't read yet)
+            // Do NOT hardcode 0 — partner may still have unread messages from us
+            Integer partnerUnreadCount = messageRepository.countUnreadMessages(roomId, partnerId);
+            chatSocketService.broadcastChatListUpdate(partnerId, request.getRoomId(), partnerUnreadCount, null);
 
-            // Also broadcast to SELF that their unread count is now 0
+            // Broadcast to SELF that their unread count is now 0 (we just read everything)
             chatSocketService.broadcastChatListUpdate(userId, request.getRoomId(), 0, null);
 
             // Broadcast status change

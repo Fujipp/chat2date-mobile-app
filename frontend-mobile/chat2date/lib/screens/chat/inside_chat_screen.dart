@@ -75,6 +75,7 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
   bool _hasEntered = false;
   bool _hasExited = false;
   Timer? _seenStatusTimer;
+  Timer? _markReadDebounce; // Debounce timer for marking incoming messages as read
   bool _isChatDisabled = false; // true if report exists between users
 
   // === Chat User Data (ดึงจากข้อมูลจริง) ===
@@ -542,6 +543,17 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
     });
     _scrollToBottom();
     _initUpdateRelationshipBar(false);
+
+    // If the incoming message is from the other person (not ours),
+    // mark it as read since we're currently viewing the chat.
+    // This triggers the backend to broadcast "เห็นแล้ว" to the sender in real-time.
+    // Debounced to avoid flooding the API when multiple messages arrive quickly.
+    if (!message.isOwn) {
+      _markReadDebounce?.cancel();
+      _markReadDebounce = Timer(const Duration(milliseconds: 500), () {
+        _enterRoom();
+      });
+    }
   }
 
   void _scrollToBottom({bool animated = true}) {
@@ -1166,6 +1178,7 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
     _chatSocketService?.dispose();
     _chatSocketService = null;
     _scrollController.removeListener(_handleScroll);
+    _markReadDebounce?.cancel();
     _exitRoomOnce();
     _messageController.dispose();
     _scrollController.dispose();
