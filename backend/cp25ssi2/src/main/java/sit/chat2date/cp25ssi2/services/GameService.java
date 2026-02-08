@@ -189,12 +189,23 @@ public class GameService {
         String myAvatar = userPhotoRepository.findFirstAvatarUrl(userId);
         String partnerAvatar = userPhotoRepository.findFirstAvatarUrl(partnerUser.getUserId());
 
+        Integer roomId = Integer.valueOf(session.getRoomId());
+        Integer relScore = 0;
+        Optional<RelationshipStats> statsOpt = relationshipStatsRepository.findByRoomId(roomId);
+        if (statsOpt.isPresent()) {
+            relScore = statsOpt.get().getScore();
+
+            if (session.getStatus() == GameSessionStatus.COMPLETED) {
+                relScore = relScore - session.getTotalScore();
+            }
+        }
+
         GameStartResponse response = new GameStartResponse();
         response.setQuestions(questions);
         response.setGameId(session.getGameId());
         response.setMyAvatar(myAvatar);
         response.setPartnerAvatar(partnerAvatar);
-        response.setRelationshipScore(0);
+        response.setRelationshipScore(relScore);  
 
         return response;
     }
@@ -290,8 +301,9 @@ public class GameService {
         int scoreP1 = gameAnswerRepository.countByGameSessions_GameIdAndUserIdAndIsCorrect(gameId, player1Id, true);
         int scoreP2 = gameAnswerRepository.countByGameSessions_GameIdAndUserIdAndIsCorrect(gameId, player2Id, true);
 
-        int myCurrentScore = currentUserId.equals(player1Id) ? scoreP1 : scoreP2;
-        int partnerCurrentScore = currentUserId.equals(player1Id) ? scoreP2 : scoreP1;
+        Map<String, Integer> scoresMap = new HashMap<>();
+        scoresMap.put(player1Id.toString(), scoreP1);
+        scoresMap.put(player2Id.toString(), scoreP2);
 
         Map<String, Object> socketPayload = new HashMap<>();
         socketPayload.put("type", "SCORE_UPDATE");
@@ -299,8 +311,8 @@ public class GameService {
         socketPayload.put("answeredBy", currentUserId);
         socketPayload.put("isCorrect", isCorrect);
         socketPayload.put("isGameOver", isGameTrulyOver);
-        socketPayload.put("myScore", myCurrentScore);
-        socketPayload.put("partnerScore", partnerCurrentScore);
+        socketPayload.put("scores", scoresMap);
+        socketPayload.put("answeredCount", myAnsweredCount);
 
         messagingTemplate.convertAndSend("/topic/games/" + roomId, socketPayload);
 
@@ -308,7 +320,7 @@ public class GameService {
                 .isCorrect(isCorrect)
                 .correctAnswer(question.getCorrectAnswer())
                 .totalScore(session.getTotalScore())
-                .isGameOver(hasUserFinishedAll)
+                .isGameOver(isGameTrulyOver)
                 .build();
     }
 
