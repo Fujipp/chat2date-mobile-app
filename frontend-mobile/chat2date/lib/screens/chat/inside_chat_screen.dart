@@ -17,6 +17,7 @@ import 'package:chat2date/services/chat_service.dart';
 import 'package:chat2date/services/chat_socket_service.dart';
 import 'package:chat2date/services/game_service.dart';
 import 'package:chat2date/services/game_socket_service.dart';
+import 'package:chat2date/stores/game_store.dart';
 import 'package:chat2date/stores/user_store.dart';
 import 'package:chat2date/theme/app_colors.dart';
 import 'package:flutter/material.dart';
@@ -133,6 +134,25 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
           _navigateToGameScreen(roomId);
         }
       }
+
+      if (type == 'SCORE_UPDATE' || type == 'PLAYER_READY') {
+        print("📤 Forwarding $type to game provider");
+
+        final userState = ref.read(userStoreProvider);
+        final User? userObj = userState['user'] as User?;
+        final myUserId = userObj?.userId;
+
+        if (myUserId != null) {
+          try {
+            ref.read(gameProvider.notifier).socketMessage(payload, myUserId);
+            print("✅ Event forwarded successfully");
+          } catch (e) {
+            print("❌ Error forwarding event: $e");
+          }
+        } else {
+          print("❌ Cannot forward - userId is null");
+        }
+      }
     });
   }
 
@@ -247,6 +267,9 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
   Future<void> _navigateToGameScreen(String roomId) async {
     print("🚀 Navigating to Game Screen...");
 
+    _gameSocketService?.dispose();
+    _gameSubscription?.cancel();
+
     final result = await Navigator.push(
       context,
       MaterialPageRoute(
@@ -255,6 +278,7 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
     );
 
     print("🔙 Returned from Game with result: $result");
+    _initGameSocket();
   }
 
   String _formatDuration(int? seconds) {

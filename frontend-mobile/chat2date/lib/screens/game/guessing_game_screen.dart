@@ -42,7 +42,6 @@ class _GuessingGameScreenState extends ConsumerState<GuessingGameScreen> {
     });
   }
 
-  // ในไฟล์ guessing_game_screen.dart
   void _connectSocket() {
     final gameState = ref.read(gameProvider);
     final userStore = ref.read(userStoreProvider);
@@ -72,10 +71,9 @@ class _GuessingGameScreenState extends ConsumerState<GuessingGameScreen> {
 
           if (mounted && !_isExiting) {
             setState(() {
-              _isExiting = true; // ล็อคไม่ให้ทำซ้ำ
-              _canPop = true; // ปลดล็อค PopScope
+              _isExiting = true;
+              _canPop = true;
             });
-
 
             Future.microtask(() {
               if (mounted && Navigator.canPop(context)) {
@@ -101,7 +99,6 @@ class _GuessingGameScreenState extends ConsumerState<GuessingGameScreen> {
   }
 
   void quitGame({bool isTimeout = false}) {
-    // 1. เช็คว่ากำลังออกอยู่แล้วหรือยัง (กัน Socket สั่งซ้ำ)
     if (mounted && !_isExiting) {
       final gameId = ref.read(gameProvider).gameId;
       if (gameId != null) {
@@ -109,8 +106,7 @@ class _GuessingGameScreenState extends ConsumerState<GuessingGameScreen> {
       }
 
       setState(() {
-        _isExiting =
-            true; // 2. ล็อคทันที! เพื่อบอก Socket ว่า "ฉันกำลังออกแล้วนะ อย่า Pop ซ้ำ"
+        _isExiting = true;
         _canPop = true;
       });
 
@@ -130,7 +126,7 @@ class _GuessingGameScreenState extends ConsumerState<GuessingGameScreen> {
       canPop: _canPop,
       onPopInvoked: (didPop) {
         if (didPop) return;
-        // เมื่อกด Back ให้ถือว่า Failed
+
         quitGame();
       },
       child: Scaffold(
@@ -142,13 +138,21 @@ class _GuessingGameScreenState extends ConsumerState<GuessingGameScreen> {
 
   Widget _buildCurrentView(GameState state) {
     // 1. Loading (ตอนดึงข้อมูลครั้งแรก)
+    print("🎨 Building view:");
+    print("   isLoading: ${state.isLoading}");
+    print("   isGameOver: ${state.isGameOver}");
+    print("   hasUserFinishedAll: ${state.hasUserFinishedAll}");
+    print("   hasStartedGame: ${state.hasStartedGame}");
+
     if (state.isLoading) {
+      print("   → Showing CircularProgressIndicator");
       return const Center(child: CircularProgressIndicator());
     }
 
     // 2. Error
     if (state.error != null) {
-      return Center(child: Text('Error: ${state.error}')); // แต่งสวยๆ ได้
+      print("   → Showing Error");
+      return Center(child: Text('Error: ${state.error}'));
     }
 
     // 3. Result View (เกมจบสมบูรณ์)
@@ -183,12 +187,34 @@ class _GuessingGameScreenState extends ConsumerState<GuessingGameScreen> {
     }
 
     // 5. Loading View (ตอบครบแล้ว แต่รอคู่)
-    // ถ้า index เกินจำนวนข้อ แสดงว่าเราตอบหมดแล้ว แต่ isGameOver ยังไม่ true (เพราะรออีกคน)
     if (state.hasUserFinishedAll) {
       return LoadingView(
-        onBothComplete: () {
-          // หน้านี้จะรอ WebSocket/API update state.isGameOver เป็น true
-          // เมื่อ true มันจะเด้งไป case ที่ 3 (Result) เองอัตโนมัติ
+        onBothComplete: () async {
+          print("🔄 Loading complete callback triggered");
+
+          if (state.gameId != null) {
+            try {
+              final refreshedData = await ref
+                  .read(gameServiceProvider)
+                  .getGameInfo(state.gameId!);
+              ref.read(gameProvider.notifier).state = ref
+                  .read(gameProvider)
+                  .copyWith(
+                    isGameOver: refreshedData.status == 'COMPLETED',
+                    totalScore: refreshedData.totalScore,
+                    relationshipScore: refreshedData.relationshipScore,
+                  );
+              print(
+                "🔄 Refreshed state: isGameOver = ${ref.read(gameProvider).isGameOver}",
+              );
+            } catch (e) {
+              print("❌ Refresh failed: $e");
+
+              ref.read(gameProvider.notifier).onGameOverBySocket();
+            }
+          } else {
+            ref.read(gameProvider.notifier).onGameOverBySocket();
+          }
         },
       );
     }
@@ -206,6 +232,6 @@ class _GuessingGameScreenState extends ConsumerState<GuessingGameScreen> {
       );
     }
 
-    return const SizedBox(); // Fallback
+    return const SizedBox();
   }
 }

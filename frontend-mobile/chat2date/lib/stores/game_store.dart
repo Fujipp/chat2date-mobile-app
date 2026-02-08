@@ -122,22 +122,35 @@ class GameNotifier extends StateNotifier<GameState> {
     }
 
     if (type == 'SCORE_UPDATE') {
-      final bool isGameTrulyOver =
-          payload['isGameOver'] ?? false; // รับค่าจาก Backend
-      final int roomTotalScore = payload['roomTotalScore'] ?? state.totalScore;
-      final int partnerScore =
-          payload['partnerScore'] ?? state.partnerScore; // ถ้ามีส่งมา
+      final Map<String, dynamic> scores = payload['scores'] ?? {};
+
+      final String myUserIdStr = userId.toString();
+
+      final int myNewScore = scores[myUserIdStr] ?? state.myScore;
+
+      final String partnerId = scores.keys.firstWhere(
+        (id) => id.toString() != myUserIdStr,
+        orElse: () => "",
+      );
+      final int partnerNewScore = (partnerId.isNotEmpty)
+          ? (scores[partnerId] ?? state.partnerScore)
+          : state.partnerScore;
+
+      print("🔢 Updating Scores from Socket:");
+      print("   My Score: $myNewScore");
+      print("   Partner Score: $partnerNewScore");
+      print("   Total Score: ${payload['roomTotalScore']}");
 
       state = state.copyWith(
-        totalScore: roomTotalScore,
-        isGameOver:
-            isGameTrulyOver, // 🔥 จบเกมพร้อมกันเมื่อ Socket สั่งเท่านั้น
+        totalScore: payload['roomTotalScore'],
+        myScore: myNewScore,
+        partnerScore: partnerNewScore,
+        isGameOver: (payload['isGameOver'] ?? false) || state.isGameOver,
       );
     }
   }
 
   Future<void> initGame({int? roomId, String? resumeGameId}) async {
-    // state = state.copyWith(isLoading: true, error: null);
     try {
       GameInfoResponseDto data;
 
@@ -148,6 +161,13 @@ class GameNotifier extends StateNotifier<GameState> {
       } else {
         throw Exception("Missing roomId or gameId");
       }
+
+      print("📦 API Response:");
+      print("   relationshipScore: ${data.relationshipScore}");
+      print("   myScore: ${data.myScore}");
+      print("   partnerScore: ${data.partnerScore}");
+      print("   totalScore: ${data.totalScore}");
+      print("   status: ${data.status}");
 
       int startIndex = data.myAnsweredQuestionIds.length;
       bool shouldStartImmediately = resumeGameId != null || startIndex > 0;
@@ -197,12 +217,11 @@ class GameNotifier extends StateNotifier<GameState> {
         selectedOption: selectedOption,
       );
 
-      final newMyScore = result.isCorrect ? state.myScore + 1 : state.myScore;
+      final bool currentGameOverStatus = state.isGameOver;
 
       state = state.copyWith(
-        isGameOver: false,
         currentIndex: state.currentIndex + 1,
-        myScore: newMyScore,
+        isGameOver: currentGameOverStatus,
       );
 
       return result.isCorrect;

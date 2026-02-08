@@ -77,14 +77,11 @@ class GameSocketService {
           final json = jsonDecode(body) as Map<String, dynamic>;
           print("📩 Game Event: $json");
 
-          final type = json['type'];
+          _gameController.add(json);
 
-          if (type == 'GAME_START') {
-            _gameController.add(json);
-          } else if (type == 'SCORE_UPDATE') {
+          final type = json['type'];
+          if (type == 'SCORE_UPDATE') {
             _scoreController.add(json);
-          } else {
-            _gameController.add(json);
           }
         } catch (e) {
           print("⚠️ Error parsing game event: $e");
