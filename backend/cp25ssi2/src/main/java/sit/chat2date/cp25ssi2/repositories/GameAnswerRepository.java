@@ -20,5 +20,5 @@ public interface GameAnswerRepository extends JpaRepository<GameAnswers, Long> {
     @Query("SELECT a.question.questionId FROM GameAnswers a WHERE a.userId = :userId AND a.gameSessions.gameId = :gameId")
     List<String> findQuestionIdsByUserIdAndGameId(@Param("userId") String userId, @Param("gameId") String gameId);
 
-    int countByGameIdAndUserIdAndIsCorrect(String gameId, String userId, Boolean isCorrect);
+    int countByGameSessions_GameIdAndUserIdAndIsCorrect(String gameId, String userId, Boolean isCorrect);
 }

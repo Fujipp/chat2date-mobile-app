@@ -287,8 +287,8 @@ public class GameService {
             relStats.setScore(relStats.getScore() + session.getTotalScore());
             relationshipStatsRepository.save(relStats);
         }
-        int scoreP1 = gameAnswerRepository.countByGameIdAndUserIdAndIsCorrect(gameId, player1Id, true);
-        int scoreP2 = gameAnswerRepository.countByGameIdAndUserIdAndIsCorrect(gameId, player2Id, true);
+        int scoreP1 = gameAnswerRepository.countByGameSessions_GameIdAndUserIdAndIsCorrect(gameId, player1Id, true);
+        int scoreP2 = gameAnswerRepository.countByGameSessions_GameIdAndUserIdAndIsCorrect(gameId, player2Id, true);
 
         int myCurrentScore = currentUserId.equals(player1Id) ? scoreP1 : scoreP2;
         int partnerCurrentScore = currentUserId.equals(player1Id) ? scoreP2 : scoreP1;
@@ -421,8 +421,8 @@ public class GameService {
             }
         }
 
-        int myScore = gameAnswerRepository.countByGameIdAndUserIdAndIsCorrect(gameId, userId, true);
-        int partnerScore = gameAnswerRepository.countByGameIdAndUserIdAndIsCorrect(gameId, partnerUser.getUserId(), true);
+        int myScore = gameAnswerRepository.countByGameSessions_GameIdAndUserIdAndIsCorrect(gameId, userId, true);
+        int partnerScore = gameAnswerRepository.countByGameSessions_GameIdAndUserIdAndIsCorrect(gameId, partnerUser.getUserId(), true);
 
         return GameResumeResponse.builder()
                 .gameId(gameId)
