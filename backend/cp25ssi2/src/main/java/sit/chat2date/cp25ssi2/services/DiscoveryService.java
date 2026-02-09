@@ -265,6 +265,7 @@ public class DiscoveryService {
                     Match m = new Match();
                     m.setUserId1(u1);
                     m.setUserId2(u2);
+                    m.setDeleteFlag(false);
                     savedMatch = matchRepository.save(m);
                 } else {
                     // ดึง match ที่มีอยู่แล้ว

@@ -44,7 +44,7 @@ public class MatchService {
                     ? match.getUserId2()
                     : match.getUserId1();
 
-            if (partner.getDeleteFlag()) {
+            if (match.getDeleteFlag()) {
                 return null;
             }
 
