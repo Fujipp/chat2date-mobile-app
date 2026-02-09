@@ -91,4 +91,7 @@ public class User {
 
     @Column(name = "deleted_at")
     private LocalDateTime deletedAt;
+    
+    @Column(name = "isTutorial")
+    private Boolean isTutorial;
 }

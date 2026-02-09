@@ -132,7 +132,9 @@ public class RelationshipStatsService {
                         if (!relationshipStatsById.get().getIsFirstMessageBonus() && updatedStreak <= -7) {
                             Optional<Match> match = matchRepository.findById(roomId);
                             if (match.isPresent()) {
-                                matchRepository.delete(match.get());
+                                match.get().setDeletedAt(LocalDateTime.now());
+                                match.get().setDeleteFlag(true);
+                                matchRepository.saveAndFlush(match.get());
                                 return null;
                             }
                         }
@@ -140,7 +142,9 @@ public class RelationshipStatsService {
                         if (updatedStreak <= -30) {
                             Optional<Match> match = matchRepository.findById(roomId);
                             if (match.isPresent()) {
-                                matchRepository.delete(match.get());
+                                match.get().setDeletedAt(LocalDateTime.now());
+                                match.get().setDeleteFlag(true);
+                                matchRepository.saveAndFlush(match.get());
                                 return null;
                             }
                         }

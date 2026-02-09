@@ -44,6 +44,10 @@ public class MatchService {
                     ? match.getUserId2()
                     : match.getUserId1();
 
+            if (partner.getDeleteFlag()) {
+                return null;
+            }
+
             Integer roomId = match.getId();
             boolean hasMessages = messageRepository.findFirstByRoomIdOrderByCreatedAtDesc(roomId).isPresent();
             String type = hasMessages ? "old" : "new";

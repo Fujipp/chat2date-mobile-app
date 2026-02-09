@@ -87,6 +87,11 @@ public class UserService {
             userById.setAccountStatus(user.getAccountStatus());
         }
 
+        if (user.getIsTutorial() != null) {
+
+            userById.setIsTutorial(user.getIsTutorial());
+        }
+
         userById.setVersion(userById.getVersion() + 1);
 
         User updatedUser = userRepository.save(userById);

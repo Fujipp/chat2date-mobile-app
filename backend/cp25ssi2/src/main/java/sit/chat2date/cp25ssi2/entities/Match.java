@@ -33,6 +33,12 @@ public class Match {
     @Column(name = "createdAt", nullable = false, updatable = false)
     private LocalDateTime createdAt;
 
+    @Column(name = "deleted_at")
+    private LocalDateTime deletedAt;
+
+    @Column(name = "delete_flag")
+    private Boolean deleteFlag = false;
+
     // Temporarily disabled - causes JPA ID type conflict (Match uses Integer,
     // RelationshipStats uses String)
      @OneToOne(mappedBy = "match", cascade = CascadeType.ALL, orphanRemoval =
