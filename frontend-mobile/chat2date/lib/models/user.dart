@@ -22,6 +22,7 @@ class User {
   final AccountStatus? accountStatus;
   final int? version;
   final Role? role;
+  final bool? isTutorial;
 
   const User({
     this.accountStatus,
@@ -39,6 +40,7 @@ class User {
     this.role,
     this.sex,
     this.version,
+    this.isTutorial
   });
 
   factory User.fromJson(Map<String, dynamic> json) {
@@ -73,6 +75,7 @@ class User {
       ),
       version: json['version'],
       role: enumFromString(Role.values, json['role']),
+      isTutorial: json['isTutorial']
     );
   }
 
@@ -93,5 +96,6 @@ class User {
     'accountStatus': accountStatus?.toString().split('.').last,
     'version': version,
     'role': role?.toString().split('.').last,
+    'isTutorial': isTutorial
   };
 }

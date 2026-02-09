@@ -18,6 +18,7 @@ import 'package:chat2date/services/chat_service.dart';
 import 'package:chat2date/services/chat_socket_service.dart';
 import 'package:chat2date/services/game_service.dart';
 import 'package:chat2date/services/game_socket_service.dart';
+import 'package:chat2date/services/user_service.dart';
 import 'package:chat2date/stores/game_store.dart';
 import 'package:chat2date/stores/user_store.dart';
 import 'package:chat2date/theme/app_colors.dart';
@@ -1210,13 +1211,31 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
     }
   }
 
-  void _showFeatureGuide() {
-    showDialog(
-      context: context,
-      barrierDismissible:
-          false, // ป้องกันการกดปิดนอกหน้าต่าง (ต้องกด "รับทราบ" เท่านั้น)
-      builder: (context) => const FeatureGuideModal(),
-    );
+  void _showFeatureGuide() async {
+    final userState = ref.read(userStoreProvider);
+    final userService = ref.read(userServiceProvider);
+    final userObj = userState['user'] as User?;
+    final fetchUser = await userService.getUser(userObj!.userId);
+    
+    if (fetchUser?.isTutorial == false) {
+      await showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (context) => const FeatureGuideModal(),
+      );
+      try {
+        final user = User(
+          userId: fetchUser!.userId,
+          version: fetchUser.version,
+          isTutorial: true,
+        );
+        final updatedUser = await userService.updateUser(
+          user
+        );
+      } catch (e) {
+        debugPrint('Error updating tutorial status: $e');
+      }
+    }
   }
 
   @override
