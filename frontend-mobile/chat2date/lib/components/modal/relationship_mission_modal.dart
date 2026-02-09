@@ -99,7 +99,7 @@ class RelationshipMissionModal extends StatelessWidget {
   }
 
   Widget _buildConnectionStatusBanner() {
-    if (streakDays >= 0) {
+    if (streakDays > 0) {
       return Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
@@ -126,6 +126,31 @@ class RelationshipMissionModal extends StatelessWidget {
                   fontSize: 13,
                   fontWeight: FontWeight.bold,
                   color: AppColors.successText,
+                ),
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    if (streakDays == 0) {
+      return Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: AppColors.neutral200,
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: AppColors.neutral200.withOpacity(0.3)),
+        ),
+        child: Row(
+          children: [
+            const Expanded(
+              child: Text(
+                'สถานะ: สถานะ: เพิ่งเริ่มต้นการสนทนา รักษาแต้มความสัมพันธ์ด้วยการคุยต่อเนื่องนะ!',
+                style: TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.bold,
+                  color: AppColors.btnTextSecondary,
                 ),
               ),
             ),
