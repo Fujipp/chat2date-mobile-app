@@ -321,6 +321,7 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
               as RelationshipBar?;
       if (!mounted) return;
       setState(() {
+        print(roomData?.score);
         _heartCount = roomData != null ? (roomData.score ~/ 100) : 0;
         _currentPercent = roomData != null
             ? (roomData.score % 100) / 100.0
@@ -587,12 +588,11 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
       _messageIds.add(message.id);
     });
     _scrollToBottom();
-    _initUpdateRelationshipBar(false);
-
     // If the incoming message is from the other person (not ours),
     // mark it as read since we're currently viewing the chat.
     // This triggers the backend to broadcast "เห็นแล้ว" to the sender in real-time.
     // Debounced to avoid flooding the API when multiple messages arrive quickly.
+    _initUpdateRelationshipBar(true);
     if (!message.isOwn) {
       _markReadDebounce?.cancel();
       _markReadDebounce = Timer(const Duration(milliseconds: 500), () {
@@ -1216,7 +1216,7 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
     final userService = ref.read(userServiceProvider);
     final userObj = userState['user'] as User?;
     final fetchUser = await userService.getUser(userObj!.userId);
-    
+
     if (fetchUser?.isTutorial == false) {
       await showDialog(
         context: context,
@@ -1229,9 +1229,7 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
           version: fetchUser.version,
           isTutorial: true,
         );
-        final updatedUser = await userService.updateUser(
-          user
-        );
+        final updatedUser = await userService.updateUser(user);
       } catch (e) {
         debugPrint('Error updating tutorial status: $e');
       }
@@ -1332,7 +1330,7 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
                                         .transparent, // เพื่อให้เห็นเงาโค้งของ Container ข้างใน
                                     builder: (context) => RelationshipMissionModal(
                                       heart: _heartCount,
-                                      currentScore: _currentPercent*100,
+                                      currentScore: _currentPercent * 100,
                                       isFirstMessageBonus: _isFirstMessageBonus,
                                       streakDays:
                                           _steakDays, // ใช้ตัวแปรใน State ของคุณ
