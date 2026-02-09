@@ -18,6 +18,7 @@ import sit.chat2date.cp25ssi2.repositories.UserRepository;
 
 import java.util.Collections;
 import java.util.List;
+import java.util.Objects;
 import java.util.stream.Collectors;
 
 @Service
@@ -40,27 +41,28 @@ public class MatchService {
         List<Match> matches = matchRepository.findAllByUser(user);
 
         List<MatchDTO> matchDTOs = matches.stream().map(match -> {
-            User partner = match.getUserId1().getUserId().equals(userId)
-                    ? match.getUserId2()
-                    : match.getUserId1();
+                    User partner = match.getUserId1().getUserId().equals(userId)
+                            ? match.getUserId2()
+                            : match.getUserId1();
 
-            if (match.getDeleteFlag()) {
-                return null;
-            }
+                    if (match.getDeleteFlag()) {
+                        return null;
+                    }
 
-            Integer roomId = match.getId();
-            boolean hasMessages = messageRepository.findFirstByRoomIdOrderByCreatedAtDesc(roomId).isPresent();
-            String type = hasMessages ? "old" : "new";
+                    Integer roomId = match.getId();
+                    boolean hasMessages = messageRepository.findFirstByRoomIdOrderByCreatedAtDesc(roomId).isPresent();
+                    String type = hasMessages ? "old" : "new";
 
-            return MatchDTO.builder()
-                    .matchId(String.valueOf(match.getId()))
-                    .partnerId(partner.getUserId())
-                    .partnerName(partner.getNickname())
-                    .partnerImage(getFirstPhoto(partner.getUserId()))
-                    .created(match.getCreatedAt())
-                    .type(type)
-                    .build();
-        }).collect(Collectors.toList());
+                    return MatchDTO.builder()
+                            .matchId(String.valueOf(match.getId()))
+                            .partnerId(partner.getUserId())
+                            .partnerName(partner.getNickname())
+                            .partnerImage(getFirstPhoto(partner.getUserId()))
+                            .created(match.getCreatedAt())
+                            .type(type)
+                            .build();
+                }).filter(Objects::nonNull)
+                .collect(Collectors.toList());
 
         return MatchListResponse.builder().matches(matchDTOs).build();
     }

@@ -7,12 +7,16 @@ import 'package:chat2date/theme/app_colors.dart';
 class RelationshipMissionModal extends StatelessWidget {
   final int streakDays;
   final int dailyMessages;
+  final int heart;
+  final double currentScore;
   final bool isFirstMessageBonus;
 
   const RelationshipMissionModal({
     super.key,
     required this.streakDays,
     required this.dailyMessages,
+    required this.heart,
+    required this.currentScore,
     this.isFirstMessageBonus = false,
   });
 
@@ -49,6 +53,8 @@ class RelationshipMissionModal extends StatelessWidget {
                   child: Column(
                     children: [
                       _buildConnectionStatusBanner(),
+                      const SizedBox(height: 16),
+                      _buildCompactScore(),
                       const SizedBox(height: 16),
                       _buildMissionCard(
                         svgPath: "assets/icons/HEART_STATUS_BAR.svg",
@@ -99,7 +105,7 @@ class RelationshipMissionModal extends StatelessWidget {
   }
 
   Widget _buildConnectionStatusBanner() {
-    if (streakDays >= 0) {
+    if (streakDays > 0) {
       return Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
@@ -126,6 +132,31 @@ class RelationshipMissionModal extends StatelessWidget {
                   fontSize: 13,
                   fontWeight: FontWeight.bold,
                   color: AppColors.successText,
+                ),
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    if (streakDays == 0) {
+      return Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: AppColors.neutral200,
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: AppColors.neutral200.withOpacity(0.3)),
+        ),
+        child: Row(
+          children: [
+            const Expanded(
+              child: Text(
+                'สถานะ: เพิ่งเริ่มต้นการสนทนา รักษาแต้มความสัมพันธ์ด้วยการคุยต่อเนื่องนะ!',
+                style: TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.bold,
+                  color: AppColors.btnTextSecondary,
                 ),
               ),
             ),
@@ -439,6 +470,88 @@ class RelationshipMissionModal extends StatelessWidget {
       label: "รับทราบ!",
       onPressed: () => Navigator.pop(context),
       size: DsButtonSize.lg,
+    );
+  }
+
+  Widget _buildCompactScore() {
+    return Container(
+      padding: const EdgeInsets.symmetric(
+        horizontal: 12,
+        vertical: 8,
+      ), // ลด Padding ลง
+      decoration: BoxDecoration(
+        color: AppColors.neutral50,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppColors.neutral200.withOpacity(0.5)),
+      ),
+      child: Row(
+        mainAxisAlignment:
+            MainAxisAlignment.spaceEvenly, // กระจายระยะห่างให้พอดี
+        children: [
+          // ฝั่งคะแนน
+          Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              SvgPicture.asset(
+                'assets/icons/icon_good-ending.svg',
+                width: 14,
+                height: 14,
+                colorFilter: ColorFilter.mode(
+                  AppColors.brandPrimary,
+                  BlendMode.srcIn,
+                ),
+              ),
+              const SizedBox(width: 4),
+              const Text(
+                'คะแนน:',
+                style: TextStyle(fontSize: 12, color: AppColors.textSecondary),
+              ),
+              const SizedBox(width: 4),
+              Text(
+                '$currentScore/100',
+                style: const TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w900,
+                  color: AppColors.brandPrimary,
+                ),
+              ),
+            ],
+          ),
+
+          // เส้นคั่นแบบสั้น
+          Container(height: 12, width: 1, color: AppColors.divider),
+
+          // ฝั่งหัวใจ
+          Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              SvgPicture.asset(
+                'assets/icons/icon_heart_status.svg',
+                width: 14,
+                height: 14,
+                colorFilter: ColorFilter.mode(
+                  AppColors.brandAccentStrong,
+                  BlendMode.srcIn,
+                ),
+              ),
+              const SizedBox(width: 4),
+              const Text(
+                'หัวใจ:',
+                style: TextStyle(fontSize: 12, color: AppColors.textSecondary),
+              ),
+              const SizedBox(width: 4),
+              Text(
+                '$heart',
+                style: const TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w900,
+                  color: AppColors.textPrimary,
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
     );
   }
 }

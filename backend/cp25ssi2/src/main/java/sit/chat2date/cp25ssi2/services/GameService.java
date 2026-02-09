@@ -77,13 +77,13 @@ public class GameService {
                     gameSessionRepository.save(oldSession);
                 }
 
-                try {
-                    chatService.sendSystemMessage(
-                            roomId,
-                            "เกมรอบที่แล้วจบไม่สมบูรณ์ หรือหมดเวลา",
-                            sit.chat2date.cp25ssi2.enums.MessageType.FAIL
-                    );
-                } catch (Exception e) {}
+//                try {
+//                    chatService.sendSystemMessage(
+//                            roomId,
+//                            "เกมรอบที่แล้วจบไม่สมบูรณ์ หรือหมดเวลา",
+//                            sit.chat2date.cp25ssi2.enums.MessageType.FAIL
+//                    );
+//                } catch (Exception e) {}
             }
 
             try {
@@ -493,6 +493,7 @@ public class GameService {
         }
     }
 
+    @Transactional
     public void gameTimeout(String gameId) {
         Optional<GameSessions> sessionOpt = gameSessionRepository.findById(gameId);
 

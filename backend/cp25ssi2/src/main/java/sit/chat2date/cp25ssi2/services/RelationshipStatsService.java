@@ -126,7 +126,7 @@ public class RelationshipStatsService {
                     }
 
                     int updatedStreak = relationshipStatsById.get().getStreakDays();
-                    if (updatedStreak <= 0 && daysBetween != 1 && relationshipStatsById.get().getDailyMessageCount() == 0) {
+                    if (updatedStreak <= 0 && relationshipStatsById.get().getDailyMessageCount() == 0) {
                         score -= (int) daysBetween;
 
                         if (!relationshipStatsById.get().getIsFirstMessageBonus() && updatedStreak <= -7) {
@@ -191,7 +191,7 @@ public class RelationshipStatsService {
             }
 
             if (totalConversationCount >= 1) {
-                if (relationshipStatsById.get().getIsFirstMessageBonus() == false) {
+                if (relationshipStatsById.get().getIsFirstMessageBonus() == false && totalConversationCount >= 2) {
                     relationshipStatsById.get().setIsFirstMessageBonus(true);
                     score += 5;
                 }
@@ -217,7 +217,11 @@ public class RelationshipStatsService {
                 score += 8;
                 relationshipStatsById.get().setIsDailyMessagesBonus(true);
             }
-            relationshipStatsById.get().setScore(relationshipStatsById.get().getScore() + score);
+            if (relationshipStatsById.get().getScore() + score >= 0) {
+                relationshipStatsById.get().setScore(relationshipStatsById.get().getScore() + score);
+            } else {
+                relationshipStatsById.get().setScore(0);
+            }
             RelationshipStats savedStats = relationshipStatsRepository.save(relationshipStatsById.get());
             gameService.checkAndTriggerGame(roomId, savedStats.getScore());
             return relationshipStatsRepository.save(relationshipStatsById.get());

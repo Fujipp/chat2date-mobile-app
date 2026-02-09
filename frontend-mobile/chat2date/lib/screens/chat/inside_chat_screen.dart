@@ -1331,7 +1331,9 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
                                     backgroundColor: Colors
                                         .transparent, // เพื่อให้เห็นเงาโค้งของ Container ข้างใน
                                     builder: (context) => RelationshipMissionModal(
-                                      isFirstMessageBonus: true,
+                                      heart: _heartCount,
+                                      currentScore: _currentPercent*100,
+                                      isFirstMessageBonus: _isFirstMessageBonus,
                                       streakDays:
                                           _steakDays, // ใช้ตัวแปรใน State ของคุณ
                                       dailyMessages:
