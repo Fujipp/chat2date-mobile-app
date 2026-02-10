@@ -126,13 +126,6 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
       if (type == 'GAME_START') {
         print("🎮 Received GAME_START via Socket!");
         if (mounted) {
-          // Navigator.push(
-          //   context,
-          //   MaterialPageRoute(
-          //     builder: (context) =>
-          //         GuessingGameScreen(roomId: int.tryParse(roomId)),
-          //   ),
-          // );
           _navigateToGameScreen(roomId);
         }
       }
@@ -278,6 +271,10 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
         builder: (context) => GuessingGameScreen(roomId: int.tryParse(roomId)),
       ),
     );
+
+    if (mounted) {
+      await _initUpdateRelationshipBar(true);
+    }
 
     print("🔙 Returned from Game with result: $result");
     _initGameSocket();
