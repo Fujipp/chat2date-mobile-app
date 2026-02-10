@@ -98,6 +98,11 @@ public class GameService {
 
                 for (Message msg : messages) {
                     String senderId = msg.getSenderId();
+                    
+                    if ("SYSTEM".equals(senderId)) {
+                        continue;
+                    }
+
                     if (!idToPlaceholder.containsKey(senderId)) {
                         String ph = placeholders[counter % 2];
                         idToPlaceholder.put(senderId, ph);
