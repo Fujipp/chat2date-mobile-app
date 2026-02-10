@@ -20,6 +20,7 @@ import sit.chat2date.cp25ssi2.repositories.RelationshipStatsRepository;
 import sit.chat2date.cp25ssi2.repositories.UserRepository;
 
 import java.time.*;
+import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.Optional;
 
@@ -103,15 +104,17 @@ public class RelationshipStatsService {
         if (matchById.isEmpty()) {
             throw new NotFoundException("Room id: " + roomId + " not found");
         }
+        long daysBetween = 0;
 
         LocalDate today = LocalDate.now(ZoneId.of("Asia/Bangkok"));
 
-        long daysBetween = 0;
+        Optional<Message> lastMessage = messageRepository.findFirstByRoomIdOrderByCreatedAtDesc(roomId);
+        daysBetween = lastMessage
+                .map(message -> ChronoUnit.DAYS.between(message.getCreatedAt().toLocalDate(), today))
+                .orElseGet(() -> ChronoUnit.DAYS.between(matchById.get().getCreatedAt().toLocalDate(), today));
 
         if (relationshipStatsById.isPresent()) {
             if (!today.equals(relationshipStatsById.get().getDailyDate())) {
-                daysBetween = java.time.temporal.ChronoUnit.DAYS
-                        .between(relationshipStatsById.get().getDailyDate(), today);
                 if (daysBetween > 0) {
                     int currentStreak = relationshipStatsById.get().getStreakDays();
                     if (daysBetween > 1) {
