@@ -318,7 +318,6 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
               as RelationshipBar?;
       if (!mounted) return;
       setState(() {
-        print(roomData?.score);
         _heartCount = roomData != null ? (roomData.score ~/ 100) : 0;
         _currentPercent = roomData != null
             ? (roomData.score % 100) / 100.0
@@ -329,12 +328,6 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
             : false;
         _dailyMessagesCount = roomData != null ? roomData.dailyMessageCount : 0;
       });
-
-      if (widget.roomId != null &&
-          widget.roomId!.isNotEmpty &&
-          _currentPercent >= 0.25) {
-        print("Trigger Game Ai +++++++++++");
-      }
 
       if (oldHeartCount == 0 &&
           oldPercent < 1.00 &&
@@ -589,8 +582,13 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
     // mark it as read since we're currently viewing the chat.
     // This triggers the backend to broadcast "เห็นแล้ว" to the sender in real-time.
     // Debounced to avoid flooding the API when multiple messages arrive quickly.
-    _initUpdateRelationshipBar(true);
+
     if (!message.isOwn) {
+      Future.delayed(const Duration(milliseconds: 500), () {
+        if (mounted) {
+          _initUpdateRelationshipBar(true);
+        }
+      });
       _markReadDebounce?.cancel();
       _markReadDebounce = Timer(const Duration(milliseconds: 500), () {
         _enterRoom();
