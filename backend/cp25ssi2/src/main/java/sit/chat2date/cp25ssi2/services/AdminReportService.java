@@ -17,6 +17,8 @@ import sit.chat2date.cp25ssi2.repositories.ReportEvidenceRepository;
 import sit.chat2date.cp25ssi2.repositories.ReportRepository;
 import sit.chat2date.cp25ssi2.repositories.UserRepository;
 
+import java.time.LocalDate;
+import java.time.Period;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -111,6 +113,12 @@ public class AdminReportService {
      * Helper method to map User entity to UserBasicInfo DTO
      */
     private ReportDetailResponse.UserBasicInfo mapUserToBasicInfo(User user) {
+        // Calculate age from birthday
+        Integer age = null;
+        if (user.getBirthday() != null) {
+            age = Period.between(user.getBirthday(), LocalDate.now()).getYears();
+        }
+
         return ReportDetailResponse.UserBasicInfo.builder()
                 .userId(user.getUserId())
                 .email(user.getEmail())
@@ -118,12 +126,12 @@ public class AdminReportService {
                 .firstname(user.getFirstname())
                 .lastname(user.getLastname())
                 .nickname(user.getNickname())
-                .age(user.getAge())
-                .sex(user.getSex())
+                .age(age)
+                .sex(user.getSex() != null ? user.getSex().name() : null)
                 .accountStatus(user.getAccountStatus() != null ? user.getAccountStatus().name() : null)
                 .isBlacklist(user.getIsBlacklist())
                 .behaviorScore(user.getBehaviorScore())
-                .profilePhotoUrl(user.getProfilePhoto())
+                .profilePhotoUrl(null) // Profile photo URL not available in User entity
                 .build();
     }
 }
