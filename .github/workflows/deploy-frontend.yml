@@ -1,0 +1,40 @@
+name: Deploy Admin Frontend
+
+on:
+  push:
+    branches: [ deploy-frontend ]
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: self-hosted
+    defaults:
+      run:
+        working-directory: frontend-web/chat2date-admin
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build
+        run: npm run build
+
+      - name: Sync admin frontend to deployed path
+        working-directory: .
+        run: rsync -av --delete frontend-web/chat2date-admin/ "$HOME/frontend-admin/" --exclude node_modules --exclude .git
+
+      - name: Deploy with docker compose
+        working-directory: .
+        env:
+          BUILDKIT_PROGRESS: plain
+          DOCKER_BUILDKIT: '0'
+        run: |
+          /usr/bin/env DOCKER_BUILDKIT=0 COMPOSE_DOCKER_CLI_BUILD_METADATA=0 /snap/bin/docker compose -f "$HOME/docker-compose.yml" up -d --build admin-frontend

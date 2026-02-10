@@ -22,5 +22,12 @@ export default defineConfig({
     port: 5173,
     strictPort: false,
     host: true,
+    proxy: {
+      '/api': {
+        target: 'http://cp25ssi2.sit.kmutt.ac.th:8080',
+        changeOrigin: true,
+        secure: false,
+      },
+    },
   },
 })
