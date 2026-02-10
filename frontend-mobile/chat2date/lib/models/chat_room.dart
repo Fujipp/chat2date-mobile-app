@@ -6,6 +6,7 @@ class ChatRoom {
   final String partnerName;
   final String? partnerImage;
   final String? lastMessage;
+  final DateTime? lastMessageTime;
   final int unreadCount;
   final String type; // "new" or "old"
 
@@ -15,6 +16,7 @@ class ChatRoom {
     required this.partnerName,
     this.partnerImage,
     this.lastMessage,
+    this.lastMessageTime,
     this.unreadCount = 0,
     this.type = 'old',
   });
@@ -26,6 +28,9 @@ class ChatRoom {
       partnerName: json['partnerName'] ?? '',
       partnerImage: json['partnerImage'],
       lastMessage: json['lastMessage'],
+      lastMessageTime: json['lastMessageTime'] != null
+          ? DateTime.tryParse(json['lastMessageTime'].toString())
+          : null,
       unreadCount: json['unreadCount'] ?? 0,
       type: json['type'] ?? 'old',
     );
@@ -38,6 +43,7 @@ class ChatRoom {
       'partnerName': partnerName,
       'partnerImage': partnerImage,
       'lastMessage': lastMessage,
+      'lastMessageTime': lastMessageTime?.toIso8601String(),
       'unreadCount': unreadCount,
       'type': type,
     };
@@ -49,6 +55,7 @@ class ChatRoom {
     String? partnerName,
     String? partnerImage,
     String? lastMessage,
+    DateTime? lastMessageTime,
     int? unreadCount,
     String? type,
   }) {
@@ -58,6 +65,7 @@ class ChatRoom {
       partnerName: partnerName ?? this.partnerName,
       partnerImage: partnerImage ?? this.partnerImage,
       lastMessage: lastMessage ?? this.lastMessage,
+      lastMessageTime: lastMessageTime ?? this.lastMessageTime,
       unreadCount: unreadCount ?? this.unreadCount,
       type: type ?? this.type,
     );
