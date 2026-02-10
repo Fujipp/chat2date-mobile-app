@@ -760,7 +760,10 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
     final weekday = weekdays[thailandTime.weekday - 1];
     final hour = thailandTime.hour.toString().padLeft(2, '0');
     final minute = thailandTime.minute.toString().padLeft(2, '0');
-    return '$weekday $hour:$minute';
+    final day = thailandTime.day.toString().padLeft(2, '0');
+    final month = thailandTime.month.toString().padLeft(2, '0');
+    final year = thailandTime.year.toString();
+    return '$weekday $day/$month/$year $hour:$minute';
   }
 
   Widget _buildChatTimestamp(DateTime time) {
@@ -775,9 +778,12 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
     // แปลงเป็นเวลาไทย (UTC+7)
     final thailandTime = time.toUtc().add(const Duration(hours: 7));
 
+    final day = thailandTime.day.toString().padLeft(2, '0');
+    final month = thailandTime.month.toString().padLeft(2, '0');
+    final year = thailandTime.year.toString();
     final hour = thailandTime.hour.toString().padLeft(2, '0');
     final minute = thailandTime.minute.toString().padLeft(2, '0');
-    return '$hour:$minute';
+    return '$day/$month/$year $hour:$minute';
   }
 
   /// Widget แสดงเวลาส่งจริงของข้อความ

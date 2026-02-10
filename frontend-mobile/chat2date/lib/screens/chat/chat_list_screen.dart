@@ -115,6 +115,8 @@ class _ChatListScreenState extends ConsumerState<ChatListScreen>
         final updatedRoom = _chatRooms[roomIndex].copyWith(
           unreadCount: event.unreadCount,
           lastMessage: event.lastMessage ?? _chatRooms[roomIndex].lastMessage,
+          lastMessageTime:
+              event.lastMessageTime ?? _chatRooms[roomIndex].lastMessageTime,
         );
         _chatRooms[roomIndex] = updatedRoom;
 
@@ -130,6 +132,51 @@ class _ChatListScreenState extends ConsumerState<ChatListScreen>
         _loadChatRooms();
       }
     });
+  }
+
+  String _formatRelativeLastMessageTime(DateTime? time) {
+    if (time == null) {
+      return '';
+    }
+
+    final now = DateTime.now();
+    var difference = now.difference(time);
+    if (difference.isNegative) {
+      difference = Duration.zero;
+    }
+
+    if (difference.inMinutes < 1) {
+      return 'เมื่อสักครู่';
+    }
+    if (difference.inHours < 1) {
+      return '${difference.inMinutes} นาทีที่แล้ว';
+    }
+    if (difference.inDays < 1) {
+      return '${difference.inHours} ชั่วโมงที่แล้ว';
+    }
+    if (difference.inDays < 7) {
+      return '${difference.inDays} วันที่แล้ว';
+    }
+    if (difference.inDays < 30) {
+      return '${difference.inDays ~/ 7} สัปดาห์ที่แล้ว';
+    }
+    if (difference.inDays < 365) {
+      return '${difference.inDays ~/ 30} เดือนที่แล้ว';
+    }
+    return '${difference.inDays ~/ 365} ปีที่แล้ว';
+  }
+
+  String _buildChatSubtitle(ChatRoom room) {
+    final lastMessage = (room.lastMessage ?? '').trim();
+    final relativeTime = _formatRelativeLastMessageTime(room.lastMessageTime);
+
+    if (lastMessage.isEmpty) {
+      return 'ยังไม่มีข้อความ';
+    }
+    if (relativeTime.isEmpty) {
+      return lastMessage;
+    }
+    return '$lastMessage ส่งเมื่อ $relativeTime';
   }
 
   @override
@@ -157,7 +204,13 @@ class _ChatListScreenState extends ConsumerState<ChatListScreen>
       final roomsRefresh = await chatService.getChatRooms();
       if (roomsRefresh.isNotEmpty) {
         await Future.wait(
-          roomsRefresh.map((room) => chatService.updateRelationshipBar(room.roomId).catchError((e) => print('Failed to update room ${room.roomId}: $e'))),
+          roomsRefresh.map(
+            (room) => chatService
+                .updateRelationshipBar(room.roomId)
+                .catchError(
+                  (e) => print('Failed to update room ${room.roomId}: $e'),
+                ),
+          ),
         );
       }
       final rooms = await chatService.getChatRooms();
@@ -195,7 +248,13 @@ class _ChatListScreenState extends ConsumerState<ChatListScreen>
       final matches = await chatService.getMatches();
       if (matches.isNotEmpty) {
         await Future.wait(
-          matches.map((match) => chatService.updateRelationshipBar(match.matchId).catchError((e) => print('Failed to update room ${match.matchId}: $e'))),
+          matches.map(
+            (match) => chatService
+                .updateRelationshipBar(match.matchId)
+                .catchError(
+                  (e) => print('Failed to update room ${match.matchId}: $e'),
+                ),
+          ),
         );
       }
       if (mounted) {
@@ -325,7 +384,7 @@ class _ChatListScreenState extends ConsumerState<ChatListScreen>
             svgPath: isSvgAvatar ? avatarPath : null,
             imagePath: isSvgAvatar ? null : avatarPath,
             title: room.partnerName,
-            subtitle: room.lastMessage ?? '',
+            subtitle: _buildChatSubtitle(room),
             unreadCount: displayUnreadCount,
             colors: [AppColors.backgroundWhite],
             onClick: () async {
