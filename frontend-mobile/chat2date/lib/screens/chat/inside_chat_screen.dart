@@ -309,6 +309,8 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
       });
 
       if (oldHeartCount == 0 && oldPercent < 1.00 && _heartCount == 1) {
+        FocusScope.of(context).unfocus();
+        await Future.delayed(const Duration(milliseconds: 300));
         _triggerUnlockDate();
       }
     } else {
@@ -333,6 +335,8 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
           oldPercent < 1.00 &&
           oldPercent != 0.00 &&
           _heartCount == 1) {
+        FocusScope.of(context).unfocus();
+        await Future.delayed(const Duration(milliseconds: 300));
         _triggerUnlockDate();
       }
 

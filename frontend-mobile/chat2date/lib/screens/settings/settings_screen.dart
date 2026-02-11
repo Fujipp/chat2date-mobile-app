@@ -1,4 +1,5 @@
 import 'package:chat2date/components/layout/header.dart';
+import 'package:chat2date/components/modal/feature_guide_modal.dart';
 import 'package:chat2date/screens/settings/widgets/delete_account_screen.dart';
 import 'package:flutter/material.dart';
 import '../main_tabs.dart';
@@ -71,7 +72,11 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                     title: 'คู่มือการใช้งาน',
                     subtitle: 'เรียนรู้วิธีใช้แอปพลิเคชัน',
                     onTap: () {
-                      Navigator.pushNamed(context, '/tutorial');
+                      showDialog(
+                        context: context,
+                        barrierDismissible: false,
+                        builder: (context) => const FeatureGuideModal(),
+                      );
                     },
                   ),
                   const SizedBox(height: 12),

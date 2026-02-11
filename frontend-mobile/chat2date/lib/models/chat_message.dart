@@ -1,3 +1,5 @@
+import 'package:chat2date/utils/backend_datetime_parser.dart';
+
 /// ประเภทข้อความ Bot ตาม Figma design
 enum BotMessageType {
   /// Bot Minigame - พื้นเหลือง พร้อมปุ่ม "เริ่ม" สีฟ้า (enabled)
@@ -100,31 +102,12 @@ class ChatMessage {
     final senderId = json['senderId']?.toString() ?? '';
     final message = json['message']?.toString() ?? '';
     final createdRaw = json['created']?.toString();
-    
-    // แปลง timestamp - Backend ส่งมาเป็น local time (Thailand) ไม่มี timezone marker
+
+    // แปลง timestamp - ใช้ parser กลางให้ logic ตรงกันทั้งแอป
     final typeStr =
         json['messageType']?.toString() ?? json['type']?.toString() ?? 'TEXT';
 
-    DateTime timestamp;
-    if (createdRaw != null) {
-      final parsedTime = DateTime.tryParse(createdRaw);
-      if (parsedTime != null) {
-        final hasTimezone = RegExp(r'(Z|[+-]\d{2}:?\d{2})$')
-            .hasMatch(createdRaw);
-        if (hasTimezone) {
-          // ถ้ามี timezone marker (Z หรือ +07:00) ให้แปลงเป็น local time
-          timestamp = parsedTime.isUtc ? parsedTime.toLocal() : parsedTime;
-        } else {
-          // ไม่มี timezone marker = Backend VM ใช้ UTC
-          // ต้องบวก 7 ชั่วโมงให้เป็น Thailand time (UTC+7)
-          timestamp = parsedTime.add(const Duration(hours: 7));
-        }
-      } else {
-        timestamp = DateTime.now();
-      }
-    } else {
-      timestamp = DateTime.now();
-    }
+    final timestamp = parseBackendDateTime(createdRaw) ?? DateTime.now();
     final isOwn = senderId == currentUserId;
     final rawRead =
         json['isRead'] ?? json['is_read'] ?? json['isread'] ?? json['read'];
@@ -151,8 +134,10 @@ class ChatMessage {
 
         displayDescription = message;
 
-    // Debug log เพื่อตรวจสอบค่า isRead ที่ได้รับจาก API
-    print('[ChatMessage.fromApi] messageId=${json['messageId']}, senderId=$senderId, currentUserId=$currentUserId, isOwn=$isOwn, rawRead=$rawRead (${rawRead.runtimeType}), messageRead=$messageRead, isSeen=${isOwn && messageRead}');
+        // Debug log เพื่อตรวจสอบค่า isRead ที่ได้รับจาก API
+        print(
+          '[ChatMessage.fromApi] messageId=${json['messageId']}, senderId=$senderId, currentUserId=$currentUserId, isOwn=$isOwn, rawRead=$rawRead (${rawRead.runtimeType}), messageRead=$messageRead, isSeen=${isOwn && messageRead}',
+        );
         btnText = "เข้าร่วม / เริ่มเกม";
       } else if (typeStr == 'FAIL') {
         isBotMessage = true;
@@ -184,7 +169,7 @@ class ChatMessage {
       isActionDisabled: false,
     );
   }
-  
+
   /// สร้าง User message (ส่งออก - ขวา)
   factory ChatMessage.sent({
     required String id,
@@ -200,7 +185,7 @@ class ChatMessage {
       isSeen: isSeen,
     );
   }
-  
+
   /// สร้าง User message (รับเข้า - ซ้าย)
   factory ChatMessage.received({
     required String id,

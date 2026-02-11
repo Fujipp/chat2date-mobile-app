@@ -4,7 +4,7 @@
  */
 
 // API Configuration
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://cp25ssi2.sit.kmutt.ac.th/api'
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://cp25ssi2.sit.kmutt.ac.th:8080/api/v1'
 const ADMIN_API_URL = `${API_BASE_URL}/admin`
 
 /**
