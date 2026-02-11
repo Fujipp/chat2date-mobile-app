@@ -3,18 +3,22 @@ package sit.chat2date.cp25ssi2.services;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.server.ResponseStatusException;
 import sit.chat2date.cp25ssi2.clients.GeminiClient;
 import sit.chat2date.cp25ssi2.dto.*;
 import sit.chat2date.cp25ssi2.entities.*;
 import sit.chat2date.cp25ssi2.enums.GameSessionStatus;
+import sit.chat2date.cp25ssi2.enums.MessageType;
 import sit.chat2date.cp25ssi2.exceptions.ConflictException;
 import sit.chat2date.cp25ssi2.exceptions.ForbiddenAccessException;
 import sit.chat2date.cp25ssi2.exceptions.NotFoundException;
 import sit.chat2date.cp25ssi2.repositories.*;
 
+import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
@@ -500,40 +504,43 @@ public class GameService {
 
     @Transactional
     public void gameTimeout(String gameId) {
-        Optional<GameSessions> sessionOpt = gameSessionRepository.findById(gameId);
 
-        if (sessionOpt.isPresent()) {
-            GameSessions session = sessionOpt.get();
-            String roomId = session.getRoomId();
+        GameSessions session = gameSessionRepository.findById(gameId)
+                .orElseThrow(() -> new NotFoundException("Game session not found"));
 
-            Object lock = roomLocks.computeIfAbsent(roomId, k -> new Object());
+        String roomId = session.getRoomId();
+        Object lock = roomLocks.computeIfAbsent(roomId, k -> new Object());
 
-            synchronized (lock) {
-                GameSessions currentSession = gameSessionRepository.findById(gameId)
-                        .orElseThrow(() -> new NotFoundException("Game session not found"));
+        synchronized (lock) {
 
-                if (currentSession.getStatus() == GameSessionStatus.ACTIVE) {
-                    currentSession.setStatus(GameSessionStatus.FAILED);
-                    gameSessionRepository.save(currentSession);
+            GameSessions currentSession = gameSessionRepository.findById(gameId)
+                    .orElseThrow(() -> new NotFoundException("Game session not found"));
 
-                    try {
-                        chatService.sendSystemMessage(
-                                Integer.parseInt(currentSession.getRoomId()),
-                                "เกมรอบที่แล้วจบไม่สมบูรณ์ หรือหมดเวลา",
-                                sit.chat2date.cp25ssi2.enums.MessageType.FAIL
-                        );
-                    } catch (Exception e) {
-                        System.err.println("Error saving timeout message: " + e.getMessage());
-                    }
+            if (currentSession.getStatus() == GameSessionStatus.ACTIVE) {
+                currentSession.setStatus(GameSessionStatus.FAILED);
+                gameSessionRepository.save(currentSession);
 
-                    LocalDateTime unlockTime = currentSession.getCreatedAt().plusHours(24);
-                    long secondsLeft = java.time.Duration.between(LocalDateTime.now(), unlockTime).getSeconds();
-
-                    Map<String, Object> payload = new HashMap<>();
-                    payload.put("type", "GAME_CANCELLED");
-                    payload.put("remainingSeconds", secondsLeft);
-                    messagingTemplate.convertAndSend("/topic/games/" + currentSession.getRoomId(), payload);
+                try {
+                    chatService.sendSystemMessage(
+                            Integer.parseInt(currentSession.getRoomId()),
+                            "เกมรอบที่แล้วจบไม่สมบูรณ์ หรือหมดเวลา",
+                            MessageType.FAIL
+                    );
+                } catch (Exception e) {
+                    System.err.println("Error saving timeout message: " + e.getMessage());
                 }
+
+                LocalDateTime unlockTime = currentSession.getCreatedAt().plusHours(24);
+                long secondsLeft = Duration.between(LocalDateTime.now(), unlockTime).getSeconds();
+
+                Map<String, Object> payload = new HashMap<>();
+                payload.put("type", "GAME_CANCELLED");
+                payload.put("remainingSeconds", secondsLeft);
+
+                messagingTemplate.convertAndSend(
+                        "/topic/games/" + currentSession.getRoomId(),
+                        payload
+                );
             }
         }
     }
