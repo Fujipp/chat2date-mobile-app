@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 
 import 'package:chat2date/config/backend_base.dart';
+import 'package:chat2date/utils/backend_datetime_parser.dart';
 import 'package:stomp_dart_client/stomp.dart';
 import 'package:stomp_dart_client/stomp_config.dart';
 import 'package:stomp_dart_client/stomp_frame.dart';
@@ -25,9 +26,9 @@ class ChatListUpdateEvent {
       roomId: json['roomId'] as String,
       unreadCount: json['unreadCount'] as int? ?? 0,
       lastMessage: json['lastMessage'] as String?,
-      lastMessageTime: json['lastMessageTime'] != null
-          ? DateTime.tryParse(json['lastMessageTime'] as String)
-          : null,
+      lastMessageTime: parseBackendDateTime(
+        json['lastMessageTime']?.toString(),
+      ),
     );
   }
 }
@@ -38,10 +39,7 @@ class ChatListSocketService {
   final String userId;
   final String? accessToken;
 
-  ChatListSocketService({
-    required this.userId,
-    this.accessToken,
-  });
+  ChatListSocketService({required this.userId, this.accessToken});
 
   final _updateController = StreamController<ChatListUpdateEvent>.broadcast();
   StompClient? _client;
@@ -56,7 +54,8 @@ class ChatListSocketService {
 
     final wsUrl = '${ApiBase.websocketBase}${ApiBase.websocketPath}';
     final headers = <String, String>{
-      if (accessToken?.isNotEmpty == true) 'Authorization': 'Bearer $accessToken',
+      if (accessToken?.isNotEmpty == true)
+        'Authorization': 'Bearer $accessToken',
     };
 
     _client = StompClient(
@@ -98,13 +97,13 @@ class ChatListSocketService {
         if (body == null) return;
         try {
           final json = jsonDecode(body) as Map<String, dynamic>;
-          
+
           // Only process ChatListUpdateEvent messages (have unreadCount field)
           // Ignore other message types like SendMessageResponse
           if (!json.containsKey('unreadCount')) {
             return;
           }
-          
+
           final event = ChatListUpdateEvent.fromJson(json);
           _updateController.add(event);
         } catch (e) {
