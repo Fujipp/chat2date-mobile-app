@@ -1114,6 +1114,14 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
       return BotMessageComponent.fromMessage(
         message: message,
         onActionPressed: () {
+          if (message.isActionDisabled ?? false) return;
+
+          setState(() {
+            _messages[index] = message.copyWith(
+              isActionDisabled: true,
+              actionButtonText: "เริ่มเกมไปแล้ว",
+            );
+          });
           print("🔘 Bot Button Clicked: ${message.botType}");
           if (message.botType == BotMessageType.minigame ||
               message.botType == BotMessageType.minigameFail) {
