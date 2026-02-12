@@ -260,7 +260,9 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
   }
 
   Future<void> _navigateToGameScreen(String roomId) async {
-    print("🚀 Navigating to Game Screen...");
+    FocusScope.of(context).unfocus();
+    await Future.delayed(const Duration(milliseconds: 300));
+    if (!mounted) return;
 
     _gameSocketService?.dispose();
     _gameSubscription?.cancel();
@@ -362,6 +364,28 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
           _scrollToBottom();
         }
       });
+    }
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    super.didChangeAppLifecycleState(state);
+
+    // กรณีพับหน้าจอ (Paused) หรือ ปิดแอป (Detached)
+    if (state == AppLifecycleState.paused ||
+        state == AppLifecycleState.detached) {
+      print("App is backgrounded or killed: Exiting room");
+      _exitRoomOnce();
+    }
+
+    // กรณีกลับเข้ามาใหม่ (Resumed)
+    if (state == AppLifecycleState.resumed) {
+      if (_hasExited) {
+        setState(() {
+          _hasExited = false;
+        });
+        _enterRoom();
+      }
     }
   }
 
