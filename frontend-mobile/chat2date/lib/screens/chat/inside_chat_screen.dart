@@ -205,15 +205,15 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
           break;
 
         // 🟢 กรณีชนะ/จบสมบูรณ์ (ต้องรอหลอดถัดไป)
-        // case 'COMPLETED_FINISHED':
-        //   _addLocalBotMessage(
-        //     type: BotMessageType.askSuccess, // หรือ minigameFail แล้วแต่ดีไซน์
-        //     text: "คุณเล่นเกมรอบนี้สำเร็จแล้ว",
-        //     description: "กรุณารอสะสมหลอดความสัมพันธ์เพื่อเล่นรอบถัดไป",
-        //     actionText: "เจอกันรอบหน้า",
-        //     isDisabled: true, // ❌ ปุ่มกดไม่ได้
-        //   );
-        //   break;
+        case 'COMPLETED_FINISHED':
+          _addLocalBotMessage(
+            type: BotMessageType.askSuccess, // หรือ minigameFail แล้วแต่ดีไซน์
+            text: "คุณเล่นเกมรอบนี้สำเร็จแล้ว",
+            description: "กรุณารอสะสมหลอดความสัมพันธ์เพื่อเล่นรอบถัดไป",
+            actionText: "เจอกันรอบหน้า",
+            isDisabled: true, // ❌ ปุ่มกดไม่ได้
+          );
+          break;
 
         // 🔴 กรณีหมดเวลา 24 ชม. แล้วยังไม่ชนะ (หมดสิทธิ์)
         case 'EXPIRED':
