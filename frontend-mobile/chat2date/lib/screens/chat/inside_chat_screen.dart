@@ -205,15 +205,15 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
           break;
 
         // 🟢 กรณีชนะ/จบสมบูรณ์ (ต้องรอหลอดถัดไป)
-        // case 'COMPLETED_FINISHED':
-        //   _addLocalBotMessage(
-        //     type: BotMessageType.askSuccess, // หรือ minigameFail แล้วแต่ดีไซน์
-        //     text: "คุณเล่นเกมรอบนี้สำเร็จแล้ว",
-        //     description: "กรุณารอสะสมหลอดความสัมพันธ์เพื่อเล่นรอบถัดไป",
-        //     actionText: "เจอกันรอบหน้า",
-        //     isDisabled: true, // ❌ ปุ่มกดไม่ได้
-        //   );
-        //   break;
+        case 'COMPLETED_FINISHED':
+          _addLocalBotMessage(
+            type: BotMessageType.askSuccess, // หรือ minigameFail แล้วแต่ดีไซน์
+            text: "คุณเล่นเกมรอบนี้สำเร็จแล้ว",
+            description: "กรุณารอสะสมหลอดความสัมพันธ์เพื่อเล่นรอบถัดไป",
+            actionText: "เจอกันรอบหน้า",
+            isDisabled: true, // ❌ ปุ่มกดไม่ได้
+          );
+          break;
 
         // 🔴 กรณีหมดเวลา 24 ชม. แล้วยังไม่ชนะ (หมดสิทธิ์)
         case 'EXPIRED':
@@ -260,7 +260,9 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
   }
 
   Future<void> _navigateToGameScreen(String roomId) async {
-    print("🚀 Navigating to Game Screen...");
+    FocusScope.of(context).unfocus();
+    await Future.delayed(const Duration(milliseconds: 300));
+    if (!mounted) return;
 
     _gameSocketService?.dispose();
     _gameSubscription?.cancel();
@@ -362,6 +364,28 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
           _scrollToBottom();
         }
       });
+    }
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    super.didChangeAppLifecycleState(state);
+
+    // กรณีพับหน้าจอ (Paused) หรือ ปิดแอป (Detached)
+    if (state == AppLifecycleState.paused ||
+        state == AppLifecycleState.detached) {
+      print("App is backgrounded or killed: Exiting room");
+      _exitRoomOnce();
+    }
+
+    // กรณีกลับเข้ามาใหม่ (Resumed)
+    if (state == AppLifecycleState.resumed) {
+      if (_hasExited) {
+        setState(() {
+          _hasExited = false;
+        });
+        _enterRoom();
+      }
     }
   }
 
@@ -1090,6 +1114,14 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
       return BotMessageComponent.fromMessage(
         message: message,
         onActionPressed: () {
+          if (message.isActionDisabled ?? false) return;
+
+          setState(() {
+            _messages[index] = message.copyWith(
+              isActionDisabled: true,
+              actionButtonText: "เริ่มเกมไปแล้ว",
+            );
+          });
           print("🔘 Bot Button Clicked: ${message.botType}");
           if (message.botType == BotMessageType.minigame ||
               message.botType == BotMessageType.minigameFail) {
