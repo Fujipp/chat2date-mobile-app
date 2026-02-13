@@ -460,54 +460,67 @@ public class GameService {
     }
 
     public void checkAndTriggerGame(Integer roomId, int currentScore) {
-        int targetScore = 0;
-        if (currentScore >= 75) {
-            targetScore = 75;
-        } else if (currentScore >= 50) {
-            targetScore = 50;
-        } else if (currentScore >= 25) {
-            targetScore = 25;
-        }
-
-        if (targetScore == 0) return;
-
         boolean hasActiveGame = gameSessionRepository.existsByRoomIdAndStatus(
-                roomId.toString(), GameSessionStatus.ACTIVE
+                roomId.toString(),
+                GameSessionStatus.ACTIVE
         );
         if (hasActiveGame) return;
 
-        Optional<GameSessions> lastSessionOpt = gameSessionRepository.findTopByRoomIdOrderByCreatedAtDesc(roomId.toString());
-        if (lastSessionOpt.isPresent()) {
-            if (lastSessionOpt.get().getStatus() == GameSessionStatus.FAILED) {
-                return;
-            }
-        }
+        List<GameSessions> allSessions = gameSessionRepository.findAllByRoomId(roomId.toString());
 
-        long completedGamesCount = gameSessionRepository.countByRoomIdAndStatus(
-                roomId.toString(), GameSessionStatus.COMPLETED
-        );
+        long completedCount = allSessions.stream()
+                .filter(s -> s.getStatus() == GameSessionStatus.COMPLETED)
+                .count();
+
+        LocalDateTime lastCompletedTime = allSessions.stream()
+                .filter(s -> s.getStatus() == GameSessionStatus.COMPLETED)
+                .map(GameSessions::getCreatedAt)
+                .max(LocalDateTime::compareTo)
+                .orElse(LocalDateTime.MIN);
+
+        long currentLevelFailCount = allSessions.stream()
+                .filter(s -> s.getStatus() == GameSessionStatus.FAILED)
+                .filter(s -> s.getCreatedAt().isAfter(lastCompletedTime))
+                .count();
+
+        System.out.println("=== LEVEL TRIGGER CHECK ===");
+        System.out.println("Score: " + currentScore + " | Passed: " + completedCount + " | Fails (Current Level): " + currentLevelFailCount);
 
         boolean shouldTrigger = false;
-        if (targetScore == 25 && completedGamesCount == 0) shouldTrigger = true;
-        else if (targetScore == 50 && completedGamesCount == 1) shouldTrigger = true;
-        else if (targetScore == 75 && completedGamesCount == 2) shouldTrigger = true;
+        int targetLevel = 0;
 
-        if (!shouldTrigger) return;
+        if (currentScore >= 75 && completedCount < 3) {
+            targetLevel = 75;
+            if (currentLevelFailCount < 2) shouldTrigger = true;
+        }
+        else if (currentScore >= 50 && completedCount < 2) {
+            targetLevel = 50;
+            if (currentLevelFailCount < 2) shouldTrigger = true;
+        }
+        else if (currentScore >= 25 && completedCount < 1) {
+            targetLevel = 25;
+            if (currentLevelFailCount < 2) shouldTrigger = true;
+        }
+
+        if (!shouldTrigger) {
+            System.out.println("⛔ Trigger skipped. (Fail limit reached or already completed)");
+            return;
+        }
 
         Match match = matchRepository.findById(roomId).orElseThrow();
-        String user1 = match.getUserId1().getUserId();
-        String user2 = match.getUserId2().getUserId();
 
-        if (isUserOnline(roomId, user1) && isUserOnline(roomId, user2)) {
-            System.out.println("🚀 AUTO TRIGGER GAME Level " + targetScore + " for Room: " + roomId);
+        if (isUserOnline(roomId, match.getUserId1().getUserId())
+                && isUserOnline(roomId, match.getUserId2().getUserId())) {
 
+            System.out.println("🚀 AUTO TRIGGER GAME Level " + targetLevel);
             Map<String, Object> payload = new HashMap<>();
             payload.put("type", "GAME_START");
-            payload.put("level", targetScore);
+            payload.put("level", targetLevel);
 
             messagingTemplate.convertAndSend("/topic/games/" + roomId, payload);
         }
     }
+
 
     @Transactional
     public void gameTimeout(String gameId) {
