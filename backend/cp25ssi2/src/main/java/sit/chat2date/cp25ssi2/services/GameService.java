@@ -476,6 +476,13 @@ public class GameService {
         );
         if (hasActiveGame) return;
 
+        Optional<GameSessions> lastSessionOpt = gameSessionRepository.findTopByRoomIdOrderByCreatedAtDesc(roomId.toString());
+        if (lastSessionOpt.isPresent()) {
+            if (lastSessionOpt.get().getStatus() == GameSessionStatus.FAILED) {
+                return;
+            }
+        }
+
         long completedGamesCount = gameSessionRepository.countByRoomIdAndStatus(
                 roomId.toString(), GameSessionStatus.COMPLETED
         );
