@@ -47,11 +47,13 @@ public class RelationshipStats {
     @Column(name = "dailyDate")
     private LocalDate dailyDate;
 
-    @ColumnDefault("NONE")
+    @Enumerated(EnumType.STRING) // เพิ่มบรรทัดนี้
+    @ColumnDefault("'NONE'")
     @Column(name = "notiBeforeUnmatch", nullable = false)
     private NotifyStatus notiBeforeUnmatch;
 
-    @ColumnDefault("NONE")
+    @Enumerated(EnumType.STRING) // เพิ่มบรรทัดนี้
+    @ColumnDefault("'NONE'")
     @Column(name = "notiUnmatch", nullable = false)
     private NotifyStatus notiUnmatch;
 

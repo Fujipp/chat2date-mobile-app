@@ -112,8 +112,8 @@ public class RelationshipStatsService {
 
         Optional<Message> lastMessage = messageRepository.findFirstByRoomIdOrderByCreatedAtDesc(roomId);
         daysBetween = lastMessage
-                .map(message -> ChronoUnit.DAYS.between(message.getCreatedAt().toLocalDate(), today))
-                .orElseGet(() -> ChronoUnit.DAYS.between(matchById.get().getCreatedAt().toLocalDate(), today));
+                .map(message -> ChronoUnit.DAYS.between(message.getCreatedAt().plusHours(7).toLocalDate(), today))
+                .orElseGet(() -> ChronoUnit.DAYS.between(matchById.get().getCreatedAt().plusHours(7).toLocalDate(), today));
 
         int oldStreakDays = 0;
 
@@ -196,8 +196,8 @@ public class RelationshipStatsService {
                 relationshipStatsById.get().setIsDailyMessagesBonus(false);
             }
 
-            LocalDateTime start = today.atStartOfDay();
-            LocalDateTime end = today.atTime(LocalTime.MAX);
+            LocalDateTime start = today.atStartOfDay().minusHours(12);
+            LocalDateTime end = today.atTime(LocalTime.MAX).minusHours(12);
 
             List<Message> messageList = messageRepository.findTodayMessagesByRoom(roomId, start, end);
 

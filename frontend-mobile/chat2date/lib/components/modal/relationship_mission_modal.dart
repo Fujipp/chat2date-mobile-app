@@ -8,7 +8,7 @@ class RelationshipMissionModal extends StatelessWidget {
   final int streakDays;
   final int dailyMessages;
   final int heart;
-  final double currentScore;
+  final int currentScore;
   final bool isFirstMessageBonus;
 
   const RelationshipMissionModal({
