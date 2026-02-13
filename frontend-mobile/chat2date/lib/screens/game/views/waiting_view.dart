@@ -32,6 +32,7 @@ class _WaitingViewState extends State<WaitingView> {
   int? _remainingSeconds;
 
   bool _hasTimerStarted = false;
+  bool _isLoading = true;
 
   @override
   void initState() {
@@ -41,6 +42,21 @@ class _WaitingViewState extends State<WaitingView> {
     debugPrint("👤 My Avatar: '${widget.myAvatarUrl}'");
     debugPrint("👥 Partner Avatar: '${widget.partnerAvatarUrl}'");
     debugPrint("--------------------------------------------------");
+
+    // โหลดข้อมูลและรอให้พร้อม
+    _initializeData();
+  }
+
+  Future<void> _initializeData() async {
+    // รอให้ข้อมูล avatar โหลดเสร็จ
+    await Future.delayed(const Duration(seconds: 2));
+
+    if (mounted) {
+      setState(() {
+        _isLoading = false;
+      });
+      debugPrint("✅ Data loaded successfully!");
+    }
   }
 
   @override
@@ -87,6 +103,42 @@ class _WaitingViewState extends State<WaitingView> {
 
   @override
   Widget build(BuildContext context) {
+    // แสดง Loading Screen ถ้ายังโหลดไม่เสร็จ
+    if (_isLoading) {
+      return Scaffold(
+        backgroundColor: Colors.white,
+        body: SafeArea(
+          child: Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                SvgPicture.asset(
+                  "assets/images/question.svg",
+                  width: 100,
+                  height: 100,
+                ),
+                const SizedBox(height: 32),
+                const CircularProgressIndicator(
+                  valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF5CE1E6)),
+                  strokeWidth: 3,
+                ),
+                const SizedBox(height: 24),
+                const Text(
+                  'กำลังเตรียมเกม...',
+                  style: TextStyle(
+                    color: Color(0xFF64748B),
+                    fontSize: 16,
+                    fontFamily: 'Inter',
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+    }
+
     final bool isMeReady = widget.isMeReady;
     final bool isPartnerReady = widget.isPartnerReady;
     final bool isTimerStarted = _remainingSeconds != null;
