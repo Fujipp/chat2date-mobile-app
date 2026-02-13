@@ -113,7 +113,10 @@ public class RelationshipStatsService {
                 .map(message -> ChronoUnit.DAYS.between(message.getCreatedAt().toLocalDate(), today))
                 .orElseGet(() -> ChronoUnit.DAYS.between(matchById.get().getCreatedAt().toLocalDate(), today));
 
+        int oldStreakDays = 0;
+
         if (relationshipStatsById.isPresent()) {
+            oldStreakDays = relationshipStatsById.get().getStreakDays();
             if (!today.equals(relationshipStatsById.get().getDailyDate())) {
                 if (daysBetween > 0) {
                     int currentStreak = relationshipStatsById.get().getStreakDays();
@@ -151,13 +154,14 @@ public class RelationshipStatsService {
                                 return null;
                             }
                         }
-                        if (updatedStreak <= -10) {
+
+                        if (updatedStreak <= -10 && oldStreakDays >= -9) {
                             score -= 25;
                         }
-                        if (updatedStreak <= -7) {
+                        if (updatedStreak <= -7 && oldStreakDays >= -6) {
                             score -= 10;
                         }
-                        if (updatedStreak <= -3) {
+                        if (updatedStreak <= -3 && oldStreakDays >= -2) {
                             score -= 5;
                         }
                     }
@@ -201,18 +205,20 @@ public class RelationshipStatsService {
                 if (relationshipStatsById.get().getStreakDays() < 0) {
                     relationshipStatsById.get().setStreakDays(0);
                 }
-                switch (relationshipStatsById.get().getStreakDays()) {
-                    case 3:
-                        score += 7;
-                        break;
-                    case 7:
-                        score += 10;
-                        break;
-                    case 10:
-                        score += 20;
-                        break;
-                    default:
-                        break;
+                if ((oldStreakDays != 3 && oldStreakDays != 7 && oldStreakDays != 10) && (relationshipStatsById.get().getStreakDays() == 3 || relationshipStatsById.get().getStreakDays() == 7 || relationshipStatsById.get().getStreakDays() == 10)) {
+                    switch (relationshipStatsById.get().getStreakDays()) {
+                        case 3:
+                            score += 7;
+                            break;
+                        case 7:
+                            score += 10;
+                            break;
+                        case 10:
+                            score += 20;
+                            break;
+                        default:
+                            break;
+                    }
                 }
             }
             relationshipStatsById.get().setDailyMessageCount(totalConversationCount);
