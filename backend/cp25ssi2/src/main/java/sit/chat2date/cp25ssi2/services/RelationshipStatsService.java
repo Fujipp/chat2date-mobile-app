@@ -10,7 +10,6 @@ import sit.chat2date.cp25ssi2.entities.Match;
 import sit.chat2date.cp25ssi2.entities.Message;
 import sit.chat2date.cp25ssi2.entities.RelationshipStats;
 import sit.chat2date.cp25ssi2.entities.User;
-import sit.chat2date.cp25ssi2.enums.NotifyStatus;
 import sit.chat2date.cp25ssi2.exceptions.BadRequestException;
 import sit.chat2date.cp25ssi2.exceptions.ConflictException;
 import sit.chat2date.cp25ssi2.exceptions.ForbiddenAccessException;
@@ -95,7 +94,6 @@ public class RelationshipStatsService {
         return relationshipStatsRepository.saveAndFlush(relationshipStats);
     }
 
-    @Transactional
     public RelationshipStats updateRelationshipBar(String roomIdStr) {
         Integer roomId = Integer.parseInt(roomIdStr);
         Optional<RelationshipStats> relationshipStatsById = relationshipStatsRepository
@@ -137,38 +135,26 @@ public class RelationshipStatsService {
                     if (updatedStreak <= 0 && relationshipStatsById.get().getDailyMessageCount() == 0) {
                         score -= (int) daysBetween;
 
-                        if (!relationshipStatsById.get().getIsFirstMessageBonus()) {
-                            if (updatedStreak > -6) {
-                                relationshipStatsById.get().setNotiBeforeUnmatch(NotifyStatus.NONE);
-                                relationshipStatsById.get().setNotiUnmatch(NotifyStatus.NONE);
-                            }
-
-                            if (!relationshipStatsById.get().getIsFirstMessageBonus() && updatedStreak <= -7) {
-                                Optional<Match> match = matchRepository.findById(roomId);
-                                if (match.isPresent() && relationshipStatsById.get().getNotiUnmatch() == NotifyStatus.NONE) {
-                                    match.get().setDeletedAt(LocalDateTime.now());
-                                    match.get().setDeleteFlag(true);
-                                    matchRepository.saveAndFlush(match.get());
-                                    return null;
-                                }
-                            }
-                        } else {
-
-                            if (updatedStreak > -29) {
-                                relationshipStatsById.get().setNotiBeforeUnmatch(NotifyStatus.NONE);
-                                relationshipStatsById.get().setNotiUnmatch(NotifyStatus.NONE);
-                            }
-
-                            if (updatedStreak <= -30) {
-                                Optional<Match> match = matchRepository.findById(roomId);
-                                if (match.isPresent() && relationshipStatsById.get().getNotiUnmatch() == NotifyStatus.NONE) {
-                                    match.get().setDeletedAt(LocalDateTime.now());
-                                    match.get().setDeleteFlag(true);
-                                    matchRepository.saveAndFlush(match.get());
-                                    return null;
-                                }
+                        if (!relationshipStatsById.get().getIsFirstMessageBonus() && updatedStreak <= -7) {
+                            Optional<Match> match = matchRepository.findById(roomId);
+                            if (match.isPresent()) {
+                                match.get().setDeletedAt(LocalDateTime.now());
+                                match.get().setDeleteFlag(true);
+                                matchRepository.saveAndFlush(match.get());
+                                return null;
                             }
                         }
+
+                        if (updatedStreak <= -30) {
+                            Optional<Match> match = matchRepository.findById(roomId);
+                            if (match.isPresent()) {
+                                match.get().setDeletedAt(LocalDateTime.now());
+                                match.get().setDeleteFlag(true);
+                                matchRepository.saveAndFlush(match.get());
+                                return null;
+                            }
+                        }
+
                         if (updatedStreak <= -10 && oldStreakDays >= -9) {
                             score -= 25;
                         }
@@ -206,7 +192,7 @@ public class RelationshipStatsService {
             String lastSenderId = "";
 
             for (Message msg : messageList) {
-                if (!msg.getSenderId().equals(lastSenderId) && !msg.getSenderId().equals("SYSTEM")) {
+                if (!msg.getSenderId().equals(lastSenderId) && msg.getSenderId().equals("SYSTEM")) {
                     totalConversationCount++;
                     lastSenderId = msg.getSenderId();
                 }
@@ -260,41 +246,5 @@ public class RelationshipStatsService {
             relationshipStats.setDailyDate(today);
             return relationshipStatsRepository.saveAndFlush(relationshipStats);
         }
-    }
-
-    @Transactional
-    public RelationshipStats processNotificationLogic(String roomId, String token) {
-        RelationshipStats stats = relationshipStatsRepository.findByRoomId(Integer.parseInt(roomId))
-                .orElseThrow(() -> new RuntimeException("Stats not found"));
-
-        DecodedJWT jwt = JWT.decode(token);
-        String sub = jwt.getClaim("sub").asString();
-        User user = (sub.length() == 10) ? userRepository.findByPhoneNumber(sub).get() : userRepository.findByEmail(sub).get();
-
-        Match match = matchRepository.findById(Integer.valueOf(roomId))
-                .orElseThrow(() -> new RuntimeException("Match not found"));
-
-        boolean isUser1 = match.getUserId1().getUserId().equals(user.getUserId());
-        int days = stats.getStreakDays();
-        boolean isFirstBonus = stats.getIsFirstMessageBonus();
-
-        if ((!isFirstBonus && days == -6) || (isFirstBonus && days == -29)) {
-            stats.setNotiBeforeUnmatch(calculateNextStatus(stats.getNotiBeforeUnmatch(), isUser1));
-        }
-
-        if ((!isFirstBonus && days <= -7) || (isFirstBonus && days <= -30)) {
-            stats.setNotiUnmatch(calculateNextStatus(stats.getNotiUnmatch(), isUser1));
-        }
-
-        return relationshipStatsRepository.save(stats);
-    }
-
-    private NotifyStatus calculateNextStatus(NotifyStatus current, boolean isUser1) {
-        NotifyStatus mySide = isUser1 ? NotifyStatus.LEFT : NotifyStatus.RIGHT;
-        NotifyStatus otherSide = isUser1 ? NotifyStatus.RIGHT : NotifyStatus.LEFT;
-
-        if (current == otherSide) return NotifyStatus.BOTH;
-        if (current == NotifyStatus.NONE) return mySide;
-        return current;
     }
 }
