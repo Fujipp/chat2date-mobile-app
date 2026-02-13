@@ -42,4 +42,19 @@ public class RelationshipStatsController {
     public RelationshipStats updateRelationshipStats(@PathVariable String roomId) {
         return relationshipStatsService.updateRelationshipBar(roomId);
     }
+
+    @PatchMapping("/{roomId}/trigger-notification")
+    public ResponseEntity<RelationshipStats> triggerNotificationUpdate(
+            @PathVariable String roomId,
+            @RequestHeader("Authorization") String authHeader) {
+
+        String token = null;
+        if (authHeader != null && authHeader.startsWith("Bearer ")) {
+            token = authHeader.substring(7);
+        }
+
+        RelationshipStats updatedStats = relationshipStatsService.processNotificationLogic(roomId, token);
+
+        return ResponseEntity.ok(updatedStats);
+    }
 }

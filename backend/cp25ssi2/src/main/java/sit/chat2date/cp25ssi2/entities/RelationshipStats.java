@@ -6,6 +6,7 @@ import jakarta.validation.constraints.NotNull;
 import lombok.*;
 import org.hibernate.annotations.ColumnDefault;
 import org.hibernate.annotations.GenericGenerator;
+import sit.chat2date.cp25ssi2.enums.NotifyStatus;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -45,6 +46,14 @@ public class RelationshipStats {
 
     @Column(name = "dailyDate")
     private LocalDate dailyDate;
+
+    @ColumnDefault("NONE")
+    @Column(name = "notiBeforeUnmatch", nullable = false)
+    private NotifyStatus notiBeforeUnmatch;
+
+    @ColumnDefault("NONE")
+    @Column(name = "notiUnmatch", nullable = false)
+    private NotifyStatus notiUnmatch;
 
     @ColumnDefault("CURRENT_TIMESTAMP")
     @Column(name = "createdAt", nullable = false, updatable = false)
