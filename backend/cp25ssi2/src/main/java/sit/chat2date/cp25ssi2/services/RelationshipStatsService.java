@@ -192,7 +192,7 @@ public class RelationshipStatsService {
             String lastSenderId = "";
 
             for (Message msg : messageList) {
-                if (!msg.getSenderId().equals(lastSenderId) && msg.getSenderId().equals("SYSTEM")) {
+                if (!msg.getSenderId().equals(lastSenderId) && !msg.getSenderId().equals("SYSTEM")) {
                     totalConversationCount++;
                     lastSenderId = msg.getSenderId();
                 }
