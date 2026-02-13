@@ -191,6 +191,7 @@ public class RelationshipStatsService {
                     }
                 }
 
+
                 relationshipStatsById.get().setDailyMessageCount(0);
                 relationshipStatsById.get().setDailyDate(today);
                 relationshipStatsById.get().setIsDailyMessagesBonus(false);
