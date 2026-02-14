@@ -116,6 +116,11 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
     _gameSocketService!.connect();
 
     _gameSubscription = _gameSocketService!.gameStream.listen((payload) {
+      if (!mounted) {
+        debugPrint("⚠️ Widget disposed, ignoring game event");
+        return;
+      }
+
       final type = payload['type'];
       if (type == 'WAITING_START') {
         print("⏳ Received WAITING_START. Going to Waiting Room...");
@@ -139,8 +144,10 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
 
         if (myUserId != null) {
           try {
-            ref.read(gameProvider.notifier).socketMessage(payload, myUserId);
-            print("✅ Event forwarded successfully");
+            if (mounted) {
+              ref.read(gameProvider.notifier).socketMessage(payload, myUserId);
+              print("✅ Event forwarded successfully");
+            }
           } catch (e) {
             print("❌ Error forwarding event: $e");
           }
@@ -236,32 +243,34 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
     if (messages.isEmpty) return messages;
 
     // 1. หาข้อความที่เป็นประเภท Fail ทั้งหมด
-    final failMessages = messages.where((m) => 
-        m.botType == BotMessageType.minigameFail
-    ).toList();
+    final failMessages = messages
+        .where((m) => m.botType == BotMessageType.minigameFail)
+        .toList();
 
     if (failMessages.isEmpty) return messages;
 
     // 2. หาข้อความตัว "ล่าสุด" (Timestamp มากที่สุด)
     // ใช้ logic เปรียบเทียบเวลา
-    final latestFailMsg = failMessages.reduce((a, b) => 
-        a.timestamp.isAfter(b.timestamp) ? a : b
+    final latestFailMsg = failMessages.reduce(
+      (a, b) => a.timestamp.isAfter(b.timestamp) ? a : b,
     );
 
     // 3. สร้าง List ใหม่ โดยไล่เช็คทีละข้อความ
     return messages.map((msg) {
       // ถ้าเป็น Fail Message และ "ไม่ใช่" ตัวล่าสุด
-      if (msg.botType == BotMessageType.minigameFail && msg.id != latestFailMsg.id) {
+      if (msg.botType == BotMessageType.minigameFail &&
+          msg.id != latestFailMsg.id) {
         // ให้ Copy object เดิม แต่แก้ค่าให้ปุ่ม Disabled
         return msg.copyWith(
-          isActionDisabled: true,       // ทำให้ปุ่มกดไม่ได้
-          actionButtonText: 'หมดเวลาแล้ว', // เปลี่ยนข้อความปุ่ม (ตามที่คุณต้องการ)
+          isActionDisabled: true, // ทำให้ปุ่มกดไม่ได้
+          actionButtonText:
+              'หมดเวลาแล้ว', // เปลี่ยนข้อความปุ่ม (ตามที่คุณต้องการ)
         );
       }
       // ถ้าเป็นตัวล่าสุด หรือข้อความอื่น ให้คืนค่าเดิม
       return msg;
     }).toList();
-  } 
+  }
 
   void _addLocalBotMessage({
     required BotMessageType type,
@@ -309,9 +318,6 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
     if (mounted) {
       await _initUpdateRelationshipBar(true);
     }
-
-    print("🔙 Returned from Game with result: $result");
-    _initGameSocket();
   }
 
   String _formatDuration(int? seconds) {
@@ -458,7 +464,7 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
       final sortedMessages = [...roomData.messages]
         ..sort((a, b) => a.timestamp.compareTo(b.timestamp));
       setState(() {
-        _messages = sortedMessages; 
+        _messages = sortedMessages;
         _messages = _updateBotMessageStatus(_messages);
         _isLoadingMessages = false;
         _messageIds
@@ -589,7 +595,7 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
 
   void _startChatSocket() {
     final roomId = widget.roomId;
-    if (roomId == null || roomId.isEmpty) return; 
+    if (roomId == null || roomId.isEmpty) return;
     if (_chatSocketService != null) return;
 
     final userState = ref.read(userStoreProvider);
@@ -633,14 +639,14 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
   void _handleIncomingMessage(ChatMessage message) {
     if (!mounted) return;
     if (_messageIds.contains(message.id)) return;
-    setState(() { 
+    setState(() {
       _messages.add(message);
       _messages = _updateBotMessageStatus(_messages);
       _messages.sort((a, b) => a.timestamp.compareTo(b.timestamp));
       _messageIds.add(message.id);
     });
-   WidgetsBinding.instance.addPostFrameCallback((_) {
-      _scrollToBottom(animated: true); 
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _scrollToBottom(animated: true);
     });
     // If the incoming message is from the other person (not ours),
     // mark it as read since we're currently viewing the chat.
@@ -649,8 +655,8 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
 
     if (!message.isOwn) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
-      _scrollToBottom(animated: true); 
-    });
+        _scrollToBottom(animated: true);
+      });
       Future.delayed(const Duration(milliseconds: 1500), () {
         if (mounted) {
           _initUpdateRelationshipBar(true);
@@ -1406,7 +1412,8 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
                                         .transparent, // เพื่อให้เห็นเงาโค้งของ Container ข้างใน
                                     builder: (context) => RelationshipMissionModal(
                                       heart: _heartCount,
-                                      currentScore: (_currentPercent * 100).round(),
+                                      currentScore: (_currentPercent * 100)
+                                          .round(),
                                       isFirstMessageBonus: _isFirstMessageBonus,
                                       streakDays:
                                           _steakDays, // ใช้ตัวแปรใน State ของคุณ
