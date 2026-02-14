@@ -173,13 +173,18 @@ public class GameService {
     }
 
     private int calculateTargetScore(int score) {
-        if (score >= 75) {
-            return 75;
-        } else if (score >= 50) {
-            return 50;
-        } else if (score >= 25) {
-            return 25;
-        }
+        if (score >= 375) return 375;
+        else if (score >= 350) return 350;
+        else if (score >= 325) return 325;
+        else if (score >= 275) return 275;
+        else if (score >= 250) return 250;
+        else if (score >= 225) return 225;
+        else if (score >= 175) return 175;
+        else if (score >= 150) return 150;
+        else if (score >= 125) return 125;
+        else if (score >= 75) return 75;
+        else if (score >= 50) return 50;
+        else if (score >= 25) return 25;
         return 0;
     }
 
