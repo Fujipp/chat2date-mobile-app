@@ -91,6 +91,8 @@ public class RelationshipStatsService {
         relationshipStats.setDailyMessageCount(0);
         relationshipStats.setIsDailyMessagesBonus(false);
         relationshipStats.setDailyDate(localDate.toLocalDate());
+        relationshipStats.setNotiBeforeUnmatch(NotifyStatus.NONE);
+        relationshipStats.setNotiUnmatch(NotifyStatus.NONE);
 
         return relationshipStatsRepository.saveAndFlush(relationshipStats);
     }
