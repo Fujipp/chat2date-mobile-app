@@ -142,7 +142,7 @@ public class RelationshipStatsService {
                                 relationshipStatsById.get().setNotiBeforeUnmatch(NotifyStatus.NONE);
                                 relationshipStatsById.get().setNotiUnmatch(NotifyStatus.NONE);
                             }
-                            
+
                         } else {
 
                             if (updatedStreak > -29) {
@@ -177,8 +177,8 @@ public class RelationshipStatsService {
                 relationshipStatsById.get().setIsDailyMessagesBonus(false);
             }
 
-            LocalDateTime start = today.atStartOfDay().minusHours(12);
-            LocalDateTime end = today.atTime(LocalTime.MAX).minusHours(12);
+            LocalDateTime start = today.atStartOfDay().minusHours(7);
+            LocalDateTime end = today.atTime(LocalTime.MAX).minusHours(7);
 
             List<Message> messageList = messageRepository.findTodayMessagesByRoom(roomId, start, end);
 
