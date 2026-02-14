@@ -9,7 +9,7 @@ import 'package:chat2date/stores/user_store.dart';
 /// Global listener สำหรับ match events
 /// Widget นี้จะ listen WebSocket match events ตลอดเวลาและ navigate ไปหน้า match success
 /// ไม่ว่า user จะอยู่หน้าไหนก็ตาม
-class GlobalMatchListener extends ConsumerWidget {
+class GlobalMatchListener extends ConsumerStatefulWidget {
   final Widget child;
   final GlobalKey<NavigatorState>? navigatorKey;
 
@@ -20,7 +20,76 @@ class GlobalMatchListener extends ConsumerWidget {
   });
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<GlobalMatchListener> createState() => _GlobalMatchListenerState();
+}
+
+class _GlobalMatchListenerState extends ConsumerState<GlobalMatchListener> {
+  static const _duplicateWindow = Duration(seconds: 30);
+
+  bool _isNavigatingToMatch = false;
+  String? _lastEventKey;
+  DateTime? _lastEventAt;
+
+  String _buildEventKey(MatchEventDto event) {
+    return '${event.matchId ?? ''}|${event.selfUserId}|${event.partnerUserId}|${event.matchedAt?.toIso8601String() ?? ''}';
+  }
+
+  bool _isDuplicateEvent(String eventKey) {
+    if (_lastEventKey != eventKey || _lastEventAt == null) return false;
+    return DateTime.now().difference(_lastEventAt!) <= _duplicateWindow;
+  }
+
+  void _handleMatchEvent(MatchEventDto event) {
+    if (_isNavigatingToMatch) {
+      print('[GlobalMatchListener] navigation in progress, skip duplicate event');
+      return;
+    }
+
+    final eventKey = _buildEventKey(event);
+    if (_isDuplicateEvent(eventKey)) {
+      print('[GlobalMatchListener] duplicate match event ignored: $eventKey');
+      return;
+    }
+
+    _isNavigatingToMatch = true;
+    _lastEventKey = eventKey;
+    _lastEventAt = DateTime.now();
+
+    // ใช้ addPostFrameCallback เพื่อป้องกัน setState during build
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) {
+        _isNavigatingToMatch = false;
+        return;
+      }
+
+      final navigator = widget.navigatorKey?.currentState;
+      if (navigator == null) {
+        // ถ้า navigatorKey ยังไม่มี state แสดงว่ายังหา navigator ไม่เจอ ป้องกัน exception
+        print('[GlobalMatchListener] navigator not ready, skip navigation');
+        _isNavigatingToMatch = false;
+        return;
+      }
+
+      navigator
+          .pushNamed(
+            MatchSuccessScreen.routeName,
+            arguments: MatchSuccessArgs(
+              matchId: event.matchId,
+              partnerUserId: event.partnerUserId,
+              myName: event.selfName,
+              partnerName: event.partnerName,
+              myAvatarUrl: event.selfAvatarUrl,
+              partnerAvatarUrl: event.partnerAvatarUrl,
+            ),
+          )
+          .whenComplete(() {
+            _isNavigatingToMatch = false;
+          });
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
     // ดึง userId จาก userStore
     final userState = ref.watch(userStoreProvider);
     final user = userState['user'] as User?;
@@ -28,7 +97,7 @@ class GlobalMatchListener extends ConsumerWidget {
 
     // ถ้าไม่มี userId (ยังไม่ได้ login) ไม่ต้อง listen
     if (userId == null || userId.isEmpty) {
-      return child;
+      return widget.child;
     }
 
     // Listen match events
@@ -39,42 +108,10 @@ class GlobalMatchListener extends ConsumerWidget {
         if (event == null) return;
 
         print('[GlobalMatchListener] Match event received: ${event.selfName} <-> ${event.partnerName}');
-
-        // Navigate to match success screen
-        // ใช้ addPostFrameCallback เพื่อป้องกัน setState during build
-        WidgetsBinding.instance.addPostFrameCallback((_) {
-          if (!context.mounted) return;
-
-          final navigator = navigatorKey?.currentState;
-
-          if (navigator == null) {
-            // ถ้า navigatorKey ยังไม่มี state แสดงว่ายังหา navigator ไม่เจอ ป้องกัน exception
-            print('[GlobalMatchListener] navigator not ready, skip navigation');
-            return;
-          }
-
-          // ✅ ป้องกันการ navigate ซ้ำ: เช็คว่ามี match success screen อยู่บนสุดแล้วหรือยัง
-          final currentRoute = ModalRoute.of(context)?.settings.name;
-          if (currentRoute == MatchSuccessScreen.routeName) {
-            print('[GlobalMatchListener] Match success screen already showing, skip navigation');
-            return;
-          }
-
-          navigator.pushNamed(
-            MatchSuccessScreen.routeName,
-            arguments: MatchSuccessArgs(
-              matchId: event.matchId,
-              partnerUserId: event.partnerUserId,
-              myName: event.selfName,
-              partnerName: event.partnerName,
-              myAvatarUrl: event.selfAvatarUrl,
-              partnerAvatarUrl: event.partnerAvatarUrl,
-            ),
-          );
-        });
+        _handleMatchEvent(event);
       },
     );
 
-    return child;
+    return widget.child;
   }
 }
