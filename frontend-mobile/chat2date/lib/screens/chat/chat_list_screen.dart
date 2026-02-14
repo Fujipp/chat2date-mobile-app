@@ -193,55 +193,30 @@ class _ChatListScreenState extends ConsumerState<ChatListScreen>
 
   Future<void> _loadData() async {
     await Future.wait([_loadChatRooms(), _loadMatches()]);
-
-    await _checkAndShowNotifications();
   }
 
-  Future<void> _checkAndShowNotifications() async {
+  Future<void> _checkAndShowNotifications(
+    String roomId,
+    String partnerName,
+  ) async {
     if (!mounted) return;
     final chatService = ref.read(chatServiceProvider);
 
-    // ใช้ Set เพื่อป้องกัน roomId ซ้ำถ้าห้องนั้นอยู่ในทั้งสอง Tab
-    final Set<String> allRoomIds = {
-      ..._chatRooms.map((r) => r.roomId),
-      ..._matches.map((m) => m.matchId),
-    };
-
-    final List<Map<String, String>> toShow = [];
-
     // เช็ค Noti ของทุกห้อง
-    await Future.wait(
-      allRoomIds.map((roomId) async {
-        try {
-          final String notiType = await chatService.checkNotiStatus(roomId);
-          if (notiType != "NONE" && notiType.isNotEmpty) {
-            // หาชื่อเพื่อนคุยจาก List ที่เราโหลดมาแล้ว
-            String? partnerName;
-            try {
-              partnerName = _chatRooms
-                  .firstWhere((r) => r.roomId == roomId)
-                  .partnerName;
-            } catch (_) {
-              partnerName = _matches
-                  .firstWhere((m) => m.matchId == roomId)
-                  .partnerName;
-            }
+    try {
+      // เช็ค Noti เฉพาะห้องที่ส่ง Id เข้ามา
+      final String notiType = await chatService.checkNotiStatus(roomId);
 
-            toShow.add({
-              'name': partnerName,
-              'type': notiType,
-              'roomId': roomId,
-            });
-          }
-        } catch (e) {
-          debugPrint('Check Noti Error for $roomId: $e');
-        }
-      }),
-    );
+      if (notiType != "NONE" && notiType.isNotEmpty) {
+        final List<Map<String, String>> toShow = [
+          {'name': partnerName, 'type': notiType, 'roomId': roomId},
+        ];
 
-    // แสดงผลแบบต่อคิวเพียงครั้งเดียว
-    if (toShow.isNotEmpty && mounted) {
-      await _showSequentialDialogs(toShow);
+        // แสดง Dialog (ใช้ Logic เดิมของคุณ)
+        await _showSequentialDialogs(toShow);
+      }
+    } catch (e) {
+      debugPrint('Check Noti Error for $roomId: $e');
     }
   }
 
@@ -578,16 +553,25 @@ class _ChatListScreenState extends ConsumerState<ChatListScreen>
               setState(() {
                 _clearedUnreadRoomIds.add(room.roomId);
               });
-              await Navigator.pushNamed(
-                context,
-                '/chat',
-                arguments: {
-                  'roomId': room.roomId,
-                  'targetUserId': room.partnerId,
-                  'userName': room.partnerName,
-                  'avatarUrl': room.partnerImage,
-                },
+
+              await _checkAndShowNotifications(room.roomId, room.partnerName);
+
+              final bool roomStillExists = _chatRooms.any(
+                (r) => r.roomId == room.roomId,
               );
+
+              if (roomStillExists) {
+                await Navigator.pushNamed(
+                  context,
+                  '/chat',
+                  arguments: {
+                    'roomId': room.roomId,
+                    'targetUserId': room.partnerId,
+                    'userName': room.partnerName,
+                    'avatarUrl': room.partnerImage,
+                  },
+                );
+              }
               if (!mounted) return;
               await _loadChatRooms();
             },
@@ -659,16 +643,27 @@ class _ChatListScreenState extends ConsumerState<ChatListScreen>
                 _viewedMatchIds.add(match.matchId);
               });
               // เปิดแชทกับ match
-              await Navigator.pushNamed(
-                context,
-                '/chat',
-                arguments: {
-                  'roomId': match.matchId,
-                  'targetUserId': match.partnerId,
-                  'userName': match.partnerName,
-                  'avatarUrl': match.partnerImage,
-                },
+              await _checkAndShowNotifications(
+                match.matchId,
+                match.partnerName,
               );
+
+              final bool matchStillExists = _matches.any(
+                (m) => m.matchId == match.matchId,
+              );
+
+              if (matchStillExists) {
+                await Navigator.pushNamed(
+                  context,
+                  '/chat',
+                  arguments: {
+                    'roomId': match.matchId,
+                    'targetUserId': match.partnerId,
+                    'userName': match.partnerName,
+                    'avatarUrl': match.partnerImage,
+                  },
+                );
+              }
               if (!mounted) return;
               await Future.wait([_loadMatches(), _loadChatRooms()]);
             },
