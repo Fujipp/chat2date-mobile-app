@@ -224,9 +224,13 @@ public class GameService {
                 .orElseThrow(() -> new NotFoundException("Game not found"));
 
         String roomId = session.getRoomId();
+        System.out.println("GameId: " + gameId);
+        System.out.println("Ready players before add: " + readyPlayers);
 
         readyPlayers.computeIfAbsent(gameId, k -> new HashSet<>()).add(userId);
         Set<String> players = readyPlayers.get(gameId);
+
+        System.out.println("Ready players after add: " + readyPlayers);
 
         Map<String, Object> payload = new HashMap<>();
         payload.put("type", "PLAYER_READY");
