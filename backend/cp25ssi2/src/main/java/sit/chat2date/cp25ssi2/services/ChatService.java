@@ -3,6 +3,7 @@ package sit.chat2date.cp25ssi2.services;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -39,6 +40,10 @@ public class ChatService {
     private final NotificationService notificationService;
     private final ObjectMapper objectMapper;
     private final RedisTemplate<String, Object> redisTemplate;
+
+    @Lazy
+    @Autowired
+    private GameService gameService;
 
     private static final int DEFAULT_PAGE_SIZE = 20;
     private static final int RATE_LIMIT_MAX_MESSAGES = 30; // Max messages per window
@@ -324,6 +329,8 @@ public class ChatService {
 
         message = messageRepository.save(message);
 
+        String userId1 = match.getUserId1().getUserId();
+        GameCheckResponse gameStatus = gameService.checkGameStatus(roomId, userId1);
 
         SendMessageResponse response = SendMessageResponse.builder()
                 .roomId(String.valueOf(message.getRoomId()))
@@ -332,7 +339,9 @@ public class ChatService {
                 .senderId("SYSTEM")
                 .created(message.getCreatedAt())
                 .type(message.getMessageType())
+                .gameStatus(gameStatus.getGameStatus())
                 .build();
+
 
         // REUSE: ใช้ chatSocketService ของเพื่อนเพื่อ Broadcast ไปหา User
         chatSocketService.broadcastMessage(
