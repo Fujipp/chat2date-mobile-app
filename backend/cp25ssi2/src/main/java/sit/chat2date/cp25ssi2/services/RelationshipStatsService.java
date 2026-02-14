@@ -142,31 +142,12 @@ public class RelationshipStatsService {
                                 relationshipStatsById.get().setNotiBeforeUnmatch(NotifyStatus.NONE);
                                 relationshipStatsById.get().setNotiUnmatch(NotifyStatus.NONE);
                             }
-
-                            if (!relationshipStatsById.get().getIsFirstMessageBonus() && updatedStreak <= -7) {
-                                Optional<Match> match = matchRepository.findById(roomId);
-                                if (match.isPresent() && relationshipStatsById.get().getNotiUnmatch() == NotifyStatus.NONE) {
-                                    match.get().setDeletedAt(LocalDateTime.now());
-                                    match.get().setDeleteFlag(true);
-                                    matchRepository.saveAndFlush(match.get());
-                                    return null;
-                                }
-                            }
+                            
                         } else {
 
                             if (updatedStreak > -29) {
                                 relationshipStatsById.get().setNotiBeforeUnmatch(NotifyStatus.NONE);
                                 relationshipStatsById.get().setNotiUnmatch(NotifyStatus.NONE);
-                            }
-
-                            if (updatedStreak <= -30) {
-                                Optional<Match> match = matchRepository.findById(roomId);
-                                if (match.isPresent() && relationshipStatsById.get().getNotiUnmatch() == NotifyStatus.NONE) {
-                                    match.get().setDeletedAt(LocalDateTime.now());
-                                    match.get().setDeleteFlag(true);
-                                    matchRepository.saveAndFlush(match.get());
-                                    return null;
-                                }
                             }
                         }
                         if (updatedStreak <= -10 && oldStreakDays >= -9) {
@@ -242,9 +223,19 @@ public class RelationshipStatsService {
             }
             if (relationshipStatsById.get().getScore() + score >= 0) {
                 relationshipStatsById.get().setScore(relationshipStatsById.get().getScore() + score);
+                int finalScore = relationshipStatsById.get().getScore() + score;
+
+                if (finalScore > 400) {
+                    finalScore = 400;
+                } else if (finalScore < 0) {
+                    finalScore = 0;
+                }
+
+                relationshipStatsById.get().setScore(finalScore);
             } else {
                 relationshipStatsById.get().setScore(0);
             }
+
             RelationshipStats savedStats = relationshipStatsRepository.save(relationshipStatsById.get());
             gameService.checkAndTriggerGame(roomId);
             return relationshipStatsRepository.save(relationshipStatsById.get());
@@ -257,8 +248,49 @@ public class RelationshipStatsService {
             relationshipStats.setDailyMessageCount(0);
             relationshipStats.setIsDailyMessagesBonus(false);
             relationshipStats.setDailyDate(today);
+            relationshipStats.setNotiBeforeUnmatch(NotifyStatus.NONE);
+            relationshipStats.setNotiUnmatch(NotifyStatus.NONE);
             return relationshipStatsRepository.saveAndFlush(relationshipStats);
         }
+    }
+
+    public String checkNotificationToDisplay(String roomId, String token) {
+        RelationshipStats stats = relationshipStatsRepository.findByRoomId(Integer.parseInt(roomId))
+                .orElseThrow(() -> new RuntimeException("Stats not found"));
+
+        DecodedJWT jwt = JWT.decode(token);
+        String sub = jwt.getClaim("sub").asString();
+        User user = (sub.length() == 10) ? userRepository.findByPhoneNumber(sub).get() : userRepository.findByEmail(sub).get();
+
+        Match match = matchRepository.findById(Integer.valueOf(roomId)).get();
+        boolean isUser1 = match.getUserId1().getUserId().equals(user.getUserId());
+        NotifyStatus mySide = isUser1 ? NotifyStatus.LEFT : NotifyStatus.RIGHT;
+
+        int days = stats.getStreakDays();
+        boolean isFirstBonus = stats.getIsFirstMessageBonus();
+
+        // 1. เช็คเงื่อนไข UNMATCH ก่อน (ความสำคัญสูงสุด)
+        boolean isTimeForUnmatch = (!isFirstBonus && days <= -7) || (isFirstBonus && days <= -30);
+        if (isTimeForUnmatch) {
+            NotifyStatus status = stats.getNotiUnmatch();
+            // ถ้าเรายังไม่เคยเห็นสถานะ UNMATCH
+            if (status != NotifyStatus.BOTH && status != mySide) {
+                return "UNMATCH";
+            }
+        }
+
+        // 2. เช็คเงื่อนไข BEFORE UNMATCH
+        boolean isTimeForBefore = (!isFirstBonus && days == -6) || (isFirstBonus && days == -29);
+        if (isTimeForBefore) {
+            NotifyStatus status = stats.getNotiBeforeUnmatch();
+            // ถ้าเรายังไม่เคยเห็นสถานะ BEFORE
+            if (status != NotifyStatus.BOTH && status != mySide) {
+                return "BEFORE";
+            }
+        }
+
+        // 3. ถ้าไม่เข้าเงื่อนไขเลย หรือเคยเห็นไปแล้วทั้งคู่
+        return "NONE";
     }
 
     @Transactional
@@ -282,7 +314,15 @@ public class RelationshipStatsService {
         }
 
         if ((!isFirstBonus && days <= -7) || (isFirstBonus && days <= -30)) {
-            stats.setNotiUnmatch(calculateNextStatus(stats.getNotiUnmatch(), isUser1));
+            NotifyStatus nextStatus = calculateNextStatus(stats.getNotiUnmatch(), isUser1);
+            stats.setNotiUnmatch(nextStatus);
+
+            // === ส่วนที่เพิ่ม: ถ้าเป็น BOTH ให้สั่ง Delete Match ทันที ===
+            if (nextStatus == NotifyStatus.BOTH) {
+                match.setDeletedAt(LocalDateTime.now());
+                match.setDeleteFlag(true);
+                matchRepository.saveAndFlush(match);
+            }
         }
 
         return relationshipStatsRepository.save(stats);
@@ -292,8 +332,11 @@ public class RelationshipStatsService {
         NotifyStatus mySide = isUser1 ? NotifyStatus.LEFT : NotifyStatus.RIGHT;
         NotifyStatus otherSide = isUser1 ? NotifyStatus.RIGHT : NotifyStatus.LEFT;
 
-        if (current == otherSide) return NotifyStatus.BOTH;
-        if (current == NotifyStatus.NONE) return mySide;
+        if (current == NotifyStatus.BOTH || current == mySide)
+            return current; // ถ้าเป็น BOTH หรือฝั่งเราอยู่แล้ว ไม่ต้องเปลี่ยน
+        if (current == otherSide) return NotifyStatus.BOTH; // ถ้าอีกฝั่งมีอยู่แล้ว และเรามาเพิ่ม ก็กลายเป็น BOTH
+        if (current == NotifyStatus.NONE) return mySide; // ถ้ายังไม่มีใครเลย ก็เริ่มที่ฝั่งเรา
+
         return current;
     }
 }
