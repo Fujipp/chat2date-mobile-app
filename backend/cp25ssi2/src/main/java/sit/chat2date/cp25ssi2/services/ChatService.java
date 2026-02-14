@@ -12,6 +12,7 @@ import org.springframework.transaction.annotation.Transactional;
 import sit.chat2date.cp25ssi2.dto.*;
 import sit.chat2date.cp25ssi2.entities.*;
 import sit.chat2date.cp25ssi2.enums.MessageType;
+import sit.chat2date.cp25ssi2.enums.NotifyStatus;
 import sit.chat2date.cp25ssi2.exceptions.ForbiddenAccessException;
 import sit.chat2date.cp25ssi2.exceptions.NotFoundException;
 import sit.chat2date.cp25ssi2.exceptions.TooManyRequestException;
@@ -53,10 +54,23 @@ public class ChatService {
         List<Match> matches = matchRepository.findAllByUser(user);
 
         List<ChatRoomDTO> roomDTOs = matches.stream().map(match -> {
-                    Integer roomId = match.getId(); // matchId as roomId (Integer)
+                    Integer roomId = match.getId();
+
+                    // ดึง stats มาเช็ค
+                    RelationshipStats stats = relationshipStatsRepository.findByRoomId(roomId).orElse(null);
+                    if (stats != null) {
+                        boolean isUser1 = match.getUserId1().getUserId().equals(userId);
+                        NotifyStatus unmatchStatus = stats.getNotiUnmatch();
+                        NotifyStatus mySide = isUser1 ? NotifyStatus.LEFT : NotifyStatus.RIGHT;
+
+                        // ถ้าสถานะเป็น BOTH หรือเป็นฝั่งเราเอง แปลว่าแจ้งเตือน "จบความสัมพันธ์" ไปแล้ว
+                        // ให้คืนค่า null เพื่อ filter ออกจาก List (ทำให้ห้องหายไป)
+                        if (unmatchStatus == NotifyStatus.BOTH || unmatchStatus == mySide) {
+                            return null;
+                        }
+                    }
                     User partner = match.getUserId1().getUserId().equals(userId)
-                            ? match.getUserId2()
-                            : match.getUserId1();
+                            ? match.getUserId2() : match.getUserId1();
 
                     if (match.getDeleteFlag()) {
                         return null;
