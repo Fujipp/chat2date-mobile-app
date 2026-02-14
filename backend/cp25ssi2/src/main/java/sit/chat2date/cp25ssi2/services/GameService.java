@@ -467,7 +467,7 @@ public class GameService {
                 .relationshipScore(relScore)
                 .build();
     }
-
+    
     public void checkAndTriggerGame(Integer roomId) {
         Optional<RelationshipStats> statsOpt = relationshipStatsRepository.findByRoomId(roomId);
         if (statsOpt.isEmpty()) {
@@ -486,8 +486,6 @@ public class GameService {
             return;
         }
 
-        List<GameSessions> allSessions = gameSessionRepository.findAllByRoomId(roomId.toString());
-
         System.out.println("=== LEVEL TRIGGER CHECK ===");
         System.out.println("RoomId: " + roomId + " | Score: " + currentScore);
 
@@ -498,22 +496,13 @@ public class GameService {
             return;
         }
 
-        final int currentTargetLevel = targetScore;
+        List<GameSessions> allSessions = gameSessionRepository.findAllByRoomId(roomId.toString());
 
-        long sessionsInCurrentLevel = allSessions.stream()
-                .filter(s -> s.getTargetScore() != null && s.getTargetScore().equals(currentTargetLevel))
-                .count();
+        boolean alreadyAutoTriggeredInThisLevel = allSessions.stream()
+                .anyMatch(s -> s.getTargetScore() != null && s.getTargetScore().equals(targetScore));
 
-        long failedInCurrentLevel = allSessions.stream()
-                .filter(s -> s.getStatus() == GameSessionStatus.FAILED)
-                .filter(s -> s.getTargetScore() != null && s.getTargetScore().equals(currentTargetLevel))
-                .count();
-
-        System.out.println("Level: " + targetScore  + " | Total sessions: " + sessionsInCurrentLevel + " | Failed: " + failedInCurrentLevel);
-
-        // ✅ เงื่อนไข: ถ้า fail >= 2 ครั้งในช่วงเดียวกัน → หยุด trigger
-        if (sessionsInCurrentLevel > 0 && failedInCurrentLevel >= 2) {
-            System.out.println("⛔ Trigger skipped. Already failed 2 times in level " + targetScore );
+        if (alreadyAutoTriggeredInThisLevel) {
+            System.out.println("⛔ Already auto-triggered game for score level " + targetScore);
             return;
         }
 
@@ -523,7 +512,7 @@ public class GameService {
         if (isUserOnline(roomId, match.getUserId1().getUserId())
                 && isUserOnline(roomId, match.getUserId2().getUserId())) {
 
-            System.out.println("🚀 AUTO TRIGGER GAME Level " + targetScore);
+            System.out.println("🚀 AUTO TRIGGER GAME at score level " + targetScore);
 
             Map<String, Object> payload = new HashMap<>();
             payload.put("type", "GAME_START");
