@@ -3,6 +3,8 @@ package sit.chat2date.cp25ssi2.services;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.http.HttpStatus;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
@@ -39,7 +41,9 @@ public class GameService {
     private final ObjectMapper objectMapper;
     private final SimpMessagingTemplate messagingTemplate;
 
-    private final ChatService chatService;
+    @Lazy
+    @Autowired
+    private ChatService chatService;
 
     private final Map<String, Set<String>> readyPlayers = new java.util.concurrent.ConcurrentHashMap<>();
     private final Map<String, Object> roomLocks = new ConcurrentHashMap<>();
@@ -65,6 +69,18 @@ public class GameService {
 
             if (!isP1 && !isP2) {
                 throw new ForbiddenAccessException("You are not allowed to create a game for this room.");
+            }
+
+            String user1Id = match.getUserId1().getUserId();
+            String user2Id = match.getUserId2().getUserId();
+
+            boolean isUser1Online = isUserOnline(roomId, user1Id);
+            boolean isUser2Online = isUserOnline(roomId, user2Id);
+
+            if (!isUser1Online || !isUser2Online) {
+                throw new ForbiddenAccessException(
+                        "ไม่สามารถเริ่มเกมได้ เนื่องจากอีกฝ่ายไม่ได้อยู่ในแชท"
+                );
             }
 
             Optional<RelationshipStats> statsOpt = relationshipStatsRepository.findByRoomId(roomId);
@@ -572,7 +588,6 @@ public class GameService {
     }
 
     private boolean isUserOnline(Integer roomId, String userId) {
-        System.out.println("test");
         return chatAccessLogRepository.findFirstByRoomIdAndUserIdOrderByCreatedAtDesc(roomId, userId)
                 .map(log -> sit.chat2date.cp25ssi2.enums.ChatAccessActionType.ENTER.equals(log.getActionType()))
                 .orElse(false);
