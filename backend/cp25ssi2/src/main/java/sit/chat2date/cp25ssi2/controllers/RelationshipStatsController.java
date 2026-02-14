@@ -2,18 +2,14 @@ package sit.chat2date.cp25ssi2.controllers;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-import sit.chat2date.cp25ssi2.entities.Match;
 import sit.chat2date.cp25ssi2.entities.RelationshipStats;
-import sit.chat2date.cp25ssi2.exceptions.TooManyRequestException;
 import sit.chat2date.cp25ssi2.services.RelationshipStatsService;
 
 import java.util.Map;
 import java.util.Optional;
-import java.util.concurrent.TimeUnit;
 
 @RestController
 @RequestMapping("/relationship")
@@ -45,8 +41,7 @@ public class RelationshipStatsController {
     }
 
     @GetMapping("/check-noti/{roomId}")
-    public String checkNoti(
-            @PathVariable String roomId,// "BEFORE" หรือ "UNMATCH"
+    public String checkNoti(@PathVariable String roomId,// "BEFORE" หรือ "UNMATCH"
             @RequestHeader("Authorization") String authHeader) {
 
         String token = null;
