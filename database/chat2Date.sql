@@ -452,7 +452,10 @@ CREATE TABLE IF NOT EXISTS `chat2date`.`game_sessions` (
   `totalScore` INT NOT NULL DEFAULT 0,
   `status` ENUM('ACTIVE', 'COMPLETED', 'FAILED') NOT NULL DEFAULT 'ACTIVE',
   `createdAt` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `targetScore` INT NOT NULL DEFAULT 25 CHECK (`targetScore` IN (25, 50, 75)),
   PRIMARY KEY (`gameId`),
+  INDEX `idx_roomId_status` (`roomId`, `status`),
+  INDEX `idx_roomId_targetScore` (`roomId`, `targetScore`),
   CONSTRAINT `fk_game_match`
     FOREIGN KEY (`roomId`)
     REFERENCES `chat2date`.`match` (`matchId`)
