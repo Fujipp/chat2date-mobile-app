@@ -38,6 +38,7 @@ class ChatMessage {
   final String? secondChoiceText;
   final int? answeredCount;
   final int? totalCount;
+  final String? gameStatus;
 
   const ChatMessage({
     required this.id,
@@ -56,6 +57,7 @@ class ChatMessage {
     this.answeredCount,
     this.totalCount,
     this.remainingSeconds,
+    this.gameStatus,
   });
 
   ChatMessage copyWith({
@@ -74,6 +76,7 @@ class ChatMessage {
     String? secondChoiceText,
     int? answeredCount,
     int? totalCount,
+    String? gameStatus,
   }) {
     return ChatMessage(
       id: id ?? this.id,
@@ -91,6 +94,7 @@ class ChatMessage {
       secondChoiceText: secondChoiceText ?? this.secondChoiceText,
       answeredCount: answeredCount ?? this.answeredCount,
       totalCount: totalCount ?? this.totalCount,
+      gameStatus: gameStatus ?? this.gameStatus,
     );
   }
 

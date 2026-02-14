@@ -53,7 +53,8 @@ class _GuessingGameScreenState extends ConsumerState<GuessingGameScreen> {
       return;
     }
 
-    if (gameState.gameId != null && widget.roomId != null) {
+
+    if (widget.roomId != null) {
       _socketService = GameSocketService(
         roomId: widget.roomId.toString(),
         accessToken: userStore['accessToken'].toString(),

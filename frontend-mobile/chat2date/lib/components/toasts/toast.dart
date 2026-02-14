@@ -1,6 +1,6 @@
+import 'package:chat2date/theme/app_colors.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/svg.dart';
-import 'package:chat2date/theme/app_colors.dart';
 
 enum ToastType { info, success, warning, error }
 
@@ -55,7 +55,9 @@ class Toast extends StatelessWidget {
                     durationSeconds: durationSeconds,
                     autoDismiss: true,
                     showCountdown: showCountdown,
-                    onClose: () => entry.remove(),
+                    onClose: () {
+                      if (entry.mounted) entry.remove();
+                    },
                   ),
                 ),
               ),
@@ -66,6 +68,10 @@ class Toast extends StatelessWidget {
     );
 
     overlay.insert(entry);
+
+    Future.delayed(Duration(seconds: durationSeconds), () {
+      if (entry.mounted) entry.remove();
+    });
   }
 
   Color _backgroundColor(ToastType type) {
@@ -222,7 +228,10 @@ class Toast extends StatelessWidget {
                   builder: (context, value, child) {
                     final remaining = value.ceil();
                     return Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 4,
+                      ),
                       decoration: BoxDecoration(
                         color: Colors.black.withOpacity(0.12),
                         borderRadius: BorderRadius.circular(12),
