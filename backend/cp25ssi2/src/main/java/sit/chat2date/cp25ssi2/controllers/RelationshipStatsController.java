@@ -44,6 +44,20 @@ public class RelationshipStatsController {
         return relationshipStatsService.updateRelationshipBar(roomId);
     }
 
+    @GetMapping("/check-noti/{roomId}")
+    public String checkNoti(
+            @PathVariable String roomId,// "BEFORE" หรือ "UNMATCH"
+            @RequestHeader("Authorization") String authHeader) {
+
+        String token = null;
+        if (authHeader != null && authHeader.startsWith("Bearer ")) {
+            token = authHeader.substring(7);
+        }// แยก helper logic ออกมาดึง userId
+
+        return relationshipStatsService.checkNotificationToDisplay(roomId, token);
+
+    }
+
     @PatchMapping("/{roomId}/trigger-notification")
     public ResponseEntity<RelationshipStats> triggerNotificationUpdate(
             @PathVariable String roomId,

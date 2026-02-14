@@ -6,6 +6,7 @@ import jakarta.validation.constraints.NotNull;
 import lombok.*;
 import org.hibernate.annotations.ColumnDefault;
 import org.hibernate.annotations.GenericGenerator;
+import sit.chat2date.cp25ssi2.enums.NotifyStatus;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -42,6 +43,16 @@ public class RelationshipStats {
     @ColumnDefault("false")
     @Column(name = "isDailyMessageBonus", nullable = false)
     private Boolean isDailyMessagesBonus;
+
+    @Enumerated(EnumType.STRING) // เพิ่มบรรทัดนี้
+    @ColumnDefault("'NONE'")     // สังเกตการใช้ ' ครอบค่า String ใน SQL
+    @Column(name = "notiBeforeUnmatch", nullable = false)
+    private NotifyStatus notiBeforeUnmatch;
+
+    @Enumerated(EnumType.STRING) // เพิ่มบรรทัดนี้
+    @ColumnDefault("'NONE'")
+    @Column(name = "notiUnmatch", nullable = false)
+    private NotifyStatus notiUnmatch;
 
     @Column(name = "dailyDate")
     private LocalDate dailyDate;
