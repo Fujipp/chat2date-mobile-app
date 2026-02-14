@@ -193,7 +193,7 @@ public class RelationshipStatsService {
                     lastSenderId = msg.getSenderId();
                 }
             }
-
+            System.out.println(score);
             if (totalConversationCount >= 1) {
                 if (relationshipStatsById.get().getIsFirstMessageBonus() == false && totalConversationCount >= 2) {
                     relationshipStatsById.get().setIsFirstMessageBonus(true);
@@ -225,7 +225,7 @@ public class RelationshipStatsService {
             }
             if (relationshipStatsById.get().getScore() + score >= 0) {
                 relationshipStatsById.get().setScore(relationshipStatsById.get().getScore() + score);
-                int finalScore = relationshipStatsById.get().getScore() + score;
+                int finalScore = relationshipStatsById.get().getScore();
 
                 if (finalScore > 400) {
                     finalScore = 400;

@@ -651,7 +651,7 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
       WidgetsBinding.instance.addPostFrameCallback((_) {
       _scrollToBottom(animated: true); 
     });
-      Future.delayed(const Duration(milliseconds: 1000), () {
+      Future.delayed(const Duration(milliseconds: 1500), () {
         if (mounted) {
           _initUpdateRelationshipBar(true);
         }
