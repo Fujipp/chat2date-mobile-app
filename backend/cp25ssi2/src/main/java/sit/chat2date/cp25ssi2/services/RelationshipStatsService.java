@@ -246,7 +246,7 @@ public class RelationshipStatsService {
                 relationshipStatsById.get().setScore(0);
             }
             RelationshipStats savedStats = relationshipStatsRepository.save(relationshipStatsById.get());
-            gameService.checkAndTriggerGame(roomId, savedStats.getScore());
+            gameService.checkAndTriggerGame(roomId);
             return relationshipStatsRepository.save(relationshipStatsById.get());
         } else {
             RelationshipStats relationshipStats = new RelationshipStats();

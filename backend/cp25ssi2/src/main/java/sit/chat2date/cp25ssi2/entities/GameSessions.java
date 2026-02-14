@@ -33,6 +33,9 @@ public class GameSessions {
     @Column(name = "status", nullable = false)
     private GameSessionStatus status;
 
+    @Column(name = "targetScore", nullable = false)
+    private Integer targetScore;
+
     @ColumnDefault("CURRENT_TIMESTAMP")
     @Column(name = "createdAt", nullable = false, updatable = false)
     private LocalDateTime createdAt;

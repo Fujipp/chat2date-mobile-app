@@ -67,6 +67,11 @@ public class GameService {
                 throw new ForbiddenAccessException("You are not allowed to create a game for this room.");
             }
 
+            Optional<RelationshipStats> statsOpt = relationshipStatsRepository.findByRoomId(roomId);
+            int currentScore = statsOpt.map(RelationshipStats::getScore).orElse(0);
+
+            int targetScore = calculateTargetScore(currentScore);
+
             Optional<GameSessions> existingSession = gameSessionRepository.findTopByRoomIdOrderByCreatedAtDesc(roomId.toString());
 
             if (existingSession.isPresent() && existingSession.get().getStatus() == GameSessionStatus.ACTIVE) {
@@ -80,14 +85,6 @@ public class GameService {
                     oldSession.setStatus(GameSessionStatus.FAILED);
                     gameSessionRepository.save(oldSession);
                 }
-
-//                try {
-//                    chatService.sendSystemMessage(
-//                            roomId,
-//                            "เกมรอบที่แล้วจบไม่สมบูรณ์ หรือหมดเวลา",
-//                            sit.chat2date.cp25ssi2.enums.MessageType.FAIL
-//                    );
-//                } catch (Exception e) {}
             }
 
             try {
@@ -102,7 +99,7 @@ public class GameService {
 
                 for (Message msg : messages) {
                     String senderId = msg.getSenderId();
-                    
+
                     if ("SYSTEM".equals(senderId)) {
                         continue;
                     }
@@ -120,13 +117,13 @@ public class GameService {
                 }
 
                 String jsonResult = geminiClient.generateQuestions(chatLogForAI.toString());
-                List<GameQuestionDTO> questions = objectMapper.readValue(jsonResult, new TypeReference<>() {
-                });
+                List<GameQuestionDTO> questions = objectMapper.readValue(jsonResult, new TypeReference<>() {});
 
                 GameSessions session = new GameSessions();
                 session.setRoomId(roomId.toString());
                 session.setStatus(GameSessionStatus.ACTIVE);
                 session.setTotalScore(0);
+                session.setTargetScore(targetScore);
                 session.setCreatedAt(LocalDateTime.now());
                 session = gameSessionRepository.save(session);
 
@@ -173,6 +170,17 @@ public class GameService {
                 throw new RuntimeException("Error processing AI response: " + e.getMessage());
             }
         }
+    }
+
+    private int calculateTargetScore(int score) {
+        if (score >= 75) {
+            return 75;
+        } else if (score >= 50) {
+            return 50;
+        } else if (score >= 25) {
+            return 25;
+        }
+        return 0;
     }
 
     private GameStartResponse buildGameResponse(GameSessions session, String userId, Match match) {
@@ -459,68 +467,72 @@ public class GameService {
                 .build();
     }
 
-    public void checkAndTriggerGame(Integer roomId, int currentScore) {
+    public void checkAndTriggerGame(Integer roomId) {
+        Optional<RelationshipStats> statsOpt = relationshipStatsRepository.findByRoomId(roomId);
+        if (statsOpt.isEmpty()) {
+            System.out.println("⛔ No relationship stats found for roomId: " + roomId);
+            return;
+        }
+
+        int currentScore = statsOpt.get().getScore();
+
         boolean hasActiveGame = gameSessionRepository.existsByRoomIdAndStatus(
                 roomId.toString(),
                 GameSessionStatus.ACTIVE
         );
-        if (hasActiveGame) return;
-
-        List<GameSessions> allSessions = gameSessionRepository.findAllByRoomId(roomId.toString());
-
-        long completedCount = allSessions.stream()
-                .filter(s -> s.getStatus() == GameSessionStatus.COMPLETED)
-                .count();
-
-        LocalDateTime lastCompletedTime = allSessions.stream()
-                .filter(s -> s.getStatus() == GameSessionStatus.COMPLETED)
-                .map(GameSessions::getCreatedAt)
-                .max(LocalDateTime::compareTo)
-                .orElse(LocalDateTime.MIN);
-
-        long currentLevelFailCount = allSessions.stream()
-                .filter(s -> s.getStatus() == GameSessionStatus.FAILED)
-                .filter(s -> s.getCreatedAt().isAfter(lastCompletedTime))
-                .count();
-
-        System.out.println("=== LEVEL TRIGGER CHECK ===");
-        System.out.println("Score: " + currentScore + " | Passed: " + completedCount + " | Fails (Current Level): " + currentLevelFailCount);
-
-        boolean shouldTrigger = false;
-        int targetLevel = 0;
-
-        if (currentScore >= 75 && completedCount < 3) {
-            targetLevel = 75;
-            if (currentLevelFailCount < 2) shouldTrigger = true;
-        }
-        else if (currentScore >= 50 && completedCount < 2) {
-            targetLevel = 50;
-            if (currentLevelFailCount < 2) shouldTrigger = true;
-        }
-        else if (currentScore >= 25 && completedCount < 1) {
-            targetLevel = 25;
-            if (currentLevelFailCount < 2) shouldTrigger = true;
-        }
-
-        if (!shouldTrigger) {
-            System.out.println("⛔ Trigger skipped. (Fail limit reached or already completed)");
+        if (hasActiveGame) {
+            System.out.println("⛔ Game already active");
             return;
         }
 
-        Match match = matchRepository.findById(roomId).orElseThrow();
+        List<GameSessions> allSessions = gameSessionRepository.findAllByRoomId(roomId.toString());
+
+        System.out.println("=== LEVEL TRIGGER CHECK ===");
+        System.out.println("RoomId: " + roomId + " | Score: " + currentScore);
+
+        int targetLevel = calculateTargetScore(currentScore);
+
+        if (targetLevel == 0) {
+            System.out.println("⛔ Score below 25, no trigger");
+            return;
+        }
+
+        final int currentTargetLevel = targetLevel;
+
+        long sessionsInCurrentLevel = allSessions.stream()
+                .filter(s -> s.getTargetScore() != null && s.getTargetScore().equals(currentTargetLevel))
+                .count();
+
+        long failedInCurrentLevel = allSessions.stream()
+                .filter(s -> s.getStatus() == GameSessionStatus.FAILED)
+                .filter(s -> s.getTargetScore() != null && s.getTargetScore().equals(currentTargetLevel))
+                .count();
+
+        System.out.println("Level: " + targetLevel + " | Total sessions: " + sessionsInCurrentLevel + " | Failed: " + failedInCurrentLevel);
+
+        // ✅ เงื่อนไข: ถ้า fail >= 2 ครั้งในช่วงเดียวกัน → หยุด trigger
+        if (sessionsInCurrentLevel > 0 && failedInCurrentLevel >= 2) {
+            System.out.println("⛔ Trigger skipped. Already failed 2 times in level " + targetLevel);
+            return;
+        }
+
+        Match match = matchRepository.findById(roomId)
+                .orElseThrow(() -> new NotFoundException("Match not found"));
 
         if (isUserOnline(roomId, match.getUserId1().getUserId())
                 && isUserOnline(roomId, match.getUserId2().getUserId())) {
 
             System.out.println("🚀 AUTO TRIGGER GAME Level " + targetLevel);
+
             Map<String, Object> payload = new HashMap<>();
             payload.put("type", "GAME_START");
             payload.put("level", targetLevel);
 
             messagingTemplate.convertAndSend("/topic/games/" + roomId, payload);
+        } else {
+            System.out.println("⛔ One or both users are offline");
         }
     }
-
 
     @Transactional
     public void gameTimeout(String gameId) {
