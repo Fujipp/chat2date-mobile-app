@@ -392,7 +392,6 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
 
   Future<void> _initUpdateRelationshipBar(bool onUpdate) async {
     int oldHeartCount = 0;
-    double oldPercent = 0.0;
 
     if (onUpdate) {
       final chatService = ref.read(chatServiceProvider);
@@ -400,7 +399,6 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
       if (!mounted) return;
       setState(() {
         oldHeartCount = _heartCount;
-        oldPercent = _currentPercent;
         _heartCount = roomData != null ? (roomData.score ~/ 100) : 0;
         _currentPercent = roomData != null
             ? (roomData.score % 100) / 100.0
@@ -412,7 +410,7 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
         _dailyMessagesCount = roomData != null ? roomData.dailyMessageCount : 0;
       });
 
-      if (oldHeartCount == 0 && oldPercent < 1.00 && _heartCount == 1) {
+      if (oldHeartCount == 0 && _heartCount >= 1) {
         FocusScope.of(context).unfocus();
         await Future.delayed(const Duration(milliseconds: 300));
         _triggerUnlockDate();
@@ -436,9 +434,7 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
       });
 
       if (oldHeartCount == 0 &&
-          oldPercent < 1.00 &&
-          oldPercent != 0.00 &&
-          _heartCount == 1) {
+          _heartCount >= 1) {
         FocusScope.of(context).unfocus();
         await Future.delayed(const Duration(milliseconds: 300));
         _triggerUnlockDate();
@@ -648,7 +644,6 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
 
   void _startChatSocket() {
     int oldHeartCount = 0;
-    double oldPercent = 0.0;
     final roomId = widget.roomId;
     if (roomId == null || roomId.isEmpty) return;
     if (_chatSocketService != null) return;
@@ -674,7 +669,6 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
       if (!mounted) return;
       setState(() {
         oldHeartCount = _heartCount;
-        oldPercent = _currentPercent;
         _heartCount = data['score'] != null ? (data['score'] ~/ 100) : 0;
         _currentPercent = data['score'] != null
             ? (data['score'] % 100) / 100.0
@@ -685,7 +679,8 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
       });
 
       // เช็คเงื่อนไขปลดล็อกฟีเจอร์ใหม่ (เช่น หัวใจดวงแรก)
-      if (oldHeartCount == 0 && oldPercent <= 0.99 && _heartCount == 1 && _currentPercent == 0.0) {
+      if (oldHeartCount == 0 &&
+          _heartCount >= 1) {
         _triggerUnlockDate();
       }
     });
@@ -1210,19 +1205,19 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
         _hasTimeBreakAfter(index);
   }
 
-  void _triggerUnlockDate() async{
+  void _triggerUnlockDate() async {
     FocusScope.of(context).unfocus();
     await Future.delayed(const Duration(milliseconds: 300));
     setState(() {
       _showUnlockDate = true;
+      _headerVariant = ChatHeaderVariant.chat2;
     });
 
     // นับถอยหลัง 5 วินาทีแล้วปิด
-    Future.delayed(const Duration(seconds: 8), () {
+    Future.delayed(const Duration(seconds: 3), () {
       if (mounted) {
         setState(() {
           _showUnlockDate = false;
-          _headerVariant = ChatHeaderVariant.chat2;
         });
       }
     });
