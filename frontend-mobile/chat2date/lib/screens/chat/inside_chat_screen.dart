@@ -1637,9 +1637,7 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
                           )
                         else
                           InputChatComponent(
-                            svgPath: 'assets/icons/icon_more-options.svg',
                             svgPathLast: 'assets/icons/icon_send.svg',
-                            leftIconColor: AppColors.surfaceLight,
                             sendIconColor: null,
                             sendIconBackgroundColor: null,
                             isSendEnabled:
