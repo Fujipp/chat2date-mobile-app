@@ -271,7 +271,7 @@ class Header extends StatelessWidget {
                     child: SvgPicture.asset(
                       'assets/icons/icon_report.svg',
                       width: 25,
-                      height: 27,
+                      height: 20,
                     ),
                   ),
                 if (showHeart) ...[

@@ -616,23 +616,6 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
     }
   }
 
-  // void _applyRelationshipScore(int? score) {
-  //   final int safeScore = score ?? 0;
-  //   final double percent = (safeScore / 100).clamp(0.0, 1.0);
-  //   int heart;
-  //   if (safeScore >= 90) {
-  //     heart = 3;
-  //   } else if (safeScore >= 60) {
-  //     heart = 2;
-  //   } else if (safeScore >= 30) {
-  //     heart = 1;
-  //   } else {
-  //     heart = 0;
-  //   }
-  //   _currentPercent = percent;
-  //   _heartCount = heart;
-  // }
-
   Future<void> _enterRoom() async {
     final roomId = widget.roomId;
     if (roomId == null || roomId.isEmpty) return;
@@ -664,6 +647,8 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
   }
 
   void _startChatSocket() {
+    int oldHeartCount = 0;
+    double oldPercent = 0.0;
     final roomId = widget.roomId;
     if (roomId == null || roomId.isEmpty) return;
     if (_chatSocketService != null) return;
@@ -688,6 +673,8 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
     _relationshipSubscription = service.relationshipStream.listen((data) {
       if (!mounted) return;
       setState(() {
+        oldHeartCount = _heartCount;
+        oldPercent = _currentPercent;
         _heartCount = data['score'] != null ? (data['score'] ~/ 100) : 0;
         _currentPercent = data['score'] != null
             ? (data['score'] % 100) / 100.0
@@ -698,7 +685,7 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
       });
 
       // เช็คเงื่อนไขปลดล็อกฟีเจอร์ใหม่ (เช่น หัวใจดวงแรก)
-      if (_heartCount == 1 && _currentPercent == 0.0) {
+      if (oldHeartCount == 0 && oldPercent <= 0.99 && _heartCount == 1 && _currentPercent == 0.0) {
         _triggerUnlockDate();
       }
     });
@@ -1223,7 +1210,9 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
         _hasTimeBreakAfter(index);
   }
 
-  void _triggerUnlockDate() {
+  void _triggerUnlockDate() async{
+    FocusScope.of(context).unfocus();
+    await Future.delayed(const Duration(milliseconds: 300));
     setState(() {
       _showUnlockDate = true;
     });
