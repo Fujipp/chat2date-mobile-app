@@ -74,6 +74,7 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
   StreamSubscription<ChatMessage>? _messageSubscription;
   StreamSubscription<ChatAccessStatus>? _accessSubscription;
   StreamSubscription<Map<String, dynamic>>? _readSubscription;
+  StreamSubscription<Map<String, dynamic>>? _relationshipSubscription;
   String? _currentUserId;
   bool _hasEntered = false;
   bool _hasExited = false;
@@ -684,6 +685,23 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
     _messageSubscription = service.messageStream.listen(_handleIncomingMessage);
     _accessSubscription = service.accessStream.listen(_handleAccessStatus);
     _readSubscription = service.readStream.listen(_handleReadEvent);
+    _relationshipSubscription = service.relationshipStream.listen((data) {
+      if (!mounted) return;
+      setState(() {
+        _heartCount = data['score'] != null ? (data['score'] ~/ 100) : 0;
+        _currentPercent = data['score'] != null
+            ? (data['score'] % 100) / 100.0
+            : 0.0;
+        _steakDays = data['streakDays'] ?? 0;
+        _dailyMessagesCount = data['dailyMessageCount'] ?? 0;
+        _isFirstMessageBonus = data['isFirstMessageBonus'] ?? false;
+      });
+
+      // เช็คเงื่อนไขปลดล็อกฟีเจอร์ใหม่ (เช่น หัวใจดวงแรก)
+      if (_heartCount == 1 && _currentPercent == 0.0) {
+        _triggerUnlockDate();
+      }
+    });
 
     // Setup periodic timer as fallback (in case WebSocket events are missed)
     _seenStatusTimer?.cancel();
@@ -733,11 +751,6 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
     if (!message.isOwn) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         _scrollToBottom(animated: true);
-      });
-      Future.delayed(const Duration(milliseconds: 1500), () {
-        if (mounted) {
-          _initUpdateRelationshipBar(true);
-        }
       });
       _markReadDebounce?.cancel();
       _markReadDebounce = Timer(const Duration(milliseconds: 500), () {
@@ -1220,6 +1233,7 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
       if (mounted) {
         setState(() {
           _showUnlockDate = false;
+          _headerVariant = ChatHeaderVariant.chat2;
         });
       }
     });
@@ -1411,6 +1425,7 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
     _scrollController.dispose();
     _gameSocketService?.dispose();
     _gameSubscription?.cancel();
+    _relationshipSubscription?.cancel();
     super.dispose();
   }
 
