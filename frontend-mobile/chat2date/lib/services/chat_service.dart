@@ -132,7 +132,11 @@ class ChatService {
       throw Exception('ส่งข้อความถี่เกินไป กรุณารอสักครู่');
     }
 
-    throw Exception('ส่งข้อความไม่สำเร็จ: ${response.body}');
+    if (response.statusCode == 403) {
+      throw Exception('ส่งข้อความไม่สำเร็จ เนื่องจากคุณถูกคู่เดทของคุณรายงาน');
+    }
+
+    throw Exception('ส่งข้อความไม่สำเร็จ');
   }
 
   /// เข้าห้อง (Mark as Read)
