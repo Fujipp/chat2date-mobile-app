@@ -53,6 +53,11 @@ class _UserReportScreenState extends ConsumerState<UserReportScreen> {
   
   List<File> _selectedImages = []; // เก็บไฟล์หลักฐาน
 
+  bool get _canSubmit {
+  return !_isSubmitting &&
+      (_selectedReasons.isNotEmpty || otherReasons.isNotEmpty);
+  }
+
   @override
   void initState() {
     super.initState();
@@ -66,6 +71,7 @@ class _UserReportScreenState extends ConsumerState<UserReportScreen> {
           ReportReason(id: 5, report: 'อื่น ๆ'),
         ];
   }
+  
   
   /// Submit report to backend
   Future<void> _submitReport() async {
@@ -467,7 +473,7 @@ class _UserReportScreenState extends ConsumerState<UserReportScreen> {
 
                         DsButton(
                           label: _isSubmitting ? 'กำลังส่ง...' : 'บันทึก',
-                          onPressed: _isSubmitting ? null : _submitReport,
+                          onPressed: _canSubmit ? _submitReport : null,
                           variant: DsButtonVariant.primary,
                           size: DsButtonSize.md,
                         ),

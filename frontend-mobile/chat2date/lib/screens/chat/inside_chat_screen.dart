@@ -9,6 +9,7 @@ import 'package:chat2date/components/modal/feature_guide_modal.dart';
 import 'package:chat2date/components/modal/relationship_mission_modal.dart';
 import 'package:chat2date/components/page/unlock_date_modal.dart';
 import 'package:chat2date/components/status_bar/score_row.dart';
+import 'package:chat2date/components/toasts/toast.dart';
 import 'package:chat2date/models/chat_access_status.dart';
 import 'package:chat2date/models/chat_message.dart';
 import 'package:chat2date/models/relationship_bar.dart';
@@ -116,13 +117,17 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
     _gameSocketService!.connect();
 
     _gameSubscription = _gameSocketService!.gameStream.listen((payload) {
+      if (!mounted) return;
+
       final type = payload['type'];
+
       if (type == 'WAITING_START') {
         print("⏳ Received WAITING_START. Going to Waiting Room...");
         if (mounted) {
           _navigateToGameScreen(roomId);
         }
       }
+
       if (type == 'GAME_START') {
         print("🎮 Received GAME_START via Socket!");
         if (mounted) {
@@ -131,24 +136,38 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
       }
 
       if (type == 'SCORE_UPDATE' || type == 'PLAYER_READY') {
-        print("📤 Forwarding $type to game provider");
-
         final userState = ref.read(userStoreProvider);
         final User? userObj = userState['user'] as User?;
         final myUserId = userObj?.userId;
-
-        if (myUserId != null) {
+        if (myUserId != null && mounted) {
           try {
             ref.read(gameProvider.notifier).socketMessage(payload, myUserId);
-            print("✅ Event forwarded successfully");
           } catch (e) {
             print("❌ Error forwarding event: $e");
           }
-        } else {
-          print("❌ Cannot forward - userId is null");
         }
       }
     });
+  }
+
+  List<ChatMessage> _updateBotMessagesByGameStatus(
+    List<ChatMessage> messages,
+    String gameStatus,
+  ) {
+    if (gameStatus == 'COMPLETED_FINISHED' || gameStatus == 'EXPIRED') {
+      return messages.map((msg) {
+        if (msg.botType == BotMessageType.minigame ||
+            msg.botType == BotMessageType.minigameFail) {
+          return msg.copyWith(
+            isActionDisabled: true,
+            actionButtonText: 'เกมจบแล้ว',
+          );
+        }
+        return msg;
+      }).toList();
+    }
+
+    return _updateBotMessageStatus(messages);
   }
 
   @override
@@ -236,32 +255,34 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
     if (messages.isEmpty) return messages;
 
     // 1. หาข้อความที่เป็นประเภท Fail ทั้งหมด
-    final failMessages = messages.where((m) => 
-        m.botType == BotMessageType.minigameFail
-    ).toList();
+    final failMessages = messages
+        .where((m) => m.botType == BotMessageType.minigameFail)
+        .toList();
 
     if (failMessages.isEmpty) return messages;
 
     // 2. หาข้อความตัว "ล่าสุด" (Timestamp มากที่สุด)
     // ใช้ logic เปรียบเทียบเวลา
-    final latestFailMsg = failMessages.reduce((a, b) => 
-        a.timestamp.isAfter(b.timestamp) ? a : b
+    final latestFailMsg = failMessages.reduce(
+      (a, b) => a.timestamp.isAfter(b.timestamp) ? a : b,
     );
 
     // 3. สร้าง List ใหม่ โดยไล่เช็คทีละข้อความ
     return messages.map((msg) {
       // ถ้าเป็น Fail Message และ "ไม่ใช่" ตัวล่าสุด
-      if (msg.botType == BotMessageType.minigameFail && msg.id != latestFailMsg.id) {
+      if (msg.botType == BotMessageType.minigameFail &&
+          msg.id != latestFailMsg.id) {
         // ให้ Copy object เดิม แต่แก้ค่าให้ปุ่ม Disabled
         return msg.copyWith(
-          isActionDisabled: true,       // ทำให้ปุ่มกดไม่ได้
-          actionButtonText: 'หมดเวลาแล้ว', // เปลี่ยนข้อความปุ่ม (ตามที่คุณต้องการ)
+          isActionDisabled: true, // ทำให้ปุ่มกดไม่ได้
+          actionButtonText:
+              'หมดเวลาแล้ว', // เปลี่ยนข้อความปุ่ม (ตามที่คุณต้องการ)
         );
       }
       // ถ้าเป็นตัวล่าสุด หรือข้อความอื่น ให้คืนค่าเดิม
       return msg;
     }).toList();
-  } 
+  }
 
   void _addLocalBotMessage({
     required BotMessageType type,
@@ -291,10 +312,55 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
     });
   }
 
+  bool _isNavigatingToGame = false;
+
   Future<void> _navigateToGameScreen(String roomId) async {
+    if (_isNavigatingToGame) return; // ✅ block ทันที ก่อน delay
+    _isNavigatingToGame = true; // ✅ ไม่ต้อง setState เพราะแค่ guard flag
+
     FocusScope.of(context).unfocus();
     await Future.delayed(const Duration(milliseconds: 300));
-    if (!mounted) return;
+    if (!mounted) {
+      _isNavigatingToGame = false;
+      return;
+    }
+
+    try {
+      await ref.read(gameServiceProvider).createGame(int.parse(roomId));
+    } catch (e) {
+      if (e.toString().contains('403')) {
+        if (mounted) {
+          Toast.show(
+            context,
+            type: ToastType.warning,
+            title: 'ไม่สามารถเริ่มเกมได้',
+            message: 'ต้องรอคู่ของคุณอยู่ในบทสนทนาก่อน',
+            durationSeconds: 3,
+            showCountdown: false,
+          );
+          Future.delayed(const Duration(seconds: 5), () {
+            _isNavigatingToGame = false;
+          });
+        } else {
+          _isNavigatingToGame = false;
+        }
+        return;
+      }
+      _isNavigatingToGame = false;
+      rethrow;
+    }
+
+    setState(() {
+      _messages = _messages.map((m) {
+        if (m.isBot && !(m.isActionDisabled ?? false)) {
+          return m.copyWith(
+            isActionDisabled: true,
+            actionButtonText: "เริ่มเกมไปแล้ว",
+          );
+        }
+        return m;
+      }).toList();
+    });
 
     _gameSocketService?.dispose();
     _gameSubscription?.cancel();
@@ -307,11 +373,14 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
     );
 
     if (mounted) {
-      await _initUpdateRelationshipBar(true);
+      _initGameSocket();
     }
 
-    print("🔙 Returned from Game with result: $result");
-    _initGameSocket();
+    _isNavigatingToGame = false;
+    if (mounted) {
+      await _initUpdateRelationshipBar(true);
+      _initGameSocket();
+    }
   }
 
   String _formatDuration(int? seconds) {
@@ -454,12 +523,18 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
     try {
       final chatService = ref.read(chatServiceProvider);
       final roomData = await chatService.getChatMessages(roomId);
+      final gameStatus = await ref
+          .read(gameServiceProvider)
+          .checkGameStatus(int.parse(roomId));
       if (!mounted) return;
       final sortedMessages = [...roomData.messages]
         ..sort((a, b) => a.timestamp.compareTo(b.timestamp));
       setState(() {
-        _messages = sortedMessages; 
-        _messages = _updateBotMessageStatus(_messages);
+        _messages = sortedMessages;
+        _messages = _updateBotMessagesByGameStatus(
+          _messages,
+          gameStatus.gameStatus,
+        );
         _isLoadingMessages = false;
         _messageIds
           ..clear()
@@ -589,7 +664,7 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
 
   void _startChatSocket() {
     final roomId = widget.roomId;
-    if (roomId == null || roomId.isEmpty) return; 
+    if (roomId == null || roomId.isEmpty) return;
     if (_chatSocketService != null) return;
 
     final userState = ref.read(userStoreProvider);
@@ -633,14 +708,22 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
   void _handleIncomingMessage(ChatMessage message) {
     if (!mounted) return;
     if (_messageIds.contains(message.id)) return;
-    setState(() { 
+    setState(() {
       _messages.add(message);
-      _messages = _updateBotMessageStatus(_messages);
+      if (message.isBot && message.gameStatus != null) {
+        _messages = _updateBotMessagesByGameStatus(
+          _messages,
+          message.gameStatus!,
+        );
+      } else {
+        _messages = _updateBotMessageStatus(_messages);
+      }
+
       _messages.sort((a, b) => a.timestamp.compareTo(b.timestamp));
       _messageIds.add(message.id);
     });
-   WidgetsBinding.instance.addPostFrameCallback((_) {
-      _scrollToBottom(animated: true); 
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _scrollToBottom(animated: true);
     });
     // If the incoming message is from the other person (not ours),
     // mark it as read since we're currently viewing the chat.
@@ -649,8 +732,8 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
 
     if (!message.isOwn) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
-      _scrollToBottom(animated: true); 
-    });
+        _scrollToBottom(animated: true);
+      });
       Future.delayed(const Duration(milliseconds: 1500), () {
         if (mounted) {
           _initUpdateRelationshipBar(true);
@@ -1154,7 +1237,7 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
         message: message,
         onActionPressed: () {
           if (message.isActionDisabled ?? false) return;
-
+          _navigateToGameScreen(widget.roomId!);
           setState(() {
             _messages[index] = message.copyWith(
               isActionDisabled: true,
@@ -1406,7 +1489,8 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
                                         .transparent, // เพื่อให้เห็นเงาโค้งของ Container ข้างใน
                                     builder: (context) => RelationshipMissionModal(
                                       heart: _heartCount,
-                                      currentScore: (_currentPercent * 100).round(),
+                                      currentScore: (_currentPercent * 100)
+                                          .round(),
                                       isFirstMessageBonus: _isFirstMessageBonus,
                                       streakDays:
                                           _steakDays, // ใช้ตัวแปรใน State ของคุณ
@@ -1553,9 +1637,7 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
                           )
                         else
                           InputChatComponent(
-                            svgPath: 'assets/icons/icon_more-options.svg',
                             svgPathLast: 'assets/icons/icon_send.svg',
-                            leftIconColor: AppColors.surfaceLight,
                             sendIconColor: null,
                             sendIconBackgroundColor: null,
                             isSendEnabled:
