@@ -391,7 +391,7 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
   }
 
   Future<void> _initUpdateRelationshipBar(bool onUpdate) async {
-    int oldHeartCount = 0;
+    int oldHeartCount = 10;
 
     if (onUpdate) {
       final chatService = ref.read(chatServiceProvider);
@@ -433,8 +433,7 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
         _dailyMessagesCount = roomData != null ? roomData.dailyMessageCount : 0;
       });
 
-      if (oldHeartCount == 0 &&
-          _heartCount >= 1) {
+      if (oldHeartCount == 0 && _heartCount >= 1) {
         FocusScope.of(context).unfocus();
         await Future.delayed(const Duration(milliseconds: 300));
         _triggerUnlockDate();
@@ -643,7 +642,7 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
   }
 
   void _startChatSocket() {
-    int oldHeartCount = 0;
+    int oldHeartCount = 10;
     final roomId = widget.roomId;
     if (roomId == null || roomId.isEmpty) return;
     if (_chatSocketService != null) return;
