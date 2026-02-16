@@ -7,7 +7,6 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.web.bind.annotation.*;
 import sit.chat2date.cp25ssi2.entities.RelationshipStats;
-import sit.chat2date.cp25ssi2.repositories.RelationshipStatsRepository;
 import sit.chat2date.cp25ssi2.services.RelationshipStatsService;
 
 import java.util.Map;
