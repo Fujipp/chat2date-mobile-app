@@ -360,7 +360,7 @@ CREATE TABLE IF NOT EXISTS `chat2date`.`messages` (
   `roomId` INT NOT NULL,  -- (FK to match table)
   `senderId` VARCHAR(36) NULL, -- (FK to user table)
   `message` TEXT NOT NULL,
-  `messageType` ENUM('TEXT', 'GAME', 'SUCCESS', 'FAIL') NOT NULL DEFAULT 'TEXT',
+  `messageType` ENUM('TEXT', 'GAME', 'SUCCESS', 'FAIL', 'DATE') NOT NULL DEFAULT 'TEXT',
   `isRead` BOOLEAN NOT NULL DEFAULT FALSE,
   `createdAt` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (`messageId`),
