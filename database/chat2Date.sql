@@ -501,6 +501,100 @@ CREATE TABLE IF NOT EXISTS `chat2date`.`game_answers` (
     ON DELETE CASCADE
 ) ENGINE = InnoDB DEFAULT CHARACTER SET = utf8mb4;
 
+-- =====================================================
+-- RELEASE 3: DATE SPOT, APPOINTMENT, SOS, REVIEW
+-- =====================================================
+
+-- 1. Table: Places 
+CREATE TABLE IF NOT EXISTS `chat2date`.`places` (
+  `placeId` VARCHAR(255) NOT NULL, 
+  `placeName` VARCHAR(255) NOT NULL,
+  `address` TEXT NULL,
+  `imageUrl` TEXT NULL,
+  `latitude` DECIMAL(11,8) NOT NULL,
+  `longitude` DECIMAL(11,8) NOT NULL,
+  `createdAt` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`placeId`)
+) ENGINE = InnoDB DEFAULT CHARACTER SET = utf8mb4;
+
+
+-- 2. Table: Appointments 
+CREATE TABLE IF NOT EXISTS `chat2date`.`appointments` (
+  `appointmentId` INT NOT NULL AUTO_INCREMENT,
+  `roomId` INT NOT NULL, 
+  `placeId` VARCHAR(255) NOT NULL, 
+  `dateTime` DATETIME NULL, 
+  `status` ENUM('PLACE_SELECTED', 'SCHEDULED', 'CANCELLED', 'COMPLETED') NOT NULL DEFAULT 'PLACE_SELECTED',
+  `createdAt` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `updatedAt` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (`appointmentId`),
+  INDEX `idx_appointments_roomId` (`roomId` ASC) VISIBLE,
+  INDEX `idx_appointments_placeId` (`placeId` ASC) VISIBLE,
+  CONSTRAINT `fk_appointments_match`
+    FOREIGN KEY (`roomId`)
+    REFERENCES `chat2date`.`match` (`matchId`)
+    ON DELETE CASCADE,
+  CONSTRAINT `fk_appointments_place`
+    FOREIGN KEY (`placeId`)
+    REFERENCES `chat2date`.`places` (`placeId`)
+    ON DELETE CASCADE
+) ENGINE = InnoDB DEFAULT CHARACTER SET = utf8mb4;
+
+
+-- 3. Table: SOS Incidents
+CREATE TABLE IF NOT EXISTS `chat2date`.`sos_incidents` (
+  `incidentId` INT NOT NULL AUTO_INCREMENT,
+  `appointmentId` INT NOT NULL,
+  `reporterId` VARCHAR(36) NOT NULL,
+  `targetUserId` VARCHAR(36) NOT NULL,
+  `latitude` DECIMAL(11,8) NOT NULL, 
+  `longitude` DECIMAL(11,8) NOT NULL,
+  `calledNumber` VARCHAR(15) NOT NULL, 
+  `status` ENUM('NEW', 'INVESTIGATING', 'RESOLVED') NOT NULL DEFAULT 'NEW',
+  `createdAt` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`incidentId`),
+  INDEX `idx_sos_appointment` (`appointmentId` ASC) VISIBLE,
+  CONSTRAINT `fk_sos_appointment`
+    FOREIGN KEY (`appointmentId`)
+    REFERENCES `chat2date`.`appointments` (`appointmentId`)
+    ON DELETE CASCADE,
+  CONSTRAINT `fk_sos_reporter`
+    FOREIGN KEY (`reporterId`)
+    REFERENCES `chat2date`.`user` (`userId`)
+    ON DELETE CASCADE,
+  CONSTRAINT `fk_sos_target`
+    FOREIGN KEY (`targetUserId`)
+    REFERENCES `chat2date`.`user` (`userId`)
+    ON DELETE CASCADE
+) ENGINE = InnoDB DEFAULT CHARACTER SET = utf8mb4;
+
+
+-- 4. Table: Post Trip Reviews
+CREATE TABLE IF NOT EXISTS `chat2date`.`post_trip_reviews` (
+  `reviewId` INT NOT NULL AUTO_INCREMENT,
+  `appointmentId` INT NOT NULL,
+  `reviewerId` VARCHAR(36) NOT NULL,
+  `targetUserId` VARCHAR(36) NOT NULL,
+  `isSatisfied` BOOLEAN NOT NULL, 
+  `wantToContinue` BOOLEAN NULL,  
+  `wantToUnmatch` BOOLEAN NULL,   
+  `createdAt` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`reviewId`),
+  CONSTRAINT `fk_review_appointment`
+    FOREIGN KEY (`appointmentId`)
+    REFERENCES `chat2date`.`appointments` (`appointmentId`)
+    ON DELETE CASCADE,
+  CONSTRAINT `fk_review_reviewer`
+    FOREIGN KEY (`reviewerId`)
+    REFERENCES `chat2date`.`user` (`userId`)
+    ON DELETE CASCADE,
+  CONSTRAINT `fk_review_target`
+    FOREIGN KEY (`targetUserId`)
+    REFERENCES `chat2date`.`user` (`userId`)
+    ON DELETE CASCADE
+) ENGINE = InnoDB DEFAULT CHARACTER SET = utf8mb4;
+
+
 ENGINE = InnoDB
 DEFAULT CHARACTER SET = utf8mb4
 COLLATE = utf8mb4_0900_ai_ci;
