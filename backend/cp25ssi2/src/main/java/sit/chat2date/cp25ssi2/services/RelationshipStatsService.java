@@ -193,7 +193,6 @@ public class RelationshipStatsService {
                     lastSenderId = msg.getSenderId();
                 }
             }
-            System.out.println(score);
             if (totalConversationCount >= 1) {
                 if (relationshipStatsById.get().getIsFirstMessageBonus() == false && totalConversationCount >= 2) {
                     relationshipStatsById.get().setIsFirstMessageBonus(true);

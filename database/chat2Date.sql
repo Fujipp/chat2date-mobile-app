@@ -35,6 +35,7 @@ CREATE TABLE IF NOT EXISTS `chat2date`.`user` (
   `role` ENUM('USER', 'ADMIN') NOT NULL,
   `deleted_at` TIMESTAMP NULL,
   `delete_flag` BOOLEAN  NULL DEFAULT FALSE,
+  `isTutorial` tinyint(1) DEFAULT '0',
   PRIMARY KEY (`userId`),
   UNIQUE INDEX `Email` (`email` ASC) VISIBLE,
   UNIQUE INDEX `PhoneNumber` (`phoneNumber` ASC) VISIBLE,
@@ -438,6 +439,8 @@ CREATE TABLE IF NOT EXISTS `chat2date`.`relationship_stats` (
   `dailyDate` DATE NULL, -- เอาไว้นับวันสำหรับ dailyMessageCount
   `createdAt` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `updatedAt` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  `notiBeforeUnmatch` enum('NONE','LEFT','RIGHT','BOTH') NOT NULL DEFAULT 'NONE',
+  `notiUnmatch` enum('NONE','LEFT','RIGHT','BOTH') NOT NULL DEFAULT 'NONE',
   PRIMARY KEY (`relationshipId`),
   CONSTRAINT `fk_relationship_match`
     FOREIGN KEY (`relationshipId`)
