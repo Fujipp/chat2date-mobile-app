@@ -1,5 +1,5 @@
-import 'package:flutter/material.dart';
 import 'package:chat2date/theme/app_colors.dart';
+import 'package:flutter/material.dart';
 
 class TagAutocomplete extends StatefulWidget {
   final List<String> allTags;
@@ -159,7 +159,7 @@ class _TagAutocompleteState extends State<TagAutocomplete> {
                     focusNode: _focus,
                     decoration: const InputDecoration(
                       border: InputBorder.none,
-                      hintText: "เพิ่ม Tag",
+                      hintText: "เพิ่มแท็กที่นี่",
                       hintStyle: TextStyle(color: AppColors.inputPlaceholder),
                       isDense: true,
                       contentPadding: EdgeInsets.symmetric(
