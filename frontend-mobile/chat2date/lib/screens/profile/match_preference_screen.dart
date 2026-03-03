@@ -70,12 +70,25 @@ class _MatchPreferenceScreenState extends ConsumerState<MatchPreferenceScreen> {
             child: ResponsiveContainer.form(
               gap: 20,
               children: [
-                const SizedBox(height: 30),
-                Center(
-                  child: DsLabel(
-                    label: 'ประเภทคู่เดตที่สนใจ',
-                    labelFontSize: 32,
-                  ),
+                SizedBox(height: onUpdate ? 10 : 30),
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    SizedBox(width: onUpdate ? 52 : 0),
+                    Expanded(
+                      child: Center(
+                        child: Text(
+                          'ประเภทคู่เดตที่สนใจ',
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            fontSize: 32,
+                            color: Color(0xFF0F172A),
+                          ),
+                        ),
+                      ),
+                    ),
+                    SizedBox(width: onUpdate ? 52 : 0),
+                  ],
                 ),
 
                 const SizedBox(height: 10),
