@@ -102,6 +102,7 @@ class MyApp extends StatelessWidget {
           '/userPicture': (context) => const UserPictureScreen(),
           '/profile': (context) => const ProfileScreen(),
           '/settings': (context) => const SettingsScreen(),
+          '/account-settings': (context) => const AccountSettingsScreen(),
           '/auth': (context) => const AuthCheckPage(),
           '/chatList': (context) => const ChatListScreen(),
           '/guessingGame': (context) {

@@ -2,10 +2,10 @@ import 'package:chat2date/components/layout/header.dart';
 import 'package:chat2date/components/modal/feature_guide_modal.dart';
 import 'package:chat2date/screens/settings/widgets/delete_account_screen.dart';
 import 'package:flutter/material.dart';
-import '../main_tabs.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../components/layout/menu_bar.dart';
+import '../main_tabs.dart';
 import 'widgets/logout_modal.dart';
 
 // ✅ เปลี่ยนจาก StatefulWidget เป็น ConsumerStatefulWidget
@@ -40,6 +40,17 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
               padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
               child: Column(
                 children: [
+                  // Account
+                  _SettingsCard(
+                    icon: Icons.person_outline,
+                    title: 'บัญชีของฉัน',
+                    subtitle: 'จัดการบัญชีผู้ใช้และข้อมูลส่วนตัว',
+                    onTap: () {
+                      Navigator.pushNamed(context, '/account-settings');
+                    },
+                  ),
+                  const SizedBox(height: 12),
+
                   // 🆕 Partner Preferences
                   _SettingsCard(
                     icon: Icons.favorite_border,
@@ -54,17 +65,6 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                     },
                   ),
                   const SizedBox(height: 12),
-
-                  // Account
-                  // _SettingsCard(
-                  //   icon: Icons.person_outline,
-                  //   title: 'บัญชีของฉัน',
-                  //   subtitle: 'จัดการบัญชีผู้ใช้และข้อมูลส่วนตัว',
-                  //   onTap: () {
-                  //     Navigator.pushNamed(context, '/account-settings');
-                  //   },
-                  // ),
-                  // const SizedBox(height: 12),
 
                   // Tutorial
                   _SettingsCard(
