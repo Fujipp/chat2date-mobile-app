@@ -1011,12 +1011,14 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
   }
 
   /// บันทึกเมื่อหมุนวงล้อสำเร็จ
-  void _onSpinComplete() {
+  void _onSpinComplete(String result) {
     setState(() {
       _lastSpinDate = DateTime.now();
       _showWheelModal = false;
+
     });
     _calculateSpinwheelCooldown();
+    _addLocalBotMessage(type: BotMessageType.ask, text: "สุ่มได้ไปเที่ยวที่ $result !!!", description: "คุณอยากไปเที่ยว ’$result’ หรือไม่",);
     // TODO: บันทึก _lastSpinDate ไปยัง backend
   }
 
@@ -1737,12 +1739,12 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
                                       setState(() => _showWheelModal = false),
                                   onSpinComplete: _onSpinComplete,
                                   prizes: const [
-                                    {'label': 'Coffee'},
-                                    {'label': 'Pizza'},
-                                    {'label': 'Movie'},
-                                    {'label': 'Book'},
-                                    {'label': 'Gift'},
-                                    {'label': 'Ice-cream'},
+                                    {'label': 'หอศิลปวัฒนธรรมแห่งกรุงเทพมหานคร'},
+                                    {'label': 'มิวเซียมสยาม'},
+                                    {'label': 'บ้านศิลปินคลองบางหลวง'},
+                                    {'label': 'ทีซีดีซี กรุงเทพ, ศูนย์สร้างสรรค์งานออกแบบ'},
+                                    {'label': 'ล้ง 1919'},
+                                    {'label': 'หอศิลป์ร่วมสมัยราชดำเนิน'},
                                   ],
                                 ),
                               ],

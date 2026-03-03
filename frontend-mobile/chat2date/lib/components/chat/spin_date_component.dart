@@ -12,7 +12,7 @@ class SpinDateComponent extends StatefulWidget {
   final int indexSelected;
   final VoidCallback? onCloseModal;
   final VoidCallback? onRefreshSpin;
-  final VoidCallback? onSpinComplete;
+  final Function(String)? onSpinComplete;
 
   const SpinDateComponent({
     super.key,
@@ -94,8 +94,7 @@ class _SpinDateComponentState extends State<SpinDateComponent>
     setState(() {
       _resultLabel = widget.prizes[index]['label'];
     });
-    widget.onSpinComplete?.call();
-    debugPrint("สรุปผลที่ได้: $_resultLabel");
+    widget.onSpinComplete?.call(widget.prizes[index]['label']);
   }
 
   void _resetToInitialState() {
@@ -313,19 +312,33 @@ class _InlineWheelPainter extends CustomPainter {
 
     for (int i = 0; i < prizes.length; i++) {
       final currentAngle = (i * sweepAngle + sweepAngle / 2) + rotationAngle;
+
+      // 1. กำหนดตำแหน่งจุดวางข้อความ (ประมาณ 70% ของรัศมี)
       final dx = center.dx + (radius * 0.7) * cos(currentAngle);
       final dy = center.dy + (radius * 0.7) * sin(currentAngle);
+
+      // 2. คำนวณความกว้างสูงสุดที่ยอมให้แสดงได้ในช่อง (Sector)
+      // เพื่อไม่ให้ข้อความยาวจนไปทับช่องข้างๆ
+      // สูตร: รัศมีส่วนโค้ง * มุมกวาด * 0.8 (เผื่อระยะขอบนิดหน่อย)
+      final double maxTextWidth = (radius * 0.5) * sweepAngle;
+
       final textPainter = TextPainter(
         text: TextSpan(
           text: prizes[i]['label'],
           style: const TextStyle(
             color: Colors.white,
-            fontSize: 13,
+            fontSize:
+                11, // ย่อขนาดลงจาก 13 เป็น 11 เพื่อให้รับข้อความได้มากขึ้น
             fontWeight: FontWeight.bold,
           ),
         ),
         textDirection: TextDirection.ltr,
-      )..layout();
+        maxLines: 1, // บังคับให้อยู่ในบรรทัดเดียว
+        ellipsis: '...', // ถ้าเกินความกว้างที่กำหนด ให้ใส่จุดไข่ปลา
+        textAlign: TextAlign.center,
+      )..layout(maxWidth: maxTextWidth); // 👈 จำกัดความกว้างตรงนี้
+
+      // 3. วาดข้อความลงบน Canvas
       textPainter.paint(
         canvas,
         Offset(dx - textPainter.width / 2, dy - textPainter.height / 2),

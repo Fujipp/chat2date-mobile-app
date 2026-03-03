@@ -308,7 +308,8 @@ class _BotMessageComponentState extends State<BotMessageComponent> {
           'ตอบแล้ว ${widget.answeredCount}/${widget.totalCount}',
           textAlign: TextAlign.center,
           style: const TextStyle(
-            color: AppColors.textMuted,
+            //color: AppColors.textMuted,
+            color: AppColors.error,
             fontSize: 10,
             fontFamily: 'Inter',
             fontWeight: FontWeight.w400,
@@ -321,14 +322,14 @@ class _BotMessageComponentState extends State<BotMessageComponent> {
           children: [
             // ปุ่ม "ไม่" (แดง)
             _buildChoiceButton(
-              text: widget.secondChoiceText ?? 'ไม่',
+              text: widget.secondChoiceText ?? 'ไม่ไป',
               color: const Color(0xFFFF6B6B),
               onPressed: widget.onSecondChoice,
             ),
             const SizedBox(width: 12),
             // ปุ่ม "ใช่" (เขียว)
             _buildChoiceButton(
-              text: widget.firstChoiceText ?? 'ใช่',
+              text: widget.firstChoiceText ?? 'ไป',
               color: const Color(0xFF98FB98),
               onPressed: widget.onFirstChoice,
             ),
