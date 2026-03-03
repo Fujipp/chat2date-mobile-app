@@ -4,5 +4,6 @@ public enum MessageType {
     TEXT,
     GAME,
     SUCCESS,
-    FAIL
+    FAIL,
+    DATE
 }
