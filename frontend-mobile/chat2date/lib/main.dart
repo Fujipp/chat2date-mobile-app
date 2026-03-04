@@ -139,6 +139,7 @@ class MyApp extends StatelessWidget {
           '/kyc-result-success': (context) => const KycResultSuccessScreen(),
           '/kyc-result-fail': (context) => const KycResultFailScreen(),
           '/about': (context) => const AboutScreen(),
+          '/contact': (context) => const ContactScreen(),
           '/chat-list': (context) => const ChatListScreen(),
           '/chat': (context) {
             final args =
