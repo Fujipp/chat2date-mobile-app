@@ -20,3 +20,4 @@ export 'profile/profile_setup_screen.dart';
 export 'profile/user_picture_screen.dart';
 export 'settings/settings_screen.dart';
 export 'settings/widgets/account_screen.dart';
+export 'settings/widgets/about_screen.dart';
