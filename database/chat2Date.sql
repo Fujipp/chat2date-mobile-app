@@ -540,6 +540,18 @@ CREATE TABLE IF NOT EXISTS `chat2date`.`appointments` (
     ON DELETE CASCADE
 ) ENGINE = InnoDB DEFAULT CHARACTER SET = utf8mb4;
 
+CREATE TABLE IF NOT EXISTS `chat2date`.`place_confirmations` (
+  `confirmId` INT NOT NULL AUTO_INCREMENT,
+  `roomId` INT NOT NULL, 
+  `placeId` VARCHAR(255) NOT NULL,  
+  `user1Confirmed` BOOLEAN NOT NULL DEFAULT FALSE,
+  `user2Confirmed` BOOLEAN NOT NULL DEFAULT FALSE,
+  `status` ENUM('PENDING', 'AGREED') NOT NULL DEFAULT 'PENDING',
+  `createdAt` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`confirmId`),
+  CONSTRAINT `fk_confirm_match` FOREIGN KEY (`roomId`) REFERENCES `chat2date`.`match` (`matchId`) ON DELETE CASCADE,
+  CONSTRAINT `fk_confirm_place` FOREIGN KEY (`placeId`) REFERENCES `chat2date`.`places` (`placeId`) ON DELETE CASCADE
+) ENGINE = InnoDB DEFAULT CHARACTER SET = utf8mb4;
 
 -- 3. Table: SOS Incidents
 CREATE TABLE IF NOT EXISTS `chat2date`.`sos_incidents` (
