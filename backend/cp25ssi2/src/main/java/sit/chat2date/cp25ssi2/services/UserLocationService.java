@@ -23,7 +23,7 @@ public class UserLocationService {
     private final UserRepository userRepository;
     private final UserLocationRepository userLocationRepository;
 
-    public void updateCurrentUserLocation(String accessToken, UpdateLocationRequest req) {
+    public String updateCurrentUserLocation(String accessToken, UpdateLocationRequest req) {
         // 1) Validate coordinates
         if (req == null || req.getLatitude() == 0.0 && req.getLongtitude() == 0.0) {
             throw new ResponseStatusException(
@@ -94,9 +94,11 @@ public class UserLocationService {
             location.setLatitude(BigDecimal.valueOf(req.getLatitude()));
             location.setLongtitude(BigDecimal.valueOf(req.getLongtitude()));
             location.setAccuracy(BigDecimal.valueOf(req.getAccuracy()));
-//            location.setTimestamp(Instant.now());
+            location.setTimestamp(Instant.now());
 
             userLocationRepository.save(location);
+
+            return "https://www.google.com/maps/search/?api=1&query=" + req.getLatitude() + "," + req.getLongtitude();
 
         } catch (ResponseStatusException e) {
             // ส่งต่อให้ GlobalExceptionHandler จัดการ (จะได้ status ตามที่ set ไว้)
