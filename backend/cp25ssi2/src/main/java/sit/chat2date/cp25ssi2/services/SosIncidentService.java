@@ -5,16 +5,15 @@ import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
 import sit.chat2date.cp25ssi2.dto.SosIncidentRequest;
-import sit.chat2date.cp25ssi2.entities.Appointment;
-import sit.chat2date.cp25ssi2.entities.Match;
-import sit.chat2date.cp25ssi2.entities.SosIncident;
-import sit.chat2date.cp25ssi2.entities.User;
+import sit.chat2date.cp25ssi2.entities.*;
 import sit.chat2date.cp25ssi2.enums.SosStatus;
 import sit.chat2date.cp25ssi2.repositories.AppointmentRepository;
+import sit.chat2date.cp25ssi2.repositories.EmergencyContactRepository;
 import sit.chat2date.cp25ssi2.repositories.SosIncidentRepository;
 import sit.chat2date.cp25ssi2.repositories.UserRepository;
 
 import java.math.BigDecimal;
+import java.util.List;
 
 @Service
 @RequiredArgsConstructor
@@ -22,7 +21,7 @@ public class SosIncidentService {
     private final UserRepository userRepository;
     private final AppointmentRepository appointmentRepository;
     private final SosIncidentRepository sosIncidentRepository;
-
+    private final EmergencyContactRepository emergencyContactRepository;
 
     public Integer createSosIncident(String userId, SosIncidentRequest req) {
         if (req.getAppointmentId() == null || req.getLatitude() == null || req.getLongitude() == null) {
@@ -65,5 +64,17 @@ public class SosIncidentService {
         SosIncident savedIncident = sosIncidentRepository.save(incident);
 
         return savedIncident.getIncidentId();
+    }
+
+    public List<String> getEmergencyContacts(String userId) {
+        List<EmergencyContact> contacts = emergencyContactRepository.findByUser_UserId(userId);
+
+        if (contacts.isEmpty()) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "ไม่พบเบอร์ฉุกเฉินของผู้ใช้งาน");
+        }
+
+        return contacts.stream()
+                .map(EmergencyContact::getTelephoneNumber)
+                .toList();
     }
 }

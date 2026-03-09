@@ -114,9 +114,11 @@ public class JwtAuthFilter extends OncePerRequestFilter {
                         }
                         
                     }
-                    AccessChecker checker = new AccessChecker(request, response, user.get(), matchUser1, matchUser2);
-                    if (!checker.checkUserAccess()) {
-                        return; // ถ้า check ไม่ผ่าน
+                    if (!path.equals("/api/v1/users/emergency-calls")) {
+                        AccessChecker checker = new AccessChecker(request, response, user.get(), matchUser1, matchUser2);
+                        if (!checker.checkUserAccess()) {
+                            return;
+                        }
                     }
                 }
             }
