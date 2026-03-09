@@ -7,6 +7,8 @@ import java.util.List;
 
 public interface PlaceRepository extends JpaRepository<Place, String> {
 
+    Place findPlaceByPlaceName(String name);
+
     List<Place> findByPlaceNameContainingIgnoreCase(String name);
 
     boolean existsByPlaceId(String placeId);
