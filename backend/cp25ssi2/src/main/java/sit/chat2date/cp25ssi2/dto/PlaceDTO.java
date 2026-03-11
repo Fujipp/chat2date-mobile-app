@@ -9,12 +9,14 @@ public class PlaceDTO {
     private double latitude;
     private double longitude;
     private String address;
+    private String imageUrl;
 
-    public PlaceDTO(String id, String name, double lat, double lng, String address) {
+    public PlaceDTO(String id, String name, double lat, double lng, String address, String imageUrl) {
         this.googlePlaceId = id;
         this.name = name;
         this.latitude = lat;
         this.longitude = lng;
         this.address = address;
+        this.imageUrl = imageUrl;
     }
 }

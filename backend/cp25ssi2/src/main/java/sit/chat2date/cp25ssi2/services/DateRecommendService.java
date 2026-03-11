@@ -175,6 +175,7 @@ public class DateRecommendService {
                 Place newPlace = new Place();
                 newPlace.setPlaceId(selectedPlaceFromRedis.getGooglePlaceId());
                 newPlace.setPlaceName(selectedPlaceFromRedis.getName());
+                newPlace.setImageUrl(selectedPlaceFromRedis.getImageUrl());
                 newPlace.setAddress(selectedPlaceFromRedis.getAddress());
                 newPlace.setLongitude(BigDecimal.valueOf(selectedPlaceFromRedis.getLongitude()));
                 newPlace.setLatitude(BigDecimal.valueOf(selectedPlaceFromRedis.getLatitude()));
@@ -265,7 +266,8 @@ public class DateRecommendService {
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_JSON);
         headers.set("X-Goog-Api-Key", apiKey);
-        headers.set("X-Goog-FieldMask", "places.displayName,places.location,places.formattedAddress");
+        headers.set("X-Goog-FieldMask", "places.id,places.displayName,places.location,places.formattedAddress,places.photos");
+
 
         Map<String, Object> circle = Map.of(
                 "center", Map.of("latitude", midLat, "longitude", midLng),
@@ -290,12 +292,25 @@ public class DateRecommendService {
 
         if (places.isArray()) {
             for (JsonNode place : places) {
+                String photoUrl = null; // ตั้งต้นเป็น null เผื่อสถานที่นั้นไม่มีรูป
+                JsonNode photos = place.path("photos");
+
+                if (photos.isArray() && !photos.isEmpty()) {
+                    // ดึงชื่อ Resource มา (เช่น places/ChIJ.../photos/...)
+                    String photoName = photos.get(0).path("name").asText();
+
+                    // นำมาต่อเป็น URL ที่ใช้งานได้จริง
+                    photoUrl = "https://places.googleapis.com/v1/" + photoName +
+                            "/media?key=" + googleId + "&maxHeightPx=400";
+                }
+
                 dtos.add(new PlaceDTO(
                         place.path("id").asText(),
                         place.path("displayName").path("text").asText(),
                         place.path("location").path("latitude").asDouble(),
                         place.path("location").path("longitude").asDouble(),
-                        place.path("formattedAddress").asText()
+                        place.path("formattedAddress").asText(),
+                        photoUrl
                 ));
             }
         }
