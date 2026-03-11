@@ -13,6 +13,10 @@ class CalendarCard extends StatefulWidget {
   final VoidCallback? onTrash;
   final Color accentColor; // สีเน้น (เช่น ใช้กับชื่อเดือน)
 
+  /// ชื่อสถานที่ที่ได้จาก spinwheel (แสดงใต้ปุ่มบันทึก)
+  final String placeCountText;
+  final String placeName;
+
   const CalendarCard({
     super.key,
     required this.initialMonth,
@@ -21,6 +25,8 @@ class CalendarCard extends StatefulWidget {
     this.onClose,
     this.onTrash,
     this.accentColor = const Color(0xFFFF6B81),
+    this.placeCountText = 'คุณมี 1 สถานที่เดต!!',
+    this.placeName = 'อควาเรียมบางแสน',
   });
 
   @override
@@ -388,12 +394,12 @@ class _CalendarCardState extends State<CalendarCard> {
               ),
 
               const SizedBox(height: 6),
-              const SizedBox(
+              SizedBox(
                 width: 310,
                 child: Text(
-                  'คุณมี 1 สถานที่เดต!!',
+                  widget.placeCountText,
                   textAlign: TextAlign.center,
-                  style: TextStyle(
+                  style: const TextStyle(
                     fontFamily: 'Inter',
                     color: Color(0xFF0F172A),
                     fontSize: 12,
@@ -402,12 +408,12 @@ class _CalendarCardState extends State<CalendarCard> {
                   ),
                 ),
               ),
-              const SizedBox(
+              SizedBox(
                 width: 310,
                 child: Text(
-                  'อควาเรียมบางแสน',
+                  widget.placeName,
                   textAlign: TextAlign.center,
-                  style: TextStyle(
+                  style: const TextStyle(
                     fontFamily: 'Inter',
                     color: Color(0xFF94A3B8),
                     fontSize: 12,

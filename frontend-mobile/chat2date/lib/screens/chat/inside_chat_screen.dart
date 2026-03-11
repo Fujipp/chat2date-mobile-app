@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:chat2date/components/calendar/calendar_card.dart';
 import 'package:chat2date/components/chat/bot_message_component.dart';
 import 'package:chat2date/components/chat/chat_text_component.dart';
 import 'package:chat2date/components/chat/input_chat_component.dart';
@@ -10,11 +11,13 @@ import 'package:chat2date/components/modal/relationship_mission_modal.dart';
 import 'package:chat2date/components/page/unlock_date_modal.dart';
 import 'package:chat2date/components/status_bar/score_row.dart';
 import 'package:chat2date/components/toasts/toast.dart';
+import 'package:chat2date/models/appointment.dart';
 import 'package:chat2date/models/chat_access_status.dart';
 import 'package:chat2date/models/chat_message.dart';
 import 'package:chat2date/models/relationship_bar.dart';
 import 'package:chat2date/models/user.dart';
 import 'package:chat2date/screens/game/guessing_game_screen.dart';
+import 'package:chat2date/services/appointment_service.dart';
 import 'package:chat2date/services/chat_service.dart';
 import 'package:chat2date/services/chat_socket_service.dart';
 import 'package:chat2date/services/game_service.dart';
@@ -62,6 +65,12 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
   int _steakDays = 0;
   bool _isFirstMessageBonus = false;
   int _dailyMessagesCount = 0;
+
+  // === Appointment / Calendar ===
+  Appointment? _existingAppointment;
+  String _lastSpunPlaceId = '';
+  String _lastSpunPlaceName = '';
+  bool _isCalendarLoading = false;
 
   bool _isLoadingMessages = true;
   bool _isLoadingMore = false;
@@ -1060,6 +1069,461 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
     });
   }
 
+  // ===================== Calendar / Appointment Logic =====================
+
+  /// กด Calendar icon ใน Header: เปิด modal สร้าง/แก้ไขนัดหมาย
+  Future<void> _handleCalendarTap() async {
+    final roomId = widget.roomId;
+    if (roomId == null || roomId.isEmpty) return;
+
+    if (_isCalendarLoading) return;
+    setState(() => _isCalendarLoading = true);
+
+    try {
+      final appointmentService = ref.read(appointmentServiceProvider);
+      final appointments = await appointmentService.getAppointments(
+        int.parse(roomId),
+      );
+
+      // หา appointment ที่ active ล่าสุด (status != CANCELLED)
+      final active = appointments
+          .where((a) => a.status != 'CANCELLED')
+          .toList()
+        ..sort((a, b) => b.appointmentId.compareTo(a.appointmentId));
+
+      if (!mounted) return;
+      setState(() {
+        _existingAppointment = active.isNotEmpty ? active.first : null;
+        _isCalendarLoading = false;
+      });
+
+      _showCalendarModalSheet();
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _isCalendarLoading = false);
+      Toast.show(
+        context,
+        type: ToastType.error,
+        title: 'ไม่สามารถโหลดข้อมูลนัดหมายได้',
+        message: e.toString().replaceAll('Exception: ', ''),
+        durationSeconds: 3,
+        showCountdown: false,
+      );
+    }
+  }
+
+  /// แสดง CalendarCard modal (create หรือ edit)
+  void _showCalendarModalSheet() {
+    final existing = _existingAppointment;
+    final isEditMode = existing != null;
+    final placeName =
+        isEditMode ? existing.placeName : _lastSpunPlaceName;
+    final placeId = isEditMode ? existing.placeId : _lastSpunPlaceId;
+    final initialDate = isEditMode ? existing.dateTime : DateTime.now();
+    final initialTime = TimeOfDay.fromDateTime(initialDate);
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => DraggableScrollableSheet(
+        initialChildSize: 0.92,
+        minChildSize: 0.5,
+        maxChildSize: 0.95,
+        builder: (context, scrollController) => Container(
+          decoration: const BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+          ),
+          padding: const EdgeInsets.all(20),
+          child: SingleChildScrollView(
+            controller: scrollController,
+            child: CalendarCard(
+              initialMonth: DateTime(initialDate.year, initialDate.month, 1),
+              initialTime: initialTime,
+              placeName: placeName.isNotEmpty ? placeName : 'ยังไม่ได้เลือกสถานที่',
+              placeCountText: 'คุณมี 1 สถานที่เดต!!',
+              // แสดง trash icon เพาะใน edit mode
+              onTrash: isEditMode
+                  ? () {
+                      Navigator.pop(ctx); // ปิด calendar modal
+                      _showDeleteConfirmDialog(existing.appointmentId);
+                    }
+                  : null,
+              onClose: () {
+                if (isEditMode) {
+                  // ใน edit mode: ถามยืนยันก่อนปิด
+                  Navigator.pop(ctx); // ปิด calendar ก่อน
+                  _showCancelEditConfirmDialog();
+                } else {
+                  Navigator.pop(ctx);
+                }
+              },
+              onSave: (date, time) async {
+                Navigator.pop(ctx); // ปิด calendar modal
+                await _saveAppointment(
+                  date: date,
+                  isEditMode: isEditMode,
+                  existingId: existing?.appointmentId,
+                  placeId: placeId,
+                  placeName: placeName,
+                );
+              },
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  /// บันทึกนัดหมาย (create หรือ update)
+  Future<void> _saveAppointment({
+    required DateTime date,
+    required bool isEditMode,
+    int? existingId,
+    required String placeId,
+    required String placeName,
+  }) async {
+    final roomId = widget.roomId;
+    if (roomId == null || roomId.isEmpty) return;
+
+    try {
+      final service = ref.read(appointmentServiceProvider);
+      Appointment result;
+
+      if (isEditMode && existingId != null) {
+        result = await service.updateAppointment(
+          appointmentId: existingId,
+          dateTime: date,
+        );
+      } else {
+        result = await service.createAppointment(
+          roomId: int.parse(roomId),
+          placeId: placeId.isNotEmpty ? placeId : 'unknown',
+          placeName: placeName.isNotEmpty ? placeName : 'ไม่ระบุชื่อสถานที่',
+          dateTime: date,
+        );
+      }
+
+      if (!mounted) return;
+      setState(() => _existingAppointment = result);
+      _showSaveSuccessDialog(result);
+    } catch (e) {
+      if (!mounted) return;
+      Toast.show(
+        context,
+        type: ToastType.error,
+        title: 'ไม่สามารถบันทึกนัดหมายได้',
+        message: e.toString().replaceAll('Exception: ', ''),
+        durationSeconds: 3,
+        showCountdown: false,
+      );
+    }
+  }
+
+  /// State 2: success dialog หลังบันทึก
+  void _showSaveSuccessDialog(Appointment appointment) {
+    final dt = appointment.dateTime.toLocal();
+    final thaiMonths = [
+      'มกราคม', 'กุมภาพันธ์', 'มีนาคม', 'เมษายน',
+      'พฤษภาคม', 'มิถุนายน', 'กรกฎาคม', 'สิงหาคม',
+      'กันยายน', 'ตุลาคม', 'พฤศจิกายน', 'ธันวาคม',
+    ];
+    final hour = dt.hour;
+    final amPm = hour < 12 ? 'AM' : 'PM';
+    final hour12 = hour % 12 == 0 ? 12 : hour % 12;
+    final minute = dt.minute.toString().padLeft(2, '0');
+    final dateStr =
+        '${dt.day} ${thaiMonths[dt.month - 1]} ${dt.year} $hour12:$minute $amPm';
+
+    showDialog(
+      context: context,
+      barrierDismissible: true,
+      builder: (ctx) => Dialog(
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(20),
+        ),
+        child: Padding(
+          padding: const EdgeInsets.all(28),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 72,
+                height: 72,
+                decoration: BoxDecoration(
+                  color: const Color(0xFFE8F5E9),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(
+                  Icons.check_circle,
+                  color: Color(0xFF4CAF50),
+                  size: 48,
+                ),
+              ),
+              const SizedBox(height: 16),
+              const Text(
+                'บันทึกเสร็จสิ้น',
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w700,
+                  fontFamily: 'Inter',
+                  color: Color(0xFF0F172A),
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                dateStr,
+                textAlign: TextAlign.center,
+                style: const TextStyle(
+                  fontSize: 14,
+                  color: Color(0xFF64748B),
+                  fontFamily: 'Inter',
+                ),
+              ),
+              const SizedBox(height: 6),
+              const Text(
+                'ระบบจะแจ้งเตือนซัก 1 วัน',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontSize: 12,
+                  color: Color(0xFF94A3B8),
+                  fontFamily: 'Inter',
+                ),
+              ),
+              const SizedBox(height: 24),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFFB8F1F3),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    elevation: 0,
+                  ),
+                  onPressed: () => Navigator.pop(ctx),
+                  child: const Text(
+                    'ตกลง',
+                    style: TextStyle(
+                      fontFamily: 'Inter',
+                      fontWeight: FontWeight.w600,
+                      color: Colors.white,
+                      fontSize: 16,
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  /// State 6: ยืนยันก่อนยกเลิกการแก้ไข (close X ใน edit mode)
+  void _showCancelEditConfirmDialog() {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+        ),
+        title: const Text(
+          'ยกเลิกการแก้ไข',
+          style: TextStyle(
+            fontFamily: 'Inter',
+            fontWeight: FontWeight.w700,
+            fontSize: 16,
+          ),
+        ),
+        content: const Text(
+          'ต้องการยกเลิกวันออกเดตใช่หรือไม่\nข้อมูลที่เลือกจะสูญหาย',
+          style: TextStyle(
+            fontFamily: 'Inter',
+            fontSize: 14,
+            color: Color(0xFF64748B),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text(
+              'ยกเลิก',
+              style: TextStyle(color: Color(0xFF94A3B8)),
+            ),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFF3B82F6),
+              elevation: 0,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8),
+              ),
+            ),
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text(
+              'ยืนยัน',
+              style: TextStyle(color: Colors.white),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// State 7: ยืนยันลบนัดหมาย
+  void _showDeleteConfirmDialog(int appointmentId) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+        ),
+        title: const Text(
+          'ยืนยันที่จะลบวันเดตหรือไม่',
+          style: TextStyle(
+            fontFamily: 'Inter',
+            fontWeight: FontWeight.w700,
+            fontSize: 16,
+          ),
+        ),
+        content: const Text(
+          'หากยืนยัน สถานที่เดตจะถูกลบออกและต้องสุ่มใหม่อีกครั้ง',
+          style: TextStyle(
+            fontFamily: 'Inter',
+            fontSize: 14,
+            color: Color(0xFF64748B),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text(
+              'ยกเลิก',
+              style: TextStyle(color: AppColors.error),
+            ),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFF4CAF50),
+              elevation: 0,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8),
+              ),
+            ),
+            onPressed: () async {
+              Navigator.pop(ctx);
+              await _deleteAppointment(appointmentId);
+            },
+            child: const Text(
+              'ยืนยัน',
+              style: TextStyle(color: Colors.white),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// ลบ appointment + แสดง State 8 success
+  Future<void> _deleteAppointment(int appointmentId) async {
+    try {
+      final service = ref.read(appointmentServiceProvider);
+      await service.deleteAppointment(appointmentId);
+      if (!mounted) return;
+      setState(() => _existingAppointment = null);
+      _showDeleteSuccessDialog();
+    } catch (e) {
+      if (!mounted) return;
+      Toast.show(
+        context,
+        type: ToastType.error,
+        title: 'ไม่สามารถลบนัดหมายได้',
+        message: e.toString().replaceAll('Exception: ', ''),
+        durationSeconds: 3,
+        showCountdown: false,
+      );
+    }
+  }
+
+  /// State 8: แสดง success dialog หลังลบ
+  void _showDeleteSuccessDialog() {
+    showDialog(
+      context: context,
+      barrierDismissible: true,
+      builder: (ctx) => Dialog(
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(20),
+        ),
+        child: Padding(
+          padding: const EdgeInsets.all(28),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 72,
+                height: 72,
+                decoration: const BoxDecoration(
+                  color: Color(0xFFE8F5E9),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(
+                  Icons.check_circle,
+                  color: Color(0xFF4CAF50),
+                  size: 48,
+                ),
+              ),
+              const SizedBox(height: 16),
+              const Text(
+                'ลบสำเร็จแล้ว',
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w700,
+                  fontFamily: 'Inter',
+                  color: Color(0xFF0F172A),
+                ),
+              ),
+              const SizedBox(height: 8),
+              const Text(
+                'ลบวันเดตเรียบร้อยแล้ว\nสถานที่เดตถูกลบออกแล้ว',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontSize: 14,
+                  color: Color(0xFF64748B),
+                  fontFamily: 'Inter',
+                ),
+              ),
+              const SizedBox(height: 24),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF4CAF50),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    elevation: 0,
+                  ),
+                  onPressed: () => Navigator.pop(ctx),
+                  child: const Text(
+                    'ตกลง',
+                    style: TextStyle(
+                      fontFamily: 'Inter',
+                      fontWeight: FontWeight.w600,
+                      color: Colors.white,
+                      fontSize: 16,
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
   void _checkSpinWheelCondition() {
     // เงื่อนไข: หลอดเต็ม (1.0) หรือ หัวใจครบตามที่กำหนด (เช่น 3 ดวง)
     // คำนวณ cooldown และ determine variant
@@ -1443,9 +1907,7 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
                       if (!mounted) return;
                       Navigator.maybePop(context);
                     },
-                    onCalendar: () {
-                      //debugPrint('Calendar tapped');
-                    },
+                    onCalendar: _handleCalendarTap,
                     onSpinwheel: _handleSpinwheelTap,
                     onFlag: () {
                       Navigator.pushReplacementNamed(
