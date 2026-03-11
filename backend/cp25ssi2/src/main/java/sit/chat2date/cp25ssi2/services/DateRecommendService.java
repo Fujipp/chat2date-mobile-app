@@ -226,15 +226,12 @@ public class DateRecommendService {
     public ConfirmAction getMyConfirmationStatus(String roomId, String accessToken) {
         User user = extractToken(accessToken);
 
-        // 1. หา Match เพื่อระบุว่า User นี้คือ User1 หรือ User2 ของห้องนี้
         Match match = matchRepository.findById(Integer.valueOf(roomId))
                 .orElseThrow(() -> new NotFoundException("Match not found with id: " + roomId));
 
-        // 2. ดึงรายการ Confirmation ล่าสุดที่ยัง PENDING อยู่
         Optional<PlaceConfirmation> pendingConfirmation = placeConfirmationRepository
                 .findFirstByMatchAndStatusOrderByConfirmIdDesc(match.getId(), ConfirmationStatus.PENDING);
 
-        // 3. ถ้าไม่มีรายการ PENDING เลย แสดงว่ายังไม่มีใครเลือกสถานที่ หรือจบดีลไปแล้ว
         if (pendingConfirmation.isEmpty()) {
             return ConfirmAction.BLANK;
         }
@@ -242,11 +239,10 @@ public class DateRecommendService {
         PlaceConfirmation pc = pendingConfirmation.get();
         String currentUserId = user.getUserId();
 
-        // 4. เช็คว่า User คนที่เรียก API นี้คือใคร แล้วคืนค่า Action ของคนนั้น
         if (Objects.equals(currentUserId, match.getUserId1().getUserId())) {
-            return pc.getUser1Confirmed(); // คืนค่า AGREE, DISAGREE หรือ BLANK ของ User1
+            return pc.getUser1Confirmed();
         } else if (Objects.equals(currentUserId, match.getUserId2().getUserId())) {
-            return pc.getUser2Confirmed(); // คืนค่า AGREE, DISAGREE หรือ BLANK ของ User2
+            return pc.getUser2Confirmed();
         } else {
             throw new ForbiddenAccessException("Forbidden: cannot access another user's data");
         }
@@ -266,13 +262,11 @@ public class DateRecommendService {
         String apiKey = googleId;
         String url = "https://places.googleapis.com/v1/places:searchText";
 
-        // 1. เตรียม Headers
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_JSON);
         headers.set("X-Goog-Api-Key", apiKey);
         headers.set("X-Goog-FieldMask", "places.displayName,places.location,places.formattedAddress");
 
-        // 2. เตรียม Body (ตามรูป Postman ของคุณ)
         Map<String, Object> circle = Map.of(
                 "center", Map.of("latitude", midLat, "longitude", midLng),
                 "radius", (double) range
@@ -283,11 +277,9 @@ public class DateRecommendService {
                 "locationBias", Map.of("circle", circle)
         );
 
-        // 3. ยิง Request
         HttpEntity<Map<String, Object>> entity = new HttpEntity<>(requestBody, headers);
         ResponseEntity<String> response = restTemplate.postForEntity(url, entity, String.class);
 
-        // 4. แปลง JSON String เป็น List<PlaceDTO>
         JsonNode root = objectMapper.readTree(response.getBody());
         return parsePlaces(root);
     }
