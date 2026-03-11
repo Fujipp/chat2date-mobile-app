@@ -311,38 +311,47 @@ class _InlineWheelPainter extends CustomPainter {
     canvas.restore();
 
     for (int i = 0; i < prizes.length; i++) {
-      final currentAngle = (i * sweepAngle + sweepAngle / 2) + rotationAngle;
+      // 1. คำนวณมุมกึ่งกลางของช่องปัจจุบัน (รวมมุมหมุนของวงล้อ)
+      final double currentAngle =
+          (i * sweepAngle + sweepAngle / 2) + rotationAngle;
 
-      // 1. กำหนดตำแหน่งจุดวางข้อความ (ประมาณ 70% ของรัศมี)
-      final dx = center.dx + (radius * 0.7) * cos(currentAngle);
-      final dy = center.dy + (radius * 0.7) * sin(currentAngle);
+      canvas.save(); // บันทึกสถานะ Canvas ก่อนหมุนเฉพาะจุด
 
-      // 2. คำนวณความกว้างสูงสุดที่ยอมให้แสดงได้ในช่อง (Sector)
-      // เพื่อไม่ให้ข้อความยาวจนไปทับช่องข้างๆ
-      // สูตร: รัศมีส่วนโค้ง * มุมกวาด * 0.8 (เผื่อระยะขอบนิดหน่อย)
-      final double maxTextWidth = (radius * 0.5) * sweepAngle;
+      // 2. ย้ายจุด Zero (0,0) ของ Canvas ไปที่ตำแหน่งที่จะวางข้อความ
+      // ใช้ระยะประมาณ 60-70% ของรัศมีจากจุดศูนย์กลาง
+      final double textDistance = radius * 0.65;
+      final double x = center.dx + textDistance * cos(currentAngle);
+      final double y = center.dy + textDistance * sin(currentAngle);
+
+      canvas.translate(x, y);
+
+      // 3. หมุน Canvas ให้ข้อความตั้งฉากกับเส้นรัศมี (ชี้เข้าหาจุดศูนย์กลาง)
+      // หากต้องการให้ตัวอักษร "นอน" ตามแนวช่อง ให้ใช้ currentAngle
+      // หากต้องการให้หัวข้อความชี้เข้าหาจุดศูนย์กลางพอดี อาจต้อง + pi/2 หรือ - pi/2 ตามความเหมาะสม
+      canvas.rotate(currentAngle);
 
       final textPainter = TextPainter(
         text: TextSpan(
           text: prizes[i]['label'],
           style: const TextStyle(
             color: Colors.white,
-            fontSize:
-                11, // ย่อขนาดลงจาก 13 เป็น 11 เพื่อให้รับข้อความได้มากขึ้น
+            fontSize: 9,
             fontWeight: FontWeight.bold,
           ),
         ),
         textDirection: TextDirection.ltr,
-        maxLines: 1, // บังคับให้อยู่ในบรรทัดเดียว
-        ellipsis: '...', // ถ้าเกินความกว้างที่กำหนด ให้ใส่จุดไข่ปลา
+        maxLines: 1,
+        ellipsis: '...',
         textAlign: TextAlign.center,
-      )..layout(maxWidth: maxTextWidth); // 👈 จำกัดความกว้างตรงนี้
+      )..layout(maxWidth: radius * 0.7); // จำกัดความยาวไม่ให้เลยขอบวงล้อ
 
-      // 3. วาดข้อความลงบน Canvas
+      // 4. วาดข้อความ (จัดให้อยู่กึ่งกลางจุดที่ translate มา)
       textPainter.paint(
         canvas,
-        Offset(dx - textPainter.width / 2, dy - textPainter.height / 2),
+        Offset(-textPainter.width / 2, -textPainter.height / 2),
       );
+
+      canvas.restore(); // คืนค่า Canvas กลับไปสถานะปกติเพื่อเตรียมวาดช่องถัดไป
     }
 
     canvas.drawCircle(

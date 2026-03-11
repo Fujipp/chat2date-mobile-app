@@ -421,7 +421,7 @@ class _BotMessageComponentState extends State<BotMessageComponent> {
           text,
           textAlign: TextAlign.center,
           style: const TextStyle(
-            color: AppColors.textPrimary,
+            color: AppColors.neutral100,
             fontSize: 14,
             fontFamily: 'Inter',
             fontWeight: FontWeight.w700,
