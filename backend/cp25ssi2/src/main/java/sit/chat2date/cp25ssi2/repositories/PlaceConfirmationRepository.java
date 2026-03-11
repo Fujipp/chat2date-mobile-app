@@ -8,8 +8,6 @@ import sit.chat2date.cp25ssi2.enums.ConfirmationStatus;
 import java.util.Optional;
 
 public interface PlaceConfirmationRepository extends JpaRepository<PlaceConfirmation, Long> {
-    Optional<PlaceConfirmation> findFirstByMatch_IdAndStatusOrderByConfirmIdDesc(
-            Integer matchId,
-            ConfirmationStatus status
-    );
+    // ลบ _Id ออก เพราะ match คือ Integer อยู่แล้ว
+    Optional<PlaceConfirmation> findFirstByMatchAndStatusOrderByConfirmIdDesc(Integer matchId, ConfirmationStatus status);
 }

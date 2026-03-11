@@ -60,10 +60,7 @@ public class DateRecommendService {
 
         String lockKey = "lock:room:" + roomId;
         String leaderKey = "room_leader:" + user.getUserId();
-        String dataKey = "room_data:" + roomId + ":" + mode;
-        if ("DISTANCE".equals(mode)) {
-            dataKey += ":" + userTarget;
-        }
+        String dataKey = buildDataKey(roomId, mode, userTarget);
 
         String cachedData = (String) redis.opsForValue().get(dataKey);
         if (cachedData != null) {
@@ -153,6 +150,7 @@ public class DateRecommendService {
                         .orElseThrow(() -> new RuntimeException("ไม่พบสถานที่นี้ในรายการแนะนำ และไม่มีข้อมูลในฐานข้อมูล"));
 
                 Place newPlace = new Place();
+                newPlace.setPlaceId(selectedPlaceFromRedis.getGooglePlaceId());
                 newPlace.setPlaceName(selectedPlaceFromRedis.getName());
                 newPlace.setAddress(selectedPlaceFromRedis.getAddress());
                 newPlace.setLongitude(BigDecimal.valueOf(selectedPlaceFromRedis.getLongitude()));
@@ -166,15 +164,15 @@ public class DateRecommendService {
         }
 
         Optional<PlaceConfirmation> placeConfirmationIsExist =
-                placeConfirmationRepository.findFirstByMatch_IdAndStatusOrderByConfirmIdDesc(match.getId(), ConfirmationStatus.PENDING);
+                placeConfirmationRepository.findFirstByMatchAndStatusOrderByConfirmIdDesc(match.getId(), ConfirmationStatus.PENDING);
 
         PlaceConfirmation pc;
         if (placeConfirmationIsExist.isPresent()) {
             pc = placeConfirmationIsExist.get();
         } else {
             pc = new PlaceConfirmation();
-            pc.setMatch(match);
-            pc.setPlace(placeToUse);
+            pc.setMatch(match.getId());
+            pc.setPlace(placeToUse.getPlaceId());
             pc.setUser1Confirmed(ConfirmAction.BLANK);
             pc.setUser2Confirmed(ConfirmAction.BLANK);
             pc.setStatus(ConfirmationStatus.PENDING);
@@ -206,7 +204,7 @@ public class DateRecommendService {
 
         // 2. ดึงรายการ Confirmation ล่าสุดที่ยัง PENDING อยู่
         Optional<PlaceConfirmation> pendingConfirmation = placeConfirmationRepository
-                .findFirstByMatch_IdAndStatusOrderByConfirmIdDesc(match.getId(), ConfirmationStatus.PENDING);
+                .findFirstByMatchAndStatusOrderByConfirmIdDesc(match.getId(), ConfirmationStatus.PENDING);
 
         // 3. ถ้าไม่มีรายการ PENDING เลย แสดงว่ายังไม่มีใครเลือกสถานที่ หรือจบดีลไปแล้ว
         if (pendingConfirmation.isEmpty()) {
@@ -273,6 +271,7 @@ public class DateRecommendService {
         if (places.isArray()) {
             for (JsonNode place : places) {
                 dtos.add(new PlaceDTO(
+                        place.path("id").asText(),
                         place.path("displayName").path("text").asText(),
                         place.path("location").path("latitude").asDouble(),
                         place.path("location").path("longitude").asDouble(),
