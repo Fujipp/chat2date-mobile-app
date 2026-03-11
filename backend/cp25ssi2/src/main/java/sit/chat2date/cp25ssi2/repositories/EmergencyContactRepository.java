@@ -7,4 +7,5 @@ import java.util.List;
 
 public interface EmergencyContactRepository extends JpaRepository<EmergencyContact, Integer> {
     List<EmergencyContact> findByUser_UserId(String userId);
+    void deleteByUser_UserId(String userId);
 }

@@ -3,6 +3,7 @@ package sit.chat2date.cp25ssi2.services;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 import sit.chat2date.cp25ssi2.dto.SosIncidentRequest;
 import sit.chat2date.cp25ssi2.entities.*;
@@ -76,5 +77,31 @@ public class SosIncidentService {
         return contacts.stream()
                 .map(EmergencyContact::getTelephoneNumber)
                 .toList();
+    }
+
+    @Transactional
+    public void updateEmergencyContacts(String userId, List<String> phoneNumbers) {
+
+        if (phoneNumbers == null || phoneNumbers.isEmpty()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "ต้องมีเบอร์โทรฉุกเฉินอย่างน้อย 1 เบอร์");
+        }
+
+        if (phoneNumbers.size() > 3) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "บันทึกเบอร์ฉุกเฉินได้สูงสุด 3 เบอร์เท่านั้น");
+        }
+
+        emergencyContactRepository.deleteByUser_UserId(userId);
+
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "ไม่พบผู้ใช้งาน"));
+
+        for (String phone : phoneNumbers) {
+            if (phone != null && !phone.trim().isEmpty()) {
+                EmergencyContact contact = new EmergencyContact();
+                contact.setUser(user);
+                contact.setTelephoneNumber(phone.trim());
+                emergencyContactRepository.save(contact);
+            }
+        }
     }
 }

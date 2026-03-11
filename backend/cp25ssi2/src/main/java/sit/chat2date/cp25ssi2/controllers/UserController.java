@@ -49,6 +49,18 @@ public class UserController {
         ));
     }
 
+    @PutMapping("/emergency-calls")
+    public ResponseEntity<?> updateEmergencyCalls(
+            @RequestAttribute("userId") String userId,
+            @RequestBody sit.chat2date.cp25ssi2.dto.EmergencyCallRequest req) {
+
+        sosIncidentService.updateEmergencyContacts(userId, req.getPhoneNumbers());
+
+        return ResponseEntity.ok(Map.of(
+                "message", "อัปเดตเบอร์โทรฉุกเฉินเรียบร้อยแล้ว"
+        ));
+    }
+
     @GetMapping("/{id}")
     public User getUserById(@PathVariable String id) {
         return userRepository.findByUserId(id).orElseThrow(() -> new NotFoundException("User not found"));
