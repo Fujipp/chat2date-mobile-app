@@ -1,6 +1,6 @@
 import 'dart:async';
 
-import 'package:chat2date/components/calendar/calendar_card.dart';
+import 'package:chat2date/components/calendar/calendar_modal.dart';
 import 'package:chat2date/components/chat/bot_message_component.dart';
 import 'package:chat2date/components/chat/chat_text_component.dart';
 import 'package:chat2date/components/chat/input_chat_component.dart';
@@ -71,6 +71,11 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
   String _lastSpunPlaceId = '';
   String _lastSpunPlaceName = '';
   bool _isCalendarLoading = false;
+  // overlay state (เหมือน SpinWheel)
+  bool _showCalendarModal = false;
+  String _calendarPlaceName = '';
+  String _calendarPlaceId = '';
+  bool _calendarIsEditMode = false;
 
   bool _isLoadingMessages = true;
   bool _isLoadingMore = false;
@@ -1112,68 +1117,23 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
     }
   }
 
-  /// แสดง CalendarCard modal (create หรือ edit)
+  /// แสดง CalendarModal overlay (เหมือน SpinWheel)
   void _showCalendarModalSheet() {
     final existing = _existingAppointment;
     final isEditMode = existing != null;
-    final placeName =
-        isEditMode ? existing.placeName : _lastSpunPlaceName;
+    final placeName = isEditMode ? existing.placeName : _lastSpunPlaceName;
     final placeId = isEditMode ? existing.placeId : _lastSpunPlaceId;
-    final initialDate = isEditMode ? existing.dateTime : DateTime.now();
-    final initialTime = TimeOfDay.fromDateTime(initialDate);
+    setState(() {
+      _calendarPlaceName = placeName;
+      _calendarPlaceId = placeId;
+      _calendarIsEditMode = isEditMode;
+      _showCalendarModal = true;
+    });
+  }
 
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (ctx) => DraggableScrollableSheet(
-        initialChildSize: 0.92,
-        minChildSize: 0.5,
-        maxChildSize: 0.95,
-        builder: (context, scrollController) => Container(
-          decoration: const BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-          ),
-          padding: const EdgeInsets.all(20),
-          child: SingleChildScrollView(
-            controller: scrollController,
-            child: CalendarCard(
-              initialMonth: DateTime(initialDate.year, initialDate.month, 1),
-              initialTime: initialTime,
-              placeName: placeName.isNotEmpty ? placeName : 'ยังไม่ได้เลือกสถานที่',
-              placeCountText: 'คุณมี 1 สถานที่เดต!!',
-              // แสดง trash icon เพาะใน edit mode
-              onTrash: isEditMode
-                  ? () {
-                      Navigator.pop(ctx); // ปิด calendar modal
-                      _showDeleteConfirmDialog(existing.appointmentId);
-                    }
-                  : null,
-              onClose: () {
-                if (isEditMode) {
-                  // ใน edit mode: ถามยืนยันก่อนปิด
-                  Navigator.pop(ctx); // ปิด calendar ก่อน
-                  _showCancelEditConfirmDialog();
-                } else {
-                  Navigator.pop(ctx);
-                }
-              },
-              onSave: (date, time) async {
-                Navigator.pop(ctx); // ปิด calendar modal
-                await _saveAppointment(
-                  date: date,
-                  isEditMode: isEditMode,
-                  existingId: existing?.appointmentId,
-                  placeId: placeId,
-                  placeName: placeName,
-                );
-              },
-            ),
-          ),
-        ),
-      ),
-    );
+  /// ปิด CalendarModal overlay
+  void _closeCalendar() {
+    setState(() => _showCalendarModal = false);
   }
 
   /// บันทึกนัดหมาย (create หรือ update)
@@ -1223,18 +1183,22 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
 
   /// State 2: success dialog หลังบันทึก
   void _showSaveSuccessDialog(Appointment appointment) {
-    final dt = appointment.dateTime.toLocal();
-    final thaiMonths = [
-      'มกราคม', 'กุมภาพันธ์', 'มีนาคม', 'เมษายน',
-      'พฤษภาคม', 'มิถุนายน', 'กรกฎาคม', 'สิงหาคม',
-      'กันยายน', 'ตุลาคม', 'พฤศจิกายน', 'ธันวาคม',
-    ];
-    final hour = dt.hour;
-    final amPm = hour < 12 ? 'AM' : 'PM';
-    final hour12 = hour % 12 == 0 ? 12 : hour % 12;
-    final minute = dt.minute.toString().padLeft(2, '0');
-    final dateStr =
-        '${dt.day} ${thaiMonths[dt.month - 1]} ${dt.year} $hour12:$minute $amPm';
+    final dt = appointment.dateTime?.toLocal();
+    String dateStr;
+    if (dt != null) {
+      final thaiMonths = [
+        'มกราคม', 'กุมภาพันธ์', 'มีนาคม', 'เมษายน',
+        'พฤษภาคม', 'มิถุนายน', 'กรกฎาคม', 'สิงหาคม',
+        'กันยายน', 'ตุลาคม', 'พฤศจิกายน', 'ธันวาคม',
+      ];
+      final hour = dt.hour;
+      final amPm = hour < 12 ? 'AM' : 'PM';
+      final hour12 = hour % 12 == 0 ? 12 : hour % 12;
+      final minute = dt.minute.toString().padLeft(2, '0');
+      dateStr = '${dt.day} ${thaiMonths[dt.month - 1]} ${dt.year} $hour12:$minute $amPm';
+    } else {
+      dateStr = 'ยังไม่ได้ระบุวันที่';
+    }
 
     showDialog(
       context: context,
@@ -2230,6 +2194,49 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
                   });
                 },
               ),
+
+              // === Calendar Modal (เหมือน SpinWheel overlay) ===
+              if (_showCalendarModal) ...[
+                CalendarModal(
+                  isVisible: _showCalendarModal,
+                  placeName: _calendarPlaceName,
+                  placeCountText: 'คุณมี 1 สถานที่เดต!!',
+                  initialMonth: () {
+                    final dt = _calendarIsEditMode
+                        ? (_existingAppointment?.dateTime ?? DateTime.now())
+                        : DateTime.now();
+                    return DateTime(dt.year, dt.month, 1);
+                  }(),
+                  initialTime: () {
+                    final dt = _calendarIsEditMode
+                        ? (_existingAppointment?.dateTime ?? DateTime.now())
+                        : DateTime.now();
+                    return TimeOfDay.fromDateTime(dt);
+                  }(),
+                  isEditMode: _calendarIsEditMode,
+                  onClose: () {
+                    _closeCalendar();
+                    if (_calendarIsEditMode) {
+                      _showCancelEditConfirmDialog();
+                    }
+                  },
+                  onTrash: () {
+                    _closeCalendar();
+                    final id = _existingAppointment?.appointmentId;
+                    if (id != null) _showDeleteConfirmDialog(id);
+                  },
+                  onSave: (date, time) async {
+                    _closeCalendar();
+                    await _saveAppointment(
+                      date: date,
+                      isEditMode: _calendarIsEditMode,
+                      existingId: _existingAppointment?.appointmentId,
+                      placeId: _calendarPlaceId,
+                      placeName: _calendarPlaceName,
+                    );
+                  },
+                ),
+              ],
             ],
           ),
         ),
