@@ -196,4 +196,10 @@ public class GlobalExceptionHandler {
         return build(HttpStatus.UNSUPPORTED_MEDIA_TYPE, ex.getMessage(), req.getRequestURI());
     }
 
+    @ExceptionHandler(LockedException.class)
+    public ResponseEntity<ErrorResponse> handleLocked(LockedException ex, HttpServletRequest req) {
+        // ใช้ method build ที่คุณมีอยู่แล้วเพื่อให้ format เหมือนกันทั้งโปรเจกต์
+        return build(HttpStatus.LOCKED, ex.getMessage(), req.getRequestURI());
+    }
+
 }

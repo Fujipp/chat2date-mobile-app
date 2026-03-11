@@ -18,14 +18,19 @@ import sit.chat2date.cp25ssi2.dto.ConfirmationRequest;
 import sit.chat2date.cp25ssi2.dto.PlaceDTO;
 import sit.chat2date.cp25ssi2.dto.RecommendationResponse;
 import sit.chat2date.cp25ssi2.entities.*;
+import sit.chat2date.cp25ssi2.enums.AppointmentStatus;
 import sit.chat2date.cp25ssi2.enums.ConfirmAction;
 import sit.chat2date.cp25ssi2.enums.ConfirmationStatus;
 import sit.chat2date.cp25ssi2.exceptions.ForbiddenAccessException;
+import sit.chat2date.cp25ssi2.exceptions.LockedException;
+import sit.chat2date.cp25ssi2.exceptions.NotFoundException;
+import sit.chat2date.cp25ssi2.exceptions.TooManyRequestException;
 import sit.chat2date.cp25ssi2.repositories.*;
 
 import java.math.BigDecimal;
 import java.time.Duration;
 import java.util.*;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 @Service
@@ -51,12 +56,22 @@ public class DateRecommendService {
     private RestTemplate restTemplate;
     @Autowired
     private PlaceConfirmationRepository placeConfirmationRepository;
+    @Autowired
+    private AppointmentRepository appointmentRepository;
 
     @Value("${google.map.id}")
     private String googleId;
 
     public ResponseEntity<RecommendationResponse> DateRecommendationById(String roomId, String mode, String userTarget, int range, String accessToken) throws JsonProcessingException {
         User user = extractToken(accessToken);
+
+        Match match = matchRepository.findById(Integer.valueOf(roomId))
+                .orElseThrow(() -> new NotFoundException("Match not found with id: " + roomId));
+
+        if (!Objects.equals(user.getUserId(), match.getUserId1().getUserId()) &&
+                !Objects.equals(user.getUserId(), match.getUserId2().getUserId())) {
+            throw new ForbiddenAccessException("Forbidden: cannot access another user's data");
+        }
 
         String lockKey = "lock:room:" + roomId;
         String leaderKey = "room_leader:" + user.getUserId();
@@ -65,6 +80,11 @@ public class DateRecommendService {
         String cachedData = (String) redis.opsForValue().get(dataKey);
         if (cachedData != null) {
             return ResponseEntity.ok(objectMapper.readValue(cachedData, RecommendationResponse.class));
+        }
+
+        String rateKey = "rate_limit:spin:" + user.getUserId();
+        if (redis.hasKey(rateKey)) {
+            throw new TooManyRequestException("Too many request: need to wait for a rate limit");
         }
 
         Object leaderObj = redis.opsForValue().get(leaderKey);
@@ -108,6 +128,7 @@ public class DateRecommendService {
                 );
 
                 redis.opsForValue().set(dataKey, objectMapper.writeValueAsString(finalResponse), Duration.ofMinutes(30));
+                redis.opsForValue().set(rateKey, "1", 15, TimeUnit.SECONDS);
 
                 return ResponseEntity.ok(finalResponse);
             } finally {
@@ -115,16 +136,18 @@ public class DateRecommendService {
             }
         }
 
-        return ResponseEntity.status(HttpStatus.CONFLICT).body(null);
+        throw new LockedException("Your partner still spinning");
     }
 
     public PlaceConfirmation confirmPlace(String roomId, String accessToken, ConfirmationRequest confirmationRequest) {
         User user = extractToken(accessToken);
-        Match match = matchRepository.findById(Integer.valueOf(roomId)).orElseThrow();
+
+        Match match = matchRepository.findById(Integer.valueOf(roomId))
+                .orElseThrow(() -> new NotFoundException("Match not found with id: " + roomId));
 
         if (!Objects.equals(user.getUserId(), match.getUserId1().getUserId()) &&
                 !Objects.equals(user.getUserId(), match.getUserId2().getUserId())) {
-            throw new ForbiddenAccessException("Forbidden: คุณไม่มีสิทธิ์เข้าถึงข้อมูลของห้องนี้");
+            throw new ForbiddenAccessException("Forbidden: cannot access another user's data");
         }
 
         String targetDisplayName = confirmationRequest.getPlaceName();
@@ -139,7 +162,7 @@ public class DateRecommendService {
 
             String cachedData = (String) redis.opsForValue().get(dataKey);
             if (cachedData == null) {
-                throw new RuntimeException("Recommendation data not found or expired (Place must be created from recommended data)");
+                throw new NotFoundException("Recommendation data not found or expired (Place must be created from recommended data)");
             }
 
             try {
@@ -147,7 +170,7 @@ public class DateRecommendService {
                 PlaceDTO selectedPlaceFromRedis = recommendation.getPlaces().stream()
                         .filter(p -> p.getName().equals(targetDisplayName))
                         .findFirst()
-                        .orElseThrow(() -> new RuntimeException("ไม่พบสถานที่นี้ในรายการแนะนำ และไม่มีข้อมูลในฐานข้อมูล"));
+                        .orElseThrow(() -> new NotFoundException("Place selected not found in database and recommendation data"));
 
                 Place newPlace = new Place();
                 newPlace.setPlaceId(selectedPlaceFromRedis.getGooglePlaceId());
@@ -186,6 +209,11 @@ public class DateRecommendService {
 
         if (pc.getUser1Confirmed() == ConfirmAction.AGREED && pc.getUser2Confirmed() == ConfirmAction.AGREED) {
             pc.setStatus(ConfirmationStatus.AGREED);
+            Appointment appointment = new Appointment();
+            appointment.setMatch(match);
+            appointment.setPlace(placeToUse);
+            appointment.setStatus(AppointmentStatus.PLACE_SELECTED);
+            appointmentRepository.save(appointment);
         } else if (pc.getUser1Confirmed() == ConfirmAction.DISAGREED || pc.getUser2Confirmed() == ConfirmAction.DISAGREED) {
             if (pc.getUser1Confirmed() != ConfirmAction.BLANK && pc.getUser2Confirmed() != ConfirmAction.BLANK) {
                 pc.setStatus(ConfirmationStatus.REJECTED);
@@ -200,7 +228,7 @@ public class DateRecommendService {
 
         // 1. หา Match เพื่อระบุว่า User นี้คือ User1 หรือ User2 ของห้องนี้
         Match match = matchRepository.findById(Integer.valueOf(roomId))
-                .orElseThrow(() -> new RuntimeException("Match not found"));
+                .orElseThrow(() -> new NotFoundException("Match not found with id: " + roomId));
 
         // 2. ดึงรายการ Confirmation ล่าสุดที่ยัง PENDING อยู่
         Optional<PlaceConfirmation> pendingConfirmation = placeConfirmationRepository
@@ -220,7 +248,7 @@ public class DateRecommendService {
         } else if (Objects.equals(currentUserId, match.getUserId2().getUserId())) {
             return pc.getUser2Confirmed(); // คืนค่า AGREE, DISAGREE หรือ BLANK ของ User2
         } else {
-            throw new ForbiddenAccessException("คุณไม่ใช่สมาชิกใน Match นี้");
+            throw new ForbiddenAccessException("Forbidden: cannot access another user's data");
         }
     }
 
