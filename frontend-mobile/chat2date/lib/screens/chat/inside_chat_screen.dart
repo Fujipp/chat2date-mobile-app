@@ -14,12 +14,14 @@ import 'package:chat2date/components/toasts/toast.dart';
 import 'package:chat2date/models/appointment.dart';
 import 'package:chat2date/models/chat_access_status.dart';
 import 'package:chat2date/models/chat_message.dart';
+import 'package:chat2date/models/dto/date_recommend_dto.dart';
 import 'package:chat2date/models/relationship_bar.dart';
 import 'package:chat2date/models/user.dart';
 import 'package:chat2date/screens/game/guessing_game_screen.dart';
 import 'package:chat2date/services/appointment_service.dart';
 import 'package:chat2date/services/chat_service.dart';
 import 'package:chat2date/services/chat_socket_service.dart';
+import 'package:chat2date/services/date_recommend_service.dart';
 import 'package:chat2date/services/game_service.dart';
 import 'package:chat2date/services/game_socket_service.dart';
 import 'package:chat2date/services/user_service.dart';
@@ -59,12 +61,13 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
   int _heartCount = 0; // 0 = ซ่อน, 1-2 = แสดง, 3 = rainbow
   bool _showWheelModal = false;
   bool _showUnlockDate = false;
-  final bool _showSpinWheel = false;
   bool firstTime = true;
   int talkCount = 0;
   int _steakDays = 0;
   bool _isFirstMessageBonus = false;
   int _dailyMessagesCount = 0;
+  String nickname = '';
+  List<Map<String, dynamic>> _dynamicPrizes = [];
 
   // === Appointment / Calendar ===
   Appointment? _existingAppointment;
@@ -191,6 +194,10 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
     // Register keyboard observer
     WidgetsBinding.instance.addObserver(this);
     // รับข้อมูลจาก arguments
+    final userStore = ref.read(userStoreProvider);
+    final userStoreMap = userStore as Map<String, dynamic>?;
+    final user = userStoreMap?['user'] as User?;
+    nickname = user?.nickname ?? 'คุณ';
     _chatUserId = widget.targetUserId;
     _chatUserName = widget.userName ?? 'Name';
     _chatUserAvatar = widget.avatarUrl;
@@ -692,8 +699,7 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
       });
 
       // เช็คเงื่อนไขปลดล็อกฟีเจอร์ใหม่ (เช่น หัวใจดวงแรก)
-      if (oldHeartCount == 0 &&
-          _heartCount >= 1) {
+      if (oldHeartCount == 0 && _heartCount >= 1) {
         _triggerUnlockDate();
       }
     });
@@ -1025,14 +1031,17 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
   }
 
   /// บันทึกเมื่อหมุนวงล้อสำเร็จ
-  void _onSpinComplete(String result) {
+  void _onSpinComplete(Map<String, dynamic> result) {
     setState(() {
       _lastSpinDate = DateTime.now();
       _showWheelModal = false;
-
     });
     _calculateSpinwheelCooldown();
-    _addLocalBotMessage(type: BotMessageType.ask, text: "สุ่มได้ไปเที่ยวที่ $result !!!", description: "คุณอยากไปเที่ยว ’$result’ หรือไม่",);
+    _addLocalBotMessage(
+      type: BotMessageType.ask,
+      text: "สุ่มได้ไปเที่ยวที่ ${result['name']} !!!",
+      description: "คุณอยากไปเที่ยว ’${result['name']}’ หรือไม่",
+    );
     // TODO: บันทึก _lastSpinDate ไปยัง backend
   }
 
@@ -1045,7 +1054,7 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
   }
 
   /// จัดการการกด spinwheel
-  void _handleSpinwheelTap() {
+  void _handleSpinwheelTap() async {
     if (!_canSpin) {
       // อยู่ใน cooldown - แสดง message
       ScaffoldMessenger.of(context).showSnackBar(
@@ -1068,10 +1077,29 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
       return;
     }
 
+    await _prepareBeforeSpin();
     // ผ่านทุกเงื่อนไข - เปิด modal
     setState(() {
       _showWheelModal = true;
     });
+  }
+
+  Future<void> _prepareBeforeSpin() async {
+    final service = ref.read(dateRecommendProvider);
+    try {
+      final recommendations = await service.getRecommendations(
+        roomId: widget.roomId,
+        range: 20,
+      );
+      setState(() {
+        _dynamicPrizes = recommendations.places.map((place) {
+          return {"name": place.name, "imageUrl": place.imageUrl};
+        }).toList();
+        _showWheelModal = true;
+      });
+    } catch (e) {
+      print("Error fetching date recommendations: $e");
+    }
   }
 
   // ===================== Calendar / Appointment Logic =====================
@@ -1091,9 +1119,7 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
       );
 
       // หา appointment ที่ active ล่าสุด (status != CANCELLED)
-      final active = appointments
-          .where((a) => a.status != 'CANCELLED')
-          .toList()
+      final active = appointments.where((a) => a.status != 'CANCELLED').toList()
         ..sort((a, b) => b.appointmentId.compareTo(a.appointmentId));
 
       if (!mounted) return;
@@ -1187,15 +1213,25 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
     String dateStr;
     if (dt != null) {
       final thaiMonths = [
-        'มกราคม', 'กุมภาพันธ์', 'มีนาคม', 'เมษายน',
-        'พฤษภาคม', 'มิถุนายน', 'กรกฎาคม', 'สิงหาคม',
-        'กันยายน', 'ตุลาคม', 'พฤศจิกายน', 'ธันวาคม',
+        'มกราคม',
+        'กุมภาพันธ์',
+        'มีนาคม',
+        'เมษายน',
+        'พฤษภาคม',
+        'มิถุนายน',
+        'กรกฎาคม',
+        'สิงหาคม',
+        'กันยายน',
+        'ตุลาคม',
+        'พฤศจิกายน',
+        'ธันวาคม',
       ];
       final hour = dt.hour;
       final amPm = hour < 12 ? 'AM' : 'PM';
       final hour12 = hour % 12 == 0 ? 12 : hour % 12;
       final minute = dt.minute.toString().padLeft(2, '0');
-      dateStr = '${dt.day} ${thaiMonths[dt.month - 1]} ${dt.year} $hour12:$minute $amPm';
+      dateStr =
+          '${dt.day} ${thaiMonths[dt.month - 1]} ${dt.year} $hour12:$minute $amPm';
     } else {
       dateStr = 'ยังไม่ได้ระบุวันที่';
     }
@@ -1204,9 +1240,7 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
       context: context,
       barrierDismissible: true,
       builder: (ctx) => Dialog(
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(20),
-        ),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         child: Padding(
           padding: const EdgeInsets.all(28),
           child: Column(
@@ -1290,9 +1324,7 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(16),
-        ),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         title: const Text(
           'ยกเลิกการแก้ไข',
           style: TextStyle(
@@ -1326,10 +1358,7 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
               ),
             ),
             onPressed: () => Navigator.pop(ctx),
-            child: const Text(
-              'ยืนยัน',
-              style: TextStyle(color: Colors.white),
-            ),
+            child: const Text('ยืนยัน', style: TextStyle(color: Colors.white)),
           ),
         ],
       ),
@@ -1341,9 +1370,7 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(16),
-        ),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         title: const Text(
           'ยืนยันที่จะลบวันเดตหรือไม่',
           style: TextStyle(
@@ -1380,10 +1407,7 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
               Navigator.pop(ctx);
               await _deleteAppointment(appointmentId);
             },
-            child: const Text(
-              'ยืนยัน',
-              style: TextStyle(color: Colors.white),
-            ),
+            child: const Text('ยืนยัน', style: TextStyle(color: Colors.white)),
           ),
         ],
       ),
@@ -1417,9 +1441,7 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
       context: context,
       barrierDismissible: true,
       builder: (ctx) => Dialog(
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(20),
-        ),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         child: Padding(
           padding: const EdgeInsets.all(28),
           child: Column(
@@ -2133,7 +2155,7 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
                 // 2. ตัว SpinDateComponent
                 // ✅ ใช้ Positioned.fill เพื่อกำหนดขอบเขตพื้นที่ที่เหลือจาก Header
                 Positioned.fill(
-                  top: 85, // เริ่มต้นที่ขอบล่างของ Header
+                  top: 0, // เริ่มต้นที่ขอบล่างของ Header
                   child: Align(
                     alignment: Alignment.center, // จัดกลางใน "พื้นที่ที่เหลือ"
                     child: SingleChildScrollView(
@@ -2164,18 +2186,9 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
                                   onCloseModal: () =>
                                       setState(() => _showWheelModal = false),
                                   onSpinComplete: _onSpinComplete,
-                                  prizes: const [
-                                    {'label': 'หอศิลปวัฒนธรรมแห่งกรุงเทพมหานคร'},
-                                    {'label': 'มิวเซียมสยาม'},
-                                    {'label': 'บ้านศิลปินคลองบางหลวง'},
-                                    {'label': 'ทีซีดีซี กรุงเทพ, ศูนย์สร้างสรรค์งานออกแบบ'},
-                                    {'label': 'ล้ง 1919'},
-                                    {'label': 'หอศิลป์ร่วมสมัยราชดำเนิน'},
-                                    {'label': 'สวนวชิรเบญจทัศ'},
-                                    {'label': 'สวนลอยฟ้าเจ้าพระยา'},
-                                    {'label': 'สถานที่ถ่ายรูป พระธรรมกายเทพมงคล'},
-                                    {'label': 'หอศิลป์ร่วมสมัยราชดำเนิน'},
-                                  ],
+                                  firstPersonName: _chatUserName,
+                                  secondPersonName: nickname,
+                                  prizes: _dynamicPrizes,
                                 ),
                               ],
                             ),
