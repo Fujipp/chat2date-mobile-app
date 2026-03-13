@@ -1,5 +1,6 @@
 import 'package:chat2date/theme/app_colors.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 /// An editable input field component with confirm/cancel actions.
 ///
@@ -60,6 +61,16 @@ class _EditInputFieldState extends State<EditInputField> {
   }
 
   @override
+  void didUpdateWidget(EditInputField oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.initialValue != oldWidget.initialValue) {
+      _savedValue = widget.initialValue ?? '';
+      _controller.text = _savedValue;
+      _state = _savedValue.isNotEmpty ? _EditState.filled : _EditState.empty;
+    }
+  }
+
+  @override
   void dispose() {
     _controller.dispose();
     _focusNode.dispose();
@@ -112,7 +123,7 @@ class _EditInputFieldState extends State<EditInputField> {
         Text(
           widget.label,
           style: const TextStyle(
-            color: AppColors.textPrimary, // Color(0xFF0F172A)
+            color: AppColors.textPrimary,
             fontSize: 16,
             fontFamily: 'Inter',
             height: 1.38,
@@ -132,15 +143,14 @@ class _EditInputFieldState extends State<EditInputField> {
                     vertical: 12,
                   ),
                   decoration: ShapeDecoration(
-                    color: AppColors.inputBg, // Colors.white
+                    color: AppColors.inputBg,
                     shape: RoundedRectangleBorder(
                       borderRadius: _borderRadius,
                       side: BorderSide(
                         width: _state == _EditState.editing ? 1.5 : 1,
                         color: _state == _EditState.editing
-                            ? AppColors
-                                  .inputBorderFocus // Color(0xFF3B82F6) → brandPrimary focus
-                            : AppColors.inputBorder, // Color(0xFFE2E8F0)
+                            ? AppColors.inputBorderFocus
+                            : AppColors.inputBorder,
                       ),
                     ),
                   ),
@@ -152,9 +162,12 @@ class _EditInputFieldState extends State<EditInputField> {
                                 controller: _controller,
                                 focusNode: _focusNode,
                                 keyboardType: widget.keyboardType,
+                                inputFormatters:
+                                    widget.keyboardType == TextInputType.phone
+                                    ? [PhoneNumberFormatter()]
+                                    : [],
                                 style: const TextStyle(
-                                  color: AppColors
-                                      .textPrimary, // Color(0xFF0F172A)
+                                  color: AppColors.textPrimary,
                                   fontSize: 14,
                                   fontFamily: 'Inter',
                                   fontWeight: FontWeight.w400,
@@ -176,10 +189,8 @@ class _EditInputFieldState extends State<EditInputField> {
                                     : widget.placeholder,
                                 style: TextStyle(
                                   color: _state == _EditState.filled
-                                      ? AppColors
-                                            .textPrimary // Color(0xFF0F172A)
-                                      : AppColors
-                                            .inputPlaceholder, // Color(0xFF9AA5B1)
+                                      ? AppColors.textPrimary
+                                      : AppColors.inputPlaceholder,
                                   fontSize: 14,
                                   fontFamily: 'Inter',
                                   fontWeight: FontWeight.w400,
@@ -197,12 +208,10 @@ class _EditInputFieldState extends State<EditInputField> {
                             child: Icon(
                               Icons.remove,
                               size: 16,
-                              color: AppColors.info,
+                              color: AppColors.error,
                             ),
                           ),
                         ),
-
-                      // (+) inside field — empty / filled state
                       if (_state != _EditState.editing)
                         GestureDetector(
                           onTap: _startEditing,
@@ -211,8 +220,7 @@ class _EditInputFieldState extends State<EditInputField> {
                             child: Icon(
                               Icons.add,
                               size: 18,
-                              color:
-                                  AppColors.brandPrimary, // Color(0xFF78CEFF)
+                              color: AppColors.brandPrimary,
                             ),
                           ),
                         ),
@@ -226,13 +234,13 @@ class _EditInputFieldState extends State<EditInputField> {
             if (_state == _EditState.editing) ...[
               const SizedBox(width: 8),
               _IconButton(
-                color: AppColors.brandSecondary, // Color(0xFF98FB98)
+                color: AppColors.brandSecondary,
                 icon: Icons.check,
                 onTap: _confirmEdit,
               ),
               const SizedBox(width: 8),
               _IconButton(
-                color: AppColors.error, // Color(0xFFFF6B6B)
+                color: AppColors.error,
                 icon: Icons.close,
                 onTap: _cancelEdit,
               ),
@@ -245,6 +253,7 @@ class _EditInputFieldState extends State<EditInputField> {
 }
 
 class _IconButton extends StatelessWidget {
+  // ... (โค้ด _IconButton คงเดิม) ...
   const _IconButton({
     required this.color,
     required this.icon,
@@ -269,13 +278,42 @@ class _IconButton extends StatelessWidget {
           ),
         ),
         child: Center(
-          child: Icon(
-            icon,
-            size: 16,
-            color: AppColors.backgroundWhite,
-          ), // Colors.white → on-color
+          child: Icon(icon, size: 16, color: AppColors.backgroundWhite),
         ),
       ),
+    );
+  }
+}
+
+class PhoneNumberFormatter extends TextInputFormatter {
+  @override
+  TextEditingValue formatEditUpdate(
+    TextEditingValue oldValue,
+    TextEditingValue newValue,
+  ) {
+    if (newValue.text.isEmpty) return newValue;
+
+    // กรองเอามาเฉพาะตัวเลขล้วนๆ
+    final text = newValue.text.replaceAll(RegExp(r'\D'), '');
+    String formatted = '';
+
+    // วนลูปจับยัดขีด '-' ทุกๆ 3 ตัวแรก และ 3 ตัวถัดมา
+    for (int i = 0; i < text.length; i++) {
+      if (i == 3 || i == 6) {
+        formatted += '-';
+      }
+      formatted += text[i];
+    }
+
+    // ตัดความยาวไม่ให้เกิน 12 ตัวอักษร (เลข 10 + ขีด 2)
+    if (formatted.length > 12) {
+      formatted = formatted.substring(0, 12);
+    }
+
+    return TextEditingValue(
+      text: formatted,
+      // ดัน Cursor ไปไว้ขวาสุดเสมอเวลาพิมพ์
+      selection: TextSelection.collapsed(offset: formatted.length),
     );
   }
 }
