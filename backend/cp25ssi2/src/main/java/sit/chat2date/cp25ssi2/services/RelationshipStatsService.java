@@ -106,12 +106,13 @@ public class RelationshipStatsService {
         if (relationshipStatsById.isPresent()) {
             RelationshipStats stats = relationshipStatsById.get();
 
-            // ถ้า Noti Unmatch ไม่ใช่ NONE (แปลว่าเป็น LEFT, RIGHT หรือ BOTH) ให้ข้ามการอัปเดตไปเลย
-            if (stats.getNotiUnmatch() != NotifyStatus.NONE) {
-                return stats; // คืนค่าเดิมกลับไป ไม่ต้องคำนวณ ไม่ต้องเซฟ
+            if ((stats.getNotiUnmatch() != NotifyStatus.NONE) ||
+                    (stats.getIsFirstMessageBonus() == false && stats.getStreakDays() <= -7) ||
+                    (stats.getStreakDays() <= -30)) {
+                return stats;
             }
         }
-        
+
         int score = 0;
 
         Optional<Match> matchById = matchRepository.findById(roomId);
