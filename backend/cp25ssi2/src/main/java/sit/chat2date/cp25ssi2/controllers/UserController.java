@@ -32,33 +32,11 @@ public class UserController {
     private UserService userService;
     @Autowired
     private IdentityService identityService;
-    @Autowired
-    private SosIncidentService sosIncidentService;
+
 
     @GetMapping("")
     public List<User> getAllUsers() {
         return userRepository.findAll();
-    }
-
-    @GetMapping("/emergency-calls")
-    public ResponseEntity<?> getEmergencyCall(
-            @RequestAttribute("userId") String userId) {
-        List<String> phoneNumbers = sosIncidentService.getEmergencyContacts(userId);
-        return ResponseEntity.ok(Map.of(
-                "phoneNumber", phoneNumbers
-        ));
-    }
-
-    @PutMapping("/emergency-calls")
-    public ResponseEntity<?> updateEmergencyCalls(
-            @RequestAttribute("userId") String userId,
-            @RequestBody sit.chat2date.cp25ssi2.dto.EmergencyCallRequest req) {
-
-        sosIncidentService.updateEmergencyContacts(userId, req.getPhoneNumbers());
-
-        return ResponseEntity.ok(Map.of(
-                "message", "อัปเดตเบอร์โทรฉุกเฉินเรียบร้อยแล้ว"
-        ));
     }
 
     @GetMapping("/{id}")

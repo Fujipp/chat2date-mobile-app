@@ -70,10 +70,6 @@ public class SosIncidentService {
     public List<String> getEmergencyContacts(String userId) {
         List<EmergencyContact> contacts = emergencyContactRepository.findByUser_UserId(userId);
 
-        if (contacts.isEmpty()) {
-            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "ไม่พบเบอร์ฉุกเฉินของผู้ใช้งาน");
-        }
-
         return contacts.stream()
                 .map(EmergencyContact::getTelephoneNumber)
                 .toList();
