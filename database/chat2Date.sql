@@ -187,7 +187,7 @@ COLLATE = utf8mb4_0900_ai_ci;
 CREATE TABLE IF NOT EXISTS `chat2date`.`userlocation` (
   `locationId` INT NOT NULL AUTO_INCREMENT,
   `latitude` DECIMAL(11,8) NOT NULL,
-  `longtitude` DECIMAL(11,8) NOT NULL,
+  `longitude` DECIMAL(11,8) NOT NULL,
   `accuracy` DECIMAL(6,2) NOT NULL,
   `timestamp` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `userId` VARCHAR(36) NOT NULL,

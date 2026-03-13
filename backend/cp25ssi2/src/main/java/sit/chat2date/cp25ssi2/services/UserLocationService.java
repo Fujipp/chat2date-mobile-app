@@ -25,7 +25,7 @@ public class UserLocationService {
 
     public String updateCurrentUserLocation(String accessToken, UpdateLocationRequest req) {
         // 1) Validate coordinates
-        if (req == null || req.getLatitude() == 0.0 && req.getLongtitude() == 0.0) {
+        if (req == null || req.getLatitude() == 0.0 && req.getLongitude() == 0.0) {
             throw new ResponseStatusException(
                     HttpStatus.BAD_REQUEST,
                     "Missing coordinates: latitude and longitude are required"
@@ -41,7 +41,7 @@ public class UserLocationService {
         }
 
         // Validate longitude range: -180 to 180
-        if (req.getLongtitude() < -180.0 || req.getLongtitude() > 180.0) {
+        if (req.getLongitude() < -180.0 || req.getLongitude() > 180.0) {
             throw new ResponseStatusException(
                     HttpStatus.BAD_REQUEST,
                     "Invalid longitude: must be between -180 and 180 degrees"
@@ -92,13 +92,13 @@ public class UserLocationService {
             }
 
             location.setLatitude(BigDecimal.valueOf(req.getLatitude()));
-            location.setLongtitude(BigDecimal.valueOf(req.getLongtitude()));
+            location.setLongitude(BigDecimal.valueOf(req.getLongitude()));
             location.setAccuracy(BigDecimal.valueOf(req.getAccuracy()));
             location.setTimestamp(Instant.now());
 
             userLocationRepository.save(location);
 
-            return "https://www.google.com/maps/search/?api=1&query=" + req.getLatitude() + "," + req.getLongtitude();
+            return "https://www.google.com/maps/search/?api=1&query=" + req.getLatitude() + "," + req.getLongitude();
 
         } catch (ResponseStatusException e) {
             // ส่งต่อให้ GlobalExceptionHandler จัดการ (จะได้ status ตามที่ set ไว้)

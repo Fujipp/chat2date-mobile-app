@@ -111,7 +111,7 @@ public class DateRecommendService {
                 if (mode.equals("DISTANCE")) {
                     UserLocation target = "Partner".equalsIgnoreCase(userTarget) ? partnerLoc : myLoc;
                     targetLat = target.getLatitude().doubleValue();
-                    targetLng = target.getLongtitude().doubleValue();
+                    targetLng = target.getLongitude().doubleValue();
                 } else {
                     Coordinates coordinates = calculateMidpoint(user1Location, user2Location);
                     targetLng = coordinates.lng;
@@ -320,7 +320,7 @@ public class DateRecommendService {
 
     public Coordinates calculateMidpoint(UserLocation user1, UserLocation user2) {
         double midLat = (user1.getLatitude().doubleValue() + user2.getLatitude().doubleValue()) / 2;
-        double midLng = (user1.getLongtitude().doubleValue() + user2.getLongtitude().doubleValue()) / 2;
+        double midLng = (user1.getLongitude().doubleValue() + user2.getLongitude().doubleValue()) / 2;
 
         return new Coordinates(midLat, midLng);
     }
