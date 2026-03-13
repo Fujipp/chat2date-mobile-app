@@ -62,7 +62,7 @@ public class DateRecommendService {
     @Value("${google.map.id}")
     private String googleId;
 
-    public ResponseEntity<RecommendationResponse> DateRecommendationById(String roomId, String mode, String userTarget, int range, String accessToken) throws JsonProcessingException {
+    public ResponseEntity<RecommendationResponse> DateRecommendationById(String roomId, String mode, String userTarget, int range, String accessToken, boolean forceRefresh) throws JsonProcessingException {
         User user = extractToken(accessToken);
 
         Match match = matchRepository.findById(Integer.valueOf(roomId))
@@ -77,9 +77,11 @@ public class DateRecommendService {
         String leaderKey = "room_leader:" + user.getUserId();
         String dataKey = buildDataKey(roomId, mode, userTarget);
 
-        String cachedData = (String) redis.opsForValue().get(dataKey);
-        if (cachedData != null) {
-            return ResponseEntity.ok(objectMapper.readValue(cachedData, RecommendationResponse.class));
+        if (!forceRefresh) {
+            String cachedData = (String) redis.opsForValue().get(dataKey);
+            if (cachedData != null) {
+                return ResponseEntity.ok(objectMapper.readValue(cachedData, RecommendationResponse.class));
+            }
         }
 
         String rateKey = "rate_limit:spin:" + user.getUserId();
@@ -99,10 +101,9 @@ public class DateRecommendService {
 
         if (Boolean.TRUE.equals(redis.opsForValue().setIfAbsent(lockKey, "processing", Duration.ofSeconds(15)))) {
             try {
-                Optional<Match> matchById = matchRepository.findById(Integer.valueOf(roomId));
-                UserLocation user1Location = userLocationRepository.findFirstByUser_UserId(String.valueOf(matchById.get().getUserId1().getUserId()));
-                UserLocation user2Location = userLocationRepository.findFirstByUser_UserId(String.valueOf(matchById.get().getUserId2().getUserId()));
-                boolean isUser1Me = String.valueOf(matchById.get().getUserId1().getUserId()).equals(user.getUserId());
+                UserLocation user1Location = userLocationRepository.findFirstByUser_UserId(match.getUserId1().getUserId());
+                UserLocation user2Location = userLocationRepository.findFirstByUser_UserId(match.getUserId2().getUserId());
+                boolean isUser1Me = String.valueOf(match.getUserId1().getUserId()).equals(user.getUserId());
                 UserLocation myLoc = isUser1Me ? user1Location : user2Location;
                 UserLocation partnerLoc = isUser1Me ? user2Location : user1Location;
 

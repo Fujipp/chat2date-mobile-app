@@ -21,8 +21,8 @@ public class DateRecommendController {
     private DateRecommendService dateRecommendService;
 
     @GetMapping("/{roomId}")
-    public ResponseEntity<?> GetDateRecommendationByRoomId(@PathVariable String roomId, @RequestParam(required = false, defaultValue = "MIDPOINT") String mode, @RequestParam(required = false) String userTarget, @RequestParam(required = true) int range, @RequestHeader("Authorization") String accessToken) throws JsonProcessingException {
-        return dateRecommendService.DateRecommendationById(roomId, mode, userTarget, range, accessToken);
+    public ResponseEntity<?> GetDateRecommendationByRoomId(@PathVariable String roomId, @RequestParam(required = false, defaultValue = "MIDPOINT") String mode, @RequestParam(required = false) String userTarget, @RequestParam(required = true) int range, @RequestHeader("Authorization") String accessToken, @RequestParam(required = false, defaultValue = "false") boolean forceRefresh) throws JsonProcessingException {
+        return dateRecommendService.DateRecommendationById(roomId, mode, userTarget, range, accessToken, forceRefresh);
     }
 
     @GetMapping("/{roomId}/confirm")

@@ -102,6 +102,16 @@ public class RelationshipStatsService {
         Integer roomId = Integer.parseInt(roomIdStr);
         Optional<RelationshipStats> relationshipStatsById = relationshipStatsRepository
                 .findByRoomId(roomId);
+
+        if (relationshipStatsById.isPresent()) {
+            RelationshipStats stats = relationshipStatsById.get();
+
+            // ถ้า Noti Unmatch ไม่ใช่ NONE (แปลว่าเป็น LEFT, RIGHT หรือ BOTH) ให้ข้ามการอัปเดตไปเลย
+            if (stats.getNotiUnmatch() != NotifyStatus.NONE) {
+                return stats; // คืนค่าเดิมกลับไป ไม่ต้องคำนวณ ไม่ต้องเซฟ
+            }
+        }
+        
         int score = 0;
 
         Optional<Match> matchById = matchRepository.findById(roomId);
@@ -239,7 +249,7 @@ public class RelationshipStatsService {
 
             RelationshipStats savedStats = relationshipStatsRepository.save(relationshipStatsById.get());
             gameService.checkAndTriggerGame(roomId);
-            return relationshipStatsRepository.save(relationshipStatsById.get());
+            return savedStats;
         } else {
             RelationshipStats relationshipStats = new RelationshipStats();
             relationshipStats.setRelationshipId(roomId);
