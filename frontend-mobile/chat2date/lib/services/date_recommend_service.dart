@@ -88,9 +88,7 @@ class DateRecommendService {
     }
   }
 
-  Future<String?> checkConfirmPlace({
-    required String? roomId,
-  }) async {
+  Future<String?> checkConfirmPlace({required String? roomId}) async {
     final userState = ref.read(userStoreProvider);
     final accessToken = "${userState['accessToken']}";
 
@@ -107,8 +105,11 @@ class DateRecommendService {
     );
 
     if (response.statusCode == 200) {
-      return jsonDecode(response.body).toString();
-      
+      final Map<String, dynamic> data = jsonDecode(
+        utf8.decode(response.bodyBytes),
+      );
+
+      return data['status']?.toString();
     } else {
       throw Exception('Failed to confirm place: ${response.body}');
     }
