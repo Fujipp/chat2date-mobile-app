@@ -74,6 +74,8 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
   int _dailyMessagesCount = 0;
   String nickname = '';
   List<Map<String, dynamic>> _dynamicPrizes = [];
+  String _spinMode = '';
+  String? _myConfirmStatus = "";
 
   // === Appointment / Calendar ===
   Appointment? _existingAppointment;
@@ -1072,19 +1074,23 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
     }
   }
 
-  /// บันทึกเมื่อหมุนวงล้อสำเร็จ
-  void _onSpinComplete(Map<String, dynamic> result) {
+  void _onSpinComplete(Map<String, dynamic> result) async {
     setState(() {
       _lastSpinDate = DateTime.now();
       _showWheelModal = false;
     });
     _calculateSpinwheelCooldown();
-    _addLocalBotMessage(
-      type: BotMessageType.ask,
-      text: "สุ่มได้ไปเที่ยวที่ ${result['name']} !!!",
-      description: "คุณอยากไปเที่ยว ’${result['name']}’ หรือไม่",
-    );
-    // TODO: บันทึก _lastSpinDate ไปยัง backend
+    final service = ref.read(dateRecommendProvider);
+    try {
+      final recommendations = await service.confirmPlace(
+        roomId: widget.roomId,
+        placeName: result['name'],
+        action: 'BLANK',
+        mode: _spinMode,
+      );
+    } catch (e) {
+      print("Error fetching date recommendations: $e");
+    }
   }
 
   /// เช็คเงื่อนไขว่า user ผ่านหรือไม่ก่อนเปิด spinwheel
@@ -1132,8 +1138,10 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
       final recommendations = await service.getRecommendations(
         roomId: widget.roomId,
         range: 20,
+        mode: 'DISTANCE',
       );
       setState(() {
+        _spinMode = recommendations.mode;
         _dynamicPrizes = recommendations.places.map((place) {
           return {"name": place.name, "imageUrl": place.imageUrl};
         }).toList();
@@ -1716,6 +1724,41 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
     });
   }
 
+  Future<void> _handleConfirmAction(ChatMessage message, String action) async {
+    final service = ref.read(dateRecommendProvider);
+    try {
+      // LAYER 1: เช็คสถานะล่าสุดจาก Server ก่อน (Double Check ตามที่คุณต้องการ)
+      final latestStatus = await service.checkConfirmPlace(
+        roomId: widget.roomId,
+      );
+
+      if (latestStatus != null && latestStatus != "BLANK") {
+        setState(() {
+          _myConfirmStatus = latestStatus;
+        });
+        return;
+      }
+
+      String firstPart = message.text.split('|').first.trim();
+      String placeNameOnly = firstPart
+          .replaceAll('สุ่มได้ไปเที่ยวที่ ', '')
+          .replaceAll(' !!!', '')
+          .trim();
+      await service.confirmPlace(
+        roomId: widget.roomId,
+        placeName: placeNameOnly,
+        action: action,
+      );
+
+      // เมื่อสำเร็จ ให้ล็อคปุ่มในเครื่องเราทันที
+      setState(() {
+        _myConfirmStatus = action;
+      });
+    } catch (e) {
+      debugPrint('Confirm Error: $e');
+    }
+  }
+
   /// สร้าง Widget สำหรับแต่ละ message
   Widget _buildMessageWidget(
     ChatMessage message,
@@ -1724,9 +1767,14 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
   }) {
     // Bot message
     if (message.isBot && message.botType != null) {
+      final bool isAlreadyActioned =
+          _myConfirmStatus != null && _myConfirmStatus != 'BLANK';
       return BotMessageComponent.fromMessage(
         message: message,
-        onActionPressed: () {
+        onActionPressed: () async {
+          if (message.botType == BotMessageType.ask && isAlreadyActioned) {
+            return;
+          }
           if (message.isActionDisabled ?? false) return;
           _navigateToGameScreen(widget.roomId!);
           setState(() {
@@ -1744,14 +1792,16 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
             print("⚠️ Unhandled bot type: ${message.botType}");
           }
         },
-        onFirstChoice: () {
-          // Handle "ใช่" choice
-          debugPrint('First choice (ใช่) for message: ${message.id}');
-        },
-        onSecondChoice: () {
-          // Handle "ไม่" choice
-          debugPrint('Second choice (ไม่) for message: ${message.id}');
-        },
+        onFirstChoice: isAlreadyActioned
+            ? null
+            : () async {
+                await _handleConfirmAction(message, 'AGREED');
+              },
+        onSecondChoice: isAlreadyActioned
+            ? null
+            : () async {
+                await _handleConfirmAction(message, 'DISAGREED');
+              },
       );
     }
 

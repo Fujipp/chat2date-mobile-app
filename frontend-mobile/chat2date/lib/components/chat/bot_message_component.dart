@@ -409,19 +409,21 @@ class _BotMessageComponentState extends State<BotMessageComponent> {
     required Color color,
     VoidCallback? onPressed,
   }) {
+    final bool isDisabled = onPressed == null;
+
     return GestureDetector(
       onTap: onPressed,
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 10),
         decoration: BoxDecoration(
-          color: color,
+          color: isDisabled ? AppColors.btnDisabledPrimary : color,
           borderRadius: BorderRadius.circular(16),
         ),
         child: Text(
           text,
           textAlign: TextAlign.center,
-          style: const TextStyle(
-            color: AppColors.neutral100,
+          style: TextStyle(
+            color: isDisabled ? AppColors.textMuted : AppColors.neutral100,
             fontSize: 14,
             fontFamily: 'Inter',
             fontWeight: FontWeight.w700,

@@ -88,7 +88,6 @@ class _SpinDateComponentState extends State<SpinDateComponent>
     }
 
     try {
-      // โหลดทุกรูปพร้อมกัน และรอจนเสร็จหรือ Timeout 5 วินาที
       await Future.wait(
         widget.prizes.map((prize) async {
           final String? url = prize['imageUrl'];
@@ -173,6 +172,9 @@ class _SpinDateComponentState extends State<SpinDateComponent>
   }
 
   void _showWinnerDialog(Map<String, dynamic> place) {
+    final bool hasImage =
+        place['imageUrl'] != null && place['imageUrl'].toString().isNotEmpty;
+
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
@@ -188,28 +190,32 @@ class _SpinDateComponentState extends State<SpinDateComponent>
                 style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
               ),
               const SizedBox(height: 15),
-              ClipRRect(
-                borderRadius: BorderRadius.circular(10),
-                child: Image.network(
-                  place['imageUrl'],
-                  height: 180,
-                  width: double.infinity,
-                  fit: BoxFit.cover,
-                  loadingBuilder: (context, child, loadingProgress) {
-                    if (loadingProgress == null) return child;
-                    return Container(
-                      height: 180,
-                      color: Colors.grey[200],
-                      child: const Center(child: CircularProgressIndicator()),
-                    );
-                  },
-                  errorBuilder: (context, error, stackTrace) => Container(
+              if (hasImage)
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(10),
+                  child: Image.network(
+                    place['imageUrl'],
                     height: 180,
-                    color: Colors.grey[200],
-                    child: const Icon(Icons.image_not_supported, size: 50),
+                    width: double.infinity,
+                    fit: BoxFit.cover,
+                    // ... loadingBuilder และ errorBuilder เหมือนเดิม
+                  ),
+                )
+              else
+                // แสดง Icon Success เมื่อไม่มีรูปภาพ
+                Container(
+                  padding: const EdgeInsets.all(20),
+                  decoration: BoxDecoration(
+                    color: AppColors.lightBrandSecondary.withOpacity(0.3),
+                    shape: BoxShape.circle,
+                  ),
+                  child: SvgPicture.asset(
+                    "assets/icons/icon_success_ring.svg",
+                    width: 80,
+                    height: 80,
+                    // colorFilter: ColorFilter.mode(AppColors.brandSecondary700, ui.BlendMode.srcIn), // ถ้าต้องการเปลี่ยนสี icon
                   ),
                 ),
-              ),
               const SizedBox(height: 15),
               Text(
                 place['name'],
@@ -418,7 +424,7 @@ class _SpinDateComponentState extends State<SpinDateComponent>
                 inactiveColor: AppColors.neutral300,
                 onChanged: (v) {
                   if (_controller.isAnimating) return;
-                  setState(() => selectedRange = v);
+                  setState(() => selectedRange = RangeValues(1.0, v.end));
                 },
               ),
             ],
@@ -458,67 +464,138 @@ class _InlineWheelPainter extends CustomPainter {
     final center = Offset(size.width / 2, size.height / 2);
     final radius = size.width / 2;
     final sweepAngle = (2 * pi) / prizes.length;
-    final colors = [
-      AppColors.brandPrimary,
-      AppColors.brandSecondary,
-      AppColors.brandAccentStrong,
-      AppColors.warning,
-      AppColors.error,
-      AppColors.info,
-      AppColors.brandPrimary700,
-      AppColors.brandSecondary700,
-      AppColors.success,
-      AppColors.neutral400,
+
+    final List<Color> fallbackColors = [
+      AppColors.brandPrimary200,
+      AppColors.lightBrandSecondary,
+      AppColors.badgeWarning,
+      AppColors.info.withOpacity(0.3),
     ];
 
-    canvas.save();
-    canvas.translate(center.dx, center.dy);
-    canvas.rotate(rotationAngle);
-    canvas.translate(-center.dx, -center.dy);
+    // --- 1. วาดส่วนพื้นหลังและรูปภาพ ---
     for (int i = 0; i < prizes.length; i++) {
-      canvas.drawArc(
-        Rect.fromCircle(center: center, radius: radius),
-        i * sweepAngle,
-        sweepAngle + 0.01,
-        true,
-        Paint()..color = colors[i % colors.length],
-      );
-    }
-    canvas.restore();
-
-    for (int i = 0; i < prizes.length; i++) {
-      final double currentAngle =
-          (i * sweepAngle + sweepAngle / 2) + rotationAngle;
+      final double startAngle = i * sweepAngle + rotationAngle;
       final String? imgUrl = prizes[i]['imageUrl'];
       final ui.Image? img = loadedImages[imgUrl];
 
+      canvas.save();
+      final path = Path()
+        ..moveTo(center.dx, center.dy)
+        ..arcTo(
+          Rect.fromCircle(center: center, radius: radius),
+          startAngle,
+          sweepAngle,
+          false,
+        )
+        ..close();
+
+      canvas.clipPath(path);
+
       if (img != null) {
-        canvas.save();
-        final double dist = radius * 0.65;
-        final double x = center.dx + dist * cos(currentAngle);
-        final double y = center.dy + dist * sin(currentAngle);
+        final double currentCenterAngle = startAngle + sweepAngle / 2;
+        final double imgX =
+            center.dx + (radius * 0.5) * cos(currentCenterAngle);
+        final double imgY =
+            center.dy + (radius * 0.5) * sin(currentCenterAngle);
 
-        canvas.translate(x, y);
-        canvas.rotate(currentAngle + (pi / 2));
-
-        const double imgSize = 35.0;
-
-        final path = Path()
-          ..addOval(
-            Rect.fromLTWH(-imgSize / 2, -imgSize / 2, imgSize, imgSize),
-          );
-        canvas.clipPath(path);
-
+        double scale =
+            (radius * 1.5) / (img.width < img.height ? img.width : img.height);
         canvas.drawImageRect(
           img,
           Rect.fromLTWH(0, 0, img.width.toDouble(), img.height.toDouble()),
-          Rect.fromLTWH(-imgSize / 2, -imgSize / 2, imgSize, imgSize),
+          Rect.fromCenter(
+            center: Offset(imgX, imgY),
+            width: img.width * scale,
+            height: img.height * scale,
+          ),
           Paint()..isAntiAlias = true,
+        );
+
+        // เพิ่มเงาจางๆ ที่ขอบนอกของแต่ละช่อง
+        final shadowPaint = Paint()
+          ..shader = ui.Gradient.radial(
+            center,
+            radius,
+            [Colors.black.withOpacity(0.0), Colors.black.withOpacity(0.2)],
+            [0.7, 1.0],
+          );
+        canvas.drawPath(path, shadowPaint);
+      } else {
+        // --- กรณีไม่มีรูป (img == null): ใส่ข้อความเฉียงออกจากจุดศูนย์กลาง ---
+        final bgPaint = Paint()
+          ..color = fallbackColors[i % fallbackColors.length];
+        canvas.drawPath(path, bgPaint); // วาดสีสลับลงไปในช่อง
+
+        // แล้วค่อยวาดข้อความเฉียงออกจากจุดศูนย์กลาง
+        final double currentCenterAngle = startAngle + sweepAngle / 2;
+        canvas.save();
+        canvas.translate(center.dx, center.dy);
+        canvas.rotate(currentCenterAngle);
+
+        final textPainter = TextPainter(
+          text: TextSpan(
+            text: prizes[i]['name'] ?? '',
+            style: const TextStyle(
+              color: AppColors.textPrimary,
+              fontSize: 11,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          textAlign: TextAlign.left,
+          textDirection: TextDirection.ltr,
+          maxLines: 1,
+          ellipsis: '...',
+        );
+        textPainter.layout(maxWidth: radius * 0.75);
+        textPainter.paint(
+          canvas,
+          Offset(radius * 0.25, -textPainter.height / 2),
         );
         canvas.restore();
       }
+
+      // วาดเงาขอบวงล้อ (Vignette) ให้ทุกช่องเพื่อให้ดูมีมิติ
+      final shadowPaint = Paint()
+        ..shader = ui.Gradient.radial(
+          center,
+          radius,
+          [Colors.black.withOpacity(0.0), Colors.black.withOpacity(0.1)],
+          [0.8, 1.0],
+        );
+      canvas.drawPath(path, shadowPaint);
+
+      canvas.restore();
     }
 
+    final List<Color> strokeColors = [
+      AppColors.btnDisabledSecondary, // สีเขียวเข้ม
+      AppColors.info, // สีชมพูเข้ม
+    ];
+
+    for (int i = 0; i < prizes.length; i++) {
+      final double lineAngle = i * sweepAngle + rotationAngle;
+
+      final dividerPaint = Paint()
+        ..color =
+            strokeColors[i % strokeColors.length] // สลับสีจาก List ที่เตรียมไว้
+        ..style = PaintingStyle.stroke
+        ..strokeWidth =
+            2 // เพิ่มความหนาเป็น 4.0 เพื่อความชัดเจน
+        ..strokeCap =
+            StrokeCap.round; // ปลายเส้นมนเพื่อให้จุดบรรจบตรงกลางดูเนียน
+
+      canvas.drawLine(
+        center,
+        Offset(
+          center.dx + radius * cos(lineAngle),
+          center.dy + radius * sin(lineAngle),
+        ),
+        dividerPaint,
+      );
+    }
+
+    // --- 3. วาดขอบนอก (Outer Rim) และหมุดตรงกลาง (Center Pin) ---
+    // ขอบนอก
     canvas.drawCircle(
       center,
       radius,
@@ -527,6 +604,17 @@ class _InlineWheelPainter extends CustomPainter {
         ..style = PaintingStyle.stroke
         ..strokeWidth = 8,
     );
+
+    // หมุดตรงกลางเพื่อให้เส้นที่มาบรรจบกันดูไม่รก
+    canvas.drawCircle(center, 10, Paint()..color = AppColors.background);
+    canvas.drawCircle(
+      center,
+      10,
+      Paint()
+        ..color = AppColors.neutral600
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 2,
+    );
   }
 
   @override
@@ -534,109 +622,6 @@ class _InlineWheelPainter extends CustomPainter {
       old.rotationAngle != rotationAngle ||
       old.loadedImages.length != loadedImages.length;
 }
-
-// class _InlineWheelPainter extends CustomPainter {
-//   final List<Map<String, dynamic>> prizes;
-//   final double rotationAngle;
-//   final Map<String, ui.Image> loadedImages;
-//   _InlineWheelPainter(this.prizes, this.rotationAngle, this.loadedImages);
-
-//   @override
-//   void paint(Canvas canvas, Size size) {
-//     final center = Offset(size.width / 2, size.height / 2);
-//     final radius = size.width / 2;
-//     final sweepAngle = (2 * pi) / prizes.length;
-
-//     for (int i = 0; i < prizes.length; i++) {
-//       final double startAngle = i * sweepAngle + rotationAngle;
-//       final String? imgUrl = prizes[i]['imageUrl'];
-//       final ui.Image? img = loadedImages[imgUrl];
-
-//       canvas.save();
-
-//       // 1. สร้าง Path รูปพัด (Sector)
-//       final path = Path()
-//         ..moveTo(center.dx, center.dy)
-//         ..arcTo(
-//           Rect.fromCircle(center: center, radius: radius),
-//           startAngle,
-//           sweepAngle,
-//           false,
-//         )
-//         ..close();
-
-//       // 2. ตัดขอบ (Clip) เพื่อวาดรูปในช่อง
-//       canvas.clipPath(path);
-
-//       if (img != null) {
-//         // คำนวณตำแหน่งและขนาดรูปให้ตั้งตรง
-//         final double currentCenterAngle = startAngle + sweepAngle / 2;
-//         final double imgX =
-//             center.dx + (radius * 0.5) * cos(currentCenterAngle);
-//         final double imgY =
-//             center.dy + (radius * 0.5) * sin(currentCenterAngle);
-
-//         double scale =
-//             (radius * 1.5) / (img.width < img.height ? img.width : img.height);
-//         double drawW = img.width * scale;
-//         double drawH = img.height * scale;
-
-//         canvas.drawImageRect(
-//           img,
-//           Rect.fromLTWH(0, 0, img.width.toDouble(), img.height.toDouble()),
-//           Rect.fromCenter(
-//             center: Offset(imgX, imgY),
-//             width: drawW,
-//             height: drawH,
-//           ),
-//           Paint()..isAntiAlias = true,
-//         );
-
-//         final shadowPaint = Paint()
-//           ..shader = ui.Gradient.radial(
-//             center,
-//             radius,
-//             [Colors.black.withOpacity(0.0), Colors.black.withOpacity(0.3)],
-//             [0.6, 1.0],
-//           );
-//         canvas.drawPath(path, shadowPaint);
-//       } else {
-//         canvas.drawPath(path, Paint()..color = Colors.grey.shade200);
-//       }
-
-//       canvas.restore();
-//     }
-
-//     final dividerPaint = Paint()
-//       ..color = Colors.white.withOpacity(0.5)
-//       ..style = PaintingStyle.stroke
-//       ..strokeWidth = 2.0;
-
-//     for (int i = 0; i < prizes.length; i++) {
-//       final double lineAngle = i * sweepAngle + rotationAngle;
-//       canvas.drawLine(
-//         center,
-//         Offset(
-//           center.dx + radius * cos(lineAngle),
-//           center.dy + radius * sin(lineAngle),
-//         ),
-//         dividerPaint,
-//       );
-//     }
-
-//     final outerRimPaint = Paint()
-//       ..color = AppColors.neutral600
-//       ..style = PaintingStyle.stroke
-//       ..strokeWidth = 8;
-
-//     canvas.drawCircle(center, radius, outerRimPaint);
-//   }
-
-//   @override
-//   bool shouldRepaint(covariant _InlineWheelPainter old) =>
-//       old.rotationAngle != rotationAngle ||
-//       old.loadedImages.length != loadedImages.length;
-// }
 
 class _StaticNeedlePainter extends CustomPainter {
   @override

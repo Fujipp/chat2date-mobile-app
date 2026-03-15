@@ -45,10 +45,72 @@ class DateRecommendService {
 
     if (response.statusCode == 200) {
       // คืนค่าเป็น List ของสถานที่
-      final Map<String, dynamic> jsonData = jsonDecode(utf8.decode(response.bodyBytes));
+      final Map<String, dynamic> jsonData = jsonDecode(
+        utf8.decode(response.bodyBytes),
+      );
       return DateRecommendationResponse.fromJson(jsonData);
     } else {
       throw Exception('Failed to load recommendations');
+    }
+  }
+
+  Future<void> confirmPlace({
+    required String? roomId,
+    required String placeName,
+    required String action,
+    String mode = 'MIDPOINT',
+    String? userTarget,
+  }) async {
+    final userState = ref.read(userStoreProvider);
+    final accessToken = "${userState['accessToken']}";
+
+    final url = Uri.parse(
+      '${ApiBase.baseUrl}/dates/recommendations/$roomId/confirm',
+    );
+
+    final response = await http.post(
+      url,
+      headers: {
+        'Authorization': 'Bearer $accessToken',
+        'Content-Type': 'application/json',
+      },
+      body: jsonEncode({
+        'placeName': placeName,
+        'action': action,
+        'mode': mode,
+        'userTarget': userTarget,
+      }),
+    );
+
+    if (response.statusCode != 200) {
+      // คุณสามารถสร้าง Exception เฉพาะตัวได้ เช่น NotFoundException
+      throw Exception('Failed to confirm place: ${response.body}');
+    }
+  }
+
+  Future<String?> checkConfirmPlace({
+    required String? roomId,
+  }) async {
+    final userState = ref.read(userStoreProvider);
+    final accessToken = "${userState['accessToken']}";
+
+    final url = Uri.parse(
+      '${ApiBase.baseUrl}/dates/recommendations/$roomId/confirm',
+    );
+
+    final response = await http.get(
+      url,
+      headers: {
+        'Authorization': 'Bearer $accessToken',
+        'Content-Type': 'application/json',
+      },
+    );
+
+    if (response.statusCode == 200) {
+      return jsonDecode(response.body).toString();
+      
+    } else {
+      throw Exception('Failed to confirm place: ${response.body}');
     }
   }
 }
