@@ -7,9 +7,10 @@ import org.springframework.web.bind.annotation.*;
 import sit.chat2date.cp25ssi2.dto.ConfirmationRequest;
 import sit.chat2date.cp25ssi2.entities.PlaceConfirmation;
 import sit.chat2date.cp25ssi2.enums.ConfirmAction;
-import sit.chat2date.cp25ssi2.repositories.MatchRepository;
-import sit.chat2date.cp25ssi2.repositories.UserRepository;
 import sit.chat2date.cp25ssi2.services.DateRecommendService;
+
+import java.util.HashMap;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/dates/recommendations")
@@ -26,8 +27,12 @@ public class DateRecommendController {
     }
 
     @GetMapping("/{roomId}/confirm")
-    public ConfirmAction GetDateRecommendationConfirmByRoomId(@PathVariable String roomId, @RequestHeader("Authorization") String accessToken) {
-        return dateRecommendService.getMyConfirmationStatus(roomId, accessToken);
+    public ResponseEntity<Map<String, String>> GetDateRecommendationConfirmByRoomId(@PathVariable String roomId, @RequestHeader("Authorization") String accessToken) {
+        ConfirmAction action = dateRecommendService.getMyConfirmationStatus(roomId, accessToken);
+        Map<String, String> response = new HashMap<>();
+        response.put("status", action.name());
+
+        return ResponseEntity.ok(response);
     }
 
     @PostMapping("/{roomId}/confirm")
