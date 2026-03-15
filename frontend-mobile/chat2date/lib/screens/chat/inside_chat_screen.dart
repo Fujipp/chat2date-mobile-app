@@ -9,12 +9,12 @@ import 'package:chat2date/components/layout/header.dart';
 import 'package:chat2date/components/modal/feature_guide_modal.dart';
 import 'package:chat2date/components/modal/relationship_mission_modal.dart';
 import 'package:chat2date/components/page/unlock_date_modal.dart';
+import 'package:chat2date/components/status_bar/gps_alert.dart';
 import 'package:chat2date/components/status_bar/score_row.dart';
 import 'package:chat2date/components/toasts/toast.dart';
 import 'package:chat2date/models/appointment.dart';
 import 'package:chat2date/models/chat_access_status.dart';
 import 'package:chat2date/models/chat_message.dart';
-import 'package:chat2date/models/dto/date_recommend_dto.dart';
 import 'package:chat2date/models/relationship_bar.dart';
 import 'package:chat2date/models/user.dart';
 import 'package:chat2date/screens/game/guessing_game_screen.dart';
@@ -22,15 +22,21 @@ import 'package:chat2date/services/appointment_service.dart';
 import 'package:chat2date/services/chat_service.dart';
 import 'package:chat2date/services/chat_socket_service.dart';
 import 'package:chat2date/services/date_recommend_service.dart';
+import 'package:chat2date/services/emergency_service.dart';
 import 'package:chat2date/services/game_service.dart';
 import 'package:chat2date/services/game_socket_service.dart';
+import 'package:chat2date/services/location_service.dart';
+import 'package:chat2date/services/sos_service.dart';
 import 'package:chat2date/services/user_service.dart';
 import 'package:chat2date/stores/game_store.dart';
 import 'package:chat2date/stores/user_store.dart';
 import 'package:chat2date/theme/app_colors.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'package:geolocator/geolocator.dart';
+import 'package:share_plus/share_plus.dart';
 
 class InsideChatScreen extends ConsumerStatefulWidget {
   final String? roomId;
@@ -71,8 +77,8 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
 
   // === Appointment / Calendar ===
   Appointment? _existingAppointment;
-  String _lastSpunPlaceId = '';
-  String _lastSpunPlaceName = '';
+  final String _lastSpunPlaceId = '';
+  final String _lastSpunPlaceName = '';
   bool _isCalendarLoading = false;
   // overlay state (เหมือน SpinWheel)
   bool _showCalendarModal = false;
@@ -120,6 +126,9 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
   //Game
   GameSocketService? _gameSocketService;
   StreamSubscription? _gameSubscription;
+
+  //Location
+  List<String> _emergencyNumbers = [];
 
   void _initGameSocket() {
     final roomId = widget.roomId;
@@ -510,7 +519,14 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
   Future<void> _initializeChat() async {
     await _enterRoomOnce();
     await _loadChatRoomMessages();
+    await _fetchInitialAppointment();
     _checkSpinWheelCondition();
+    try {
+      final numbers = await ref
+          .read(emergencyCallServiceProvider)
+          .getEmergencyCalls();
+      if (mounted) setState(() => _emergencyNumbers = numbers);
+    } catch (_) {}
 
     if (mounted) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -822,6 +838,32 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
         });
       }
     } catch (_) {}
+  }
+
+  Future<void> _fetchInitialAppointment() async {
+    final roomId = widget.roomId;
+    if (roomId == null || roomId.isEmpty) return;
+
+    try {
+      final appointmentService = ref.read(appointmentServiceProvider);
+      final appointments = await appointmentService.getAppointments(
+        int.parse(roomId),
+      );
+
+      final active = appointments.where((a) => a.status != 'CANCELLED').toList()
+        ..sort((a, b) => b.appointmentId.compareTo(a.appointmentId));
+
+      if (mounted) {
+        setState(() {
+          _existingAppointment = active.isNotEmpty ? active.first : null;
+        });
+
+        print("📅 appointmentId: ${_existingAppointment?.appointmentId}");
+        print("📅 placeId: ${_existingAppointment?.placeId}");
+      }
+    } catch (e) {
+      debugPrint('Error fetching initial appointment: $e');
+    }
   }
 
   bool _isSvgImage(String? path) {
@@ -1914,6 +1956,89 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
                     child: Column(
                       children: [
                         const SizedBox(height: 12),
+                        if (_existingAppointment != null &&
+                            _existingAppointment!.dateTime != null &&
+                            DateTime.now().isAfter(
+                              _existingAppointment!.dateTime!,
+                            ))
+                          Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 16),
+                            child: GpsMapAlert(
+                              emergencyNumbers: _emergencyNumbers,
+                              destinationPlaceId: _existingAppointment?.placeId,
+                              googleApiKey: dotenv.env['GOOGLE_API_KEY'] ?? '',
+                              onLocate: () {
+                                Toast.show(
+                                  context,
+                                  type: ToastType.info,
+                                  title: 'อัปเดตตำแหน่ง',
+                                  message: 'กำลังดึงพิกัดล่าสุด...',
+                                  durationSeconds: 2,
+                                  showCountdown: false,
+                                );
+                              },
+                              onShareLocation: () async {
+                                try {
+                                  final pos =
+                                      await Geolocator.getCurrentPosition();
+
+                                  final shareUrl = await ref
+                                      .read(locationServiceProvider)
+                                      .shareLocation(
+                                        latitude: pos.latitude,
+                                        longitude: pos.longitude,
+                                      );
+
+                                  if (shareUrl.isNotEmpty) {
+                                    await Share.share(
+                                      'ฉันกำลังไปเดตนะ! สามารถติดตามโลเคชันแบบเรียลไทม์ของฉันได้ที่ลิงก์นี้เลย:\n$shareUrl',
+                                    );
+                                  }
+                                } catch (e) {
+                                  if (mounted) {
+                                    Toast.show(
+                                      context,
+                                      type: ToastType.error,
+                                      title: 'ข้อผิดพลาด',
+                                      message: 'ไม่สามารถแชร์โลเคชันได้',
+                                      durationSeconds: 3,
+                                      showCountdown: false,
+                                    );
+                                  }
+                                }
+                              },
+                              onSosTriggered: (calledNumber) async {
+                                try {
+                                  final pos =
+                                      await Geolocator.getCurrentPosition(
+                                        desiredAccuracy: LocationAccuracy.high,
+                                      );
+
+                                  await ref
+                                      .read(sosServiceProvider)
+                                      .triggerSos(
+                                        appointmentId:
+                                            _existingAppointment!.appointmentId,
+                                        latitude: pos.latitude,
+                                        longitude: pos.longitude,
+                                        calledNumber: calledNumber,
+                                      );
+                                } catch (e) {
+                                  if (mounted) {
+                                    Toast.show(
+                                      context,
+                                      type: ToastType.error,
+                                      title: 'ผิดพลาด',
+                                      message: 'ไม่สามารถส่งข้อมูล SOS ได้',
+                                      durationSeconds: 3,
+                                      showCountdown: false,
+                                    );
+                                  }
+                                }
+                              },
+                            ),
+                          ),
+
                         Padding(
                           padding: const EdgeInsets.symmetric(horizontal: 20),
                           child: LayoutBuilder(
