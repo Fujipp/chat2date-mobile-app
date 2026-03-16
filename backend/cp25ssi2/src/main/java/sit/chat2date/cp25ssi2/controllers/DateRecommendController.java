@@ -5,6 +5,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import sit.chat2date.cp25ssi2.dto.ConfirmationRequest;
+import sit.chat2date.cp25ssi2.dto.SpinStatusResponse;
 import sit.chat2date.cp25ssi2.entities.PlaceConfirmation;
 import sit.chat2date.cp25ssi2.enums.ConfirmAction;
 import sit.chat2date.cp25ssi2.services.DateRecommendService;
@@ -38,5 +39,12 @@ public class DateRecommendController {
     @PostMapping("/{roomId}/confirm")
     public PlaceConfirmation ConfirmDateRecommendation(@PathVariable String roomId, @RequestHeader("Authorization") String accessToken, @RequestBody ConfirmationRequest confirmationRequest) {
         return dateRecommendService.confirmPlace(roomId, accessToken, confirmationRequest);
+    }
+
+    @GetMapping("/{roomId}/spin-status")
+    public ResponseEntity<SpinStatusResponse> getSpinStatus(@PathVariable String roomId) {
+        SpinStatusResponse response = dateRecommendService.checkSpinStatus(roomId);
+
+        return ResponseEntity.ok(response);
     }
 }

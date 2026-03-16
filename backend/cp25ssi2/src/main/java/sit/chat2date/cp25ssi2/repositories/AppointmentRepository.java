@@ -25,4 +25,6 @@ public interface AppointmentRepository extends JpaRepository<Appointment, Intege
      */
     @Query("SELECT a FROM Appointment a JOIN FETCH a.match WHERE a.appointmentId = :appointmentId")
     Optional<Appointment> findByIdWithMatch(@Param("appointmentId") Integer appointmentId);
+
+    Optional<Appointment> findFirstByMatch_IdOrderByCreatedAtDesc(Integer matchId);
 }
