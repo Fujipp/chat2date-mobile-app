@@ -82,12 +82,12 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
   final String _lastSpunPlaceId = '';
   final String _lastSpunPlaceName = '';
   bool _isCalendarLoading = false;
+  DateTime? _lastSpinTime;
   // overlay state (เหมือน SpinWheel)
   bool _showCalendarModal = false;
   String _calendarPlaceName = '';
   String _calendarPlaceId = '';
   bool _calendarIsEditMode = false;
-
   bool _isLoadingMessages = true;
   bool _isLoadingMore = false;
   bool _hasMoreMessages = true;
@@ -185,8 +185,9 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
   ) {
     if (gameStatus == 'COMPLETED_FINISHED' || gameStatus == 'EXPIRED') {
       return messages.map((msg) {
-        if (msg.botType == BotMessageType.minigame ||
-            msg.botType == BotMessageType.minigameFail) {
+        if ((msg.botType == BotMessageType.minigame ||
+                msg.botType == BotMessageType.minigameFail) &&
+            msg.botType != BotMessageType.ask) {
           return msg.copyWith(
             isActionDisabled: true,
             actionButtonText: 'เกมจบแล้ว',
@@ -522,6 +523,8 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
     await _enterRoomOnce();
     await _loadChatRoomMessages();
     await _fetchInitialAppointment();
+    await _initConfirmStatus();
+    await _checkSpinWheelCondition();
     _checkSpinWheelCondition();
     try {
       final numbers = await ref
@@ -534,6 +537,21 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
       WidgetsBinding.instance.addPostFrameCallback((_) {
         _showFeatureGuide();
       });
+    }
+  }
+
+  Future<void> _initConfirmStatus() async {
+    try {
+      final service = ref.read(dateRecommendProvider);
+      final status = await service.checkConfirmPlace(roomId: widget.roomId);
+
+      if (mounted) {
+        setState(() {
+          _myConfirmStatus = status ?? "BLANK";
+        });
+      }
+    } catch (e) {
+      debugPrint('Error fetching confirm status: $e');
     }
   }
 
@@ -744,9 +762,16 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
 
   void _handleIncomingMessage(ChatMessage message) {
     if (!mounted) return;
-    if (_messageIds.contains(message.id)) return;
     setState(() {
-      _messages.add(message);
+      final existingIndex = _messages.indexWhere((m) => m.id == message.id);
+
+      if (existingIndex != -1) {
+        _messages[existingIndex] = message;
+      } else {
+        _messages.add(message);
+        _messageIds.add(message.id);
+      }
+
       if (message.isBot && message.gameStatus != null) {
         _messages = _updateBotMessagesByGameStatus(
           _messages,
@@ -757,7 +782,6 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
       }
 
       _messages.sort((a, b) => a.timestamp.compareTo(b.timestamp));
-      _messageIds.add(message.id);
     });
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _scrollToBottom(animated: true);
@@ -1040,46 +1064,12 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
     return -1;
   }
 
-  /// คำนวณ cooldown สำหรับ spinwheel
-  void _calculateSpinwheelCooldown() {
-    if (_lastSpinDate == null) {
-      // ยังไม่เคยหมุน - สามารถหมุนได้เลย
-      setState(() {
-        _canSpin = true;
-        _cooldownDays = 0;
-        _headerVariant = ChatHeaderVariant.chat2; // ไม่แสดง cooldown number
-      });
-      return;
-    }
-
-    final now = DateTime.now();
-    final daysSinceLastSpin = now.difference(_lastSpinDate!).inDays;
-    final cooldownPeriod = 7; // 7 วันก่อนหมุนได้อีก
-
-    if (daysSinceLastSpin >= cooldownPeriod) {
-      // หมดเวลา cooldown แล้ว - หมุนได้
-      setState(() {
-        _canSpin = true;
-        _cooldownDays = 0;
-        _headerVariant = ChatHeaderVariant.chat3; // แสดง 0 days (enabled)
-      });
-    } else {
-      // ยังอยู่ใน cooldown - ห้ามหมุน
-      final remainingDays = cooldownPeriod - daysSinceLastSpin;
-      setState(() {
-        _canSpin = false;
-        _cooldownDays = remainingDays;
-        _headerVariant = ChatHeaderVariant.chat4; // แสดง X days (disabled)
-      });
-    }
-  }
-
   void _onSpinComplete(Map<String, dynamic> result) async {
     setState(() {
       _lastSpinDate = DateTime.now();
       _showWheelModal = false;
     });
-    _calculateSpinwheelCooldown();
+    _checkSpinWheelCondition();
     final service = ref.read(dateRecommendProvider);
     try {
       final recommendations = await service.confirmPlace(
@@ -1125,27 +1115,32 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
       return;
     }
 
-    await _prepareBeforeSpin();
+    await _prepareBeforeSpin(20, "MIDPOINT", "", false);
     // ผ่านทุกเงื่อนไข - เปิด modal
     setState(() {
       _showWheelModal = true;
     });
   }
 
-  Future<void> _prepareBeforeSpin() async {
+  Future<void> _prepareBeforeSpin(
+    double range,
+    String? mode,
+    String? userTarget,
+    bool refresh,
+  ) async {
     final service = ref.read(dateRecommendProvider);
     try {
       final recommendations = await service.getRecommendations(
         roomId: widget.roomId,
-        range: 20,
-        mode: 'DISTANCE',
+        range: range.round(),
+        mode: mode,
+        userTarget: userTarget,
       );
+      if (!mounted) return;
       setState(() {
-        _spinMode = recommendations.mode;
         _dynamicPrizes = recommendations.places.map((place) {
           return {"name": place.name, "imageUrl": place.imageUrl};
         }).toList();
-        _showWheelModal = true;
       });
     } catch (e) {
       print("Error fetching date recommendations: $e");
@@ -1560,18 +1555,39 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
     );
   }
 
-  void _checkSpinWheelCondition() {
-    // เงื่อนไข: หลอดเต็ม (1.0) หรือ หัวใจครบตามที่กำหนด (เช่น 3 ดวง)
-    // คำนวณ cooldown และ determine variant
+  Future<void> _checkSpinWheelCondition() async {
+    final roomId = widget.roomId;
+    if (roomId == null || roomId.isEmpty) return;
 
-    if (_heartCount < 1) {
-      // ไม่ผ่านเงื่อนไข - แสดงแค่ Chat 1 (พื้นฐาน)
+    try {
+      final service = ref.read(dateRecommendProvider);
+      final data = await service.checkStatusSpin(roomId: roomId);
+
+      _canSpin = data['canSpin'] ?? false;
+
+      if (!mounted) return;
+
       setState(() {
-        _headerVariant = ChatHeaderVariant.chat1;
+        _canSpin = data['canSpin'];
+        _cooldownDays = data['cooldownDays'];
+
+        if (_heartCount == 0) {
+          _headerVariant = ChatHeaderVariant.chat1;
+          _canSpin = false; // ป้องกันการกดผ่าน SnackBar
+          return;
+        }
+        if (_canSpin) {
+          if (_cooldownDays == 0) {
+            _headerVariant = ChatHeaderVariant.chat3;
+          } else {
+            _headerVariant = ChatHeaderVariant.chat2;
+          }
+        } else {
+          _headerVariant = ChatHeaderVariant.chat4;
+        }
       });
-    } else {
-      // ผ่านเงื่อนไข - คำนวณ cooldown
-      _calculateSpinwheelCooldown();
+    } catch (e) {
+      debugPrint("Error in _checkSpinWheelCondition: $e");
     }
   }
 
@@ -2364,6 +2380,27 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
                                   firstPersonName: _chatUserName,
                                   secondPersonName: nickname,
                                   prizes: _dynamicPrizes,
+                                  onFilterChanged:
+                                      (mode, target, radius, isRefresh) async {
+                                        if (isRefresh) {
+                                          await _prepareBeforeSpin(
+                                            radius,
+                                            mode,
+                                            target,
+                                            isRefresh,
+                                          );
+                                          setState(() {
+                                            _lastSpinTime = DateTime.now();
+                                          });
+                                        } else {
+                                          _prepareBeforeSpin(
+                                            radius,
+                                            mode,
+                                            target,
+                                            isRefresh,
+                                          );
+                                        }
+                                      },
                                 ),
                               ],
                             ),
