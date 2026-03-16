@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'package:chat2date/components/buttons/ds_button.dart';
 import 'calendar_utils.dart';
 import 'calendar_day_cell.dart';
 
@@ -13,6 +14,10 @@ class CalendarCard extends StatefulWidget {
   final VoidCallback? onTrash;
   final Color accentColor; // สีเน้น (เช่น ใช้กับชื่อเดือน)
 
+  /// ชื่อสถานที่ที่ได้จาก spinwheel (แสดงใต้ปุ่มบันทึก)
+  final String placeCountText;
+  final String placeName;
+
   const CalendarCard({
     super.key,
     required this.initialMonth,
@@ -21,6 +26,8 @@ class CalendarCard extends StatefulWidget {
     this.onClose,
     this.onTrash,
     this.accentColor = const Color(0xFFFF6B81),
+    this.placeCountText = 'คุณมี 1 สถานที่เดต!!',
+    this.placeName = 'อควาเรียมบางแสน',
   });
 
   @override
@@ -51,9 +58,13 @@ class _CalendarCardState extends State<CalendarCard> {
     final h12 = t.hour % 12 == 0 ? 12 : t.hour % 12;
     _hour12 = h12;
     _minute = t.minute;
+
+    // ปุ่มบันทึกจะถูก disabled จนกว่า user จะเลือกวัน/เวลาจริงๆ
+    _hasUserPicked = false;
   }
 
   // ==== Month / Year helpers ====
+  bool _hasUserPicked = false; // ปุ่มบันทึกจะ disabled จนกว่าจะเลือก/แก้ไขวันหรือเวลา
   List<String> get _months => const [
     'January',
     'February',
@@ -304,8 +315,10 @@ class _CalendarCardState extends State<CalendarCard> {
                                 date: d,
                                 currentMonth: _cursorMonth,
                                 selected: _selectedDate,
-                                onSelect: (day) =>
-                                    setState(() => _selectedDate = day),
+                                onSelect: (day) => setState(() {
+                                    _selectedDate = day;
+                                    _hasUserPicked = true; // เลือกวันแล้ว enable ปุ่มบันทึก
+                                  }),
                                 size: Size(cellW, 34), // สูง 34 ตามดีไซน์
                               ),
                             );
@@ -348,7 +361,10 @@ class _CalendarCardState extends State<CalendarCard> {
                               width: 40, // เดิม 42
                               value: _hour12,
                               values: _hours12,
-                              onChanged: (v) => setState(() => _hour12 = v!),
+                              onChanged: (v) => setState(() {
+                                _hour12 = v!;
+                                _hasUserPicked = true;
+                              }),
                             ),
                           ),
                           const Padding(
@@ -369,7 +385,10 @@ class _CalendarCardState extends State<CalendarCard> {
                               value: _minute,
                               values: _minutes,
                               formatter: (m) => m.toString().padLeft(2, '0'),
-                              onChanged: (v) => setState(() => _minute = v!),
+                              onChanged: (v) => setState(() {
+                                _minute = v!;
+                                _hasUserPicked = true;
+                              }),
                             ),
                           ),
                           const SizedBox(width: 6),
@@ -388,12 +407,12 @@ class _CalendarCardState extends State<CalendarCard> {
               ),
 
               const SizedBox(height: 6),
-              const SizedBox(
+              SizedBox(
                 width: 310,
                 child: Text(
-                  'คุณมี 1 สถานที่เดต!!',
+                  widget.placeCountText,
                   textAlign: TextAlign.center,
-                  style: TextStyle(
+                  style: const TextStyle(
                     fontFamily: 'Inter',
                     color: Color(0xFF0F172A),
                     fontSize: 12,
@@ -402,12 +421,12 @@ class _CalendarCardState extends State<CalendarCard> {
                   ),
                 ),
               ),
-              const SizedBox(
+              SizedBox(
                 width: 310,
                 child: Text(
-                  'อควาเรียมบางแสน',
+                  widget.placeName,
                   textAlign: TextAlign.center,
-                  style: TextStyle(
+                  style: const TextStyle(
                     fontFamily: 'Inter',
                     color: Color(0xFF94A3B8),
                     fontSize: 12,
@@ -418,45 +437,28 @@ class _CalendarCardState extends State<CalendarCard> {
               ),
               const SizedBox(height: 12),
 
-              // —— ปุ่มบันทึก ——
-              SizedBox(
-                width: 231,
-                height: 40,
-                child: ElevatedButton(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFFB8F1F3),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    elevation: 0,
-                  ),
-                  onPressed: (_selectedDate == null)
-                      ? null
-                      : () {
-                          final h24 = _hour24;
-                          final m = _minute.clamp(0, 59);
-                          final selectedDateTime = DateTime(
-                            _selectedDate!.year,
-                            _selectedDate!.month,
-                            _selectedDate!.day,
-                            h24,
-                            m,
-                          );
-                          widget.onSave?.call(
-                            selectedDateTime,
-                            TimeOfDay(hour: h24, minute: m),
-                          );
-                        },
-                  child: const Text(
-                    'บันทึก',
-                    style: TextStyle(
-                      fontFamily: 'Inter',
-                      color: Colors.white,
-                      fontSize: 16,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                ),
+              // —— ปุ่มบันทึก (ใช้ DsButton เพื่อให้ active/disabled เหมือนทั้ง project) ——
+              DsButton(
+                label: 'บันทึก',
+                variant: DsButtonVariant.primary,
+                size: DsButtonSize.md,
+                onPressed: (_hasUserPicked && _selectedDate != null)
+                    ? () {
+                        final h24 = _hour24;
+                        final m = _minute.clamp(0, 59);
+                        final selectedDateTime = DateTime(
+                          _selectedDate!.year,
+                          _selectedDate!.month,
+                          _selectedDate!.day,
+                          h24,
+                          m,
+                        );
+                        widget.onSave?.call(
+                          selectedDateTime,
+                          TimeOfDay(hour: h24, minute: m),
+                        );
+                      }
+                    : null,
               ),
             ],
           ),

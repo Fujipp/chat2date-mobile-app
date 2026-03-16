@@ -330,6 +330,19 @@ class _DiscoveryScreenState extends ConsumerState<DiscoveryScreen>
             _userId = userId;
           });
 
+          debugPrint('[Discovery] 👤 Loading users');
+          await ref.read(userServiceProvider).getUser(userId);
+
+          if (!mounted) return;
+          debugPrint('[Discovery] ✅ users loaded');
+
+          // 5️⃣ โหลด profile
+          debugPrint('[Discovery] 👤 Loading profile...');
+          await ref.read(userServiceProvider).getProfile();
+
+          if (!mounted) return;
+          debugPrint('[Discovery] ✅ Profile loaded');
+
           // โหลดค่า range ที่บันทึกไว้ของผู้ใช้นี้
           await _loadPersistedRange();
 
@@ -350,19 +363,6 @@ class _DiscoveryScreenState extends ConsumerState<DiscoveryScreen>
 
           if (!mounted) return;
           debugPrint('[Discovery] ✅ FCM registered');
-
-          debugPrint('[Discovery] 👤 Loading users');
-          await ref.read(userServiceProvider).getUser(userId);
-
-          if (!mounted) return;
-          debugPrint('[Discovery] ✅ users loaded');
-
-          // 5️⃣ โหลด profile
-          debugPrint('[Discovery] 👤 Loading profile...');
-          await ref.read(userServiceProvider).getProfile();
-
-          if (!mounted) return;
-          debugPrint('[Discovery] ✅ Profile loaded');
 
           // 6️⃣ โหลด candidates (สุดท้าย - ครั้งเดียว) โดยอิงค่าระยะทางที่เลือกไว้
           debugPrint('[Discovery] 💝 Loading candidates...');

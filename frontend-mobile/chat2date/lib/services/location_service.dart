@@ -8,9 +8,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:http/http.dart' as http;
 
-final locationServiceProvider = Provider(
-  (ref) => LocationService(ref),
-);
+final locationServiceProvider = Provider((ref) => LocationService(ref));
 
 class LocationService {
   final Ref ref;
@@ -68,7 +66,7 @@ class LocationService {
       'userId': userId,
       'latitude': pos.latitude,
       'longtitude': pos.longitude, // ตามสะกดฝั่ง backend
-      'accuracy': pos.accuracy,    // ถ้า backend รับได้เป็น double
+      'accuracy': pos.accuracy, // ถ้า backend รับได้เป็น double
     };
 
     final uri = Uri.parse('${ApiBase.baseUrl}/location/update');
@@ -84,9 +82,7 @@ class LocationService {
     );
 
     if (res.statusCode != 200) {
-      debugPrint(
-        '[Location] Failed: ${res.statusCode} ${res.body}',
-      );
+      debugPrint('[Location] Failed: ${res.statusCode} ${res.body}');
       try {
         final data = jsonDecode(res.body);
         throw Exception(data['message'] ?? 'Failed to update location');
@@ -104,6 +100,33 @@ class LocationService {
       await updateLocation();
     } catch (e) {
       debugPrint('[Location] Silent error: $e');
+    }
+  }
+
+  Future<String> shareLocation({
+    required double latitude,
+    required double longitude,
+  }) async {
+    final userState = ref.read(userStoreProvider);
+    final accessToken = "${userState['accessToken']}";
+
+    final url = Uri.parse('${ApiBase.baseUrl}/dates/share-location');
+
+    final response = await http.post(
+      url,
+      headers: {
+        'Authorization': 'Bearer $accessToken',
+        'Content-Type': 'application/json',
+      },
+      body: json.encode({'latitude': latitude, 'longitude': longitude}),
+    );
+
+    if (response.statusCode == 200) {
+      final data = json.decode(utf8.decode(response.bodyBytes));
+      // ส่ง shareUrl กลับไปให้หน้าแชต
+      return data['shareUrl'] ?? '';
+    } else {
+      throw Exception('ไม่สามารถสร้างลิงก์แชร์พิกัดได้');
     }
   }
 }

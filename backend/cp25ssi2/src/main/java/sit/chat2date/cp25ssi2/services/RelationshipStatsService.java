@@ -102,6 +102,17 @@ public class RelationshipStatsService {
         Integer roomId = Integer.parseInt(roomIdStr);
         Optional<RelationshipStats> relationshipStatsById = relationshipStatsRepository
                 .findByRoomId(roomId);
+
+        if (relationshipStatsById.isPresent()) {
+            RelationshipStats stats = relationshipStatsById.get();
+
+            if ((stats.getNotiUnmatch() != NotifyStatus.NONE) ||
+                    (stats.getIsFirstMessageBonus() == false && stats.getStreakDays() <= -7) ||
+                    (stats.getStreakDays() <= -30)) {
+                return stats;
+            }
+        }
+
         int score = 0;
 
         Optional<Match> matchById = matchRepository.findById(roomId);
@@ -193,7 +204,6 @@ public class RelationshipStatsService {
                     lastSenderId = msg.getSenderId();
                 }
             }
-            System.out.println(score);
             if (totalConversationCount >= 1) {
                 if (relationshipStatsById.get().getIsFirstMessageBonus() == false && totalConversationCount >= 2) {
                     relationshipStatsById.get().setIsFirstMessageBonus(true);
@@ -240,7 +250,7 @@ public class RelationshipStatsService {
 
             RelationshipStats savedStats = relationshipStatsRepository.save(relationshipStatsById.get());
             gameService.checkAndTriggerGame(roomId);
-            return relationshipStatsRepository.save(relationshipStatsById.get());
+            return savedStats;
         } else {
             RelationshipStats relationshipStats = new RelationshipStats();
             relationshipStats.setRelationshipId(roomId);

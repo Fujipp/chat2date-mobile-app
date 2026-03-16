@@ -102,6 +102,7 @@ class MyApp extends StatelessWidget {
           '/userPicture': (context) => const UserPictureScreen(),
           '/profile': (context) => const ProfileScreen(),
           '/settings': (context) => const SettingsScreen(),
+          '/account-settings': (context) => const AccountSettingsScreen(),
           '/auth': (context) => const AuthCheckPage(),
           '/chatList': (context) => const ChatListScreen(),
           '/guessingGame': (context) {
@@ -137,6 +138,8 @@ class MyApp extends StatelessWidget {
           '/kyc-loading': (context) => const KycLoadingScreen(),
           '/kyc-result-success': (context) => const KycResultSuccessScreen(),
           '/kyc-result-fail': (context) => const KycResultFailScreen(),
+          '/about': (context) => const AboutScreen(),
+          '/contact': (context) => const ContactScreen(),
           '/chat-list': (context) => const ChatListScreen(),
           '/chat': (context) {
             final args =

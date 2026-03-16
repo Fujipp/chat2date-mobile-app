@@ -271,7 +271,7 @@ class Header extends StatelessWidget {
                     child: SvgPicture.asset(
                       'assets/icons/icon_report.svg',
                       width: 25,
-                      height: 27,
+                      height: 20,
                     ),
                   ),
                 if (showHeart) ...[
@@ -343,8 +343,8 @@ class _CooldownSpinwheelIcon extends StatelessWidget {
           ),
           // Cooldown number badge ที่ด้านบน
           Positioned(
-            top: -2,
-            left: 9,
+            top: 5,
+            left: 0,
             child: Container(
               width: 7,
               height: 10,

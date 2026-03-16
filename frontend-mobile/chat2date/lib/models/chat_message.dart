@@ -1,4 +1,5 @@
 import 'package:chat2date/utils/backend_datetime_parser.dart';
+import 'package:geolocator/geolocator.dart';
 
 /// ประเภทข้อความ Bot ตาม Figma design
 enum BotMessageType {
@@ -129,6 +130,7 @@ class ChatMessage {
     String? displayTitle;
     String? displayDescription;
     String? btnText;
+    int? answerCount;
 
     if (senderId == 'SYSTEM' || typeStr != 'TEXT') {
       if (typeStr == 'GAME') {
@@ -143,6 +145,10 @@ class ChatMessage {
           '[ChatMessage.fromApi] messageId=${json['messageId']}, senderId=$senderId, currentUserId=$currentUserId, isOwn=$isOwn, rawRead=$rawRead (${rawRead.runtimeType}), messageRead=$messageRead, isSeen=${isOwn && messageRead}',
         );
         btnText = "เข้าร่วม / เริ่มเกม";
+      } else if (typeStr == 'FAIL' &&
+          message.contains('ความคิดเห็นที่ไม่ตรงกัน')) {
+        isBotMessage = true;
+        mappedBotType = BotMessageType.askFail;
       } else if (typeStr == 'FAIL') {
         isBotMessage = true;
         mappedBotType = BotMessageType.minigameFail;
@@ -151,6 +157,29 @@ class ChatMessage {
         displayDescription = message;
 
         btnText = "เริ่มเกมใหม่";
+      } else if (typeStr == 'DATE') {
+        isBotMessage = true;
+        mappedBotType = BotMessageType.ask;
+        final parts = message.split('|');
+        displayTitle = parts[0].trim();
+        displayDescription = parts[1].trim();
+
+        // --- เพิ่มส่วนการแกะตัวเลขตรงนี้ ---
+        if (parts.length > 2) {
+          // parts[2] คือ "ตอบแล้ว 1/2"
+          final regExp = RegExp(r'(\d+)/(\d+)');
+          final match = regExp.firstMatch(parts[2]);
+
+          if (match != null) {
+            // ดึงเลข 1 และเลข 2 ออกมา
+            answerCount = int.tryParse(match.group(1) ?? '');
+          }
+        }
+
+        //displayDescription = ;
+      } else if (typeStr == 'SUCCESS') {
+        isBotMessage = true;
+        mappedBotType = BotMessageType.askSuccess;
       }
     }
 
@@ -171,6 +200,7 @@ class ChatMessage {
       description: displayDescription,
       actionButtonText: btnText,
       isActionDisabled: false,
+      answeredCount: answerCount,
     );
   }
 
@@ -235,8 +265,8 @@ class ChatMessage {
     required String id,
     required String text,
     required String description,
-    String firstChoiceText = 'ใช่',
-    String secondChoiceText = 'ไม่',
+    String firstChoiceText = 'ไป',
+    String secondChoiceText = 'ไม่ไป',
     int answeredCount = 0,
     int totalCount = 2,
     DateTime? timestamp,

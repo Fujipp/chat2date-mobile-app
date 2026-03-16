@@ -229,14 +229,6 @@ class _ChatListScreenState extends ConsumerState<ChatListScreen>
     try {
       pendingNotis = [];
       final chatService = ref.read(chatServiceProvider);
-      final roomsRefresh = await chatService.getChatRooms();
-      if (roomsRefresh.isNotEmpty) {
-        await Future.wait(
-          roomsRefresh.map(
-            (match) => chatService.updateRelationshipBar(match.roomId),
-          ),
-        );
-      }
       final rooms = await chatService.getChatRooms();
       if (mounted) {
         setState(() {
@@ -271,13 +263,6 @@ class _ChatListScreenState extends ConsumerState<ChatListScreen>
       pendingNotis = [];
       final chatService = ref.read(chatServiceProvider);
       final matches = await chatService.getMatches();
-      if (matches.isNotEmpty) {
-        await Future.wait(
-          matches.map(
-            (match) => chatService.updateRelationshipBar(match.matchId),
-          ),
-        );
-      }
 
       if (mounted) {
         setState(() {
@@ -639,9 +624,18 @@ class _ChatListScreenState extends ConsumerState<ChatListScreen>
             isNewMatch: isNew,
             colors: isNew ? null : [AppColors.backgroundWhite],
             onClick: () async {
+              final chatService = ref.read(chatServiceProvider);
+              
               setState(() {
                 _viewedMatchIds.add(match.matchId);
               });
+
+              try {
+                await chatService.updateRelationshipBar(match.matchId);
+              } catch (e) {
+                debugPrint("Stats update failed: $e");
+              }
+
               // เปิดแชทกับ match
               await _checkAndShowNotifications(
                 match.matchId,

@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:chat2date/components/calendar/calendar_modal.dart';
 import 'package:chat2date/components/chat/bot_message_component.dart';
 import 'package:chat2date/components/chat/chat_text_component.dart';
 import 'package:chat2date/components/chat/input_chat_component.dart';
@@ -8,24 +9,34 @@ import 'package:chat2date/components/layout/header.dart';
 import 'package:chat2date/components/modal/feature_guide_modal.dart';
 import 'package:chat2date/components/modal/relationship_mission_modal.dart';
 import 'package:chat2date/components/page/unlock_date_modal.dart';
+import 'package:chat2date/components/status_bar/gps_alert.dart';
 import 'package:chat2date/components/status_bar/score_row.dart';
 import 'package:chat2date/components/toasts/toast.dart';
+import 'package:chat2date/models/appointment.dart';
 import 'package:chat2date/models/chat_access_status.dart';
 import 'package:chat2date/models/chat_message.dart';
 import 'package:chat2date/models/relationship_bar.dart';
 import 'package:chat2date/models/user.dart';
 import 'package:chat2date/screens/game/guessing_game_screen.dart';
+import 'package:chat2date/services/appointment_service.dart';
 import 'package:chat2date/services/chat_service.dart';
 import 'package:chat2date/services/chat_socket_service.dart';
+import 'package:chat2date/services/date_recommend_service.dart';
+import 'package:chat2date/services/emergency_service.dart';
 import 'package:chat2date/services/game_service.dart';
 import 'package:chat2date/services/game_socket_service.dart';
+import 'package:chat2date/services/location_service.dart';
+import 'package:chat2date/services/sos_service.dart';
 import 'package:chat2date/services/user_service.dart';
 import 'package:chat2date/stores/game_store.dart';
 import 'package:chat2date/stores/user_store.dart';
 import 'package:chat2date/theme/app_colors.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'package:geolocator/geolocator.dart';
+import 'package:share_plus/share_plus.dart';
 
 class InsideChatScreen extends ConsumerStatefulWidget {
   final String? roomId;
@@ -56,12 +67,26 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
   int _heartCount = 0; // 0 = ซ่อน, 1-2 = แสดง, 3 = rainbow
   bool _showWheelModal = false;
   bool _showUnlockDate = false;
-  final bool _showSpinWheel = false;
   bool firstTime = true;
   int talkCount = 0;
   int _steakDays = 0;
   bool _isFirstMessageBonus = false;
   int _dailyMessagesCount = 0;
+  String nickname = '';
+  List<Map<String, dynamic>> _dynamicPrizes = [];
+  String _spinMode = '';
+  String? _myConfirmStatus = "";
+
+  // === Appointment / Calendar ===
+  Appointment? _existingAppointment;
+  final String _lastSpunPlaceId = '';
+  final String _lastSpunPlaceName = '';
+  bool _isCalendarLoading = false;
+  // overlay state (เหมือน SpinWheel)
+  bool _showCalendarModal = false;
+  String _calendarPlaceName = '';
+  String _calendarPlaceId = '';
+  bool _calendarIsEditMode = false;
 
   bool _isLoadingMessages = true;
   bool _isLoadingMore = false;
@@ -102,6 +127,9 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
   //Game
   GameSocketService? _gameSocketService;
   StreamSubscription? _gameSubscription;
+
+  //Location
+  List<String> _emergencyNumbers = [];
 
   void _initGameSocket() {
     final roomId = widget.roomId;
@@ -176,6 +204,10 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
     // Register keyboard observer
     WidgetsBinding.instance.addObserver(this);
     // รับข้อมูลจาก arguments
+    final userStore = ref.read(userStoreProvider);
+    final userStoreMap = userStore as Map<String, dynamic>?;
+    final user = userStoreMap?['user'] as User?;
+    nickname = user?.nickname ?? 'คุณ';
     _chatUserId = widget.targetUserId;
     _chatUserName = widget.userName ?? 'Name';
     _chatUserAvatar = widget.avatarUrl;
@@ -390,8 +422,7 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
   }
 
   Future<void> _initUpdateRelationshipBar(bool onUpdate) async {
-    int oldHeartCount = 0;
-    double oldPercent = 0.0;
+    int oldHeartCount = 10;
 
     if (onUpdate) {
       final chatService = ref.read(chatServiceProvider);
@@ -399,7 +430,6 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
       if (!mounted) return;
       setState(() {
         oldHeartCount = _heartCount;
-        oldPercent = _currentPercent;
         _heartCount = roomData != null ? (roomData.score ~/ 100) : 0;
         _currentPercent = roomData != null
             ? (roomData.score % 100) / 100.0
@@ -411,7 +441,7 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
         _dailyMessagesCount = roomData != null ? roomData.dailyMessageCount : 0;
       });
 
-      if (oldHeartCount == 0 && oldPercent < 1.00 && _heartCount == 1) {
+      if (oldHeartCount == 0 && _heartCount >= 1) {
         FocusScope.of(context).unfocus();
         await Future.delayed(const Duration(milliseconds: 300));
         _triggerUnlockDate();
@@ -434,10 +464,7 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
         _dailyMessagesCount = roomData != null ? roomData.dailyMessageCount : 0;
       });
 
-      if (oldHeartCount == 0 &&
-          oldPercent < 1.00 &&
-          oldPercent != 0.00 &&
-          _heartCount == 1) {
+      if (oldHeartCount == 0 && _heartCount >= 1) {
         FocusScope.of(context).unfocus();
         await Future.delayed(const Duration(milliseconds: 300));
         _triggerUnlockDate();
@@ -493,7 +520,14 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
   Future<void> _initializeChat() async {
     await _enterRoomOnce();
     await _loadChatRoomMessages();
+    await _fetchInitialAppointment();
     _checkSpinWheelCondition();
+    try {
+      final numbers = await ref
+          .read(emergencyCallServiceProvider)
+          .getEmergencyCalls();
+      if (mounted) setState(() => _emergencyNumbers = numbers);
+    } catch (_) {}
 
     if (mounted) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -615,23 +649,6 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
     }
   }
 
-  // void _applyRelationshipScore(int? score) {
-  //   final int safeScore = score ?? 0;
-  //   final double percent = (safeScore / 100).clamp(0.0, 1.0);
-  //   int heart;
-  //   if (safeScore >= 90) {
-  //     heart = 3;
-  //   } else if (safeScore >= 60) {
-  //     heart = 2;
-  //   } else if (safeScore >= 30) {
-  //     heart = 1;
-  //   } else {
-  //     heart = 0;
-  //   }
-  //   _currentPercent = percent;
-  //   _heartCount = heart;
-  // }
-
   Future<void> _enterRoom() async {
     final roomId = widget.roomId;
     if (roomId == null || roomId.isEmpty) return;
@@ -663,6 +680,7 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
   }
 
   void _startChatSocket() {
+    int oldHeartCount = 10;
     final roomId = widget.roomId;
     if (roomId == null || roomId.isEmpty) return;
     if (_chatSocketService != null) return;
@@ -684,6 +702,24 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
     _messageSubscription = service.messageStream.listen(_handleIncomingMessage);
     _accessSubscription = service.accessStream.listen(_handleAccessStatus);
     _readSubscription = service.readStream.listen(_handleReadEvent);
+    _relationshipSubscription = service.relationshipStream.listen((data) {
+      if (!mounted) return;
+      setState(() {
+        oldHeartCount = _heartCount;
+        _heartCount = data['score'] != null ? (data['score'] ~/ 100) : 0;
+        _currentPercent = data['score'] != null
+            ? (data['score'] % 100) / 100.0
+            : 0.0;
+        _steakDays = data['streakDays'] ?? 0;
+        _dailyMessagesCount = data['dailyMessageCount'] ?? 0;
+        _isFirstMessageBonus = data['isFirstMessageBonus'] ?? false;
+      });
+
+      // เช็คเงื่อนไขปลดล็อกฟีเจอร์ใหม่ (เช่น หัวใจดวงแรก)
+      if (oldHeartCount == 0 && _heartCount >= 1) {
+        _triggerUnlockDate();
+      }
+    });
 
     // Setup periodic timer as fallback (in case WebSocket events are missed)
     _seenStatusTimer?.cancel();
@@ -808,6 +844,32 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
         });
       }
     } catch (_) {}
+  }
+
+  Future<void> _fetchInitialAppointment() async {
+    final roomId = widget.roomId;
+    if (roomId == null || roomId.isEmpty) return;
+
+    try {
+      final appointmentService = ref.read(appointmentServiceProvider);
+      final appointments = await appointmentService.getAppointments(
+        int.parse(roomId),
+      );
+
+      final active = appointments.where((a) => a.status != 'CANCELLED').toList()
+        ..sort((a, b) => b.appointmentId.compareTo(a.appointmentId));
+
+      if (mounted) {
+        setState(() {
+          _existingAppointment = active.isNotEmpty ? active.first : null;
+        });
+
+        print("📅 appointmentId: ${_existingAppointment?.appointmentId}");
+        print("📅 placeId: ${_existingAppointment?.placeId}");
+      }
+    } catch (e) {
+      debugPrint('Error fetching initial appointment: $e');
+    }
   }
 
   bool _isSvgImage(String? path) {
@@ -1016,14 +1078,23 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
     }
   }
 
-  /// บันทึกเมื่อหมุนวงล้อสำเร็จ
-  void _onSpinComplete() {
+  void _onSpinComplete(Map<String, dynamic> result) async {
     setState(() {
       _lastSpinDate = DateTime.now();
       _showWheelModal = false;
     });
     _calculateSpinwheelCooldown();
-    // TODO: บันทึก _lastSpinDate ไปยัง backend
+    final service = ref.read(dateRecommendProvider);
+    try {
+      final recommendations = await service.confirmPlace(
+        roomId: widget.roomId,
+        placeName: result['name'],
+        action: 'BLANK',
+        mode: _spinMode,
+      );
+    } catch (e) {
+      print("Error fetching date recommendations: $e");
+    }
   }
 
   /// เช็คเงื่อนไขว่า user ผ่านหรือไม่ก่อนเปิด spinwheel
@@ -1035,7 +1106,7 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
   }
 
   /// จัดการการกด spinwheel
-  void _handleSpinwheelTap() {
+  void _handleSpinwheelTap() async {
     if (!_canSpin) {
       // อยู่ใน cooldown - แสดง message
       ScaffoldMessenger.of(context).showSnackBar(
@@ -1058,10 +1129,439 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
       return;
     }
 
+    await _prepareBeforeSpin();
     // ผ่านทุกเงื่อนไข - เปิด modal
     setState(() {
       _showWheelModal = true;
     });
+  }
+
+  Future<void> _prepareBeforeSpin() async {
+    final service = ref.read(dateRecommendProvider);
+    try {
+      final recommendations = await service.getRecommendations(
+        roomId: widget.roomId,
+        range: 20,
+        mode: 'DISTANCE',
+      );
+      setState(() {
+        _spinMode = recommendations.mode;
+        _dynamicPrizes = recommendations.places.map((place) {
+          return {"name": place.name, "imageUrl": place.imageUrl};
+        }).toList();
+        _showWheelModal = true;
+      });
+    } catch (e) {
+      print("Error fetching date recommendations: $e");
+    }
+  }
+
+  // ===================== Calendar / Appointment Logic =====================
+
+  /// กด Calendar icon ใน Header: เปิด modal สร้าง/แก้ไขนัดหมาย
+  Future<void> _handleCalendarTap() async {
+    final roomId = widget.roomId;
+    if (roomId == null || roomId.isEmpty) return;
+
+    if (_isCalendarLoading) return;
+    setState(() => _isCalendarLoading = true);
+
+    try {
+      final appointmentService = ref.read(appointmentServiceProvider);
+      final appointments = await appointmentService.getAppointments(
+        int.parse(roomId),
+      );
+
+      // หา appointment ที่ active ล่าสุด (status != CANCELLED)
+      final active = appointments.where((a) => a.status != 'CANCELLED').toList()
+        ..sort((a, b) => b.appointmentId.compareTo(a.appointmentId));
+
+      if (!mounted) return;
+      setState(() {
+        _existingAppointment = active.isNotEmpty ? active.first : null;
+        _isCalendarLoading = false;
+      });
+
+      _showCalendarModalSheet();
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _isCalendarLoading = false);
+      Toast.show(
+        context,
+        type: ToastType.error,
+        title: 'ไม่สามารถโหลดข้อมูลนัดหมายได้',
+        message: e.toString().replaceAll('Exception: ', ''),
+        durationSeconds: 3,
+        showCountdown: false,
+      );
+    }
+  }
+
+  /// แสดง CalendarModal overlay (เหมือน SpinWheel)
+  void _showCalendarModalSheet() {
+    final existing = _existingAppointment;
+    final isEditMode = existing != null;
+    final placeName = isEditMode ? existing.placeName : _lastSpunPlaceName;
+    final placeId = isEditMode ? existing.placeId : _lastSpunPlaceId;
+    setState(() {
+      _calendarPlaceName = placeName;
+      _calendarPlaceId = placeId;
+      _calendarIsEditMode = isEditMode;
+      _showCalendarModal = true;
+    });
+  }
+
+  /// ปิด CalendarModal overlay
+  void _closeCalendar() {
+    setState(() => _showCalendarModal = false);
+  }
+
+  /// บันทึกนัดหมาย (create หรือ update)
+  Future<void> _saveAppointment({
+    required DateTime date,
+    required bool isEditMode,
+    int? existingId,
+    required String placeId,
+    required String placeName,
+  }) async {
+    final roomId = widget.roomId;
+    if (roomId == null || roomId.isEmpty) return;
+
+    try {
+      final service = ref.read(appointmentServiceProvider);
+      Appointment result;
+
+      if (isEditMode && existingId != null) {
+        result = await service.updateAppointment(
+          appointmentId: existingId,
+          dateTime: date,
+        );
+      } else {
+        result = await service.createAppointment(
+          roomId: int.parse(roomId),
+          placeId: placeId.isNotEmpty ? placeId : 'unknown',
+          placeName: placeName.isNotEmpty ? placeName : 'ไม่ระบุชื่อสถานที่',
+          dateTime: date,
+        );
+      }
+
+      if (!mounted) return;
+      setState(() => _existingAppointment = result);
+      _showSaveSuccessDialog(result);
+    } catch (e) {
+      if (!mounted) return;
+      Toast.show(
+        context,
+        type: ToastType.error,
+        title: 'ไม่สามารถบันทึกนัดหมายได้',
+        message: e.toString().replaceAll('Exception: ', ''),
+        durationSeconds: 3,
+        showCountdown: false,
+      );
+    }
+  }
+
+  /// State 2: success dialog หลังบันทึก
+  void _showSaveSuccessDialog(Appointment appointment) {
+    final dt = appointment.dateTime?.toLocal();
+    String dateStr;
+    if (dt != null) {
+      final thaiMonths = [
+        'มกราคม',
+        'กุมภาพันธ์',
+        'มีนาคม',
+        'เมษายน',
+        'พฤษภาคม',
+        'มิถุนายน',
+        'กรกฎาคม',
+        'สิงหาคม',
+        'กันยายน',
+        'ตุลาคม',
+        'พฤศจิกายน',
+        'ธันวาคม',
+      ];
+      final hour = dt.hour;
+      final amPm = hour < 12 ? 'AM' : 'PM';
+      final hour12 = hour % 12 == 0 ? 12 : hour % 12;
+      final minute = dt.minute.toString().padLeft(2, '0');
+      dateStr =
+          '${dt.day} ${thaiMonths[dt.month - 1]} ${dt.year} $hour12:$minute $amPm';
+    } else {
+      dateStr = 'ยังไม่ได้ระบุวันที่';
+    }
+
+    showDialog(
+      context: context,
+      barrierDismissible: true,
+      builder: (ctx) => Dialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        child: Padding(
+          padding: const EdgeInsets.all(28),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 72,
+                height: 72,
+                decoration: BoxDecoration(
+                  color: const Color(0xFFE8F5E9),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(
+                  Icons.check_circle,
+                  color: Color(0xFF4CAF50),
+                  size: 48,
+                ),
+              ),
+              const SizedBox(height: 16),
+              const Text(
+                'บันทึกเสร็จสิ้น',
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w700,
+                  fontFamily: 'Inter',
+                  color: Color(0xFF0F172A),
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                dateStr,
+                textAlign: TextAlign.center,
+                style: const TextStyle(
+                  fontSize: 14,
+                  color: Color(0xFF64748B),
+                  fontFamily: 'Inter',
+                ),
+              ),
+              const SizedBox(height: 6),
+              const Text(
+                'ระบบจะแจ้งเตือนซัก 1 วัน',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontSize: 12,
+                  color: Color(0xFF94A3B8),
+                  fontFamily: 'Inter',
+                ),
+              ),
+              const SizedBox(height: 24),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFFB8F1F3),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    elevation: 0,
+                  ),
+                  onPressed: () => Navigator.pop(ctx),
+                  child: const Text(
+                    'ตกลง',
+                    style: TextStyle(
+                      fontFamily: 'Inter',
+                      fontWeight: FontWeight.w600,
+                      color: Colors.white,
+                      fontSize: 16,
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  /// State 6: ยืนยันก่อนยกเลิกการแก้ไข (close X ใน edit mode)
+  void _showCancelEditConfirmDialog() {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: const Text(
+          'ยกเลิกการแก้ไข',
+          style: TextStyle(
+            fontFamily: 'Inter',
+            fontWeight: FontWeight.w700,
+            fontSize: 16,
+          ),
+        ),
+        content: const Text(
+          'ต้องการยกเลิกวันออกเดตใช่หรือไม่\nข้อมูลที่เลือกจะสูญหาย',
+          style: TextStyle(
+            fontFamily: 'Inter',
+            fontSize: 14,
+            color: Color(0xFF64748B),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text(
+              'ยกเลิก',
+              style: TextStyle(color: Color(0xFF94A3B8)),
+            ),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFF3B82F6),
+              elevation: 0,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8),
+              ),
+            ),
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('ยืนยัน', style: TextStyle(color: Colors.white)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// State 7: ยืนยันลบนัดหมาย
+  void _showDeleteConfirmDialog(int appointmentId) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: const Text(
+          'ยืนยันที่จะลบวันเดตหรือไม่',
+          style: TextStyle(
+            fontFamily: 'Inter',
+            fontWeight: FontWeight.w700,
+            fontSize: 16,
+          ),
+        ),
+        content: const Text(
+          'หากยืนยัน สถานที่เดตจะถูกลบออกและต้องสุ่มใหม่อีกครั้ง',
+          style: TextStyle(
+            fontFamily: 'Inter',
+            fontSize: 14,
+            color: Color(0xFF64748B),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text(
+              'ยกเลิก',
+              style: TextStyle(color: AppColors.error),
+            ),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFF4CAF50),
+              elevation: 0,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8),
+              ),
+            ),
+            onPressed: () async {
+              Navigator.pop(ctx);
+              await _deleteAppointment(appointmentId);
+            },
+            child: const Text('ยืนยัน', style: TextStyle(color: Colors.white)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// ลบ appointment + แสดง State 8 success
+  Future<void> _deleteAppointment(int appointmentId) async {
+    try {
+      final service = ref.read(appointmentServiceProvider);
+      await service.deleteAppointment(appointmentId);
+      if (!mounted) return;
+      setState(() => _existingAppointment = null);
+      _showDeleteSuccessDialog();
+    } catch (e) {
+      if (!mounted) return;
+      Toast.show(
+        context,
+        type: ToastType.error,
+        title: 'ไม่สามารถลบนัดหมายได้',
+        message: e.toString().replaceAll('Exception: ', ''),
+        durationSeconds: 3,
+        showCountdown: false,
+      );
+    }
+  }
+
+  /// State 8: แสดง success dialog หลังลบ
+  void _showDeleteSuccessDialog() {
+    showDialog(
+      context: context,
+      barrierDismissible: true,
+      builder: (ctx) => Dialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        child: Padding(
+          padding: const EdgeInsets.all(28),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 72,
+                height: 72,
+                decoration: const BoxDecoration(
+                  color: Color(0xFFE8F5E9),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(
+                  Icons.check_circle,
+                  color: Color(0xFF4CAF50),
+                  size: 48,
+                ),
+              ),
+              const SizedBox(height: 16),
+              const Text(
+                'ลบสำเร็จแล้ว',
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w700,
+                  fontFamily: 'Inter',
+                  color: Color(0xFF0F172A),
+                ),
+              ),
+              const SizedBox(height: 8),
+              const Text(
+                'ลบวันเดตเรียบร้อยแล้ว\nสถานที่เดตถูกลบออกแล้ว',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontSize: 14,
+                  color: Color(0xFF64748B),
+                  fontFamily: 'Inter',
+                ),
+              ),
+              const SizedBox(height: 24),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF4CAF50),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    elevation: 0,
+                  ),
+                  onPressed: () => Navigator.pop(ctx),
+                  child: const Text(
+                    'ตกลง',
+                    style: TextStyle(
+                      fontFamily: 'Inter',
+                      fontWeight: FontWeight.w600,
+                      color: Colors.white,
+                      fontSize: 16,
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 
   void _checkSpinWheelCondition() {
@@ -1210,19 +1710,57 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
         _hasTimeBreakAfter(index);
   }
 
-  void _triggerUnlockDate() {
+  void _triggerUnlockDate() async {
+    FocusScope.of(context).unfocus();
+    await Future.delayed(const Duration(milliseconds: 300));
     setState(() {
       _showUnlockDate = true;
+      _headerVariant = ChatHeaderVariant.chat2;
     });
 
     // นับถอยหลัง 5 วินาทีแล้วปิด
-    Future.delayed(const Duration(seconds: 8), () {
+    Future.delayed(const Duration(seconds: 3), () {
       if (mounted) {
         setState(() {
           _showUnlockDate = false;
         });
       }
     });
+  }
+
+  Future<void> _handleConfirmAction(ChatMessage message, String action) async {
+    final service = ref.read(dateRecommendProvider);
+    try {
+      // LAYER 1: เช็คสถานะล่าสุดจาก Server ก่อน (Double Check ตามที่คุณต้องการ)
+      final latestStatus = await service.checkConfirmPlace(
+        roomId: widget.roomId,
+      );
+
+      if (latestStatus != null && latestStatus != "BLANK") {
+        setState(() {
+          _myConfirmStatus = latestStatus;
+        });
+        return;
+      }
+
+      String firstPart = message.text.split('|').first.trim();
+      String placeNameOnly = firstPart
+          .replaceAll('สุ่มได้ไปเที่ยวที่ ', '')
+          .replaceAll(' !!!', '')
+          .trim();
+      await service.confirmPlace(
+        roomId: widget.roomId,
+        placeName: placeNameOnly,
+        action: action,
+      );
+
+      // เมื่อสำเร็จ ให้ล็อคปุ่มในเครื่องเราทันที
+      setState(() {
+        _myConfirmStatus = action;
+      });
+    } catch (e) {
+      debugPrint('Confirm Error: $e');
+    }
   }
 
   /// สร้าง Widget สำหรับแต่ละ message
@@ -1233,9 +1771,14 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
   }) {
     // Bot message
     if (message.isBot && message.botType != null) {
+      final bool isAlreadyActioned =
+          _myConfirmStatus != null && _myConfirmStatus != 'BLANK';
       return BotMessageComponent.fromMessage(
         message: message,
-        onActionPressed: () {
+        onActionPressed: () async {
+          if (message.botType == BotMessageType.ask && isAlreadyActioned) {
+            return;
+          }
           if (message.isActionDisabled ?? false) return;
           _navigateToGameScreen(widget.roomId!);
           setState(() {
@@ -1253,14 +1796,16 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
             print("⚠️ Unhandled bot type: ${message.botType}");
           }
         },
-        onFirstChoice: () {
-          // Handle "ใช่" choice
-          debugPrint('First choice (ใช่) for message: ${message.id}');
-        },
-        onSecondChoice: () {
-          // Handle "ไม่" choice
-          debugPrint('Second choice (ไม่) for message: ${message.id}');
-        },
+        onFirstChoice: isAlreadyActioned
+            ? null
+            : () async {
+                await _handleConfirmAction(message, 'AGREED');
+              },
+        onSecondChoice: isAlreadyActioned
+            ? null
+            : () async {
+                await _handleConfirmAction(message, 'DISAGREED');
+              },
       );
     }
 
@@ -1443,9 +1988,7 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
                       if (!mounted) return;
                       Navigator.maybePop(context);
                     },
-                    onCalendar: () {
-                      //debugPrint('Calendar tapped');
-                    },
+                    onCalendar: _handleCalendarTap,
                     onSpinwheel: _handleSpinwheelTap,
                     onFlag: () {
                       Navigator.pushReplacementNamed(
@@ -1466,6 +2009,89 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
                     child: Column(
                       children: [
                         const SizedBox(height: 12),
+                        if (_existingAppointment != null &&
+                            _existingAppointment!.dateTime != null &&
+                            DateTime.now().isAfter(
+                              _existingAppointment!.dateTime!,
+                            ))
+                          Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 16),
+                            child: GpsMapAlert(
+                              emergencyNumbers: _emergencyNumbers,
+                              destinationPlaceId: _existingAppointment?.placeId,
+                              googleApiKey: dotenv.env['GOOGLE_API_KEY'] ?? '',
+                              onLocate: () {
+                                Toast.show(
+                                  context,
+                                  type: ToastType.info,
+                                  title: 'อัปเดตตำแหน่ง',
+                                  message: 'กำลังดึงพิกัดล่าสุด...',
+                                  durationSeconds: 2,
+                                  showCountdown: false,
+                                );
+                              },
+                              onShareLocation: () async {
+                                try {
+                                  final pos =
+                                      await Geolocator.getCurrentPosition();
+
+                                  final shareUrl = await ref
+                                      .read(locationServiceProvider)
+                                      .shareLocation(
+                                        latitude: pos.latitude,
+                                        longitude: pos.longitude,
+                                      );
+
+                                  if (shareUrl.isNotEmpty) {
+                                    await Share.share(
+                                      'ฉันกำลังไปเดตนะ! สามารถติดตามโลเคชันแบบเรียลไทม์ของฉันได้ที่ลิงก์นี้เลย:\n$shareUrl',
+                                    );
+                                  }
+                                } catch (e) {
+                                  if (mounted) {
+                                    Toast.show(
+                                      context,
+                                      type: ToastType.error,
+                                      title: 'ข้อผิดพลาด',
+                                      message: 'ไม่สามารถแชร์โลเคชันได้',
+                                      durationSeconds: 3,
+                                      showCountdown: false,
+                                    );
+                                  }
+                                }
+                              },
+                              onSosTriggered: (calledNumber) async {
+                                try {
+                                  final pos =
+                                      await Geolocator.getCurrentPosition(
+                                        desiredAccuracy: LocationAccuracy.high,
+                                      );
+
+                                  await ref
+                                      .read(sosServiceProvider)
+                                      .triggerSos(
+                                        appointmentId:
+                                            _existingAppointment!.appointmentId,
+                                        latitude: pos.latitude,
+                                        longitude: pos.longitude,
+                                        calledNumber: calledNumber,
+                                      );
+                                } catch (e) {
+                                  if (mounted) {
+                                    Toast.show(
+                                      context,
+                                      type: ToastType.error,
+                                      title: 'ผิดพลาด',
+                                      message: 'ไม่สามารถส่งข้อมูล SOS ได้',
+                                      durationSeconds: 3,
+                                      showCountdown: false,
+                                    );
+                                  }
+                                }
+                              },
+                            ),
+                          ),
+
                         Padding(
                           padding: const EdgeInsets.symmetric(horizontal: 20),
                           child: LayoutBuilder(
@@ -1707,7 +2333,7 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
                 // 2. ตัว SpinDateComponent
                 // ✅ ใช้ Positioned.fill เพื่อกำหนดขอบเขตพื้นที่ที่เหลือจาก Header
                 Positioned.fill(
-                  top: 85, // เริ่มต้นที่ขอบล่างของ Header
+                  top: 0, // เริ่มต้นที่ขอบล่างของ Header
                   child: Align(
                     alignment: Alignment.center, // จัดกลางใน "พื้นที่ที่เหลือ"
                     child: SingleChildScrollView(
@@ -1738,14 +2364,9 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
                                   onCloseModal: () =>
                                       setState(() => _showWheelModal = false),
                                   onSpinComplete: _onSpinComplete,
-                                  prizes: const [
-                                    {'label': 'Coffee'},
-                                    {'label': 'Pizza'},
-                                    {'label': 'Movie'},
-                                    {'label': 'Book'},
-                                    {'label': 'Gift'},
-                                    {'label': 'Ice-cream'},
-                                  ],
+                                  firstPersonName: _chatUserName,
+                                  secondPersonName: nickname,
+                                  prizes: _dynamicPrizes,
                                 ),
                               ],
                             ),
@@ -1764,6 +2385,49 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
                   });
                 },
               ),
+
+              // === Calendar Modal (เหมือน SpinWheel overlay) ===
+              if (_showCalendarModal) ...[
+                CalendarModal(
+                  isVisible: _showCalendarModal,
+                  placeName: _calendarPlaceName,
+                  placeCountText: 'คุณมี 1 สถานที่เดต!!',
+                  initialMonth: () {
+                    final dt = _calendarIsEditMode
+                        ? (_existingAppointment?.dateTime ?? DateTime.now())
+                        : DateTime.now();
+                    return DateTime(dt.year, dt.month, 1);
+                  }(),
+                  initialTime: () {
+                    final dt = _calendarIsEditMode
+                        ? (_existingAppointment?.dateTime ?? DateTime.now())
+                        : DateTime.now();
+                    return TimeOfDay.fromDateTime(dt);
+                  }(),
+                  isEditMode: _calendarIsEditMode,
+                  onClose: () {
+                    _closeCalendar();
+                    if (_calendarIsEditMode) {
+                      _showCancelEditConfirmDialog();
+                    }
+                  },
+                  onTrash: () {
+                    _closeCalendar();
+                    final id = _existingAppointment?.appointmentId;
+                    if (id != null) _showDeleteConfirmDialog(id);
+                  },
+                  onSave: (date, time) async {
+                    _closeCalendar();
+                    await _saveAppointment(
+                      date: date,
+                      isEditMode: _calendarIsEditMode,
+                      existingId: _existingAppointment?.appointmentId,
+                      placeId: _calendarPlaceId,
+                      placeName: _calendarPlaceName,
+                    );
+                  },
+                ),
+              ],
             ],
           ),
         ),

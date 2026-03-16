@@ -23,8 +23,8 @@ public class UserLocation {
     @Column(name = "latitude", nullable = false, precision = 10, scale = 8)
     private BigDecimal latitude;
 
-    @Column(name = "longtitude", nullable = false, precision = 10, scale = 8)
-    private BigDecimal longtitude;
+    @Column(name = "longitude", nullable = false, precision = 10, scale = 8)
+    private BigDecimal longitude;
 
     @Column(name = "accuracy", nullable = false, precision = 6, scale = 2)
     private BigDecimal accuracy;
