@@ -142,21 +142,21 @@ class DateRecommendService {
         final int unlockTimestamp = data['unlockTimestamp'] ?? 0;
         int cooldownDays = 0;
 
-        if (!canSpin && unlockTimestamp > 0) {
-          final nowMs = DateTime.now().millisecondsSinceEpoch;
-          final remainingMs = unlockTimestamp - nowMs;
-
-          if (remainingMs > 0) {
-            cooldownDays = (remainingMs / (1000 * 60 * 60 * 24)).ceil();
+        if (!canSpin) {
+          if (unlockTimestamp > 0) {
+            final nowMs = DateTime.now().millisecondsSinceEpoch;
+            final remainingMs = unlockTimestamp - nowMs;
+            if (remainingMs > 0) {
+              cooldownDays = (remainingMs / (1000 * 60 * 60 * 24)).ceil();
+            }
+          } else {
+            cooldownDays = -1;
           }
         }
 
         return {
           'canSpin': canSpin,
           'cooldownDays': cooldownDays,
-          'isLockedByAppointment':
-              !canSpin &&
-              cooldownDays == 0, // ล็อคเพราะสถานะ SELECTED/SCHEDULED
         };
       } else {
         throw Exception('Server error: ${response.statusCode}');

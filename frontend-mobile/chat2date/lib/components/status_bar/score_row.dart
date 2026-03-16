@@ -62,12 +62,12 @@ class ScoreRow extends StatelessWidget {
     const yellow = Color(0xFFFFD166);
     const red = Color(0xFFFF5A5A);
 
-    final bool isLevel3 = number == 3;
+    final bool isLevelMax = number == 3 && basePercent == 1;
     final double base = basePercent.clamp(0, 1);
 
     // === สร้าง segments ของ “หลอด” ===
     final List<ProgressSegment> segments = [];
-    if (isLevel3) {
+    if (isLevelMax) {
       // หลอดสายรุ้ง ตามความยาว basePercent
       segments.add(ProgressSegment(percent: base, gradient: _rainbow));
       // ไม่ใช้ overlay เมื่อเป็น level 3
@@ -89,7 +89,7 @@ class ScoreRow extends StatelessWidget {
 
     // === สร้างหัวใจ ===
     Widget _buildHeart() {
-      if (isLevel3) {
+      if (isLevelMax) {
         // หัวใจเป็นรุ้ง และซ่อนตัวเลข
         return SizedBox(
           width: leadingWidth,

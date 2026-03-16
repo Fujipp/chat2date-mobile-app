@@ -432,15 +432,16 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
       if (!mounted) return;
       setState(() {
         oldHeartCount = _heartCount;
-        _heartCount = roomData != null ? (roomData.score ~/ 100) : 0;
-        _currentPercent = roomData != null
-            ? (roomData.score % 100) / 100.0
-            : 0.0;
-        _steakDays = roomData != null ? roomData.streakDays : 0;
-        _isFirstMessageBonus = roomData != null
-            ? roomData.isFirstMessageBonus
-            : false;
-        _dailyMessagesCount = roomData != null ? roomData.dailyMessageCount : 0;
+        if (roomData!.score >= 400) {
+          _heartCount = 3; // ตันที่ 3 ดวง
+          _currentPercent = 1.0; // ตันที่ 100% (1.0)
+        } else {
+          _heartCount = roomData.score ~/ 100;
+          _currentPercent = (roomData.score % 100) / 100.0;
+        }
+        _steakDays = roomData.streakDays;
+        _isFirstMessageBonus = roomData.isFirstMessageBonus;
+        _dailyMessagesCount = roomData.dailyMessageCount;
       });
 
       if (oldHeartCount == 0 && _heartCount >= 1) {
@@ -455,15 +456,16 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
               as RelationshipBar?;
       if (!mounted) return;
       setState(() {
-        _heartCount = roomData != null ? (roomData.score ~/ 100) : 0;
-        _currentPercent = roomData != null
-            ? (roomData.score % 100) / 100.0
-            : 0.0;
-        _steakDays = roomData != null ? roomData.streakDays : 0;
-        _isFirstMessageBonus = roomData != null
-            ? roomData.isFirstMessageBonus
-            : false;
-        _dailyMessagesCount = roomData != null ? roomData.dailyMessageCount : 0;
+        if (roomData!.score >= 400) {
+          _heartCount = 3; // ตันที่ 3 ดวง
+          _currentPercent = 1.0; // ตันที่ 100% (1.0)
+        } else {
+          _heartCount = roomData.score ~/ 100;
+          _currentPercent = (roomData.score % 100) / 100.0;
+        }
+        _steakDays = roomData.streakDays;
+        _isFirstMessageBonus = roomData.isFirstMessageBonus;
+        _dailyMessagesCount = roomData.dailyMessageCount;
       });
 
       if (oldHeartCount == 0 && _heartCount >= 1) {
@@ -725,10 +727,13 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
       if (!mounted) return;
       setState(() {
         oldHeartCount = _heartCount;
-        _heartCount = data['score'] != null ? (data['score'] ~/ 100) : 0;
-        _currentPercent = data['score'] != null
-            ? (data['score'] % 100) / 100.0
-            : 0.0;
+        if (data['score'] >= 400) {
+          _heartCount = 3; // ตันที่ 3 ดวง
+          _currentPercent = 1.0; // ตันที่ 100% (1.0)
+        } else {
+          _heartCount = data['score'] ~/ 100;
+          _currentPercent = (data['score'] % 100) / 100.0;
+        }
         _steakDays = data['streakDays'] ?? 0;
         _dailyMessagesCount = data['dailyMessageCount'] ?? 0;
         _isFirstMessageBonus = data['isFirstMessageBonus'] ?? false;
