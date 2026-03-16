@@ -5,6 +5,7 @@ import 'package:chat2date/components/chat/bot_message_component.dart';
 import 'package:chat2date/components/chat/chat_text_component.dart';
 import 'package:chat2date/components/chat/input_chat_component.dart';
 import 'package:chat2date/components/chat/spin_date_component.dart';
+import 'package:chat2date/components/common/modal_component.dart';
 import 'package:chat2date/components/layout/header.dart';
 import 'package:chat2date/components/modal/feature_guide_modal.dart';
 import 'package:chat2date/components/modal/relationship_mission_modal.dart';
@@ -26,6 +27,7 @@ import 'package:chat2date/services/emergency_service.dart';
 import 'package:chat2date/services/game_service.dart';
 import 'package:chat2date/services/game_socket_service.dart';
 import 'package:chat2date/services/location_service.dart';
+import 'package:chat2date/services/review_service.dart';
 import 'package:chat2date/services/sos_service.dart';
 import 'package:chat2date/services/user_service.dart';
 import 'package:chat2date/stores/game_store.dart';
@@ -74,8 +76,9 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
   int _dailyMessagesCount = 0;
   String nickname = '';
   List<Map<String, dynamic>> _dynamicPrizes = [];
-  String _spinMode = '';
+  final String _spinMode = '';
   String? _myConfirmStatus = "";
+  bool? _myReviewSatisfied;
 
   // === Appointment / Calendar ===
   Appointment? _existingAppointment;
@@ -100,6 +103,7 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
   StreamSubscription<ChatAccessStatus>? _accessSubscription;
   StreamSubscription<Map<String, dynamic>>? _readSubscription;
   StreamSubscription<Map<String, dynamic>>? _relationshipSubscription;
+  StreamSubscription<Map<String, dynamic>>? _reviewSubscription;
   String? _currentUserId;
   bool _hasEntered = false;
   bool _hasExited = false;
@@ -527,6 +531,7 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
     await _fetchInitialAppointment();
     await _initConfirmStatus();
     await _checkSpinWheelCondition();
+    await _checkAndShowReviewModal();
     _checkSpinWheelCondition();
     try {
       final numbers = await ref
@@ -723,6 +728,7 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
     _messageSubscription = service.messageStream.listen(_handleIncomingMessage);
     _accessSubscription = service.accessStream.listen(_handleAccessStatus);
     _readSubscription = service.readStream.listen(_handleReadEvent);
+    _reviewSubscription = service.reviewStream.listen(_handleReviewEvent);
     _relationshipSubscription = service.relationshipStream.listen((data) {
       if (!mounted) return;
       setState(() {
@@ -1780,6 +1786,344 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
     }
   }
 
+  //review
+  bool _isResultModalShown = false;
+  bool _hasShownBadEnding = false;
+  Future<void> _handleReviewEvent(Map<String, dynamic> payload) async {
+    if (!mounted) return;
+    final type = payload['type'];
+
+    if (type == 'REVIEW_WAITING') {
+      print("⏳ REVIEW_WAITING received for me");
+      _showWaitingModal();
+      return;
+    }
+
+    if (type == 'REVIEW_RESULT') {
+      final outcome = payload['outcome'] as String?;
+
+      if (mounted) {
+        final currentRoute = ModalRoute.of(context);
+        try {
+          final nav = Navigator.of(context, rootNavigator: false);
+          if (currentRoute != null && !currentRoute.isCurrent) {
+            nav.pop();
+          }
+        } catch (_) {}
+      }
+
+      if (_isResultModalShown && outcome != 'UNMATCH' && outcome != 'CONTINUE')
+        return;
+      _isResultModalShown = true;
+      print("🎯 REVIEW_RESULT received: outcome = $outcome");
+
+      await Future.delayed(const Duration(milliseconds: 150));
+      if (!mounted) return;
+
+      switch (outcome) {
+        case 'BOTH_SATISFIED':
+          _showGoodEndingModal();
+          break;
+        case 'ONE_SIDED':
+          _showOneSidedModal(appt: _existingAppointment!);
+          break;
+        case 'BOTH_UNSATISFIED':
+          if (!_hasShownBadEnding) {
+            _hasShownBadEnding = true;
+            _showBadEndingModal(appt: _existingAppointment!);
+          } else {
+            _isResultModalShown = false;
+          }
+          break;
+        case 'CONTINUE':
+          _showGoodEndingModal();
+          break;
+        case 'UNMATCH':
+          Toast.show(
+            context,
+            type: ToastType.info,
+            title: 'แยกย้าย',
+            message: 'ยุติความสัมพันธ์เรียบร้อยแล้ว',
+            durationSeconds: 2,
+            showCountdown: false,
+          );
+
+          Future.delayed(const Duration(seconds: 2), () {
+            if (mounted) {
+              Navigator.pop(context);
+            }
+          });
+          break;
+      }
+    }
+  }
+
+  // ==================== Review Flow ====================
+  bool _isReviewModalShown = false;
+  Future<void> _checkAndShowReviewModal() async {
+    if (_isReviewModalShown) return;
+
+    final appt = _existingAppointment;
+    if (appt == null ||
+        appt.dateTime == null ||
+        !DateTime.now().isAfter(appt.dateTime!))
+      return;
+
+    try {
+      final reviewService = ref.read(reviewServiceProvider);
+      final isReviewed = await reviewService.checkReviewStatus(
+        appt.appointmentId,
+      );
+      if (!mounted) return;
+
+      if (!isReviewed) {
+        setState(() => _isReviewModalShown = true);
+        await Future.delayed(const Duration(milliseconds: 500));
+        if (mounted) _showReviewFlow();
+      }
+    } catch (e) {
+      debugPrint('Error checking review status: $e');
+    }
+  }
+
+  void _showReviewFlow() {
+    print("👤 myUserId: $_currentUserId");
+    print("👤 targetUserId: $_chatUserId");
+    final appt = _existingAppointment;
+    if (appt == null) return;
+
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) => Dialog(
+        backgroundColor: Colors.transparent,
+        insetPadding: const EdgeInsets.symmetric(horizontal: 24),
+        child: ModalComponent(
+          imagePath: _chatUserAvatar,
+          heightSvg: 68,
+          widthSvg: 77,
+          imageName: _chatUserName,
+          topic: 'ประเมินคู่เดทของคุณ',
+          topicTop: true,
+          description: 'คุณพึงพอใจกับคู่เดทของคุณหรือไม่',
+          choice: true,
+          firstChoiceText: 'ไม่พอใจ',
+          secondChoiceText: 'พอใจ',
+          subDescription: true,
+          headingSubDescriptionText: 'คำเตือน: ',
+          subDescriptionText:
+              'การเลือกจะมีผลต่อความสัมพันธ์คู่ของคุณ\n'
+              'พึงพอใจทั้งคู่ ถือว่าทั้งคู่ประสบความสำเร็จ\n'
+              'ไม่พึงพอใจทั้งคู่ จะมีให้เลือกว่าจะ unmatch หรือไม่\n'
+              'ไม่พอใจฝ่ายใดฝ่ายหนึ่ง จะมีให้เลือกไปต่อหรือพอแค่นี้\n'
+              'หากฝ่ายใดฝ่ายหนึ่งเลือก unmatch หรือ พอแค่นี้ จะจบทันที',
+          onFirstChoice: () async {
+            print("🔴 กด ไม่พอใจ → isSatisfied = false");
+            Navigator.pop(ctx);
+            setState(() => _myReviewSatisfied = false);
+            await _submitReview(appt: appt, isSatisfied: false);
+          },
+          onSecondChoice: () async {
+            print("🟢 กด พอใจ → isSatisfied = true");
+            Navigator.pop(ctx);
+            setState(() => _myReviewSatisfied = true);
+            await _submitReview(appt: appt, isSatisfied: true);
+          },
+        ),
+      ),
+    );
+  }
+
+  Future<void> _submitReview({
+    required Appointment appt,
+    required bool isSatisfied,
+  }) async {
+    try {
+      final reviewService = ref.read(reviewServiceProvider);
+      await reviewService.submitReview(
+        appointmentId: appt.appointmentId,
+        targetUserId: _chatUserId ?? '',
+        isSatisfied: isSatisfied,
+        wantToContinue: null,
+        wantToUnmatch: null,
+      );
+      print("✅ submitReview success");
+    } catch (e) {
+      print("❌ submitReview error: $e");
+    }
+  }
+
+  void _showWaitingModal() {
+    final dialogKey = GlobalKey();
+    bool isDialogOpen = true;
+
+    showDialog(
+      context: context,
+      barrierDismissible: true,
+      builder: (ctx) {
+        Future.delayed(const Duration(seconds: 5), () {
+          if (isDialogOpen && ctx.mounted) {
+            isDialogOpen = false;
+            Navigator.of(ctx).pop();
+          }
+        });
+
+        return Dialog(
+          backgroundColor: Colors.transparent,
+          insetPadding: const EdgeInsets.symmetric(horizontal: 24),
+          child: ModalComponent(
+            svgPath: 'assets/icons/icon_done.svg',
+            heightSvg: 78,
+            widthSvg: 77,
+            topic: 'รอผลการประเมิน',
+            description:
+                'คุณได้ทำการประเมินเรียบร้อยแล้ว\n'
+                'รอให้อีกฝ่ายประเมินสักครู่นะ\n'
+                'ระบบจะแจ้งเตือนเมื่ออีกฝ่ายตอบแล้ว',
+            spaceBottom: 15,
+            spaceTop: 15,
+          ),
+        );
+      },
+    ).then((_) => isDialogOpen = false);
+  }
+
+  void _showGoodEndingModal() {
+    bool isDialogOpen = true;
+
+    showDialog(
+      context: context,
+      barrierDismissible: true,
+      builder: (ctx) {
+        Future.delayed(const Duration(seconds: 5), () {
+          if (isDialogOpen && ctx.mounted) {
+            isDialogOpen = false;
+            Navigator.of(ctx).pop();
+          }
+        });
+
+        return Dialog(
+          backgroundColor: Colors.transparent,
+          insetPadding: const EdgeInsets.symmetric(horizontal: 24),
+          child: ModalComponent(
+            svgPath: 'assets/icons/icon_good-ending.svg',
+            heightSvg: 68,
+            widthSvg: 77,
+            topic: 'ยินดีด้วย!',
+            description:
+                'คุณทั้งคู่มีความเห็นตรงกัน\n'
+                'หวังว่าการเดินทางครั้งนี้\n'
+                'จะเป็นก้าวแรกของความสัมพันธ์ที่ดีขึ้นไปอีก',
+            spaceBottom: 15,
+            spaceTop: 15,
+          ),
+        );
+      },
+    ).then((_) {
+      isDialogOpen = false;
+      _isResultModalShown = false;
+    });
+  }
+
+  void _showOneSidedModal({required Appointment appt}) {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) => Dialog(
+        backgroundColor: Colors.transparent,
+        insetPadding: const EdgeInsets.symmetric(horizontal: 24),
+        child: ModalComponent(
+          svgPath: 'assets/icons/icon_one-sided.svg',
+          heightSvg: 68,
+          widthSvg: 77,
+          topic: 'มีฝ่ายหนึ่งรู้สึกไม่พอใจกับการเดินทางครั้งนี้',
+          description:
+              'คุณต้องการเปิดโอกาสพูดคุยเพื่อทำความเข้าใจและ\n'
+              'ไปต่อกับคู่ของคุณหรือไม่?',
+          choice: true,
+          firstChoiceText: 'ไม่ต้องการ',
+          secondChoiceText: 'ต้องการ',
+          onFirstChoice: () async {
+            // ไม่ต้องการไปต่อ
+            Navigator.pop(ctx);
+            await _submitWantToContinue(
+              appt: appt,
+              wantToContinue: false,
+              wantToUnmatch: null,
+            ); // ส่ง null
+          },
+          onSecondChoice: () async {
+            // ต้องการไปต่อ
+            Navigator.pop(ctx);
+            await _submitWantToContinue(
+              appt: appt,
+              wantToContinue: true,
+              wantToUnmatch: null,
+            ); // ส่ง null
+          },
+        ),
+      ),
+    ).then((_) => _isResultModalShown = false);
+  }
+
+  void _showBadEndingModal({required Appointment appt}) {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) => Dialog(
+        backgroundColor: Colors.transparent,
+        insetPadding: const EdgeInsets.symmetric(horizontal: 24),
+        child: ModalComponent(
+          svgPath: 'assets/icons/icon_bad-ending.svg',
+          heightSvg: 68,
+          widthSvg: 77,
+          topic: 'เสียใจด้วย',
+          description: 'ต้องการ ยกเลิกการจับคู่ (Unmatch) กับคู่ของคุณหรือไม่?',
+          choice: true,
+          firstChoiceText: 'ไม่ต้องการ',
+          secondChoiceText: 'ต้องการ',
+          onFirstChoice: () async {
+            // ไม่ต้องการ Unmatch = ไปต่อ
+            Navigator.pop(ctx);
+            await _submitWantToContinue(
+              appt: appt,
+              wantToContinue: null,
+              wantToUnmatch: false,
+            );
+          },
+          onSecondChoice: () async {
+            // ต้องการ Unmatch = จบกัน
+            Navigator.pop(ctx);
+            await _submitWantToContinue(
+              appt: appt,
+              wantToContinue: null,
+              wantToUnmatch: true,
+            );
+          },
+        ),
+      ),
+    ).then((_) => _isResultModalShown = false);
+  }
+
+  Future<void> _submitWantToContinue({
+    required Appointment appt,
+    bool? wantToContinue,
+    bool? wantToUnmatch,
+  }) async {
+    try {
+      final reviewService = ref.read(reviewServiceProvider);
+      await reviewService.submitReview(
+        appointmentId: appt.appointmentId,
+        targetUserId: _chatUserId ?? '',
+        isSatisfied: _myReviewSatisfied ?? false,
+        wantToContinue: wantToContinue,
+        wantToUnmatch: wantToUnmatch,
+      );
+    } catch (e) {
+      debugPrint('submitWantToContinue error: $e');
+    }
+  }
+
   /// สร้าง Widget สำหรับแต่ละ message
   Widget _buildMessageWidget(
     ChatMessage message,
@@ -1974,6 +2318,7 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
     _gameSocketService?.dispose();
     _gameSubscription?.cancel();
     _relationshipSubscription?.cancel();
+    _reviewSubscription?.cancel();
     super.dispose();
   }
 
@@ -2028,86 +2373,107 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
                       children: [
                         const SizedBox(height: 12),
                         if (_existingAppointment != null &&
-                            _existingAppointment!.dateTime != null &&
-                            DateTime.now().isAfter(
-                              _existingAppointment!.dateTime!,
-                            ))
-                          Padding(
-                            padding: const EdgeInsets.symmetric(horizontal: 16),
-                            child: GpsMapAlert(
-                              emergencyNumbers: _emergencyNumbers,
-                              destinationPlaceId: _existingAppointment?.placeId,
-                              googleApiKey: dotenv.env['GOOGLE_API_KEY'] ?? '',
-                              onLocate: () {
-                                Toast.show(
-                                  context,
-                                  type: ToastType.info,
-                                  title: 'อัปเดตตำแหน่ง',
-                                  message: 'กำลังดึงพิกัดล่าสุด...',
-                                  durationSeconds: 2,
-                                  showCountdown: false,
+                            _existingAppointment!.dateTime != null)
+                          Builder(
+                            builder: (context) {
+                              final now = DateTime.now();
+                              final dateStartTime =
+                                  _existingAppointment!.dateTime!;
+                              // ✅ ตั้งเวลาหมดอายุ (โชว์แค่ 3 ชั่วโมงหลังเวลานัดเดต)
+                              final dateEndTime = dateStartTime.add(
+                                const Duration(hours: 3),
+                              );
+
+                              // เช็กว่าเลยเวลานัดมาแล้ว AND ยังไม่หมดเวลาเดต
+                              if (now.isAfter(dateStartTime) &&
+                                  now.isBefore(dateEndTime)) {
+                                return Padding(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 16,
+                                  ),
+                                  child: GpsMapAlert(
+                                    emergencyNumbers: _emergencyNumbers,
+                                    destinationPlaceId:
+                                        _existingAppointment?.placeId,
+                                    googleApiKey:
+                                        dotenv.env['GOOGLE_API_KEY'] ?? '',
+                                    onLocate: () {
+                                      Toast.show(
+                                        context,
+                                        type: ToastType.info,
+                                        title: 'อัปเดตตำแหน่ง',
+                                        message: 'กำลังดึงพิกัดล่าสุด...',
+                                        durationSeconds: 2,
+                                        showCountdown: false,
+                                      );
+                                    },
+                                    onShareLocation: () async {
+                                      try {
+                                        final pos =
+                                            await Geolocator.getCurrentPosition();
+
+                                        final shareUrl = await ref
+                                            .read(locationServiceProvider)
+                                            .shareLocation(
+                                              latitude: pos.latitude,
+                                              longitude: pos.longitude,
+                                            );
+
+                                        if (shareUrl.isNotEmpty) {
+                                          await Share.share(
+                                            'ฉันกำลังไปเดตนะ! สามารถติดตามโลเคชันแบบเรียลไทม์ของฉันได้ที่ลิงก์นี้เลย:\n$shareUrl',
+                                          );
+                                        }
+                                      } catch (e) {
+                                        if (mounted) {
+                                          Toast.show(
+                                            context,
+                                            type: ToastType.error,
+                                            title: 'ข้อผิดพลาด',
+                                            message: 'ไม่สามารถแชร์โลเคชันได้',
+                                            durationSeconds: 3,
+                                            showCountdown: false,
+                                          );
+                                        }
+                                      }
+                                    },
+                                    onSosTriggered: (calledNumber) async {
+                                      try {
+                                        final pos =
+                                            await Geolocator.getCurrentPosition(
+                                              desiredAccuracy:
+                                                  LocationAccuracy.high,
+                                            );
+
+                                        await ref
+                                            .read(sosServiceProvider)
+                                            .triggerSos(
+                                              appointmentId:
+                                                  _existingAppointment!
+                                                      .appointmentId,
+                                              latitude: pos.latitude,
+                                              longitude: pos.longitude,
+                                              calledNumber: calledNumber,
+                                            );
+                                      } catch (e) {
+                                        if (mounted) {
+                                          Toast.show(
+                                            context,
+                                            type: ToastType.error,
+                                            title: 'ผิดพลาด',
+                                            message:
+                                                'ไม่สามารถส่งข้อมูล SOS ได้',
+                                            durationSeconds: 3,
+                                            showCountdown: false,
+                                          );
+                                        }
+                                      }
+                                    },
+                                  ),
                                 );
-                              },
-                              onShareLocation: () async {
-                                try {
-                                  final pos =
-                                      await Geolocator.getCurrentPosition();
-
-                                  final shareUrl = await ref
-                                      .read(locationServiceProvider)
-                                      .shareLocation(
-                                        latitude: pos.latitude,
-                                        longitude: pos.longitude,
-                                      );
-
-                                  if (shareUrl.isNotEmpty) {
-                                    await Share.share(
-                                      'ฉันกำลังไปเดตนะ! สามารถติดตามโลเคชันแบบเรียลไทม์ของฉันได้ที่ลิงก์นี้เลย:\n$shareUrl',
-                                    );
-                                  }
-                                } catch (e) {
-                                  if (mounted) {
-                                    Toast.show(
-                                      context,
-                                      type: ToastType.error,
-                                      title: 'ข้อผิดพลาด',
-                                      message: 'ไม่สามารถแชร์โลเคชันได้',
-                                      durationSeconds: 3,
-                                      showCountdown: false,
-                                    );
-                                  }
-                                }
-                              },
-                              onSosTriggered: (calledNumber) async {
-                                try {
-                                  final pos =
-                                      await Geolocator.getCurrentPosition(
-                                        desiredAccuracy: LocationAccuracy.high,
-                                      );
-
-                                  await ref
-                                      .read(sosServiceProvider)
-                                      .triggerSos(
-                                        appointmentId:
-                                            _existingAppointment!.appointmentId,
-                                        latitude: pos.latitude,
-                                        longitude: pos.longitude,
-                                        calledNumber: calledNumber,
-                                      );
-                                } catch (e) {
-                                  if (mounted) {
-                                    Toast.show(
-                                      context,
-                                      type: ToastType.error,
-                                      title: 'ผิดพลาด',
-                                      message: 'ไม่สามารถส่งข้อมูล SOS ได้',
-                                      durationSeconds: 3,
-                                      showCountdown: false,
-                                    );
-                                  }
-                                }
-                              },
-                            ),
+                              }
+                              return const SizedBox.shrink();
+                            },
                           ),
 
                         Padding(
