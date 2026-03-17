@@ -41,6 +41,10 @@ public class Appointment {
     @Column(name = "status", nullable = false)
     private AppointmentStatus status;
 
+    @ColumnDefault("false")
+    @Column(name = "isNotified", nullable = false)
+    private Boolean isNotified;
+
     @ColumnDefault("CURRENT_TIMESTAMP")
     @Column(name = "createdAt", nullable = false, updatable = false)
     private LocalDateTime createdAt;
@@ -59,6 +63,9 @@ public class Appointment {
         }
         if (status == null) {
             status = AppointmentStatus.PLACE_SELECTED;
+        }
+        if (isNotified == null) {
+            isNotified = false;
         }
     }
 

@@ -34,6 +34,12 @@ class CalendarDayCell extends StatelessWidget {
     final h = size?.height ?? _cellH;
     final dayStr = date.day.toString();
 
+    // เช็คว่า วันในช่องนี้ เป็นอดีตหรือไม่ (ตัดเวลาออกเพื่อเทียบแค่วัน)
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final cellDate = DateTime(date.year, date.month, date.day);
+    final isPast = cellDate.isBefore(today);
+
     // ฟอนต์หลัก Inter ทั้งหมด
     const textBase = TextStyle(
       fontFamily: 'Inter',
@@ -46,12 +52,15 @@ class CalendarDayCell extends StatelessWidget {
     final textMuted = textBase.copyWith(
       color: const Color(0x26001753),
     ); // โปร่ง
+    final textDisabled = textBase.copyWith(
+      color: Colors.grey.shade400,
+    ); // สีเทาสำหรับวันในอดีต
 
     // ============ เลือกแล้ว ============
     if (_isSelected) {
       return InkWell(
         borderRadius: BorderRadius.circular(4.65),
-        onTap: _isCurrentMonth ? () => onSelect?.call(date) : null,
+        onTap: (_isCurrentMonth && !isPast) ? () => onSelect?.call(date) : null,
         child: Container(
           width: w,
           height: h,
@@ -77,12 +86,11 @@ class CalendarDayCell extends StatelessWidget {
       );
     }
 
-    // ============ วันในเดือนปัจจุบัน (กดได้ + พื้นหลังขาวเงา) ============
+    // ============ วันในเดือนปัจจุบัน ============
     if (_isCurrentMonth) {
-      return InkWell(
-        borderRadius: BorderRadius.circular(4.65),
-        onTap: () => onSelect?.call(date),
-        child: Container(
+      if (isPast) {
+        // วันในอดีต (กดไม่ได้ + สีเทาอ่อน)
+        return Container(
           width: w,
           height: h,
           decoration: ShapeDecoration(
@@ -100,9 +108,35 @@ class CalendarDayCell extends StatelessWidget {
           ),
           alignment: Alignment.bottomCenter, // ชิดล่าง
           padding: const EdgeInsets.only(bottom: 6),
-          child: Text(dayStr, style: textNormal, textAlign: TextAlign.center),
-        ),
-      );
+          child: Text(dayStr, style: textDisabled, textAlign: TextAlign.center),
+        );
+      } else {
+        // วันปกติ (กดได้ + พื้นหลังขาวเงา)
+        return InkWell(
+          borderRadius: BorderRadius.circular(4.65),
+          onTap: () => onSelect?.call(date),
+          child: Container(
+            width: w,
+            height: h,
+            decoration: ShapeDecoration(
+              color: Colors.white,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(4.65),
+              ),
+              shadows: const [
+                BoxShadow(
+                  color: Color(0x0C000E33),
+                  blurRadius: 0.78,
+                  offset: Offset(0, 0.78),
+                ),
+              ],
+            ),
+            alignment: Alignment.bottomCenter, // ชิดล่าง
+            padding: const EdgeInsets.only(bottom: 6),
+            child: Text(dayStr, style: textNormal, textAlign: TextAlign.center),
+          ),
+        );
+      }
     }
 
     // ============ วันนอกเดือน (กดไม่ได้ + ไม่มีพื้นหลัง) ============

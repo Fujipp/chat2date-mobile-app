@@ -103,4 +103,34 @@ public class NotificationService {
             }
         }
     }
+
+    // ★ ใหม่: ส่งแจ้งเตือนเมื่อถึงเวลานัดเดต
+    public void sendAppointmentArrivalNotification(String receiverUserId, String partnerNickname,
+            Integer roomId, String placeName) {
+        List<String> tokens = deviceTokenService.getTokensForUser(receiverUserId);
+        if (tokens == null || tokens.isEmpty()) {
+            System.out.println("[FCM] No device token for user " + receiverUserId);
+            return;
+        }
+
+        for (String token : tokens) {
+            Message message = Message.builder()
+                    .setToken(token)
+                    .setNotification(
+                            Notification.builder()
+                                    .setTitle("ถึงเวลานัดเดตแล้ว! ⏰")
+                                    .setBody("ถึงเวลานัดเดตที่ " + placeName + " กับ " + partnerNickname + " แล้ว ขอให้สนุกนะ!")
+                                    .build())
+                    .putData("type", "APPOINTMENT_ARRIVAL")
+                    .putData("roomId", roomId != null ? roomId.toString() : "")
+                    .build();
+
+            try {
+                String msgId = FirebaseMessaging.getInstance().send(message);
+                System.out.println("[FCM] Sent APPOINTMENT_ARRIVAL to " + receiverUserId + " msgId=" + msgId);
+            } catch (FirebaseMessagingException e) {
+                System.out.println("[FCM] Failed to send APPOINTMENT_ARRIVAL to " + receiverUserId + " : " + e.getMessage());
+            }
+        }
+    }
 }

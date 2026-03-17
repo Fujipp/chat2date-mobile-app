@@ -27,4 +27,6 @@ public interface AppointmentRepository extends JpaRepository<Appointment, Intege
     Optional<Appointment> findByIdWithMatch(@Param("appointmentId") Integer appointmentId);
 
     Optional<Appointment> findFirstByMatch_IdOrderByCreatedAtDesc(Integer matchId);
+
+    List<Appointment> findByStatusAndIsNotifiedFalseAndDateTimeBefore(AppointmentStatus status, java.time.LocalDateTime dateTime);
 }
