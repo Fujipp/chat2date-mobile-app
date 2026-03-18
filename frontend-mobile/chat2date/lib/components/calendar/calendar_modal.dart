@@ -17,6 +17,8 @@ class CalendarModal extends StatelessWidget {
   /// วัน+เวลาเริ่มต้น
   final DateTime initialMonth;
   final TimeOfDay? initialTime;
+  /// ★ ใหม่: วันที่ที่เลือกไว้แล้ว (edit mode เท่านั้น) ถ้าเปิดใหม่ให้เป็น null
+  final DateTime? initialSelectedDate;
 
   /// Edit mode: แสดงปุ่มลบ
   final bool isEditMode;
@@ -33,6 +35,7 @@ class CalendarModal extends StatelessWidget {
     this.placeCountText = 'คุณมี 1 สถานที่เดต!!',
     required this.initialMonth,
     this.initialTime,
+    this.initialSelectedDate,
     this.isEditMode = false,
     this.onSave,
     this.onClose,
@@ -84,6 +87,7 @@ class CalendarModal extends StatelessWidget {
                     child: CalendarCard(
                       initialMonth: initialMonth,
                       initialTime: initialTime,
+                      initialSelectedDate: initialSelectedDate,
                       placeName: placeName.isNotEmpty
                           ? placeName
                           : 'ยังไม่ได้เลือกสถานที่',

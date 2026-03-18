@@ -34,6 +34,7 @@ class PlaceDTO {
       "address": address,
       "lat": latitude,
       "lng": longitude,
+      "placeId": googlePlaceId, // ★ เพิ่ม: ให้ SpinWheel ส่ง placeId กลับมาได้
     };
   }
 }

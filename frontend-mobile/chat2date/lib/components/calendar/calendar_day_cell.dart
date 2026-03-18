@@ -34,11 +34,12 @@ class CalendarDayCell extends StatelessWidget {
     final h = size?.height ?? _cellH;
     final dayStr = date.day.toString();
 
-    // เช็คว่า วันในช่องนี้ เป็นอดีตหรือไม่ (ตัดเวลาออกเพื่อเทียบแค่วัน)
+    // เช็คว่า วันในช่องนี้ เป็นวันนี้หรืออดีตหรือไม่
+    // (เลือกได้เฉพาะพรุ่งนี้เป็นต้นไป)
     final now = DateTime.now();
     final today = DateTime(now.year, now.month, now.day);
     final cellDate = DateTime(date.year, date.month, date.day);
-    final isPast = cellDate.isBefore(today);
+    final isPast = !cellDate.isAfter(today); // วันนี้ + อดีต = กดไม่ได้
 
     // ฟอนต์หลัก Inter ทั้งหมด
     const textBase = TextStyle(

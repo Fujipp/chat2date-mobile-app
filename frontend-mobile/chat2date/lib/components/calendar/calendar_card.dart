@@ -9,6 +9,8 @@ import 'calendar_day_cell.dart';
 class CalendarCard extends StatefulWidget {
   final DateTime initialMonth;
   final TimeOfDay? initialTime;
+  /// ★ ใหม่: วันที่ที่ถูกเลือกไว้แล้ว (edit mode) ถ้าเปิดใหม่ให้เป็น null
+  final DateTime? initialSelectedDate;
   final void Function(DateTime date, TimeOfDay time)? onSave;
   final VoidCallback? onClose;
   final VoidCallback? onTrash;
@@ -22,6 +24,7 @@ class CalendarCard extends StatefulWidget {
     super.key,
     required this.initialMonth,
     this.initialTime,
+    this.initialSelectedDate,
     this.onSave,
     this.onClose,
     this.onTrash,
@@ -51,7 +54,9 @@ class _CalendarCardState extends State<CalendarCard> {
       widget.initialMonth.month,
       1,
     );
-    _selectedDate = DateTime(_cursorMonth.year, _cursorMonth.month, 1);
+    // ★ แก้: ถ้าเปิดใหม่ (ไม่มี initialSelectedDate) → ไม่ไฮไลต์วันใด
+    // ถ้าเป็น edit mode → ไฮไลต์วันที่เลือกไว้แล้ว
+    _selectedDate = widget.initialSelectedDate;
 
     final t = widget.initialTime ?? const TimeOfDay(hour: 12, minute: 0);
     _am = t.period == DayPeriod.am;
@@ -60,7 +65,8 @@ class _CalendarCardState extends State<CalendarCard> {
     _minute = t.minute;
 
     // ปุ่มบันทึกจะถูก disabled จนกว่า user จะเลือกวัน/เวลาจริงๆ
-    _hasUserPicked = false;
+    // ถ้ามี initialSelectedDate (edit mode) → ถือว่าเลือกแล้ว
+    _hasUserPicked = widget.initialSelectedDate != null;
   }
 
   // ==== Month / Year helpers ====

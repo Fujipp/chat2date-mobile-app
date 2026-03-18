@@ -13,6 +13,7 @@ import 'package:chat2date/components/page/unlock_date_modal.dart';
 import 'package:chat2date/components/status_bar/gps_alert.dart';
 import 'package:chat2date/components/status_bar/score_row.dart';
 import 'package:chat2date/components/toasts/toast.dart';
+import 'package:chat2date/components/buttons/ds_button.dart';
 import 'package:chat2date/models/appointment.dart';
 import 'package:chat2date/models/chat_access_status.dart';
 import 'package:chat2date/models/chat_message.dart';
@@ -82,8 +83,8 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
 
   // === Appointment / Calendar ===
   Appointment? _existingAppointment;
-  final String _lastSpunPlaceId = '';
-  final String _lastSpunPlaceName = '';
+  String _lastSpunPlaceId = '';    // ★ แก้: ไม่ใช่ final เพื่อให้อัพเดตได้
+  String _lastSpunPlaceName = ''; // ★ แก้: ไม่ใช่ final เพื่อให้อัพเดตได้
   bool _isCalendarLoading = false;
   DateTime? _lastSpinTime;
   // overlay state (เหมือน SpinWheel)
@@ -1079,6 +1080,9 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
     setState(() {
       _lastSpinDate = DateTime.now();
       _showWheelModal = false;
+      // ★ แก้: บันทึก placeId และ placeName จากผล Spin ไว้ใช้ตอนเปิด Calendar
+      _lastSpunPlaceId = (result['placeId'] as String?) ?? '';
+      _lastSpunPlaceName = (result['name'] as String?) ?? '';
     });
     _checkSpinWheelCondition();
     final service = ref.read(dateRecommendProvider);
@@ -1150,7 +1154,12 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
       if (!mounted) return;
       setState(() {
         _dynamicPrizes = recommendations.places.map((place) {
-          return {"name": place.name, "imageUrl": place.imageUrl};
+          return {
+            "name": place.name,
+            "imageUrl": place.imageUrl,
+            // ★ แก้: เพิ่ม placeId เพื่อใช้สร้างนัดหมายในภายหลัง
+            "placeId": place.googlePlaceId,
+          };
         }).toList();
       });
     } catch (e) {
@@ -1346,27 +1355,11 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
                 ),
               ),
               const SizedBox(height: 24),
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFFB8F1F3),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    elevation: 0,
-                  ),
-                  onPressed: () => Navigator.pop(ctx),
-                  child: const Text(
-                    'ตกลง',
-                    style: TextStyle(
-                      fontFamily: 'Inter',
-                      fontWeight: FontWeight.w600,
-                      color: Colors.white,
-                      fontSize: 16,
-                    ),
-                  ),
-                ),
+              DsButton(
+                label: 'ตกลง',
+                variant: DsButtonVariant.primary,
+                size: DsButtonSize.md,
+                onPressed: (_) => Navigator.pop(ctx),
               ),
             ],
           ),
@@ -1402,19 +1395,14 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
             onPressed: () => Navigator.pop(ctx),
             child: const Text(
               'ยกเลิก',
-              style: TextStyle(color: Color(0xFF94A3B8)),
+              style: TextStyle(color: AppColors.textMuted),
             ),
           ),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF3B82F6),
-              elevation: 0,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(8),
-              ),
-            ),
-            onPressed: () => Navigator.pop(ctx),
-            child: const Text('ยืนยัน', style: TextStyle(color: Colors.white)),
+          DsButton(
+            label: 'ยืนยัน',
+            variant: DsButtonVariant.primary,
+            size: DsButtonSize.sm,
+            onPressed: (_) => Navigator.pop(ctx),
           ),
         ],
       ),
@@ -1537,27 +1525,11 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
                 ),
               ),
               const SizedBox(height: 24),
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF4CAF50),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    elevation: 0,
-                  ),
-                  onPressed: () => Navigator.pop(ctx),
-                  child: const Text(
-                    'ตกลง',
-                    style: TextStyle(
-                      fontFamily: 'Inter',
-                      fontWeight: FontWeight.w600,
-                      color: Colors.white,
-                      fontSize: 16,
-                    ),
-                  ),
-                ),
+              DsButton(
+                label: 'ตกลง',
+                variant: DsButtonVariant.primary,
+                size: DsButtonSize.md,
+                onPressed: (_) => Navigator.pop(ctx),
               ),
             ],
           ),
@@ -2803,12 +2775,18 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
                         : DateTime.now();
                     return DateTime(dt.year, dt.month, 1);
                   }(),
-                  initialTime: () {
-                    final dt = _calendarIsEditMode
-                        ? (_existingAppointment?.dateTime ?? DateTime.now())
-                        : DateTime.now();
-                    return TimeOfDay.fromDateTime(dt);
-                  }(),
+                  // ★ แก้: เปิดใหม่ (new) = null ไม่มีเวลา default
+                  //         edit mode = เวลาที่นัดไว้
+                  initialTime: _calendarIsEditMode
+                      ? () {
+                          final dt =
+                              _existingAppointment?.dateTime ?? DateTime.now();
+                          return TimeOfDay.fromDateTime(dt);
+                        }()
+                      : null,
+                  // ★ ใหม่: pre-select เฉพาะ edit mode เท่านั้น
+                  initialSelectedDate:
+                      _calendarIsEditMode ? _existingAppointment?.dateTime : null,
                   isEditMode: _calendarIsEditMode,
                   onClose: () {
                     _closeCalendar();

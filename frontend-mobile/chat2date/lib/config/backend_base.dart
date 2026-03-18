@@ -11,7 +11,7 @@ class ApiBase {
   
   // URLs สำหรับ Local Backend (บนเครื่อง)
   // 🔧 เปลี่ยน IP นี้เป็น IP ของ Mac เมื่อรันบนเครื่องจริง
-  static const String _localIp = '192.168.1.53'; // IP ของ Mac (ใช้กับ iPhone/Android จริง)
+  static const String _localIp = '10.4.151.207'; // IP ของ Mac (ใช้กับ iPhone/Android จริง)
   static const String _localUrl = 'http://$_localIp:8080/api/v1';
   // static const String _localUrlAndroid =
   //     'http://10.0.2.2:8080/api/v1'; // สำหรับ Android Emulator

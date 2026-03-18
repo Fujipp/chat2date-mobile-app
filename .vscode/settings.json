@@ -16,5 +16,6 @@
       "database": "chat2date",
       "username": "admin_chat2date"
     }
-  ]
+  ],
+  "java.compile.nullAnalysis.mode": "automatic"
 }
