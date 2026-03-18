@@ -97,6 +97,15 @@ public class DateRecommendService {
         if (!forceRefresh) {
             String cachedData = (String) redis.opsForValue().get(dataKey);
             if (cachedData != null) {
+                Map<String, Object> spinSignal = new HashMap<>();
+                spinSignal.put("type", "FRESH_MODE"); // บอก Flutter ว่า "เริ่มหมุนได้!"
+                spinSignal.put("mode", mode);
+                spinSignal.put("userTarget", userTarget);
+                spinSignal.put("range", range);
+                spinSignal.put("leaderId", leaderKey);
+                spinSignal.put("data", cachedData);
+
+                messagingTemplate.convertAndSend("/topic/spin/" + roomId, spinSignal);
                 return ResponseEntity.ok(objectMapper.readValue(cachedData, RecommendationResponse.class));
             }
         }
@@ -139,14 +148,16 @@ public class DateRecommendService {
                 Collections.shuffle(allPlaces);
                 List<PlaceDTO> selectedPlaces = allPlaces.stream().limit(10).collect(Collectors.toList());
 
-                int winningIndex = selectedPlaces.isEmpty() ? -1 : new Random().nextInt(selectedPlaces.size());
-
                 RecommendationResponse finalResponse = new RecommendationResponse(
-                        roomId, mode, currentLeaderId, winningIndex, selectedPlaces
+                        roomId, mode, currentLeaderId, selectedPlaces
                 );
 
                 Map<String, Object> spinSignal = new HashMap<>();
-                spinSignal.put("type", "SPIN_START"); // บอก Flutter ว่า "เริ่มหมุนได้!"
+                spinSignal.put("type", "FRESH_MODE");
+                spinSignal.put("mode", mode);
+                spinSignal.put("userTarget", userTarget);
+                spinSignal.put("range", range);
+                spinSignal.put("leaderId", currentLeaderId);
                 spinSignal.put("data", finalResponse);
 
                 messagingTemplate.convertAndSend("/topic/spin/" + roomId, spinSignal);
@@ -160,7 +171,16 @@ public class DateRecommendService {
             }
         }
 
-        throw new LockedException("Your partner still spinning");
+        throw new LockedException("Your partner still retrieving data");
+    }
+
+    public void triggerSpin(String roomId) {
+        int winningIndex = new Random().nextInt(10);
+        Map<String, Object> spinCmd = new HashMap<>();
+        spinCmd.put("type", "CMD_SPIN_START");
+        spinCmd.put("winningIndex", winningIndex);
+
+        messagingTemplate.convertAndSend("/topic/spin/" + roomId, spinCmd);
     }
 
     public PlaceConfirmation confirmPlace(String roomId, String accessToken, ConfirmationRequest confirmationRequest) {
@@ -246,9 +266,7 @@ public class DateRecommendService {
             appointmentRepository.save(appointment);
 
         } else if (pc.getUser1Confirmed() == ConfirmAction.DISAGREED || pc.getUser2Confirmed() == ConfirmAction.DISAGREED) {
-            if (pc.getUser1Confirmed() != ConfirmAction.BLANK && pc.getUser2Confirmed() != ConfirmAction.BLANK) {
-                pc.setStatus(ConfirmationStatus.REJECTED);
-            }
+            pc.setStatus(ConfirmationStatus.REJECTED);
         }
 
         int respondCount = 0;
@@ -508,6 +526,13 @@ public class DateRecommendService {
 
         Optional<Appointment> appointmentOpt = appointmentRepository.findFirstByMatch_IdOrderByCreatedAtDesc(matchId);
 
+        Optional<PlaceConfirmation> pendingConfirm = placeConfirmationRepository
+                .findFirstByMatchAndStatusOrderByConfirmIdDesc(matchId, ConfirmationStatus.PENDING);
+
+        if (pendingConfirm.isPresent()) {
+            return new SpinStatusResponse(false, 0);
+        }
+
         ZoneId bangkokZone = ZoneId.of("Asia/Bangkok");
         ZonedDateTime nowThai = ZonedDateTime.now(bangkokZone);
 
@@ -541,7 +566,7 @@ public class DateRecommendService {
                 cooldownDays = 0;
             }
 
-            ZonedDateTime lastUpdateThai  = baseTime.atZone(bangkokZone);
+            ZonedDateTime lastUpdateThai = baseTime.atZone(bangkokZone);
             ZonedDateTime unlockTime = lastUpdateThai.plusDays(cooldownDays);
 
             if (nowThai.isBefore(unlockTime)) {
