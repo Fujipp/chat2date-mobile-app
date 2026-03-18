@@ -471,6 +471,7 @@ public class DateRecommendService {
                             "/media?key=" + googleId + "&maxHeightPx=400";
                 }
 
+                if (photoUrl == null) continue;
                 dtos.add(new PlaceDTO(
                         place.path("id").asText(),
                         place.path("displayName").path("text").asText(),
