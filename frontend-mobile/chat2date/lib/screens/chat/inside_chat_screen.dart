@@ -1769,6 +1769,7 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
   //review
   bool _isResultModalShown = false;
   bool _hasShownBadEnding = false;
+  bool _hasShownEmergencySuggestion = false;
   Future<void> _handleReviewEvent(Map<String, dynamic> payload) async {
     if (!mounted) return;
     final type = payload['type'];
@@ -2111,6 +2112,38 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
     }
   }
 
+  //Real time
+  void _showEmergencyNumberSuggestionDialog() {
+    showDialog(
+      context: context,
+      barrierDismissible: true,
+      builder: (ctx) => Dialog(
+        backgroundColor: Colors.transparent,
+        insetPadding: const EdgeInsets.symmetric(horizontal: 24),
+        child: ModalComponent(
+          svgPath: 'assets/icons/icon_warning.svg',
+          heightSvg: 68,
+          widthSvg: 77,
+          topic: 'เพื่อความปลอดภัยของคุณ',
+          description:
+              'คุณยังไม่ได้กรอกเบอร์โทรฉุกเฉิน\n'
+              'หากเกิดเหตุฉุกเฉิน ระบบจะโทรหา 191 อัตโนมัติ\n\n'
+              'ต้องการเพิ่มเบอร์ฉุกเฉินเพื่อความปลอดภัยที่ดีขึ้นไหม?',
+          choice: true,
+          firstChoiceText: 'ไม่ต้องการ',
+          secondChoiceText: 'เพิ่มเบอร์',
+          spaceTop: 15,
+          spaceBottom: 15,
+          onFirstChoice: () => Navigator.pop(ctx),
+          onSecondChoice: () {
+            Navigator.pop(ctx);
+            Navigator.pushNamed(context, '/account-settings');
+          },
+        ),
+      ),
+    );
+  }
+
   /// สร้าง Widget สำหรับแต่ละ message
   Widget _buildMessageWidget(
     ChatMessage message,
@@ -2407,14 +2440,6 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
                               final dateStartTime = _existingAppointment!
                                   .dateTime!
                                   .add(const Duration(hours: 7));
-                              // ✅ ตั้งเวลาหมดอายุ (โชว์แค่ 3 ชั่วโมงหลังเวลานัดเดต)
-                              print(
-                                "📅 dateTime: ${_existingAppointment?.dateTime}",
-                              );
-                              print(
-                                "📅 isUtc: ${_existingAppointment?.dateTime?.isUtc}",
-                              );
-                              print("📅 now: ${DateTime.now()}");
                               final dateEndTime = dateStartTime.add(
                                 const Duration(hours: 3),
                               );
@@ -2422,6 +2447,16 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
                               // เช็กว่าเลยเวลานัดมาแล้ว AND ยังไม่หมดเวลาเดต
                               if (now.isAfter(dateStartTime) &&
                                   now.isBefore(dateEndTime)) {
+                                WidgetsBinding.instance.addPostFrameCallback((
+                                  _,
+                                ) {
+                                  if (_emergencyNumbers.isEmpty &&
+                                      mounted &&
+                                      !_hasShownEmergencySuggestion) {
+                                    _hasShownEmergencySuggestion = true;
+                                    _showEmergencyNumberSuggestionDialog();
+                                  }
+                                });
                                 return Padding(
                                   padding: const EdgeInsets.symmetric(
                                     horizontal: 16,
