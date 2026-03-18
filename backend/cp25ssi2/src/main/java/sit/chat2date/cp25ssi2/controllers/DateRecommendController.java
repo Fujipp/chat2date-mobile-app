@@ -36,6 +36,17 @@ public class DateRecommendController {
         return ResponseEntity.ok(response);
     }
 
+    @PostMapping("/{roomId}/spin")
+    public ResponseEntity<Map<String, String>> triggerSpin(
+            @PathVariable String roomId) {
+
+        dateRecommendService.triggerSpin(roomId);
+
+        Map<String, String> response = new HashMap<>();
+        response.put("message", "Spin command sent successfully");
+        return ResponseEntity.ok(response);
+    }
+
     @PostMapping("/{roomId}/confirm")
     public PlaceConfirmation ConfirmDateRecommendation(@PathVariable String roomId, @RequestHeader("Authorization") String accessToken, @RequestBody ConfirmationRequest confirmationRequest) {
         return dateRecommendService.confirmPlace(roomId, accessToken, confirmationRequest);
@@ -46,5 +57,13 @@ public class DateRecommendController {
         SpinStatusResponse response = dateRecommendService.checkSpinStatus(roomId);
 
         return ResponseEntity.ok(response);
+    }
+
+    @DeleteMapping("/{roomId}/appointment")
+    public ResponseEntity<Void> deleteAppointmentAfterCooldown(
+            @PathVariable String roomId,
+            @RequestHeader("Authorization") String accessToken) {
+        dateRecommendService.deleteAppointmentAfterCooldown(roomId, accessToken);
+        return ResponseEntity.noContent().build();
     }
 }

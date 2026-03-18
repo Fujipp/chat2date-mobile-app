@@ -1,11 +1,12 @@
 import 'dart:async';
 import 'dart:math';
 import 'dart:ui' as ui;
+
+import 'package:chat2date/components/chat/content_switcher.dart';
 import 'package:chat2date/components/toasts/toast.dart';
 import 'package:chat2date/theme/app_colors.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
-import 'package:chat2date/components/chat/content_switcher.dart';
 
 class SpinDateComponent extends StatefulWidget {
   final List<Map<String, dynamic>> prizes;
@@ -17,7 +18,12 @@ class SpinDateComponent extends StatefulWidget {
   final VoidCallback? onCloseModal;
   final VoidCallback? onRefreshSpin;
   final Function(Map<String, dynamic>)? onSpinComplete;
-  final Function(String? mode, String? targetName, double radius, bool isRefresh)?
+  final Function(
+    String? mode,
+    String? targetName,
+    double radius,
+    bool isRefresh,
+  )?
   onFilterChanged;
 
   const SpinDateComponent({
@@ -127,9 +133,7 @@ class _SpinDateComponentState extends State<SpinDateComponent>
       );
     } finally {
       if (mounted) {
-        setState(
-          () => _isReady = true,
-        ); 
+        setState(() => _isReady = true);
       }
     }
   }
@@ -457,33 +461,38 @@ class _SpinDateComponentState extends State<SpinDateComponent>
           width: 308,
           child: Column(
             children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(
-                    '${selectedRange.start.round()} กม.',
-                    style: const TextStyle(fontSize: 12),
-                  ),
-                  Text(
-                    '${selectedRange.end.round()} กม.',
-                    style: const TextStyle(fontSize: 12),
-                  ),
-                ],
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 20),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    const Text('1 กม.', style: TextStyle(fontSize: 12)),
+                    Text(
+                      '${selectedRange.end.round()} กม.',
+                      style: const TextStyle(fontSize: 12),
+                    ),
+                  ],
+                ),
               ),
-              RangeSlider(
-                values: selectedRange,
-                min: 1.0,
-                max: 20.0,
-                activeColor: AppColors.neutral600,
-                inactiveColor: AppColors.neutral300,
-                onChanged: (v) {
-                  if (_controller.isAnimating) return;
-                  setState(() => selectedRange = RangeValues(1.0, v.end));
-                },
-                onChangeEnd: (v) {
-                  _isReady = false;
-                  _handleFilterUpdate();
-                },
+              SliderTheme(
+                data: SliderTheme.of(
+                  context,
+                ).copyWith(trackShape: const RectangularSliderTrackShape()),
+                child: Slider(
+                  value: selectedRange.end,
+                  min: 1.0,
+                  max: 20.0,
+                  activeColor: AppColors.neutral600,
+                  inactiveColor: AppColors.neutral300,
+                  onChanged: (v) {
+                    if (_controller.isAnimating) return;
+                    setState(() => selectedRange = RangeValues(1.0, v));
+                  },
+                  onChangeEnd: (v) {
+                    _isReady = false;
+                    _handleFilterUpdate();
+                  },
+                ),
               ),
             ],
           ),
@@ -688,34 +697,119 @@ class _StaticNeedlePainter extends CustomPainter {
   void paint(Canvas canvas, Size size) {
     final center = Offset(size.width / 2, size.height / 2);
     final radius = size.width / 2;
-    final needleLength = radius * 0.35;
+    final needleLength = radius * 0.38;
 
+    // --- เงา needle ---
     final needlePath = Path()
       ..moveTo(center.dx, center.dy - needleLength)
-      ..lineTo(center.dx - 9, center.dy)
-      ..lineTo(center.dx + 9, center.dy)
+      ..lineTo(center.dx - 9, center.dy + 4)
+      ..lineTo(center.dx + 9, center.dy + 4)
       ..close();
 
     canvas.drawPath(
       needlePath,
       Paint()
         ..color = Colors.black38
-        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 3),
+        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 4),
     );
 
+    // --- needle body (gradient) ---
+    final needlePaint = Paint()
+      ..shader = ui.Gradient.linear(
+        Offset(center.dx - 9, center.dy),
+        Offset(center.dx + 9, center.dy),
+        [const Color(0xFFFFFFFF), const Color(0xFFDDDDDD)],
+      )
+      ..isAntiAlias = true;
+
+    canvas.drawPath(needlePath, needlePaint);
+
+    // ขอบ needle
     canvas.drawPath(
       needlePath,
       Paint()
-        ..color = Colors.white
+        ..color = Colors.white54
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 1
         ..isAntiAlias = true,
     );
 
+    // --- เงาปุ่มกลาง ---
+    // --- ปุ่มกลาง gradient ---
+    final btnPaint = Paint()
+      ..shader = ui.Gradient.radial(center.translate(-4, -4), 28, [
+        AppColors.brandPrimary,
+        AppColors.brandPrimary600,
+      ])
+      ..isAntiAlias = true;
+
+    canvas.drawCircle(center, 22, btnPaint);
+
+    // --- เงานอก (drop shadow) ---
+    canvas.drawCircle(
+      center.translate(0, 3),
+      23,
+      Paint()
+        ..color = Colors.black.withOpacity(0.3)
+        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 6),
+    );
+
+    // --- ปุ่มหลัก ---
     canvas.drawCircle(
       center,
-      15,
+      22,
       Paint()
-        ..color = AppColors.neutral600
+        ..shader = ui.Gradient.radial(
+          center.translate(0, -6), // highlight ด้านบน
+          36,
+          [Colors.white, AppColors.brandPrimary, AppColors.brandPrimary600],
+          [0.0, 0.45, 1.0],
+        )
         ..isAntiAlias = true,
+    );
+
+    // --- ขอบวงกลม ---
+    canvas.drawCircle(
+      center,
+      22,
+      Paint()
+        ..color = Colors.white.withOpacity(0.6)
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 2
+        ..isAntiAlias = true,
+    );
+
+    // --- inner shadow (ขอบล่างมืดเล็กน้อย ให้ดูนูน) ---
+    canvas.drawCircle(
+      center,
+      22,
+      Paint()
+        ..shader = ui.Gradient.radial(
+          center.translate(0, 8),
+          22,
+          [Colors.black.withOpacity(0.15), Colors.transparent],
+          [0.4, 1.0],
+        ),
+    );
+
+    // --- ข้อความ SPIN ---
+    final textPainter = TextPainter(
+      text: const TextSpan(
+        text: 'SPIN',
+        style: TextStyle(
+          fontSize: 10,
+          fontWeight: FontWeight.w900,
+          color: AppColors.brandOnPrimary,
+          letterSpacing: 1.5,
+          height: 1,
+        ),
+      ),
+      textDirection: TextDirection.ltr,
+    )..layout();
+
+    textPainter.paint(
+      canvas,
+      center.translate(-textPainter.width / 2, -textPainter.height / 2),
     );
   }
 
