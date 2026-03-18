@@ -1,7 +1,6 @@
 import 'dart:convert';
 import 'package:chat2date/config/backend_base.dart';
 import 'package:chat2date/models/dto/date_recommend_dto.dart';
-import 'package:chat2date/models/dto/place_dto.dart';
 import 'package:chat2date/stores/user_store.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart'; // ✅ ต้องเป็นตัวนี้
 import 'package:http/http.dart' as http;
@@ -154,10 +153,7 @@ class DateRecommendService {
           }
         }
 
-        return {
-          'canSpin': canSpin,
-          'cooldownDays': cooldownDays,
-        };
+        return {'canSpin': canSpin, 'cooldownDays': cooldownDays};
       } else {
         throw Exception('Server error: ${response.statusCode}');
       }
@@ -165,5 +161,28 @@ class DateRecommendService {
       print("Error in checkStatusSpin: $e");
       throw Exception('Failed to check spin status: $e');
     }
+  }
+
+  Future<void> deleteAppointmentAfterCooldown({required String? roomId}) async {
+    final userState = ref.read(userStoreProvider);
+    final accessToken = "${userState['accessToken']}";
+
+    final url = Uri.parse(
+      '${ApiBase.baseUrl}/dates/recommendations/$roomId/appointment',
+    );
+
+    final response = await http.delete(
+      url,
+      headers: {
+        'Authorization': 'Bearer $accessToken',
+        'Content-Type': 'application/json',
+      },
+    );
+
+    if (response.statusCode == 204) return;
+    if (response.statusCode == 423) {
+      throw Exception('Cooldown has not ended yet');
+    }
+    throw Exception('Failed to delete appointment: ${response.statusCode}');
   }
 }

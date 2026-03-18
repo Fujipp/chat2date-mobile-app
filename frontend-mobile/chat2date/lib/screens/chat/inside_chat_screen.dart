@@ -1547,6 +1547,14 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
       final data = await service.checkStatusSpin(roomId: roomId);
 
       _canSpin = data['canSpin'] ?? false;
+      if (_canSpin && _existingAppointment != null) {
+        try {
+          await service.deleteAppointmentAfterCooldown(roomId: roomId);
+          if (mounted) setState(() => _existingAppointment = null);
+        } catch (e) {
+          debugPrint('Delete appointment error: $e');
+        }
+      }
 
       if (!mounted) return;
 
