@@ -32,6 +32,7 @@ import sit.chat2date.cp25ssi2.repositories.*;
 
 import java.math.BigDecimal;
 import java.time.Duration;
+import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.util.*;
@@ -518,6 +519,10 @@ public class DateRecommendService {
                 return new SpinStatusResponse(false, 0);
             }
 
+            LocalDateTime baseTime = latest.getDateTime() != null
+                    ? latest.getDateTime()
+                    : latest.getUpdatedAt();
+
             int cooldownDays;
             if (latest.getStatus() == AppointmentStatus.CANCELLED) {
                 cooldownDays = 1;
@@ -533,7 +538,7 @@ public class DateRecommendService {
                 cooldownDays = 0;
             }
 
-            ZonedDateTime lastUpdateThai = latest.getUpdatedAt().atZone(bangkokZone);
+            ZonedDateTime lastUpdateThai  = baseTime.atZone(bangkokZone);
             ZonedDateTime unlockTime = lastUpdateThai.plusDays(cooldownDays);
 
             if (nowThai.isBefore(unlockTime)) {
@@ -543,6 +548,7 @@ public class DateRecommendService {
                         unlockTime.toInstant().toEpochMilli()
                 );
             }
+            appointmentRepository.delete(latest);
         }
 
         return new SpinStatusResponse(true, 0);
