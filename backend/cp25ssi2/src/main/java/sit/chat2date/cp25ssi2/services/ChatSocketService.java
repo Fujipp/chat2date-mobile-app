@@ -63,4 +63,12 @@ public class ChatSocketService {
     public void broadcastMessagesRead(String roomId, MessagesReadPayload payload) {
         messagingTemplate.convertAndSend("/topic/chat/" + roomId + "/read", payload);
     }
+
+    /**
+     * Broadcast review result to both users in a room
+     * roomId = matchId
+     */
+    public void broadcastReviewResult(String roomId, Map<String, Object> payload) {
+        messagingTemplate.convertAndSend("/topic/chat/" + roomId + "/review", payload);
+    }
 }

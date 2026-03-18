@@ -25,6 +25,7 @@ class ChatSocketService {
   final _readController = StreamController<Map<String, dynamic>>.broadcast();
   final _relationshipController =
       StreamController<Map<String, dynamic>>.broadcast();
+  final _reviewController = StreamController<Map<String, dynamic>>.broadcast();
   StompClient? _client;
   bool _connecting = false;
   bool _disposed = false;
@@ -35,6 +36,7 @@ class ChatSocketService {
   Stream<Map<String, dynamic>> get readStream => _readController.stream;
   Stream<Map<String, dynamic>> get relationshipStream =>
       _relationshipController.stream;
+  Stream<Map<String, dynamic>> get reviewStream => _reviewController.stream;
 
   void connect() {
     if (_client != null || _connecting) return;
@@ -134,6 +136,32 @@ class ChatSocketService {
         }
       },
     );
+    _client?.subscribe(
+      destination: '/topic/chat/$roomId/review',
+      callback: (frame) {
+        final body = frame.body;
+        if (body == null) return;
+        try {
+          final json = jsonDecode(body) as Map<String, dynamic>;
+          _reviewController.add(json);
+        } catch (e) {
+          print("Error decoding review event: $e");
+        }
+      },
+    );
+    _client?.subscribe(
+      destination: '/topic/chat/user/$userId',
+      callback: (frame) {
+        final body = frame.body;
+        if (body == null) return;
+        try {
+          final json = jsonDecode(body) as Map<String, dynamic>;
+          _reviewController.add(json);
+        } catch (e) {
+          print("Error decoding user review event: $e");
+        }
+      },
+    );
   }
 
   void _scheduleReconnect() {
@@ -172,6 +200,8 @@ class ChatSocketService {
     } catch (_) {}
     try {
       _relationshipController.close();
-    } catch (_) {}
+    } catch (_) {
+      _reviewController.close();
+    }
   }
 }

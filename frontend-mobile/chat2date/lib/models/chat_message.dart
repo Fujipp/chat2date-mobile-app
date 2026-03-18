@@ -148,6 +148,8 @@ class ChatMessage {
       } else if (typeStr == 'FAIL' &&
           message.contains('ความคิดเห็นที่ไม่ตรงกัน')) {
         isBotMessage = true;
+        displayTitle = "เสียใจด้วย!";
+        displayDescription = message;
         mappedBotType = BotMessageType.askFail;
       } else if (typeStr == 'FAIL') {
         isBotMessage = true;
@@ -179,6 +181,8 @@ class ChatMessage {
         //displayDescription = ;
       } else if (typeStr == 'SUCCESS') {
         isBotMessage = true;
+        displayTitle = "สำเร็จ!";
+        displayDescription = message;
         mappedBotType = BotMessageType.askSuccess;
       }
     }

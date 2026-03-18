@@ -18,6 +18,7 @@ import org.springframework.web.client.RestTemplate;
 import sit.chat2date.cp25ssi2.dto.ConfirmationRequest;
 import sit.chat2date.cp25ssi2.dto.PlaceDTO;
 import sit.chat2date.cp25ssi2.dto.RecommendationResponse;
+import sit.chat2date.cp25ssi2.dto.SpinStatusResponse;
 import sit.chat2date.cp25ssi2.entities.*;
 import sit.chat2date.cp25ssi2.enums.AppointmentStatus;
 import sit.chat2date.cp25ssi2.enums.ConfirmAction;
@@ -31,6 +32,8 @@ import sit.chat2date.cp25ssi2.repositories.*;
 
 import java.math.BigDecimal;
 import java.time.Duration;
+import java.time.ZoneId;
+import java.time.ZonedDateTime;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
@@ -67,6 +70,8 @@ public class DateRecommendService {
     private ChatService chatService;
     @Autowired
     private MessageRepository messageRepository;
+    @Autowired
+    private RelationshipStatsRepository relationshipStatsRepository;
 
     @Value("${google.map.id}")
     private String googleId;
@@ -246,7 +251,6 @@ public class DateRecommendService {
         int respondCount = 0;
         if (pc.getUser1Confirmed() == ConfirmAction.AGREED) respondCount++;
         if (pc.getUser2Confirmed() == ConfirmAction.AGREED) respondCount++;
-        System.out.println(5555);
         editMessage(roomId, placeToUse, respondCount, pc.getStatus());
 
         return placeConfirmationRepository.save(pc);
@@ -266,11 +270,11 @@ public class DateRecommendService {
                 messageToUpdate.setMessageType(MessageType.SUCCESS);
             } else if (status == ConfirmationStatus.REJECTED) {
                 // 😔 กรณีไม่เห็นตรงกัน
-                messageText = "คุณทั้ง 2 คนมีความเห็นที่ไม่ตรงกัน";
+                messageText = "คุณทั้ง 2 คนมีความคิดเห็นที่ไม่ตรงกัน";
                 messageToUpdate.setMessageType(MessageType.FAIL);
             } else {
                 // ⏳ กรณีรอคนกด (Pending)
-                messageText = "สุ่มได้ไปเที่ยวที่ " + place.getPlaceName() + " !!! | คุณอยากไปเที่ยว "+  place.getPlaceName() + " หรือไม่ | ตอบแล้ว " + respondCount + "/2";
+                messageText = "สุ่มได้ไปเที่ยวที่ " + place.getPlaceName() + " !!! | คุณอยากไปเที่ยว " + place.getPlaceName() + " หรือไม่ | ตอบแล้ว " + respondCount + "/2";
             }
 
             messageToUpdate.setMessage(messageText);
@@ -410,7 +414,7 @@ public class DateRecommendService {
                 dtos.add(new PlaceDTO("ChIJucPrsaC_4jAR4f9GJfSFOh0", "farmthajeen", 13.6688554, 100.2643184, "กระทุ่มแบน สมุทรสาคร", null));
 
                 dtos.add(new PlaceDTO("ChIJMZ8BYQCZ4jARA59FzwHa14Y", "เทียว", 13.7054214, 100.5030312, "บางคอแหลม กรุงเทพฯ", null));
-            }else {
+            } else {
                 // --- ข้อมูลฝั่ง ME (อัปเดต Image URL และพิกัดให้ครบ 10 ที่) ---
                 dtos.add(new PlaceDTO("ChIJ8094I79tHTER1xbklTOXJTA", "ฮาราจูกุ ไทยแลนด์", 13.8085551, 100.9228937, "หนองจอก กรุงเทพฯ",
                         "https://places.googleapis.com/v1/places/ChIJ8094I79tHTER1xbklTOXJTA/photos/ATCDNfVA5dgBJG6-vvWNJ3wAd-PT3mLhW8VT7yuTs7onM-n42xcQEMC022_a7YME8QluLVPZqJW9MVGzkjH_wCeJWvVIGkdp1IqpiCfBll2unTRCY2yFEn6oF9qP21F7j5KXBtBeAUVlTE5oPENgthYwkx9s2BTBV5h0OWxxQwnrZJth55Y-8zaASIQXbn1p2u6xKpokotSDviA0uxjEGXV2fLkh4KVGzNdD0bEpYmn8WMsXMI4yvKIvzWvYvmMm6CLS7T5O7P6lObDj3psxUa44EhAJX5FYfAyPxHk81He8LkCcIj5e1lcvfBwgoXTuMa3ZWR6M3IPGS-dceSfs2r5vM7uNngYdCLpdl4GUdtnbu12EvBAtZwmCKucNSj3E1zRf3WfcsyuI-D7HXarAx2guCBVKUCqsjkiv7m6N9hAqrR68_xw/media?key=" + googleId + "&maxHeightPx=400"));
@@ -493,6 +497,55 @@ public class DateRecommendService {
                 ? userRepository.findByPhoneNumber(sub).orElseThrow()
                 : userRepository.findByEmail(sub).orElseThrow();
         return user;
+    }
+
+    public SpinStatusResponse checkSpinStatus(String roomId) {
+        Integer matchId = Integer.valueOf(roomId);
+
+        Optional<Appointment> appointmentOpt = appointmentRepository.findFirstByMatch_IdOrderByCreatedAtDesc(matchId);
+
+        ZoneId bangkokZone = ZoneId.of("Asia/Bangkok");
+        ZonedDateTime nowThai = ZonedDateTime.now(bangkokZone);
+
+        Optional<RelationshipStats> relationshipStats = relationshipStatsRepository.findByRoomId(Integer.valueOf(roomId));
+        int score = (relationshipStats.get().getScore() != null) ? relationshipStats.get().getScore() : 0;
+
+        if (appointmentOpt.isPresent()) {
+            Appointment latest = appointmentOpt.get();
+
+            if (latest.getStatus() == AppointmentStatus.PLACE_SELECTED ||
+                    latest.getStatus() == AppointmentStatus.SCHEDULED) {
+                return new SpinStatusResponse(false, 0);
+            }
+
+            int cooldownDays;
+            if (latest.getStatus() == AppointmentStatus.CANCELLED) {
+                cooldownDays = 1;
+            } else if (latest.getStatus() == AppointmentStatus.COMPLETED) {
+                if (score >= 400) {
+                    cooldownDays = 1;
+                } else if (score >= 300) {
+                    cooldownDays = 3;
+                } else {
+                    cooldownDays = 7;
+                }
+            } else {
+                cooldownDays = 0;
+            }
+
+            ZonedDateTime lastUpdateThai = latest.getUpdatedAt().atZone(bangkokZone);
+            ZonedDateTime unlockTime = lastUpdateThai.plusDays(cooldownDays);
+
+            if (nowThai.isBefore(unlockTime)) {
+                // ส่งค่าเป็น Milliseconds (Epoch) ซึ่งเป็นค่าสากล Flutter จะรับไปแปลงต่อได้แม่นยำ
+                return new SpinStatusResponse(
+                        false,
+                        unlockTime.toInstant().toEpochMilli()
+                );
+            }
+        }
+
+        return new SpinStatusResponse(true, 0);
     }
 
     @Data

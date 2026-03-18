@@ -1,5 +1,6 @@
 import 'dart:convert';
 
+import 'package:chat2date/components/toasts/toast.dart';
 import 'package:chat2date/theme/app_colors.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/svg.dart';
@@ -203,25 +204,29 @@ class _AlertActionButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return InkWell(
-      onTap: onTap,
-      child: Container(
-        width: 48,
-        height: 48,
-        alignment: Alignment.center,
-        decoration: BoxDecoration(
-          color: backgroundColor,
-          shape: BoxShape.circle,
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(0.1),
-              spreadRadius: 1,
-              blurRadius: 3,
-              offset: const Offset(0, 2),
-            ),
-          ],
+    return Container(
+      width: 48,
+      height: 48,
+      decoration: BoxDecoration(
+        color: backgroundColor,
+        shape: BoxShape.circle,
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.1),
+            spreadRadius: 1,
+            blurRadius: 3,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Material(
+        color: Colors.transparent,
+        shape: const CircleBorder(),
+        clipBehavior: Clip.antiAlias,
+        child: InkWell(
+          onTap: onTap,
+          child: Center(child: icon),
         ),
-        child: icon,
       ),
     );
   }
@@ -250,8 +255,74 @@ class GpsMapAlert extends StatefulWidget {
   State<GpsMapAlert> createState() => _GpsMapAlertState();
 }
 
-class _GpsMapAlertState extends State<GpsMapAlert> {
+class _GpsMapAlertState extends State<GpsMapAlert> with WidgetsBindingObserver {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeMetrics() {
+    super.didChangeMetrics();
+    final bottomInset = WidgetsBinding
+        .instance
+        .platformDispatcher
+        .views
+        .first
+        .viewInsets
+        .bottom;
+
+    final isKeyboardUp = bottomInset > 0;
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+
+      if (isKeyboardUp && _isExpanded) {
+        setState(() {
+          _isKeyboardVisible = isKeyboardUp;
+          _showMapContent = false;
+          _isExpanded = false;
+        });
+      } else if (isKeyboardUp != _isKeyboardVisible) {
+        setState(() {
+          _isKeyboardVisible = isKeyboardUp;
+        });
+      }
+    });
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    super.didChangeAppLifecycleState(state);
+    if (state == AppLifecycleState.resumed && _hasSosTriggered) {
+      _hasSosTriggered = false;
+      Future.delayed(const Duration(milliseconds: 500), () {
+        if (mounted) {
+          Toast.show(
+            context,
+            type: ToastType.info,
+            title: 'บันทึกหลักฐานแล้ว',
+            message: 'ติดต่อแอดมินเพื่อขอพิกัดและเวลาได้เลย',
+            durationSeconds: 5,
+            showCountdown: false,
+          );
+        }
+      });
+    }
+  }
+
   bool _isExpanded = false;
+  bool _showMapContent = false;
+  bool _hasSosTriggered = false;
+  bool _isKeyboardVisible = false;
+
   int _selectedButtonIndex = 0;
   int _emergencyStep = 0;
   GoogleMapController? _mapController;
@@ -364,11 +435,41 @@ class _GpsMapAlertState extends State<GpsMapAlert> {
     'กดอีก 1 ครั้งเพื่อส่งสัญญาณฉุกเฉิน และโทรหาเบอร์ลำดับที่ 1 และแจ้งแอดมิน',
     'กดอีก 1 ครั้งเพื่อส่งสัญญาณฉุกเฉิน และโทรหาเบอร์ลำดับที่ 2 และแจ้งแอดมิน',
   ];
-
   void _toggleExpansion() {
-    setState(() {
-      _isExpanded = !_isExpanded;
-    });
+    final bottomInset = WidgetsBinding
+        .instance
+        .platformDispatcher
+        .views
+        .first
+        .viewInsets
+        .bottom;
+    final isKeyboardCurrentlyUp = bottomInset > 0;
+
+    if (isKeyboardCurrentlyUp) {
+      FocusScope.of(context).unfocus(); // สั่งเก็บคีย์บอร์ด
+    }
+
+    if (!_isExpanded) {
+      final delayMs = isKeyboardCurrentlyUp ? 300 : 0;
+
+      Future.delayed(Duration(milliseconds: delayMs), () {
+        if (!mounted) return;
+        setState(() {
+          _isExpanded = true;
+        });
+
+        Future.delayed(const Duration(milliseconds: 100), () {
+          if (mounted) setState(() => _showMapContent = true);
+        });
+      });
+    } else {
+      setState(() {
+        _showMapContent = false; // ซ่อน map ก่อนทันที
+      });
+      Future.delayed(const Duration(milliseconds: 50), () {
+        if (mounted) setState(() => _isExpanded = false);
+      });
+    }
   }
 
   void _onButtonTapped(int index) {
@@ -392,7 +493,6 @@ class _GpsMapAlertState extends State<GpsMapAlert> {
     setState(() {
       _selectedButtonIndex = 2;
       _emergencyStep = (_emergencyStep < 3) ? _emergencyStep + 1 : 3;
-      if (!_isExpanded) _isExpanded = true;
     });
 
     if (_emergencyStep == 3) {
@@ -405,6 +505,7 @@ class _GpsMapAlertState extends State<GpsMapAlert> {
         ? widget.emergencyNumbers[0].replaceAll('-', '')
         : '191';
     launchUrl(Uri(scheme: 'tel', path: number));
+    _hasSosTriggered = true;
     widget.onSosTriggered(number);
   }
 
@@ -456,7 +557,11 @@ class _GpsMapAlertState extends State<GpsMapAlert> {
       margin: EdgeInsets.zero,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8.0)),
       child: AnimatedSize(
-        duration: const Duration(milliseconds: 300),
+        duration: _isKeyboardVisible
+            ? const Duration(milliseconds: 0)
+            : (_isExpanded
+                  ? const Duration(milliseconds: 300) // ขยาย: ช้าปกติ
+                  : const Duration(milliseconds: 50)),
         curve: Curves.easeInOut,
         alignment: Alignment.topCenter,
         child: Container(
@@ -523,7 +628,7 @@ class _GpsMapAlertState extends State<GpsMapAlert> {
                   ),
               ],
 
-              if (_isExpanded)
+              if (_isExpanded && _showMapContent)
                 SizedBox(
                   height: 340.0,
                   child: Column(

@@ -27,6 +27,9 @@ Flutter/flutter_export_environment.sh
 ServiceDefinitions.json
 Runner/GeneratedPluginRegistrant.*
 
+# Secret API keys — อย่า push ขึ้น git
+Flutter/secrets.xcconfig
+
 # Exceptions to above rules.
 !default.mode1v3
 !default.mode2v3

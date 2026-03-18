@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:math';
 import 'dart:ui' as ui;
+import 'package:chat2date/components/toasts/toast.dart';
 import 'package:chat2date/theme/app_colors.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
@@ -12,9 +13,12 @@ class SpinDateComponent extends StatefulWidget {
   final String? firstPersonName;
   final String? secondPersonName;
   final int indexSelected;
+  final DateTime? lastRefreshTime;
   final VoidCallback? onCloseModal;
   final VoidCallback? onRefreshSpin;
   final Function(Map<String, dynamic>)? onSpinComplete;
+  final Function(String? mode, String? targetName, double radius, bool isRefresh)?
+  onFilterChanged;
 
   const SpinDateComponent({
     super.key,
@@ -26,6 +30,8 @@ class SpinDateComponent extends StatefulWidget {
     this.onCloseModal,
     this.onRefreshSpin,
     this.onSpinComplete,
+    this.onFilterChanged,
+    this.lastRefreshTime,
   });
 
   @override
@@ -123,9 +129,58 @@ class _SpinDateComponentState extends State<SpinDateComponent>
       if (mounted) {
         setState(
           () => _isReady = true,
-        ); // โหลดเสร็จแล้ว (หรือพยายามที่สุดแล้ว) ให้โชว์วงล้อ
+        ); 
       }
     }
+  }
+
+  void _handleFilterUpdate({bool isRefresh = false}) {
+    if (_controller.isAnimating) return;
+
+    if (isRefresh) {
+      final now = DateTime.now();
+
+      if (widget.lastRefreshTime != null) {
+        final difference = now.difference(widget.lastRefreshTime!);
+        if (difference.inSeconds < 60) {
+          final remaining = 60 - difference.inSeconds;
+
+          Toast.show(
+            context,
+            type: ToastType.warning,
+            title: 'ใจเย็นๆ ก่อนนะ',
+            message: 'กรุณารออีก $remaining วินาที เพื่อกดสุ่มใหม่',
+            durationSeconds: 3,
+          );
+          return;
+        }
+      }
+    }
+
+    String? targetName;
+    String? mode;
+    if (indexing == 0) {
+      if (selectedIndex == 0) {
+        // คนแรกใน Switcher คือ Partner (_chatUserName)
+        targetName = "PARTNER";
+      } else {
+        // คนที่สองใน Switcher คือ เราเอง (nickname)
+        targetName = "ME";
+      }
+      mode = "DISTANCE";
+    } else {
+      mode = "MIDPOINT";
+      targetName = null;
+    }
+
+    widget.onFilterChanged?.call(
+      mode,
+      targetName,
+      selectedRange.end,
+      isRefresh,
+    );
+
+    _resetToInitialState();
   }
 
   void _spinWheel() {
@@ -258,10 +313,7 @@ class _SpinDateComponentState extends State<SpinDateComponent>
 
     setState(() {
       _currentRotation = 0.0;
-
       _animation = Tween<double>(begin: 0.0, end: 0.0).animate(_controller);
-
-      selectedRange = const RangeValues(1.0, 20.0);
     });
 
     _controller.stop();
@@ -318,6 +370,8 @@ class _SpinDateComponentState extends State<SpinDateComponent>
                     onChanged: (index) {
                       if (_controller.isAnimating) return;
                       setState(() => selectedIndex = index);
+                      _isReady = false;
+                      _handleFilterUpdate();
                     },
                   ),
                 const SizedBox(height: 20),
@@ -372,8 +426,8 @@ class _SpinDateComponentState extends State<SpinDateComponent>
         InkWell(
           onTap: () {
             if (_controller.isAnimating) return;
-
-            _resetToInitialState();
+            _isReady = false;
+            _handleFilterUpdate(isRefresh: true);
 
             if (widget.onRefreshSpin != null) {
               widget.onRefreshSpin!();
@@ -426,6 +480,10 @@ class _SpinDateComponentState extends State<SpinDateComponent>
                   if (_controller.isAnimating) return;
                   setState(() => selectedRange = RangeValues(1.0, v.end));
                 },
+                onChangeEnd: (v) {
+                  _isReady = false;
+                  _handleFilterUpdate();
+                },
               ),
             ],
           ),
@@ -445,6 +503,8 @@ class _SpinDateComponentState extends State<SpinDateComponent>
           onChanged: (index) {
             if (_controller.isAnimating) return;
             setState(() => indexing = index);
+            _isReady = false;
+            _handleFilterUpdate();
           },
         ),
         const SizedBox(height: 12),

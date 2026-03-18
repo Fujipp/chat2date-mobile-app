@@ -343,8 +343,8 @@ class _CooldownSpinwheelIcon extends StatelessWidget {
           ),
           // Cooldown number badge ที่ด้านบน
           Positioned(
-            top: 5,
-            left: 0,
+            top: 13,
+            left: 9,
             child: Container(
               width: 7,
               height: 10,

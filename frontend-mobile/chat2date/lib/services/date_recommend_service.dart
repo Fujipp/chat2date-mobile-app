@@ -17,7 +17,7 @@ class DateRecommendService {
 
   Future<DateRecommendationResponse> getRecommendations({
     required String? roomId,
-    String mode = 'MIDPOINT',
+    String? mode = 'MIDPOINT',
     String? userTarget,
     required int range,
     bool forceRefresh = false,
@@ -112,6 +112,58 @@ class DateRecommendService {
       return data['status']?.toString();
     } else {
       throw Exception('Failed to confirm place: ${response.body}');
+    }
+  }
+
+  Future<Map<String, dynamic>> checkStatusSpin({
+    required String? roomId,
+  }) async {
+    final userState = ref.read(userStoreProvider);
+    final accessToken = "${userState['accessToken']}";
+
+    final url = Uri.parse(
+      '${ApiBase.baseUrl}/dates/recommendations/$roomId/spin-status',
+    );
+
+    try {
+      final response = await http.get(
+        url,
+        headers: {
+          'Authorization': 'Bearer $accessToken',
+          'Content-Type': 'application/json',
+        },
+      );
+
+      if (response.statusCode == 200) {
+        final Map<String, dynamic> data = jsonDecode(
+          utf8.decode(response.bodyBytes),
+        );
+        final bool canSpin = data['canSpin'] ?? false;
+        final int unlockTimestamp = data['unlockTimestamp'] ?? 0;
+        int cooldownDays = 0;
+
+        if (!canSpin) {
+          if (unlockTimestamp > 0) {
+            final nowMs = DateTime.now().millisecondsSinceEpoch;
+            final remainingMs = unlockTimestamp - nowMs;
+            if (remainingMs > 0) {
+              cooldownDays = (remainingMs / (1000 * 60 * 60 * 24)).ceil();
+            }
+          } else {
+            cooldownDays = -1;
+          }
+        }
+
+        return {
+          'canSpin': canSpin,
+          'cooldownDays': cooldownDays,
+        };
+      } else {
+        throw Exception('Server error: ${response.statusCode}');
+      }
+    } catch (e) {
+      print("Error in checkStatusSpin: $e");
+      throw Exception('Failed to check spin status: $e');
     }
   }
 }

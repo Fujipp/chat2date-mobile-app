@@ -41,7 +41,9 @@ class AppointmentService {
         'roomId': roomId,
         'placeId': placeId,
         'placeName': placeName,
-        'dateTime': dateTime.toUtc().toIso8601String(),
+        // ★ แก้: ส่ง Local time พร้อม offset เพื่อไม่ให้เวลาเพี้ยน
+        // toUtc() จะทำให้ 16:18 +07:00 → 09:18 UTC ซึ่งผิด
+        'dateTime': dateTime.toIso8601String(),
       }),
     );
 
@@ -88,7 +90,10 @@ class AppointmentService {
     final response = await http.put(
       uri,
       headers: _headers,
-      body: jsonEncode({'dateTime': dateTime.toUtc().toIso8601String()}),
+      body: jsonEncode({
+        // ★ แก้: ส่ง Local time พร้อม offset เพื่อไม่ให้เวลาเพี้ยน
+        'dateTime': dateTime.toIso8601String(),
+      }),
     );
 
     if (response.statusCode == 200) {
