@@ -1,11 +1,12 @@
 import 'dart:async';
 import 'dart:math';
 import 'dart:ui' as ui;
+
+import 'package:chat2date/components/chat/content_switcher.dart';
 import 'package:chat2date/components/toasts/toast.dart';
 import 'package:chat2date/theme/app_colors.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
-import 'package:chat2date/components/chat/content_switcher.dart';
 
 class SpinDateComponent extends StatefulWidget {
   final List<Map<String, dynamic>> prizes;
@@ -17,7 +18,12 @@ class SpinDateComponent extends StatefulWidget {
   final VoidCallback? onCloseModal;
   final VoidCallback? onRefreshSpin;
   final Function(Map<String, dynamic>)? onSpinComplete;
-  final Function(String? mode, String? targetName, double radius, bool isRefresh)?
+  final Function(
+    String? mode,
+    String? targetName,
+    double radius,
+    bool isRefresh,
+  )?
   onFilterChanged;
 
   const SpinDateComponent({
@@ -127,9 +133,7 @@ class _SpinDateComponentState extends State<SpinDateComponent>
       );
     } finally {
       if (mounted) {
-        setState(
-          () => _isReady = true,
-        ); 
+        setState(() => _isReady = true);
       }
     }
   }
@@ -457,33 +461,38 @@ class _SpinDateComponentState extends State<SpinDateComponent>
           width: 308,
           child: Column(
             children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(
-                    '${selectedRange.start.round()} กม.',
-                    style: const TextStyle(fontSize: 12),
-                  ),
-                  Text(
-                    '${selectedRange.end.round()} กม.',
-                    style: const TextStyle(fontSize: 12),
-                  ),
-                ],
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 20),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    const Text('1 กม.', style: TextStyle(fontSize: 12)),
+                    Text(
+                      '${selectedRange.end.round()} กม.',
+                      style: const TextStyle(fontSize: 12),
+                    ),
+                  ],
+                ),
               ),
-              RangeSlider(
-                values: selectedRange,
-                min: 1.0,
-                max: 20.0,
-                activeColor: AppColors.neutral600,
-                inactiveColor: AppColors.neutral300,
-                onChanged: (v) {
-                  if (_controller.isAnimating) return;
-                  setState(() => selectedRange = RangeValues(1.0, v.end));
-                },
-                onChangeEnd: (v) {
-                  _isReady = false;
-                  _handleFilterUpdate();
-                },
+              SliderTheme(
+                data: SliderTheme.of(
+                  context,
+                ).copyWith(trackShape: const RectangularSliderTrackShape()),
+                child: Slider(
+                  value: selectedRange.end,
+                  min: 1.0,
+                  max: 20.0,
+                  activeColor: AppColors.neutral600,
+                  inactiveColor: AppColors.neutral300,
+                  onChanged: (v) {
+                    if (_controller.isAnimating) return;
+                    setState(() => selectedRange = RangeValues(1.0, v));
+                  },
+                  onChangeEnd: (v) {
+                    _isReady = false;
+                    _handleFilterUpdate();
+                  },
+                ),
               ),
             ],
           ),
