@@ -32,6 +32,7 @@ import sit.chat2date.cp25ssi2.repositories.*;
 
 import java.math.BigDecimal;
 import java.time.Duration;
+import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.util.*;
@@ -72,6 +73,8 @@ public class DateRecommendService {
     private MessageRepository messageRepository;
     @Autowired
     private RelationshipStatsRepository relationshipStatsRepository;
+    @Autowired
+    private AppointmentService appointmentService;
 
     @Value("${google.map.id}")
     private String googleId;
@@ -518,6 +521,10 @@ public class DateRecommendService {
                 return new SpinStatusResponse(false, 0);
             }
 
+            LocalDateTime baseTime = latest.getDateTime() != null
+                    ? latest.getDateTime()
+                    : latest.getUpdatedAt();
+
             int cooldownDays;
             if (latest.getStatus() == AppointmentStatus.CANCELLED) {
                 cooldownDays = 1;
@@ -533,7 +540,7 @@ public class DateRecommendService {
                 cooldownDays = 0;
             }
 
-            ZonedDateTime lastUpdateThai = latest.getUpdatedAt().atZone(bangkokZone);
+            ZonedDateTime lastUpdateThai  = baseTime.atZone(bangkokZone);
             ZonedDateTime unlockTime = lastUpdateThai.plusDays(cooldownDays);
 
             if (nowThai.isBefore(unlockTime)) {
@@ -546,6 +553,49 @@ public class DateRecommendService {
         }
 
         return new SpinStatusResponse(true, 0);
+    }
+
+    public void deleteAppointmentAfterCooldown(String roomId, String accessToken) {
+        User user = extractToken(accessToken);
+
+        Match match = matchRepository.findById(Integer.valueOf(roomId))
+                .orElseThrow(() -> new NotFoundException("Match not found with id: " + roomId));
+
+        if (!Objects.equals(user.getUserId(), match.getUserId1().getUserId()) &&
+                !Objects.equals(user.getUserId(), match.getUserId2().getUserId())) {
+            throw new ForbiddenAccessException("Forbidden: cannot access another user's data");
+        }
+
+        Appointment latest = appointmentRepository
+                .findFirstByMatch_IdOrderByCreatedAtDesc(Integer.valueOf(roomId))
+                .orElseThrow(() -> new NotFoundException("Appointment not found for room: " + roomId));
+
+        LocalDateTime baseTime = latest.getDateTime() != null
+                ? latest.getDateTime()
+                : latest.getUpdatedAt();
+
+        ZoneId bangkokZone = ZoneId.of("Asia/Bangkok");
+        ZonedDateTime nowThai = ZonedDateTime.now(bangkokZone);
+
+        Optional<RelationshipStats> relationshipStats = relationshipStatsRepository.findByRoomId(Integer.valueOf(roomId));
+        int score = (relationshipStats.isPresent() && relationshipStats.get().getScore() != null)
+                ? relationshipStats.get().getScore() : 0;
+
+        int cooldownDays = 0;
+        if (latest.getStatus() == AppointmentStatus.CANCELLED) {
+            cooldownDays = 1;
+        } else if (latest.getStatus() == AppointmentStatus.COMPLETED) {
+            if (score >= 400) cooldownDays = 1;
+            else if (score >= 300) cooldownDays = 3;
+            else cooldownDays = 7;
+        }
+
+        ZonedDateTime unlockTime = baseTime.atZone(bangkokZone).plusDays(cooldownDays);
+        if (nowThai.isBefore(unlockTime)) {
+            throw new LockedException("Cooldown has not ended yet");
+        }
+
+        appointmentService.deleteAppointment(user.getUserId(), latest.getAppointmentId());
     }
 
     @Data

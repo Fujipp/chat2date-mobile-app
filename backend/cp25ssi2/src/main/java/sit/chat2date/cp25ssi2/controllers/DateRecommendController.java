@@ -47,4 +47,12 @@ public class DateRecommendController {
 
         return ResponseEntity.ok(response);
     }
+
+    @DeleteMapping("/{roomId}/appointment")
+    public ResponseEntity<Void> deleteAppointmentAfterCooldown(
+            @PathVariable String roomId,
+            @RequestHeader("Authorization") String accessToken) {
+        dateRecommendService.deleteAppointmentAfterCooldown(roomId, accessToken);
+        return ResponseEntity.noContent().build();
+    }
 }
