@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:chat2date/components/buttons/ds_button.dart';
 import 'package:chat2date/components/calendar/calendar_modal.dart';
 import 'package:chat2date/components/chat/bot_message_component.dart';
 import 'package:chat2date/components/chat/chat_text_component.dart';
@@ -13,7 +14,6 @@ import 'package:chat2date/components/page/unlock_date_modal.dart';
 import 'package:chat2date/components/status_bar/gps_alert.dart';
 import 'package:chat2date/components/status_bar/score_row.dart';
 import 'package:chat2date/components/toasts/toast.dart';
-import 'package:chat2date/components/buttons/ds_button.dart';
 import 'package:chat2date/models/appointment.dart';
 import 'package:chat2date/models/chat_access_status.dart';
 import 'package:chat2date/models/chat_message.dart';
@@ -83,7 +83,7 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
 
   // === Appointment / Calendar ===
   Appointment? _existingAppointment;
-  String _lastSpunPlaceId = '';    // ★ แก้: ไม่ใช่ final เพื่อให้อัพเดตได้
+  String _lastSpunPlaceId = ''; // ★ แก้: ไม่ใช่ final เพื่อให้อัพเดตได้
   String _lastSpunPlaceName = ''; // ★ แก้: ไม่ใช่ final เพื่อให้อัพเดตได้
   bool _isCalendarLoading = false;
   DateTime? _lastSpinTime;
@@ -1808,6 +1808,7 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
           }
           break;
         case 'CONTINUE':
+          await _initUpdateRelationshipBar(false);
           _showGoodEndingModal();
           break;
         case 'UNMATCH':
@@ -1838,7 +1839,11 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
     final appt = _existingAppointment;
     if (appt == null ||
         appt.dateTime == null ||
-        !DateTime.now().isAfter(appt.dateTime!))
+        !DateTime.now().isAfter(
+          appt.dateTime!
+              .add(const Duration(hours: 7))
+              .add(const Duration(days: 1)),
+        ))
       return;
 
     try {
@@ -1985,15 +1990,17 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
             description:
                 'คุณทั้งคู่มีความเห็นตรงกัน\n'
                 'หวังว่าการเดินทางครั้งนี้\n'
-                'จะเป็นก้าวแรกของความสัมพันธ์ที่ดีขึ้นไปอีก',
+                'จะเป็นก้าวแรกของความสัมพันธ์ที่ดีขึ้นไปอีก\n\n'
+                '🎉 +20 คะแนนความสัมพันธ์',
             spaceBottom: 15,
             spaceTop: 15,
           ),
         );
       },
-    ).then((_) {
+    ).then((_) async {
       isDialogOpen = false;
       _isResultModalShown = false;
+      await _initUpdateRelationshipBar(false);
     });
   }
 
@@ -2304,6 +2311,7 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
       },
       child: Scaffold(
         backgroundColor: Colors.white,
+
         body: SafeArea(
           child: Stack(
             // ✅ ใช้ Stack เพื่อวาง Layer ของวงล้อทับส่วนแชท
@@ -2344,14 +2352,61 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
                     child: Column(
                       children: [
                         const SizedBox(height: 12),
+
+                        Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 20),
+                          child: LayoutBuilder(
+                            builder: (context, constraints) {
+                              final double barWidth =
+                                  (constraints.maxWidth - 25 - 20).clamp(
+                                    140,
+                                    260,
+                                  );
+                              return ScoreRow(
+                                basePercent: _currentPercent,
+                                number: _heartCount,
+                                barWidth: barWidth,
+                                barHeight: 8,
+                                rightIconSize: 18,
+                                onRightIconTap: () => {
+                                  showModalBottomSheet(
+                                    context: context,
+                                    isScrollControlled: true,
+                                    backgroundColor: Colors
+                                        .transparent, // เพื่อให้เห็นเงาโค้งของ Container ข้างใน
+                                    builder: (context) => RelationshipMissionModal(
+                                      heart: _heartCount,
+                                      currentScore: (_currentPercent * 100)
+                                          .round(),
+                                      isFirstMessageBonus: _isFirstMessageBonus,
+                                      streakDays:
+                                          _steakDays, // ใช้ตัวแปรใน State ของคุณ
+                                      dailyMessages:
+                                          _dailyMessagesCount, // ใช้ตัวแปรใน State ของคุณ
+                                    ),
+                                  ),
+                                },
+                              );
+                            },
+                          ),
+                        ),
+                        const SizedBox(height: 12),
                         if (_existingAppointment != null &&
                             _existingAppointment!.dateTime != null)
                           Builder(
                             builder: (context) {
                               final now = DateTime.now();
-                              final dateStartTime =
-                                  _existingAppointment!.dateTime!;
+                              final dateStartTime = _existingAppointment!
+                                  .dateTime!
+                                  .add(const Duration(hours: 7));
                               // ✅ ตั้งเวลาหมดอายุ (โชว์แค่ 3 ชั่วโมงหลังเวลานัดเดต)
+                              print(
+                                "📅 dateTime: ${_existingAppointment?.dateTime}",
+                              );
+                              print(
+                                "📅 isUtc: ${_existingAppointment?.dateTime?.isUtc}",
+                              );
+                              print("📅 now: ${DateTime.now()}");
                               final dateEndTime = dateStartTime.add(
                                 const Duration(hours: 3),
                               );
@@ -2447,45 +2502,7 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
                               return const SizedBox.shrink();
                             },
                           ),
-
-                        Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 20),
-                          child: LayoutBuilder(
-                            builder: (context, constraints) {
-                              final double barWidth =
-                                  (constraints.maxWidth - 25 - 20).clamp(
-                                    140,
-                                    260,
-                                  );
-                              return ScoreRow(
-                                basePercent: _currentPercent,
-                                number: _heartCount,
-                                barWidth: barWidth,
-                                barHeight: 8,
-                                rightIconSize: 18,
-                                onRightIconTap: () => {
-                                  showModalBottomSheet(
-                                    context: context,
-                                    isScrollControlled: true,
-                                    backgroundColor: Colors
-                                        .transparent, // เพื่อให้เห็นเงาโค้งของ Container ข้างใน
-                                    builder: (context) => RelationshipMissionModal(
-                                      heart: _heartCount,
-                                      currentScore: (_currentPercent * 100)
-                                          .round(),
-                                      isFirstMessageBonus: _isFirstMessageBonus,
-                                      streakDays:
-                                          _steakDays, // ใช้ตัวแปรใน State ของคุณ
-                                      dailyMessages:
-                                          _dailyMessagesCount, // ใช้ตัวแปรใน State ของคุณ
-                                    ),
-                                  ),
-                                },
-                              );
-                            },
-                          ),
-                        ),
-                        const SizedBox(height: 12),
+                        const SizedBox(height: 6),
                         Expanded(
                           child: _isLoadingMessages
                               ? const Center(child: CircularProgressIndicator())
@@ -2785,8 +2802,9 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
                         }()
                       : null,
                   // ★ ใหม่: pre-select เฉพาะ edit mode เท่านั้น
-                  initialSelectedDate:
-                      _calendarIsEditMode ? _existingAppointment?.dateTime : null,
+                  initialSelectedDate: _calendarIsEditMode
+                      ? _existingAppointment?.dateTime
+                      : null,
                   isEditMode: _calendarIsEditMode,
                   onClose: () {
                     _closeCalendar();
