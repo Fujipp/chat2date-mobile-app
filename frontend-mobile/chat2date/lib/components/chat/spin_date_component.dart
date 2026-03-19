@@ -19,12 +19,20 @@ class SpinDateComponent extends StatefulWidget {
   final VoidCallback? onRefreshSpin;
   final Function(Map<String, dynamic>)? onSpinComplete;
   final Function(
+    
     String? mode,
+   
     String? targetName,
+   
     double radius,
+   
     bool isRefresh,
   )?
   onFilterChanged;
+
+  final int? winningIndex;
+  final bool isLeader;
+  final VoidCallback? onTriggerSpin;
 
   const SpinDateComponent({
     super.key,
@@ -38,6 +46,9 @@ class SpinDateComponent extends StatefulWidget {
     this.onSpinComplete,
     this.onFilterChanged,
     this.lastRefreshTime,
+    this.winningIndex,
+    this.isLeader = true,
+    this.onTriggerSpin,
   });
 
   @override
@@ -87,6 +98,11 @@ class _SpinDateComponentState extends State<SpinDateComponent>
     super.didUpdateWidget(oldWidget);
     if (widget.prizes != oldWidget.prizes) {
       _prepareAssets();
+    }
+
+    if (widget.winningIndex != null &&
+        widget.winningIndex != oldWidget.winningIndex) {
+      _spinWheel(targetIdx: widget.winningIndex);
     }
   }
 
@@ -187,12 +203,12 @@ class _SpinDateComponentState extends State<SpinDateComponent>
     _resetToInitialState();
   }
 
-  void _spinWheel() {
+  void _spinWheel({int? targetIdx}) {
     if (_controller.isAnimating || widget.prizes.isEmpty) return;
 
     double sectorAngle = (2 * pi) / widget.prizes.length;
 
-    int targetIndex = Random().nextInt(widget.prizes.length);
+    int targetIndex = targetIdx ?? Random().nextInt(widget.prizes.length);
 
     double targetAngle =
         (1.5 * pi) - (targetIndex * sectorAngle) - (sectorAngle / 2);
@@ -372,7 +388,7 @@ class _SpinDateComponentState extends State<SpinDateComponent>
                     items: [firstName!, secondName!],
                     selectedIndex: selectedIndex,
                     onChanged: (index) {
-                      if (_controller.isAnimating) return;
+                      if (_controller.isAnimating || !widget.isLeader) return;
                       setState(() => selectedIndex = index);
                       _isReady = false;
                       _handleFilterUpdate();
@@ -429,7 +445,7 @@ class _SpinDateComponentState extends State<SpinDateComponent>
       children: [
         InkWell(
           onTap: () {
-            if (_controller.isAnimating) return;
+            if (_controller.isAnimating || !widget.isLeader) return;
             _isReady = false;
             _handleFilterUpdate(isRefresh: true);
 
@@ -445,7 +461,7 @@ class _SpinDateComponentState extends State<SpinDateComponent>
         ),
         InkWell(
           onTap: () {
-            if (_controller.isAnimating) return;
+            if (_controller.isAnimating || !widget.isLeader) return;
             widget.onCloseModal?.call();
           },
           child: SvgPicture.asset("assets/icons/icon_close.svg", width: 31),
@@ -485,10 +501,11 @@ class _SpinDateComponentState extends State<SpinDateComponent>
                   activeColor: AppColors.neutral600,
                   inactiveColor: AppColors.neutral300,
                   onChanged: (v) {
-                    if (_controller.isAnimating) return;
+                    if (_controller.isAnimating || !widget.isLeader) return;
                     setState(() => selectedRange = RangeValues(1.0, v));
                   },
                   onChangeEnd: (v) {
+                     if (!widget.isLeader) return;
                     _isReady = false;
                     _handleFilterUpdate();
                   },
@@ -510,7 +527,7 @@ class _SpinDateComponentState extends State<SpinDateComponent>
         IconSwitcher(
           selectedIndex: indexing,
           onChanged: (index) {
-            if (_controller.isAnimating) return;
+            if (_controller.isAnimating || !widget.isLeader) return;
             setState(() => indexing = index);
             _isReady = false;
             _handleFilterUpdate();

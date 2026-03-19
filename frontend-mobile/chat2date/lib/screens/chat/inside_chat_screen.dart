@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 
 import 'package:chat2date/components/buttons/ds_button.dart';
 import 'package:chat2date/components/calendar/calendar_modal.dart';
@@ -77,9 +78,12 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
   int _dailyMessagesCount = 0;
   String nickname = '';
   List<Map<String, dynamic>> _dynamicPrizes = [];
-  final String _spinMode = '';
   String? _myConfirmStatus = "";
   bool? _myReviewSatisfied;
+  int? winningIndex;
+  int _indexMode = 1;
+  int _indexSelected = 1;
+  String? _leaderId;
 
   // === Appointment / Calendar ===
   Appointment? _existingAppointment;
@@ -752,6 +756,62 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
       }
     });
 
+    _chatSocketService?.spinStream.listen((payload) {
+      if (!mounted) return;
+
+      final type = payload['type'];
+
+      if (type == 'FRESH_MODE') {
+        final rawData = payload['data'];
+        Map<String, dynamic> data;
+        try {
+          if (rawData is String) {
+            data = jsonDecode(rawData);
+          } else {
+            // ถ้ามาเป็น Map อยู่แล้ว (จังหวะดึงใหม่) ก็ใช้ได้เลย
+            data = Map<String, dynamic>.from(rawData);
+          }
+          final String modeStr = payload['mode'] ?? 'MIDPOINT';
+          final String targetStr = payload['userTarget'] ?? 'PARTNER';
+          final String leaderIdFromSocket =
+              payload['leaderId']?.toString() ?? '';
+
+          setState(() {
+            _showWheelModal = true;
+            _leaderId = leaderIdFromSocket;
+
+            _indexMode = (modeStr == 'DISTANCE') ? 0 : 1;
+
+            print(_currentUserId);
+            print(leaderIdFromSocket);
+
+            if (_currentUserId == leaderIdFromSocket) {
+              _indexSelected = (targetStr == 'ME') ? 1 : 0;
+            } else {
+              _indexSelected = (targetStr == 'ME') ? 0 : 1;
+            }
+
+            final List placesList = data['places'] ?? [];
+            _dynamicPrizes = placesList.map((place) {
+              return {
+                "name": place['name'],
+                "imageUrl": place['imageUrl'],
+                "placeId": place['googlePlaceId'], // เก็บไว้ใช้จองนัดหมาย
+              };
+            }).toList();
+
+            winningIndex = null;
+          });
+        } catch (e) {
+          debugPrint("❌ Error in FRESH_MODE listener: $e");
+        }
+      } else if (type == 'CMD_SPIN_START') {
+        setState(() {
+          winningIndex = payload['winningIndex'];
+        });
+      }
+    });
+
     // Setup periodic timer as fallback (in case WebSocket events are missed)
     _seenStatusTimer?.cancel();
     _seenStatusTimer = Timer.periodic(const Duration(seconds: 30), (_) {
@@ -1087,11 +1147,12 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
     _checkSpinWheelCondition();
     final service = ref.read(dateRecommendProvider);
     try {
-      final recommendations = await service.confirmPlace(
+      String mode = (_indexMode == 0) ? "DISTANCE" : "MIDPOINT";
+      await service.confirmPlace(
         roomId: widget.roomId,
         placeName: result['name'],
         action: 'BLANK',
-        mode: _spinMode,
+        mode: mode,
       );
     } catch (e) {
       print("Error fetching date recommendations: $e");
@@ -1157,7 +1218,6 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
           return {
             "name": place.name,
             "imageUrl": place.imageUrl,
-            // ★ แก้: เพิ่ม placeId เพื่อใช้สร้างนัดหมายในภายหลัง
             "placeId": place.googlePlaceId,
           };
         }).toList();
@@ -1757,7 +1817,6 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
         action: action,
       );
 
-      // เมื่อสำเร็จ ให้ล็อคปุ่มในเครื่องเราทันที
       setState(() {
         _myConfirmStatus = action;
       });
@@ -1793,8 +1852,11 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
         } catch (_) {}
       }
 
-      if (_isResultModalShown && outcome != 'UNMATCH' && outcome != 'CONTINUE')
+      if (_isResultModalShown &&
+          outcome != 'UNMATCH' &&
+          outcome != 'CONTINUE') {
         return;
+      }
       _isResultModalShown = true;
       print("🎯 REVIEW_RESULT received: outcome = $outcome");
 
@@ -1852,8 +1914,9 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
           appt.dateTime!
               .add(const Duration(hours: 7))
               .add(const Duration(days: 1)),
-        ))
+        )) {
       return;
+    }
 
     try {
       final reviewService = ref.read(reviewServiceProvider);
@@ -2777,6 +2840,10 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
                               mainAxisSize: MainAxisSize.min,
                               children: [
                                 SpinDateComponent(
+                                  indexMode: _indexMode,
+                                  indexSelected: _indexSelected,
+                                  winningIndex: winningIndex,
+                                  isLeader: _currentUserId == _leaderId,
                                   onCloseModal: () =>
                                       setState(() => _showWheelModal = false),
                                   onSpinComplete: _onSpinComplete,
@@ -2785,6 +2852,14 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
                                   prizes: _dynamicPrizes,
                                   onFilterChanged:
                                       (mode, target, radius, isRefresh) async {
+                                        setState(() {
+                                          _indexMode = (mode == 'DISTANCE')
+                                              ? 0
+                                              : 1;
+                                          _indexSelected = (target == 'ME')
+                                              ? 1
+                                              : 0;
+                                        });
                                         if (isRefresh) {
                                           await _prepareBeforeSpin(
                                             radius,
