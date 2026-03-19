@@ -9,6 +9,7 @@ import 'calendar_day_cell.dart';
 class CalendarCard extends StatefulWidget {
   final DateTime initialMonth;
   final TimeOfDay? initialTime;
+
   /// ★ ใหม่: วันที่ที่ถูกเลือกไว้แล้ว (edit mode) ถ้าเปิดใหม่ให้เป็น null
   final DateTime? initialSelectedDate;
   final void Function(DateTime date, TimeOfDay time)? onSave;
@@ -70,7 +71,8 @@ class _CalendarCardState extends State<CalendarCard> {
   }
 
   // ==== Month / Year helpers ====
-  bool _hasUserPicked = false; // ปุ่มบันทึกจะ disabled จนกว่าจะเลือก/แก้ไขวันหรือเวลา
+  bool _hasUserPicked =
+      false; // ปุ่มบันทึกจะ disabled จนกว่าจะเลือก/แก้ไขวันหรือเวลา
   List<String> get _months => const [
     'January',
     'February',
@@ -159,16 +161,42 @@ class _CalendarCardState extends State<CalendarCard> {
     return selectedDateTime.isBefore(now);
   }
 
+  String get _selectedDateTimeSummary {
+    if (_selectedDate == null) {
+      return 'ยังไม่ได้เลือกวันที่และเวลา';
+    }
+
+    const thaiMonths = [
+      'ม.ค.',
+      'ก.พ.',
+      'มี.ค.',
+      'เม.ย.',
+      'พ.ค.',
+      'มิ.ย.',
+      'ก.ค.',
+      'ส.ค.',
+      'ก.ย.',
+      'ต.ค.',
+      'พ.ย.',
+      'ธ.ค.',
+    ];
+
+    final hour = _hour24.toString().padLeft(2, '0');
+    final minute = _minute.toString().padLeft(2, '0');
+
+    return '${_selectedDate!.day} ${thaiMonths[_selectedDate!.month - 1]} ${_selectedDate!.year} เวลา $hour:$minute';
+  }
+
   @override
   Widget build(BuildContext context) {
     final weeks = buildMonthMatrix(_cursorMonth);
     final now = DateTime.now();
-    
-    // สร้างลิสต์เดือนใหม่ตามปีที่เลือก 
+
+    // สร้างลิสต์เดือนใหม่ตามปีที่เลือก
     // ถ้าเป็นปีปัจจุบัน ให้เริ่มตั้งแต่เดือนปัจจุบัน ไม่งั้นเริ่มมกราคม
     List<String> currentValidMonths = [..._months];
     if (_cursorMonth.year == now.year) {
-       currentValidMonths = _months.sublist(now.month - 1);
+      currentValidMonths = _months.sublist(now.month - 1);
     }
 
     return Stack(
@@ -267,9 +295,17 @@ class _CalendarCardState extends State<CalendarCard> {
                   children: [
                     // ปุ่มย้อนกลับเดือน (Disable ถ้าเป็นเดือนปัจจุบัน)
                     _circleIconButton(
-                      Icons.chevron_left, 
-                      onTap: (_cursorMonth.year == now.year && _cursorMonth.month <= now.month) ? null : _prevMonth,
-                      color: (_cursorMonth.year == now.year && _cursorMonth.month <= now.month) ? Colors.grey.shade300 : Colors.black87
+                      Icons.chevron_left,
+                      onTap:
+                          (_cursorMonth.year == now.year &&
+                              _cursorMonth.month <= now.month)
+                          ? null
+                          : _prevMonth,
+                      color:
+                          (_cursorMonth.year == now.year &&
+                              _cursorMonth.month <= now.month)
+                          ? Colors.grey.shade300
+                          : Colors.black87,
                     ),
 
                     // กลาง: เดือน/ปี อยู่ในกรอบจำกัดความกว้าง กันล้น
@@ -364,9 +400,10 @@ class _CalendarCardState extends State<CalendarCard> {
                                 currentMonth: _cursorMonth,
                                 selected: _selectedDate,
                                 onSelect: (day) => setState(() {
-                                    _selectedDate = day;
-                                    _hasUserPicked = true; // เลือกวันแล้ว enable ปุ่มบันทึก
-                                  }),
+                                  _selectedDate = day;
+                                  _hasUserPicked =
+                                      true; // เลือกวันแล้ว enable ปุ่มบันทึก
+                                }),
                                 size: Size(cellW, 34), // สูง 34 ตามดีไซน์
                               ),
                             );
@@ -483,6 +520,20 @@ class _CalendarCardState extends State<CalendarCard> {
                   ),
                 ),
               ),
+              SizedBox(
+                width: 310,
+                child: Text(
+                  _selectedDateTimeSummary,
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(
+                    fontFamily: 'Inter',
+                    color: Color(0xFF64748B),
+                    fontSize: 12,
+                    fontWeight: FontWeight.w500,
+                    height: 1.67,
+                  ),
+                ),
+              ),
               const SizedBox(height: 12),
 
               // —— ปุ่มบันทึก (ใช้ DsButton เพื่อให้ active/disabled เหมือนทั้ง project) ——
@@ -490,7 +541,10 @@ class _CalendarCardState extends State<CalendarCard> {
                 label: 'บันทึก',
                 variant: DsButtonVariant.primary,
                 size: DsButtonSize.md,
-                onPressed: (_hasUserPicked && _selectedDate != null && !_isPastTimeSelected)
+                onPressed:
+                    (_hasUserPicked &&
+                        _selectedDate != null &&
+                        !_isPastTimeSelected)
                     ? () {
                         final h24 = _hour24;
                         final m = _minute.clamp(0, 59);
@@ -519,7 +573,11 @@ class _CalendarCardState extends State<CalendarCard> {
   // ===================== UI helpers =====================
 
   // ปุ่มวงกลมซ้าย/ขวา
-  Widget _circleIconButton(IconData icon, {VoidCallback? onTap, Color color = Colors.black87}) {
+  Widget _circleIconButton(
+    IconData icon, {
+    VoidCallback? onTap,
+    Color color = Colors.black87,
+  }) {
     return InkWell(
       onTap: onTap,
       customBorder: const CircleBorder(),

@@ -104,8 +104,8 @@ public class NotificationService {
         }
     }
 
-    // ★ ใหม่: ส่งแจ้งเตือนเมื่อถึงเวลานัดเดต
-    public void sendAppointmentArrivalNotification(String receiverUserId, String partnerNickname,
+    // ★ ใหม่: ส่งแจ้งเตือนล่วงหน้าก่อนวันนัด 1 วัน
+    public void sendAppointmentReminderNotification(String receiverUserId, String partnerNickname,
             Integer roomId, String placeName) {
         List<String> tokens = deviceTokenService.getTokensForUser(receiverUserId);
         if (tokens == null || tokens.isEmpty()) {
@@ -118,18 +118,18 @@ public class NotificationService {
                     .setToken(token)
                     .setNotification(
                             Notification.builder()
-                                    .setTitle("ถึงเวลานัดเดตแล้ว! ⏰")
-                                    .setBody("ถึงเวลานัดเดตที่ " + placeName + " กับ " + partnerNickname + " แล้ว ขอให้สนุกนะ!")
+                                    .setTitle("พรุ่งนี้มีนัดเดตนะ! 📅")
+                                    .setBody("อีก 1 วันคุณมีนัดที่ " + placeName + " กับ " + partnerNickname)
                                     .build())
-                    .putData("type", "APPOINTMENT_ARRIVAL")
+                    .putData("type", "APPOINTMENT_REMINDER")
                     .putData("roomId", roomId != null ? roomId.toString() : "")
                     .build();
 
             try {
                 String msgId = FirebaseMessaging.getInstance().send(message);
-                System.out.println("[FCM] Sent APPOINTMENT_ARRIVAL to " + receiverUserId + " msgId=" + msgId);
+                System.out.println("[FCM] Sent APPOINTMENT_REMINDER to " + receiverUserId + " msgId=" + msgId);
             } catch (FirebaseMessagingException e) {
-                System.out.println("[FCM] Failed to send APPOINTMENT_ARRIVAL to " + receiverUserId + " : " + e.getMessage());
+                System.out.println("[FCM] Failed to send APPOINTMENT_REMINDER to " + receiverUserId + " : " + e.getMessage());
             }
         }
     }

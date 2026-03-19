@@ -29,4 +29,9 @@ public interface AppointmentRepository extends JpaRepository<Appointment, Intege
     Optional<Appointment> findFirstByMatch_IdOrderByCreatedAtDesc(Integer matchId);
 
     List<Appointment> findByStatusAndIsNotifiedFalseAndDateTimeBefore(AppointmentStatus status, java.time.LocalDateTime dateTime);
+
+    List<Appointment> findByStatusAndIsNotifiedFalseAndDateTimeBetween(
+            AppointmentStatus status,
+            java.time.LocalDateTime start,
+            java.time.LocalDateTime end);
 }

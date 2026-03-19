@@ -168,8 +168,9 @@ public class AppointmentService {
     // ────────────────────────────────────────────────────────────────────────────
 
     /**
-     * Delete (cancel and remove) an appointment.
+     * Soft-cancel an appointment.
      * - Verifies the calling user is a member of the room.
+     * - Keeps the row in DB and only updates the status to CANCELLED.
      */
     @Transactional
     public AppointmentResponse deleteAppointment(String userId, Integer appointmentId) {
@@ -179,9 +180,13 @@ public class AppointmentService {
 
         assertRoomMember(userId, appointment.getMatch());
 
-        AppointmentResponse response = toResponse(appointment);
-        appointmentRepository.delete(appointment);
-        return response;
+        if (appointment.getStatus() != AppointmentStatus.CANCELLED) {
+            appointment.setStatus(AppointmentStatus.CANCELLED);
+            appointment.setIsNotified(false);
+            appointment = appointmentRepository.save(appointment);
+        }
+
+        return toResponse(appointment);
     }
 
     // ────────────────────────────────────────────────────────────────────────────

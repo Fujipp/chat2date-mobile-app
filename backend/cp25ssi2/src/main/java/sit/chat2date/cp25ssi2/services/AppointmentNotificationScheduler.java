@@ -26,16 +26,22 @@ public class AppointmentNotificationScheduler {
     @Transactional
     public void notifyForUpcomingAppointments() {
         LocalDateTime now = LocalDateTime.now();
+        LocalDateTime reminderTime = now.plusDays(1);
+        LocalDateTime reminderWindowStart = reminderTime.minusMinutes(1);
+        LocalDateTime reminderWindowEnd = reminderTime.plusMinutes(1);
 
-        // Find appointments that are SCHEDULED, not notified, and the time has arrived or passed
+        // Find appointments that are scheduled around 1 day from now and have not been reminded yet.
         List<Appointment> dueAppointments = appointmentRepository
-                .findByStatusAndIsNotifiedFalseAndDateTimeBefore(AppointmentStatus.SCHEDULED, now);
+                .findByStatusAndIsNotifiedFalseAndDateTimeBetween(
+                        AppointmentStatus.SCHEDULED,
+                        reminderWindowStart,
+                        reminderWindowEnd);
 
         if (dueAppointments.isEmpty()) {
             return;
         }
 
-        log.info("[Scheduler] Found {} appointments due for arrival notification", dueAppointments.size());
+        log.info("[Scheduler] Found {} appointments due for reminder notification", dueAppointments.size());
 
         for (Appointment appointment : dueAppointments) {
             try {
@@ -45,7 +51,7 @@ public class AppointmentNotificationScheduler {
                 Integer roomId = appointment.getMatch().getId();
 
                 // Send to User 1 (from User 2 context)
-                notificationService.sendAppointmentArrivalNotification(
+                notificationService.sendAppointmentReminderNotification(
                         user1.getUserId(),
                         user2.getNickname(),
                         roomId,
@@ -53,7 +59,7 @@ public class AppointmentNotificationScheduler {
                 );
 
                 // Send to User 2 (from User 1 context)
-                notificationService.sendAppointmentArrivalNotification(
+                notificationService.sendAppointmentReminderNotification(
                         user2.getUserId(),
                         user1.getNickname(),
                         roomId,
@@ -64,7 +70,7 @@ public class AppointmentNotificationScheduler {
                 appointment.setIsNotified(true);
                 appointmentRepository.save(appointment);
 
-                log.info("[Scheduler] Notified users for appointment {}", appointment.getAppointmentId());
+                log.info("[Scheduler] Sent reminder for appointment {}", appointment.getAppointmentId());
             } catch (Exception e) {
                 log.error("[Scheduler] Error processing appointment {}: {}", appointment.getAppointmentId(), e.getMessage());
             }

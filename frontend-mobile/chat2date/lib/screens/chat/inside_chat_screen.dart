@@ -858,7 +858,7 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
 
       if (message.isBot) {
         _initConfirmStatus();
-
+        unawaited(_fetchInitialAppointment());
         _checkSpinWheelCondition();
       }
 
@@ -957,12 +957,9 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
         int.parse(roomId),
       );
 
-      final active = appointments.where((a) => a.status != 'CANCELLED').toList()
-        ..sort((a, b) => b.appointmentId.compareTo(a.appointmentId));
-
       if (mounted) {
         setState(() {
-          _existingAppointment = active.isNotEmpty ? active.first : null;
+          _existingAppointment = _findLatestActiveAppointment(appointments);
         });
 
         print("📅 appointmentId: ${_existingAppointment?.appointmentId}");
@@ -971,6 +968,41 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
     } catch (e) {
       debugPrint('Error fetching initial appointment: $e');
     }
+  }
+
+  Appointment? _findLatestActiveAppointment(List<Appointment> appointments) {
+    final active =
+        appointments
+            .where(
+              (a) => a.status == 'PLACE_SELECTED' || a.status == 'SCHEDULED',
+            )
+            .toList()
+          ..sort((a, b) => b.appointmentId.compareTo(a.appointmentId));
+
+    return active.isNotEmpty ? active.first : null;
+  }
+
+  bool get _shouldShowCalendarIcon => _existingAppointment != null;
+
+  int? get _calendarBadgeCount {
+    final appointment = _existingAppointment;
+    final dateTime = appointment?.dateTime;
+
+    if (appointment == null ||
+        appointment.status != 'SCHEDULED' ||
+        dateTime == null) {
+      return null;
+    }
+
+    final appointmentDate = DateUtils.dateOnly(dateTime.toLocal());
+    final today = DateUtils.dateOnly(DateTime.now());
+    final daysUntil = appointmentDate.difference(today).inDays;
+
+    if (daysUntil < 0 || daysUntil > 2) {
+      return null;
+    }
+
+    return daysUntil == 0 ? 1 : daysUntil;
   }
 
   bool _isSvgImage(String? path) {
@@ -1273,13 +1305,9 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
         int.parse(roomId),
       );
 
-      // หา appointment ที่ active ล่าสุด (status != CANCELLED)
-      final active = appointments.where((a) => a.status != 'CANCELLED').toList()
-        ..sort((a, b) => b.appointmentId.compareTo(a.appointmentId));
-
       if (!mounted) return;
       setState(() {
-        _existingAppointment = active.isNotEmpty ? active.first : null;
+        _existingAppointment = _findLatestActiveAppointment(appointments);
         _isCalendarLoading = false;
       });
 
@@ -1436,7 +1464,7 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
               ),
               const SizedBox(height: 6),
               const Text(
-                'ระบบจะแจ้งเตือนซัก 1 วัน',
+                'ระบบจะแจ้งเตือนก่อนวันนัด 1 วัน',
                 textAlign: TextAlign.center,
                 style: TextStyle(
                   fontSize: 12,
@@ -1499,14 +1527,14 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
     );
   }
 
-  /// State 7: ยืนยันลบนัดหมาย
+  /// State 7: ยืนยันยกเลิกนัดหมาย
   void _showDeleteConfirmDialog(int appointmentId) {
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         title: const Text(
-          'ยืนยันที่จะลบวันเดตหรือไม่',
+          'ยืนยันที่จะยกเลิกวันเดตหรือไม่',
           style: TextStyle(
             fontFamily: 'Inter',
             fontWeight: FontWeight.w700,
@@ -1514,7 +1542,7 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
           ),
         ),
         content: const Text(
-          'หากยืนยัน สถานที่เดตจะถูกลบออกและต้องสุ่มใหม่อีกครั้ง',
+          'หากยืนยัน ระบบจะยกเลิกนัดหมายนี้ และคุณจะต้องสุ่มสถานที่ใหม่อีกครั้ง',
           style: TextStyle(
             fontFamily: 'Inter',
             fontSize: 14,
@@ -1548,7 +1576,7 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
     );
   }
 
-  /// ลบ appointment + แสดง State 8 success
+  /// ยกเลิก appointment + แสดง State 8 success
   Future<void> _deleteAppointment(int appointmentId) async {
     try {
       final service = ref.read(appointmentServiceProvider);
@@ -1561,7 +1589,7 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
       Toast.show(
         context,
         type: ToastType.error,
-        title: 'ไม่สามารถลบนัดหมายได้',
+        title: 'ไม่สามารถยกเลิกนัดหมายได้',
         message: e.toString().replaceAll('Exception: ', ''),
         durationSeconds: 3,
         showCountdown: false,
@@ -1569,7 +1597,7 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
     }
   }
 
-  /// State 8: แสดง success dialog หลังลบ
+  /// State 8: แสดง success dialog หลังยกเลิก
   void _showDeleteSuccessDialog() {
     showDialog(
       context: context,
@@ -1606,7 +1634,7 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
               ),
               const SizedBox(height: 8),
               const Text(
-                'ลบวันเดตเรียบร้อยแล้ว\nสถานที่เดตถูกลบออกแล้ว',
+                'ยกเลิกวันเดตเรียบร้อยแล้ว\nนัดหมายนี้ถูกปรับเป็นยกเลิกแล้ว',
                 textAlign: TextAlign.center,
                 style: TextStyle(
                   fontSize: 14,
@@ -2459,6 +2487,8 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
                     name: _chatUserName,
                     avatarUrl: _chatUserAvatar,
                     cooldownDays: _cooldownDays,
+                    showCalendar: _shouldShowCalendarIcon,
+                    calendarBadgeCount: _calendarBadgeCount,
                     showBorder: false,
                     onBack: () async {
                       await _exitRoomOnce();
