@@ -631,6 +631,6 @@ public class DateRecommendService {
     public static class Coordinates {
         private double lat;
         private double lng;
-    }
+    } 
 }
 
