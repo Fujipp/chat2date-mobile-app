@@ -97,12 +97,14 @@ public class DateRecommendService {
         if (!forceRefresh) {
             String cachedData = (String) redis.opsForValue().get(dataKey);
             if (cachedData != null) {
+                String actualLeaderId = redis.opsForValue().get("room_leader:" + user.getUserId());
+
                 Map<String, Object> spinSignal = new HashMap<>();
                 spinSignal.put("type", "FRESH_MODE"); // บอก Flutter ว่า "เริ่มหมุนได้!"
                 spinSignal.put("mode", mode);
                 spinSignal.put("userTarget", userTarget);
                 spinSignal.put("range", range);
-                spinSignal.put("leaderId", leaderKey);
+                spinSignal.put("leaderId", actualLeaderId);
                 spinSignal.put("data", cachedData);
 
                 messagingTemplate.convertAndSend("/topic/spin/" + roomId, spinSignal);
