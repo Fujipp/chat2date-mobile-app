@@ -32,6 +32,7 @@ class SpinDateComponent extends StatefulWidget {
   final int? winningIndex;
   final bool isLeader;
   final VoidCallback? onTriggerSpin;
+  final double currentRange;
 
   const SpinDateComponent({
     super.key,
@@ -48,6 +49,7 @@ class SpinDateComponent extends StatefulWidget {
     this.winningIndex,
     this.isLeader = true,
     this.onTriggerSpin,
+    this.currentRange = 20.0,
   });
 
   @override
@@ -87,6 +89,12 @@ class _SpinDateComponentState extends State<SpinDateComponent>
     _controller.addStatusListener((status) {
       if (status == AnimationStatus.completed) {
         _calculateResult();
+        Timer(const Duration(seconds: 4), () {
+          if (mounted && widget.prizes.isNotEmpty) {
+            final winningPlace = widget.prizes[widget.winningIndex!];
+            _showWinnerDialog(winningPlace);
+          }
+        });
       }
     });
     _prepareAssets();
@@ -95,6 +103,12 @@ class _SpinDateComponentState extends State<SpinDateComponent>
   @override
   void didUpdateWidget(covariant SpinDateComponent oldWidget) {
     super.didUpdateWidget(oldWidget);
+    if (widget.currentRange != oldWidget.currentRange) {
+      setState(() {
+        selectedRange = RangeValues(1.0, widget.currentRange);
+      });
+    }
+
     if (widget.prizes != oldWidget.prizes) {
       _prepareAssets();
     }
@@ -107,14 +121,13 @@ class _SpinDateComponentState extends State<SpinDateComponent>
 
     if (oldWidget.indexSelected != widget.indexSelected) {
       setState(() {
-        selectedIndex =
-            widget.indexSelected;
+        selectedIndex = widget.indexSelected;
       });
     }
 
     if (widget.winningIndex != null &&
         widget.winningIndex != oldWidget.winningIndex) {
-      _spinWheel(targetIdx: widget.winningIndex);
+      Future.microtask(() => _spinWheel(targetIdx: widget.winningIndex));
     }
   }
 
@@ -216,7 +229,12 @@ class _SpinDateComponentState extends State<SpinDateComponent>
   }
 
   void _spinWheel({int? targetIdx}) {
-    if (_controller.isAnimating || widget.prizes.isEmpty) return;
+    if (targetIdx != null) {
+      _controller.stop();
+      _controller.value = 0.0;
+    } else if (_controller.isAnimating || widget.prizes.isEmpty) {
+      return;
+    }
 
     double sectorAngle = (2 * pi) / widget.prizes.length;
 
@@ -431,7 +449,21 @@ class _SpinDateComponentState extends State<SpinDateComponent>
                         painter: _StaticNeedlePainter(),
                       ),
                       GestureDetector(
-                        onTap: _spinWheel,
+                        onTap: () {
+                          if (_controller.isAnimating || widget.prizes.isEmpty)
+                            return;
+
+                          if (widget.isLeader) {
+                            widget.onTriggerSpin?.call();
+                          } else {
+                            Toast.show(
+                              context,
+                              type: ToastType.warning,
+                              title: 'ใจเย็นๆ',
+                              message: 'รอหัวหน้าห้องเป็นคนสุ่มนะ',
+                            );
+                          }
+                        },
                         child: Container(
                           width: 60,
                           height: 60,

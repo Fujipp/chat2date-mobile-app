@@ -84,6 +84,7 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
   int _indexMode = 1;
   int _indexSelected = 1;
   String? _leaderId;
+  double _currentRange = 20;
 
   // === Appointment / Calendar ===
   Appointment? _existingAppointment;
@@ -796,7 +797,7 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
                 "placeId": place['googlePlaceId'], // เก็บไว้ใช้จองนัดหมาย
               };
             }).toList();
-
+            _currentRange = (payload['range'] as num).toDouble();
             winningIndex = null;
           });
         } catch (e) {
@@ -853,6 +854,12 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
         );
       } else {
         _messages = _updateBotMessageStatus(_messages);
+      }
+
+      if (message.isBot) {
+        _initConfirmStatus();
+
+        _checkSpinWheelCondition();
       }
 
       _messages.sort((a, b) => a.timestamp.compareTo(b.timestamp));
@@ -1141,23 +1148,25 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
   void _onSpinComplete(Map<String, dynamic> result) async {
     setState(() {
       _lastSpinDate = DateTime.now();
-      _showWheelModal = false;
       // ★ แก้: บันทึก placeId และ placeName จากผล Spin ไว้ใช้ตอนเปิด Calendar
       _lastSpunPlaceId = (result['placeId'] as String?) ?? '';
       _lastSpunPlaceName = (result['name'] as String?) ?? '';
     });
     _checkSpinWheelCondition();
-    final service = ref.read(dateRecommendProvider);
-    try {
-      String mode = (_indexMode == 0) ? "DISTANCE" : "MIDPOINT";
-      await service.confirmPlace(
-        roomId: widget.roomId,
-        placeName: result['name'],
-        action: 'BLANK',
-        mode: mode,
-      );
-    } catch (e) {
-      print("Error fetching date recommendations: $e");
+    if (_leaderId == _currentUserId) {
+      final service = ref.read(dateRecommendProvider);
+      try {
+        String mode = (_indexMode == 0) ? "DISTANCE" : "MIDPOINT";
+        await service.closeRemoteModal(widget.roomId!);
+        await service.confirmPlace(
+          roomId: widget.roomId,
+          placeName: result['name'],
+          action: 'BLANK',
+          mode: mode,
+        );
+      } catch (e) {
+        print("Error fetching date recommendations: $e");
+      }
     }
   }
 
@@ -1226,8 +1235,6 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
   ) async {
     final service = ref.read(dateRecommendProvider);
 
-    print(mode);
-    print(userTarget);
     try {
       final recommendations = await service.getRecommendations(
         roomId: widget.roomId,
@@ -2830,7 +2837,9 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
                     onTap: () async {
                       if (_currentUserId == _leaderId) {
                         setState(() => _showWheelModal = false);
-                        await ref.read(dateRecommendProvider).closeRemoteModal(widget.roomId!);
+                        await ref
+                            .read(dateRecommendProvider)
+                            .closeRemoteModal(widget.roomId!);
                       } else {
                         Toast.show(
                           context,
@@ -2878,14 +2887,22 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
                                   key: ValueKey(
                                     '${_leaderId}_${_indexMode}_${_indexSelected}',
                                   ),
+                                  currentRange: _currentRange,
                                   indexMode: _indexMode,
                                   indexSelected: _indexSelected,
                                   winningIndex: winningIndex,
                                   isLeader: _currentUserId == _leaderId,
+                                  onTriggerSpin: () async {
+                                    await ref
+                                        .read(dateRecommendProvider)
+                                        .triggerSpin(widget.roomId!);
+                                  },
                                   onCloseModal: () async {
                                     if (_currentUserId == _leaderId) {
                                       setState(() => _showWheelModal = false);
-                                      await ref.read(dateRecommendProvider).closeRemoteModal(widget.roomId!);
+                                      await ref
+                                          .read(dateRecommendProvider)
+                                          .closeRemoteModal(widget.roomId!);
                                     } else {
                                       Toast.show(
                                         context,

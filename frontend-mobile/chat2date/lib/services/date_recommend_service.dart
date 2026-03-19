@@ -215,4 +215,30 @@ class DateRecommendService {
     }
     throw Exception('Failed to delete appointment: ${response.statusCode}');
   }
+
+  Future<void> triggerSpin(String roomId) async {
+    final userState = ref.read(userStoreProvider);
+    final accessToken = "${userState['accessToken']}";
+
+    final url = Uri.parse(
+      '${ApiBase.baseUrl}/dates/recommendations/$roomId/spin',
+    );
+
+    try {
+      final response = await http.post(
+        url,
+        headers: {
+          'Authorization': 'Bearer $accessToken',
+          'Content-Type': 'application/json',
+        },
+      );
+
+      if (response.statusCode != 200) {
+        final errorData = jsonDecode(utf8.decode(response.bodyBytes));
+        throw Exception(errorData['message'] ?? 'Failed to trigger spin');
+      }
+    } catch (e) {
+      throw Exception('Network error: ไม่สามารถเริ่มสุ่มได้');
+    }
+  }
 }
