@@ -185,6 +185,12 @@ public class DateRecommendService {
         messagingTemplate.convertAndSend("/topic/spin/" + roomId, spinCmd);
     }
 
+    public void triggerCloseModal(String roomId) {
+        Map<String, Object> closeCmd = new HashMap<>();
+        closeCmd.put("type", "CMD_CLOSE_MODAL");
+        messagingTemplate.convertAndSend("/topic/spin/" + roomId, closeCmd);
+    }
+
     public PlaceConfirmation confirmPlace(String roomId, String accessToken, ConfirmationRequest confirmationRequest) {
         User user = extractToken(accessToken);
 

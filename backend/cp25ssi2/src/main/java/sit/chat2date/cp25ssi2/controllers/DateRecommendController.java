@@ -47,6 +47,15 @@ public class DateRecommendController {
         return ResponseEntity.ok(response);
     }
 
+    @PostMapping("/{roomId}/close-modal")
+    public ResponseEntity<Map<String, String>> triggerCloseModal(@PathVariable String roomId) {
+        dateRecommendService.triggerCloseModal(roomId);
+
+        Map<String, String> response = new HashMap<>();
+        response.put("message", "Close modal command sent successfully");
+        return ResponseEntity.ok(response);
+    }
+
     @PostMapping("/{roomId}/confirm")
     public PlaceConfirmation ConfirmDateRecommendation(@PathVariable String roomId, @RequestHeader("Authorization") String accessToken, @RequestBody ConfirmationRequest confirmationRequest) {
         return dateRecommendService.confirmPlace(roomId, accessToken, confirmationRequest);
