@@ -19,13 +19,12 @@ class SpinDateComponent extends StatefulWidget {
   final VoidCallback? onRefreshSpin;
   final Function(Map<String, dynamic>)? onSpinComplete;
   final Function(
-    
     String? mode,
-   
+
     String? targetName,
-   
+
     double radius,
-   
+
     bool isRefresh,
   )?
   onFilterChanged;
@@ -98,6 +97,19 @@ class _SpinDateComponentState extends State<SpinDateComponent>
     super.didUpdateWidget(oldWidget);
     if (widget.prizes != oldWidget.prizes) {
       _prepareAssets();
+    }
+
+    if (oldWidget.indexMode != widget.indexMode) {
+      setState(() {
+        indexing = widget.indexMode;
+      });
+    }
+
+    if (oldWidget.indexSelected != widget.indexSelected) {
+      setState(() {
+        selectedIndex =
+            widget.indexSelected;
+      });
     }
 
     if (widget.winningIndex != null &&
@@ -505,7 +517,7 @@ class _SpinDateComponentState extends State<SpinDateComponent>
                     setState(() => selectedRange = RangeValues(1.0, v));
                   },
                   onChangeEnd: (v) {
-                     if (!widget.isLeader) return;
+                    if (!widget.isLeader) return;
                     _isReady = false;
                     _handleFilterUpdate();
                   },

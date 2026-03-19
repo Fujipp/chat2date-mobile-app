@@ -163,6 +163,36 @@ class DateRecommendService {
     }
   }
 
+  Future<void> closeRemoteModal(String roomId) async {
+    final userState = ref.read(userStoreProvider);
+    final accessToken = "${userState['accessToken']}";
+
+    final url = Uri.parse(
+      '${ApiBase.baseUrl}/dates/recommendations/$roomId/close-modal',
+    );
+
+    try {
+      final response = await http.post(
+        url,
+        headers: {
+          'Authorization': 'Bearer $accessToken',
+          'Content-Type': 'application/json', // เพิ่มให้เป็นมาตรฐานเดียวกัน
+        },
+      );
+
+      if (response.statusCode != 200) {
+        // ลองแกะ error message จาก backend มาแสดง (ถ้ามี)
+        final errorMsg =
+            jsonDecode(utf8.decode(response.bodyBytes))['message'] ??
+            'Unknown error';
+        throw Exception('Failed to send close command: $errorMsg');
+      }
+    } catch (e) {
+      print("Error in closeRemoteModal: $e");
+      throw Exception('Network error or server is down');
+    }
+  }
+
   Future<void> deleteAppointmentAfterCooldown({required String? roomId}) async {
     final userState = ref.read(userStoreProvider);
     final accessToken = "${userState['accessToken']}";

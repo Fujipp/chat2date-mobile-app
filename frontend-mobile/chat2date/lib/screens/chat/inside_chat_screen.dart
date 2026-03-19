@@ -782,9 +782,6 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
 
             _indexMode = (modeStr == 'DISTANCE') ? 0 : 1;
 
-            print(_currentUserId);
-            print(leaderIdFromSocket);
-
             if (_currentUserId == leaderIdFromSocket) {
               _indexSelected = (targetStr == 'ME') ? 1 : 0;
             } else {
@@ -808,6 +805,11 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
       } else if (type == 'CMD_SPIN_START') {
         setState(() {
           winningIndex = payload['winningIndex'];
+        });
+      } else if (type == 'CMD_CLOSE_MODAL') {
+        setState(() {
+          _showWheelModal = false;
+          winningIndex = null;
         });
       }
     });
@@ -1171,13 +1173,31 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
   void _handleSpinwheelTap() async {
     if (!_canSpin) {
       // อยู่ใน cooldown - แสดง message
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('กรุณารออีก $_cooldownDays วันก่อนหมุนได้อีกครั้ง'),
-          backgroundColor: AppColors.textMuted,
-        ),
-      );
+      if (_cooldownDays == 0) {
+        Toast.show(
+          context,
+          type: ToastType.warning,
+          title: "ไม่สามารถสุ่มใหม่ได้",
+          message:
+              "กรุณาสรุปสถานที่เดทปัจจุบัน หรือจัดการนัดหมายเดิมให้เสร็จก่อน",
+        );
+      } else {
+        // 📢 กรณีติด Cooldown วัน
+        Toast.show(
+          context,
+          type: ToastType.info,
+          title: "อยู่ในช่วงพักเดท",
+          message: "กรุณารอให้ครบกำหนด Cooldown ก่อนหมุนอีกครั้ง",
+        );
+      }
       return;
+      // ScaffoldMessenger.of(context).showSnackBar(
+      //   SnackBar(
+      //     content: Text('กรุณารออีก $_cooldownDays วันก่อนหมุนได้อีกครั้ง'),
+      //     backgroundColor: AppColors.textMuted,
+      //   ),
+      // );
+      // return;
     }
 
     if (!_checkUserEligibility()) {
@@ -1205,6 +1225,9 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
     bool refresh,
   ) async {
     final service = ref.read(dateRecommendProvider);
+
+    print(mode);
+    print(userTarget);
     try {
       final recommendations = await service.getRecommendations(
         roomId: widget.roomId,
@@ -2804,7 +2827,19 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
                 // 1. ฉากหลังสีเทาจาง (Dim background)
                 Positioned.fill(
                   child: GestureDetector(
-                    onTap: () => setState(() => _showWheelModal = false),
+                    onTap: () async {
+                      if (_currentUserId == _leaderId) {
+                        setState(() => _showWheelModal = false);
+                        await ref.read(dateRecommendProvider).closeRemoteModal(widget.roomId!);
+                      } else {
+                        Toast.show(
+                          context,
+                          type: ToastType.warning,
+                          title: "ไม่สามารถปิดได้",
+                          message: "กรุณารอคู่ของคุณจัดการวงล้อ",
+                        );
+                      }
+                    },
                     child: Container(color: Colors.black.withOpacity(0.5)),
                   ),
                 ),
@@ -2840,18 +2875,43 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
                               mainAxisSize: MainAxisSize.min,
                               children: [
                                 SpinDateComponent(
+                                  key: ValueKey(
+                                    '${_leaderId}_${_indexMode}_${_indexSelected}',
+                                  ),
                                   indexMode: _indexMode,
                                   indexSelected: _indexSelected,
                                   winningIndex: winningIndex,
                                   isLeader: _currentUserId == _leaderId,
-                                  onCloseModal: () =>
-                                      setState(() => _showWheelModal = false),
+                                  onCloseModal: () async {
+                                    if (_currentUserId == _leaderId) {
+                                      setState(() => _showWheelModal = false);
+                                      await ref.read(dateRecommendProvider).closeRemoteModal(widget.roomId!);
+                                    } else {
+                                      Toast.show(
+                                        context,
+                                        type: ToastType.warning,
+                                        title: "ไม่สามารถปิดได้",
+                                        message: "กรุณารอคู่ของคุณจัดการวงล้อ",
+                                      );
+                                    }
+                                  },
                                   onSpinComplete: _onSpinComplete,
                                   firstPersonName: _chatUserName,
                                   secondPersonName: nickname,
                                   prizes: _dynamicPrizes,
                                   onFilterChanged:
                                       (mode, target, radius, isRefresh) async {
+                                        if (_currentUserId != _leaderId) {
+                                          Toast.show(
+                                            context,
+                                            type: ToastType.warning,
+                                            title: "สิทธิ์ถูกจำกัด",
+                                            message:
+                                                "เฉพาะหัวหน้าห้องเท่านั้นที่เปลี่ยนโหมดได้",
+                                          );
+                                          return; // 🛑 หยุดการทำงาน ไม่ให้สั่ง setState หรือยิง API
+                                        }
+
                                         setState(() {
                                           _indexMode = (mode == 'DISTANCE')
                                               ? 0
