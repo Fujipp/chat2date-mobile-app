@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 
 import 'package:chat2date/components/buttons/ds_button.dart';
 import 'package:chat2date/components/calendar/calendar_modal.dart';
@@ -77,9 +78,13 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
   int _dailyMessagesCount = 0;
   String nickname = '';
   List<Map<String, dynamic>> _dynamicPrizes = [];
-  final String _spinMode = '';
   String? _myConfirmStatus = "";
   bool? _myReviewSatisfied;
+  int? winningIndex;
+  int _indexMode = 1;
+  int _indexSelected = 1;
+  String? _leaderId;
+  double _currentRange = 20;
 
   // === Appointment / Calendar ===
   Appointment? _existingAppointment;
@@ -752,6 +757,64 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
       }
     });
 
+    _chatSocketService?.spinStream.listen((payload) {
+      if (!mounted) return;
+
+      final type = payload['type'];
+
+      if (type == 'FRESH_MODE') {
+        final rawData = payload['data'];
+        Map<String, dynamic> data;
+        try {
+          if (rawData is String) {
+            data = jsonDecode(rawData);
+          } else {
+            // ถ้ามาเป็น Map อยู่แล้ว (จังหวะดึงใหม่) ก็ใช้ได้เลย
+            data = Map<String, dynamic>.from(rawData);
+          }
+          final String modeStr = payload['mode'] ?? 'MIDPOINT';
+          final String targetStr = payload['userTarget'] ?? 'PARTNER';
+          final String leaderIdFromSocket =
+              payload['leaderId']?.toString() ?? '';
+
+          setState(() {
+            _showWheelModal = true;
+            _leaderId = leaderIdFromSocket;
+
+            _indexMode = (modeStr == 'DISTANCE') ? 0 : 1;
+
+            if (_currentUserId == leaderIdFromSocket) {
+              _indexSelected = (targetStr == 'ME') ? 1 : 0;
+            } else {
+              _indexSelected = (targetStr == 'ME') ? 0 : 1;
+            }
+
+            final List placesList = data['places'] ?? [];
+            _dynamicPrizes = placesList.map((place) {
+              return {
+                "name": place['name'],
+                "imageUrl": place['imageUrl'],
+                "placeId": place['googlePlaceId'], // เก็บไว้ใช้จองนัดหมาย
+              };
+            }).toList();
+            _currentRange = (payload['range'] as num).toDouble();
+            winningIndex = null;
+          });
+        } catch (e) {
+          debugPrint("❌ Error in FRESH_MODE listener: $e");
+        }
+      } else if (type == 'CMD_SPIN_START') {
+        setState(() {
+          winningIndex = payload['winningIndex'];
+        });
+      } else if (type == 'CMD_CLOSE_MODAL') {
+        setState(() {
+          _showWheelModal = false;
+          winningIndex = null;
+        });
+      }
+    });
+
     // Setup periodic timer as fallback (in case WebSocket events are missed)
     _seenStatusTimer?.cancel();
     _seenStatusTimer = Timer.periodic(const Duration(seconds: 30), (_) {
@@ -791,6 +854,12 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
         );
       } else {
         _messages = _updateBotMessageStatus(_messages);
+      }
+
+      if (message.isBot) {
+        _initConfirmStatus();
+
+        _checkSpinWheelCondition();
       }
 
       _messages.sort((a, b) => a.timestamp.compareTo(b.timestamp));
@@ -1084,22 +1153,25 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
   void _onSpinComplete(Map<String, dynamic> result) async {
     setState(() {
       _lastSpinDate = DateTime.now();
-      _showWheelModal = false;
       // ★ แก้: บันทึก placeId และ placeName จากผล Spin ไว้ใช้ตอนเปิด Calendar
       _lastSpunPlaceId = (result['placeId'] as String?) ?? '';
       _lastSpunPlaceName = (result['name'] as String?) ?? '';
     });
     _checkSpinWheelCondition();
-    final service = ref.read(dateRecommendProvider);
-    try {
-      final recommendations = await service.confirmPlace(
-        roomId: widget.roomId,
-        placeName: result['name'],
-        action: 'BLANK',
-        mode: _spinMode,
-      );
-    } catch (e) {
-      print("Error fetching date recommendations: $e");
+    if (_leaderId == _currentUserId) {
+      final service = ref.read(dateRecommendProvider);
+      try {
+        String mode = (_indexMode == 0) ? "DISTANCE" : "MIDPOINT";
+        await service.closeRemoteModal(widget.roomId!);
+        await service.confirmPlace(
+          roomId: widget.roomId,
+          placeName: result['name'],
+          action: 'BLANK',
+          mode: mode,
+        );
+      } catch (e) {
+        print("Error fetching date recommendations: $e");
+      }
     }
   }
 
@@ -1115,13 +1187,31 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
   void _handleSpinwheelTap() async {
     if (!_canSpin) {
       // อยู่ใน cooldown - แสดง message
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('กรุณารออีก $_cooldownDays วันก่อนหมุนได้อีกครั้ง'),
-          backgroundColor: AppColors.textMuted,
-        ),
-      );
+      if (_cooldownDays == 0) {
+        Toast.show(
+          context,
+          type: ToastType.warning,
+          title: "ไม่สามารถสุ่มใหม่ได้",
+          message:
+              "กรุณาสรุปสถานที่เดทปัจจุบัน หรือจัดการนัดหมายเดิมให้เสร็จก่อน",
+        );
+      } else {
+        // 📢 กรณีติด Cooldown วัน
+        Toast.show(
+          context,
+          type: ToastType.info,
+          title: "อยู่ในช่วงพักเดท",
+          message: "กรุณารอให้ครบกำหนด Cooldown ก่อนหมุนอีกครั้ง",
+        );
+      }
       return;
+      // ScaffoldMessenger.of(context).showSnackBar(
+      //   SnackBar(
+      //     content: Text('กรุณารออีก $_cooldownDays วันก่อนหมุนได้อีกครั้ง'),
+      //     backgroundColor: AppColors.textMuted,
+      //   ),
+      // );
+      // return;
     }
 
     if (!_checkUserEligibility()) {
@@ -1149,6 +1239,7 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
     bool refresh,
   ) async {
     final service = ref.read(dateRecommendProvider);
+
     try {
       final recommendations = await service.getRecommendations(
         roomId: widget.roomId,
@@ -1162,7 +1253,6 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
           return {
             "name": place.name,
             "imageUrl": place.imageUrl,
-            // ★ แก้: เพิ่ม placeId เพื่อใช้สร้างนัดหมายในภายหลัง
             "placeId": place.googlePlaceId,
           };
         }).toList();
@@ -1762,7 +1852,6 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
         action: action,
       );
 
-      // เมื่อสำเร็จ ให้ล็อคปุ่มในเครื่องเราทันที
       setState(() {
         _myConfirmStatus = action;
       });
@@ -1798,8 +1887,11 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
         } catch (_) {}
       }
 
-      if (_isResultModalShown && outcome != 'UNMATCH' && outcome != 'CONTINUE')
+      if (_isResultModalShown &&
+          outcome != 'UNMATCH' &&
+          outcome != 'CONTINUE') {
         return;
+      }
       _isResultModalShown = true;
       print("🎯 REVIEW_RESULT received: outcome = $outcome");
 
@@ -1857,8 +1949,9 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
           appt.dateTime!
               .add(const Duration(hours: 7))
               .add(const Duration(days: 1)),
-        ))
+        )) {
       return;
+    }
 
     try {
       final reviewService = ref.read(reviewServiceProvider);
@@ -2746,7 +2839,21 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
                 // 1. ฉากหลังสีเทาจาง (Dim background)
                 Positioned.fill(
                   child: GestureDetector(
-                    onTap: () => setState(() => _showWheelModal = false),
+                    onTap: () async {
+                      if (_currentUserId == _leaderId) {
+                        setState(() => _showWheelModal = false);
+                        await ref
+                            .read(dateRecommendProvider)
+                            .closeRemoteModal(widget.roomId!);
+                      } else {
+                        Toast.show(
+                          context,
+                          type: ToastType.warning,
+                          title: "ไม่สามารถปิดได้",
+                          message: "กรุณารอคู่ของคุณจัดการวงล้อ",
+                        );
+                      }
+                    },
                     child: Container(color: Colors.black.withOpacity(0.5)),
                   ),
                 ),
@@ -2782,14 +2889,59 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
                               mainAxisSize: MainAxisSize.min,
                               children: [
                                 SpinDateComponent(
-                                  onCloseModal: () =>
-                                      setState(() => _showWheelModal = false),
+                                  key: ValueKey(
+                                    '${_leaderId}_${_indexMode}_${_indexSelected}',
+                                  ),
+                                  currentRange: _currentRange,
+                                  indexMode: _indexMode,
+                                  indexSelected: _indexSelected,
+                                  winningIndex: winningIndex,
+                                  isLeader: _currentUserId == _leaderId,
+                                  onTriggerSpin: () async {
+                                    await ref
+                                        .read(dateRecommendProvider)
+                                        .triggerSpin(widget.roomId!);
+                                  },
+                                  onCloseModal: () async {
+                                    if (_currentUserId == _leaderId) {
+                                      setState(() => _showWheelModal = false);
+                                      await ref
+                                          .read(dateRecommendProvider)
+                                          .closeRemoteModal(widget.roomId!);
+                                    } else {
+                                      Toast.show(
+                                        context,
+                                        type: ToastType.warning,
+                                        title: "ไม่สามารถปิดได้",
+                                        message: "กรุณารอคู่ของคุณจัดการวงล้อ",
+                                      );
+                                    }
+                                  },
                                   onSpinComplete: _onSpinComplete,
                                   firstPersonName: _chatUserName,
                                   secondPersonName: nickname,
                                   prizes: _dynamicPrizes,
                                   onFilterChanged:
                                       (mode, target, radius, isRefresh) async {
+                                        if (_currentUserId != _leaderId) {
+                                          Toast.show(
+                                            context,
+                                            type: ToastType.warning,
+                                            title: "สิทธิ์ถูกจำกัด",
+                                            message:
+                                                "เฉพาะหัวหน้าห้องเท่านั้นที่เปลี่ยนโหมดได้",
+                                          );
+                                          return; // 🛑 หยุดการทำงาน ไม่ให้สั่ง setState หรือยิง API
+                                        }
+
+                                        setState(() {
+                                          _indexMode = (mode == 'DISTANCE')
+                                              ? 0
+                                              : 1;
+                                          _indexSelected = (target == 'ME')
+                                              ? 1
+                                              : 0;
+                                        });
                                         if (isRefresh) {
                                           await _prepareBeforeSpin(
                                             radius,

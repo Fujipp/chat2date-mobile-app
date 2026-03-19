@@ -112,7 +112,8 @@ public class DateRecommendService {
             }
         }
 
-        String rateKey = "rate_limit:spin:" + user.getUserId();
+        String modeIdentifier = "MIDPOINT".equalsIgnoreCase(mode) ? "MIDPOINT" : "DISTANCE_" + userTarget.toUpperCase();
+        String rateKey = "rate_limit:spin:" + user.getUserId() + ":" + modeIdentifier;
         if (redis.hasKey(rateKey)) {
             throw new TooManyRequestException("Too many request: need to wait for a rate limit");
         }
@@ -163,9 +164,8 @@ public class DateRecommendService {
                 spinSignal.put("data", finalResponse);
 
                 messagingTemplate.convertAndSend("/topic/spin/" + roomId, spinSignal);
-
+                redis.opsForValue().set(rateKey, "active", Duration.ofSeconds(10));
                 redis.opsForValue().set(dataKey, objectMapper.writeValueAsString(finalResponse), Duration.ofMinutes(30));
-                redis.opsForValue().set(rateKey, "1", 15, TimeUnit.SECONDS);
 
                 return ResponseEntity.ok(finalResponse);
             } finally {
@@ -183,6 +183,12 @@ public class DateRecommendService {
         spinCmd.put("winningIndex", winningIndex);
 
         messagingTemplate.convertAndSend("/topic/spin/" + roomId, spinCmd);
+    }
+
+    public void triggerCloseModal(String roomId) {
+        Map<String, Object> closeCmd = new HashMap<>();
+        closeCmd.put("type", "CMD_CLOSE_MODAL");
+        messagingTemplate.convertAndSend("/topic/spin/" + roomId, closeCmd);
     }
 
     public PlaceConfirmation confirmPlace(String roomId, String accessToken, ConfirmationRequest confirmationRequest) {
@@ -299,8 +305,8 @@ public class DateRecommendService {
                 // ⏳ กรณีรอคนกด (Pending)
                 messageText = "สุ่มได้ไปเที่ยวที่ " + place.getPlaceName() + " !!! | คุณอยากไปเที่ยว " + place.getPlaceName() + " หรือไม่ | ตอบแล้ว " + respondCount + "/2";
             }
-
             messageToUpdate.setMessage(messageText);
+            messageToUpdate.setCreatedAt(LocalDateTime.now());
             messageRepository.save(messageToUpdate);
 
             // ส่ง WebSocket ไปบอก Flutter

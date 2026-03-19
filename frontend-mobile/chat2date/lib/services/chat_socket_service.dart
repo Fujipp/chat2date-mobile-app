@@ -26,6 +26,7 @@ class ChatSocketService {
   final _relationshipController =
       StreamController<Map<String, dynamic>>.broadcast();
   final _reviewController = StreamController<Map<String, dynamic>>.broadcast();
+  final _spinController = StreamController<Map<String, dynamic>>.broadcast();
   StompClient? _client;
   bool _connecting = false;
   bool _disposed = false;
@@ -37,6 +38,7 @@ class ChatSocketService {
   Stream<Map<String, dynamic>> get relationshipStream =>
       _relationshipController.stream;
   Stream<Map<String, dynamic>> get reviewStream => _reviewController.stream;
+  Stream<Map<String, dynamic>> get spinStream => _spinController.stream;
 
   void connect() {
     if (_client != null || _connecting) return;
@@ -162,6 +164,21 @@ class ChatSocketService {
         }
       },
     );
+    _client?.subscribe(
+      destination: '/topic/spin/$roomId',
+      callback: (frame) {
+        final body = frame.body;
+        if (body == null) return;
+        try {
+          final json = jsonDecode(body) as Map<String, dynamic>;
+          _spinController.add(
+            json,
+          ); // ส่งข้อมูล FRESH_MODE หรือ CMD_SPIN_START เข้า Stream
+        } catch (e) {
+          print("Error decoding spin event: $e");
+        }
+      },
+    );
   }
 
   void _scheduleReconnect() {
@@ -203,5 +220,8 @@ class ChatSocketService {
     } catch (_) {
       _reviewController.close();
     }
+    try {
+      _spinController.close();
+    } catch (_) {}
   }
 }
