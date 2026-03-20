@@ -629,7 +629,10 @@ public class DateRecommendService {
             throw new LockedException("Cooldown has not ended yet");
         }
 
-        appointmentService.deleteAppointment(user.getUserId(), latest.getAppointmentId());
+        if (latest.getStatus() ==  AppointmentStatus.SCHEDULED || latest.getStatus() ==  AppointmentStatus.PLACE_SELECTED) {
+            throw new LockedException("Cannot delete active appointment");
+        }
+        appointmentRepository.delete(latest);
     }
 
     @Data

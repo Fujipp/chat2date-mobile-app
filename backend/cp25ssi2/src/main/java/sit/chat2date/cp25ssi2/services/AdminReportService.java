@@ -11,6 +11,7 @@ import sit.chat2date.cp25ssi2.dto.ReportDetailResponse;
 import sit.chat2date.cp25ssi2.entities.Report;
 import sit.chat2date.cp25ssi2.entities.ReportEvidence;
 import sit.chat2date.cp25ssi2.entities.User;
+import sit.chat2date.cp25ssi2.enums.AccountStatus;
 import sit.chat2date.cp25ssi2.enums.ReportStatus;
 import sit.chat2date.cp25ssi2.exceptions.NotFoundException;
 import sit.chat2date.cp25ssi2.repositories.ReportEvidenceRepository;
@@ -18,9 +19,11 @@ import sit.chat2date.cp25ssi2.repositories.ReportRepository;
 import sit.chat2date.cp25ssi2.repositories.UserRepository;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.Period;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 
 @Service
 @RequiredArgsConstructor
@@ -65,7 +68,8 @@ public class AdminReportService {
                 if (evidence.getEvidenceUrl() != null) {
                     List<String> urls = objectMapper.readValue(
                             evidence.getEvidenceUrl(),
-                            new TypeReference<List<String>>() {}
+                            new TypeReference<List<String>>() {
+                            }
                     );
                     evidenceUrls.addAll(urls);
                 }
@@ -95,13 +99,25 @@ public class AdminReportService {
      * Update report status
      */
     @Transactional
-    public Report updateReportStatus(Integer reportId, ReportStatus newStatus) {
+    public Report updateReportStatus(Integer reportId, ReportStatus newStatus, int decreasePoint) {
         Report report = reportRepository.findById(reportId)
                 .orElseThrow(() -> new NotFoundException("Report not found"));
 
         report.setStatus(newStatus);
 
-        // If resolved, mark as notified
+        if (newStatus == ReportStatus.RESOLVED) {
+            Optional<User> user = userRepository.findByUserId(report.getTargetUserId());
+            user.ifPresent(value -> value.setBehaviorScore(value.getBehaviorScore() - decreasePoint));
+            if (user.get().getBehaviorScore() <= 50 && user.get().getBehaviorScore() >= 30) {
+
+            } else if (user.get().getBehaviorScore() < 30) {
+                user.get().setIsBlacklist(true);
+                user.get().setDeletedAt(LocalDateTime.now());
+                user.get().setAccountStatus(AccountStatus.SUSPENDED);
+            }
+            userRepository.save(user.get());
+        }
+
         if (newStatus == ReportStatus.RESOLVED || newStatus == ReportStatus.DISMISSED) {
             report.setIsNotified(true);
         }
