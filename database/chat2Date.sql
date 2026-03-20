@@ -627,6 +627,21 @@ CREATE TABLE IF NOT EXISTS `chat2date`.`contact_messages` (
     ON DELETE CASCADE
 ) ENGINE = InnoDB DEFAULT CHARACTER SET = utf8mb4;
 
+CREATE TABLE IF NOT EXISTS chat2date.swipe_quota (
+  quotaId       INT          NOT NULL AUTO_INCREMENT,
+  userId        VARCHAR(36)  NOT NULL,
+  swipeCount    INT          NOT NULL DEFAULT 0, 
+  swipeDate     DATE         NULL,             
+  restrictUntil TIMESTAMP    NULL,          
+  lastReportAt  DATE         NULL,               
+  PRIMARY KEY (quotaId),
+  UNIQUE INDEX uk_swipe_quota_user (userId ASC),
+  CONSTRAINT fk_swipe_quota_user
+    FOREIGN KEY (userId)
+    REFERENCES chat2date.user (userId)
+    ON DELETE CASCADE
+) ENGINE = InnoDB DEFAULT CHARACTER SET = utf8mb4;
+
 ENGINE = InnoDB
 DEFAULT CHARACTER SET = utf8mb4
 COLLATE = utf8mb4_0900_ai_ci;
