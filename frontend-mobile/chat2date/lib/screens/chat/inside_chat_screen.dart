@@ -538,7 +538,6 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
     await _initConfirmStatus();
     await _checkSpinWheelCondition();
     await _checkAndShowReviewModal();
-    _checkSpinWheelCondition();
     try {
       final numbers = await ref
           .read(emergencyCallServiceProvider)
@@ -959,7 +958,7 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
 
       if (mounted) {
         setState(() {
-          _existingAppointment = _findLatestActiveAppointment(appointments);
+          _existingAppointment = _findLatestActiveAppointment(appointments) ?? _findLatestNotActiveAppointment(appointments);
         });
 
         print("📅 appointmentId: ${_existingAppointment?.appointmentId}");
@@ -975,6 +974,18 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
         appointments
             .where(
               (a) => a.status == 'PLACE_SELECTED' || a.status == 'SCHEDULED',
+            )
+            .toList()
+          ..sort((a, b) => b.appointmentId.compareTo(a.appointmentId));
+
+    return active.isNotEmpty ? active.first : null;
+  }
+
+  Appointment? _findLatestNotActiveAppointment(List<Appointment> appointments) {
+    final active =
+        appointments
+            .where(
+              (a) => a.status == 'CANCELLED' || a.status == 'COMPLETED',
             )
             .toList()
           ..sort((a, b) => b.appointmentId.compareTo(a.appointmentId));
@@ -1361,7 +1372,6 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
     try {
       final service = ref.read(appointmentServiceProvider);
       Appointment result;
-
       if (isEditMode && existingId != null) {
         result = await service.updateAppointment(
           appointmentId: existingId,
@@ -1667,7 +1677,11 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
       final data = await service.checkStatusSpin(roomId: roomId);
 
       _canSpin = data['canSpin'] ?? false;
+
+      print(_canSpin);
+      print(_existingAppointment?.appointmentId);
       if (_canSpin && _existingAppointment != null) {
+        
         try {
           await service.deleteAppointmentAfterCooldown(roomId: roomId);
           if (mounted) setState(() => _existingAppointment = null);
@@ -3024,7 +3038,7 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
                   initialTime: _calendarIsEditMode
                       ? () {
                           final dt =
-                              _existingAppointment?.dateTime ?? DateTime.now();
+                              _existingAppointment?.dateTime?.add(Duration(hours: 7)) ?? DateTime.now();
                           return TimeOfDay.fromDateTime(dt);
                         }()
                       : null,

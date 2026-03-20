@@ -88,13 +88,14 @@ class AppointmentService {
     final uri = Uri.parse(
       '${ApiBase.baseUrl}/dates/appointments/$appointmentId',
     );
+    print(dateTime.toUtc().toIso8601String());
     final response = await http.put(
       uri,
       headers: _headers,
       body: jsonEncode({
         // ★ แก้: ส่ง Local time พร้อม offset เพื่อไม่ให้เวลาเพี้ยน
         // 'dateTime': dateTime.toIso8601String(),
-        'dateTime': dateTime
+        'dateTime': dateTime.toUtc().toIso8601String(),
       }),
     );
 
