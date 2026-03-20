@@ -1189,12 +1189,14 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
       final service = ref.read(dateRecommendProvider);
       try {
         String mode = (_indexMode == 0) ? "DISTANCE" : "MIDPOINT";
+        String userTarget = (_indexSelected == 1) ? "ME" : "PARTNER";
         await service.closeRemoteModal(widget.roomId!);
         await service.confirmPlace(
           roomId: widget.roomId,
           placeName: result['name'],
           action: 'BLANK',
           mode: mode,
+          userTarget: userTarget
         );
       } catch (e) {
         print("Error fetching date recommendations: $e");
