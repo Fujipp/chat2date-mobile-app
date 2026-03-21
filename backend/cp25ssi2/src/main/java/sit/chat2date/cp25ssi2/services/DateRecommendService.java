@@ -185,7 +185,26 @@ public class DateRecommendService {
         messagingTemplate.convertAndSend("/topic/spin/" + roomId, spinCmd);
     }
 
-    public void triggerCloseModal(String roomId) {
+    public void triggerCloseModal(String roomId, String accessToken) {
+        User user = extractToken(accessToken);
+
+        String leaderKey = "room_leader:" + user.getUserId();
+        if (!redis.hasKey(leaderKey)) {
+            throw new ForbiddenAccessException("Only the room leader can close the modal.");
+        }
+
+        Match match = matchRepository.findById(Integer.valueOf(roomId))
+                .orElseThrow(() -> new NotFoundException("Match not found"));
+        redis.delete("room_leader:" + match.getUserId1().getUserId());
+        redis.delete("room_leader:" + match.getUserId2().getUserId());
+
+        Set<String> keys = redis.keys("room_data:" + roomId + ":*");
+        if (!keys.isEmpty()) {
+            redis.delete(keys);
+        }
+
+        redis.delete("lock:room:" + roomId);
+
         Map<String, Object> closeCmd = new HashMap<>();
         closeCmd.put("type", "CMD_CLOSE_MODAL");
         messagingTemplate.convertAndSend("/topic/spin/" + roomId, closeCmd);
