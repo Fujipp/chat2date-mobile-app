@@ -487,21 +487,30 @@ class _SpinDateComponentState extends State<SpinDateComponent>
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        InkWell(
-          onTap: () {
-            if (_controller.isAnimating || !widget.isLeader) return;
-            _isReady = false;
-            _handleFilterUpdate(isRefresh: true);
-
-            if (widget.onRefreshSpin != null) {
-              widget.onRefreshSpin!();
-            }
-          },
-          child: SvgPicture.asset("assets/icons/icon_refresh.svg", width: 31),
-        ),
-        const Text(
-          'SPIN TO CHOOSE',
-          style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+        widget.isLeader
+            ? InkWell(
+                onTap: () {
+                  if (_controller.isAnimating) return;
+                  _isReady = false;
+                  _handleFilterUpdate(isRefresh: true);
+                  widget.onRefreshSpin?.call();
+                },
+                child: SvgPicture.asset(
+                  "assets/icons/icon_refresh.svg",
+                  width: 31,
+                ),
+              )
+            : SvgPicture.asset(
+                "assets/icons/icon_seen.svg",
+                width: 28,
+                colorFilter: const ColorFilter.mode(
+                  AppColors.brandAccentStrong,
+                  BlendMode.srcIn,
+                ),
+              ),
+        Text(
+          'SPIN TO CHOOSE ${widget.isLeader ? "(ผู้คุม)" : "(ผู้ชม)"}',
+          style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
         ),
         InkWell(
           onTap: () {
@@ -567,6 +576,18 @@ class _SpinDateComponentState extends State<SpinDateComponent>
           style: const TextStyle(fontSize: 12, color: AppColors.textMuted),
           textAlign: TextAlign.center,
         ),
+        if (!widget.isLeader) ...[
+          const SizedBox(height: 8),
+          const Text(
+            '* คุณกำลังอยู่ในโหมดผู้ชม สามารถดูได้อย่างเดียวเท่านั้น',
+            style: TextStyle(
+              fontSize: 12, 
+              color: AppColors.error, // ใช้สีแดงแจ้งเตือน
+              fontWeight: FontWeight.bold,
+            ),
+            textAlign: TextAlign.center,
+          ),
+        ],
         const SizedBox(height: 15),
         IconSwitcher(
           selectedIndex: indexing,
