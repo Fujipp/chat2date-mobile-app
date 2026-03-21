@@ -33,7 +33,6 @@ public class SwipeQuota {
     @Column(name = "lastReportAt")
     private LocalDate lastReportAt;
 
-    // Helper method เช็คว่ายังโดนระงับการใช้งานอยู่ไหม
     public boolean isRestricted() {
         if (restrictUntil == null) return false;
         return restrictUntil.isAfter(LocalDateTime.now());

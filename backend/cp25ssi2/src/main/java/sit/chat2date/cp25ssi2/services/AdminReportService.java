@@ -10,12 +10,14 @@ import org.springframework.transaction.annotation.Transactional;
 import sit.chat2date.cp25ssi2.dto.ReportDetailResponse;
 import sit.chat2date.cp25ssi2.entities.Report;
 import sit.chat2date.cp25ssi2.entities.ReportEvidence;
+import sit.chat2date.cp25ssi2.entities.SwipeQuota;
 import sit.chat2date.cp25ssi2.entities.User;
 import sit.chat2date.cp25ssi2.enums.AccountStatus;
 import sit.chat2date.cp25ssi2.enums.ReportStatus;
 import sit.chat2date.cp25ssi2.exceptions.NotFoundException;
 import sit.chat2date.cp25ssi2.repositories.ReportEvidenceRepository;
 import sit.chat2date.cp25ssi2.repositories.ReportRepository;
+import sit.chat2date.cp25ssi2.repositories.SwipeQuotaRepository;
 import sit.chat2date.cp25ssi2.repositories.UserRepository;
 
 import java.time.LocalDate;
@@ -33,6 +35,7 @@ public class AdminReportService {
     private final ReportEvidenceRepository reportEvidenceRepository;
     private final UserRepository userRepository;
     private final ObjectMapper objectMapper;
+    private final SwipeQuotaRepository swipeQuotaRepository;
 
     /**
      * Get all reports with optional status filter and pagination
@@ -106,16 +109,35 @@ public class AdminReportService {
         report.setStatus(newStatus);
 
         if (newStatus == ReportStatus.RESOLVED) {
-            Optional<User> user = userRepository.findByUserId(report.getTargetUserId());
-            user.ifPresent(value -> value.setBehaviorScore(value.getBehaviorScore() - decreasePoint));
-            if (user.get().getBehaviorScore() <= 50 && user.get().getBehaviorScore() >= 30) {
+            User user = userRepository.findByUserId(report.getTargetUserId())
+                    .orElseThrow(() -> new NotFoundException("Target user not found"));
+            user.setBehaviorScore(user.getBehaviorScore() - decreasePoint);
+            if (user.getBehaviorScore() <= 50 && user.getBehaviorScore() >= 30) {
+                SwipeQuota swipeQuota = swipeQuotaRepository.findByUserId(user.getUserId())
+                        .orElseGet(() -> {
+                            SwipeQuota newQuota = new SwipeQuota();
+                            newQuota.setUserId(user.getUserId());
+                            newQuota.setSwipeCount(0);
+                            newQuota.setSwipeDate(LocalDate.now());
+                            return newQuota;
+                        });
+                if (swipeQuota.getRestrictUntil() != null) {
+                    swipeQuota.setRestrictUntil(swipeQuota.getRestrictUntil().plusDays(3));
+                } else {
+                    swipeQuota.setLastReportAt(LocalDate.now());
+                    swipeQuota.setSwipeDate(LocalDate.now());
+                    swipeQuota.setRestrictUntil(LocalDate.now().plusDays(3).atStartOfDay());
+                }
+                swipeQuotaRepository.save(swipeQuota);
 
-            } else if (user.get().getBehaviorScore() < 30) {
-                user.get().setIsBlacklist(true);
-                user.get().setDeletedAt(LocalDateTime.now());
-                user.get().setAccountStatus(AccountStatus.SUSPENDED);
+            } else if (user.getBehaviorScore() < 30) {
+                user.setIsBlacklist(true);
+                user.setDeletedAt(LocalDateTime.now());
+                user.setAccountStatus(AccountStatus.SUSPENDED);
+                swipeQuotaRepository.findByUserId(user.getUserId())
+                        .ifPresent(swipeQuotaRepository::delete);
             }
-            userRepository.save(user.get());
+            userRepository.save(user);
         }
 
         if (newStatus == ReportStatus.RESOLVED || newStatus == ReportStatus.DISMISSED) {
