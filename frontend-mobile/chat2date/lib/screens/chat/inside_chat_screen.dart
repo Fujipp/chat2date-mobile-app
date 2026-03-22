@@ -542,8 +542,14 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
       final numbers = await ref
           .read(emergencyCallServiceProvider)
           .getEmergencyCalls();
-      if (mounted) setState(() => _emergencyNumbers = numbers);
-    } catch (_) {}
+      if (mounted)
+        setState(() {
+          _emergencyNumbers = numbers;
+          _isEmergencyLoaded = true;
+        });
+    } catch (_) {
+      if (mounted) setState(() => _isEmergencyLoaded = true);
+    }
 
     if (mounted) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -1917,10 +1923,11 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
     }
   }
 
-  //review
+  //review & emergency suggestion
   bool _isResultModalShown = false;
   bool _hasShownBadEnding = false;
   bool _hasShownEmergencySuggestion = false;
+  bool _isEmergencyLoaded = false;
   Future<void> _handleReviewEvent(Map<String, dynamic> payload) async {
     if (!mounted) return;
     final type = payload['type'];
@@ -2609,7 +2616,8 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
                                 ) {
                                   if (_emergencyNumbers.isEmpty &&
                                       mounted &&
-                                      !_hasShownEmergencySuggestion) {
+                                      !_hasShownEmergencySuggestion &&
+                                      _isEmergencyLoaded) {
                                     _hasShownEmergencySuggestion = true;
                                     _showEmergencyNumberSuggestionDialog();
                                   }
