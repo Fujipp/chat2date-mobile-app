@@ -1,7 +1,7 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import { useAuthStore } from '../stores/auth'
-import ReportsView from '../views/ReportsView.vue'
 import LoginView from '../views/LoginView.vue'
+import ReportsView from '../views/ReportsView.vue'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -39,6 +39,11 @@ const router = createRouter({
         title: 'About - Chat2Date Admin',
       },
     },
+    {
+      path: '/contact',
+      name: 'contact',
+      component: () => import('../views/ContactView.vue'),
+    }
   ],
 })
 

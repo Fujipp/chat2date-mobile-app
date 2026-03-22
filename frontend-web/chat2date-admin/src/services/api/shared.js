@@ -3,7 +3,7 @@ export const ADMIN_API_URL = `${API_BASE_URL}/admin`
 
 export const getHeaders = () => {
   const headers = { 'Content-Type': 'application/json' }
-  const token = localStorage.getItem('adminToken')
+  const token = localStorage.getItem('accessToken')
   if (token) headers['Authorization'] = `Bearer ${token}`
   return headers
 }
