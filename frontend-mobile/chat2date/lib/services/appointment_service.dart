@@ -43,7 +43,8 @@ class AppointmentService {
         'placeName': placeName,
         // ★ แก้: ส่ง Local time พร้อม offset เพื่อไม่ให้เวลาเพี้ยน
         // toUtc() จะทำให้ 16:18 +07:00 → 09:18 UTC ซึ่งผิด
-        'dateTime': dateTime.toIso8601String(),
+        // 'dateTime': dateTime.toIso8601String(),
+        'dateTime': dateTime,
       }),
     );
 
@@ -87,12 +88,14 @@ class AppointmentService {
     final uri = Uri.parse(
       '${ApiBase.baseUrl}/dates/appointments/$appointmentId',
     );
+    print(dateTime.toUtc().toIso8601String());
     final response = await http.put(
       uri,
       headers: _headers,
       body: jsonEncode({
         // ★ แก้: ส่ง Local time พร้อม offset เพื่อไม่ให้เวลาเพี้ยน
-        'dateTime': dateTime.toIso8601String(),
+        // 'dateTime': dateTime.toIso8601String(),
+        'dateTime': dateTime.toUtc().toIso8601String(),
       }),
     );
 

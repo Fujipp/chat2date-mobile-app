@@ -538,13 +538,18 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
     await _initConfirmStatus();
     await _checkSpinWheelCondition();
     await _checkAndShowReviewModal();
-    _checkSpinWheelCondition();
     try {
       final numbers = await ref
           .read(emergencyCallServiceProvider)
           .getEmergencyCalls();
-      if (mounted) setState(() => _emergencyNumbers = numbers);
-    } catch (_) {}
+      if (mounted)
+        setState(() {
+          _emergencyNumbers = numbers;
+          _isEmergencyLoaded = true;
+        });
+    } catch (_) {
+      if (mounted) setState(() => _isEmergencyLoaded = true);
+    }
 
     if (mounted) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -808,10 +813,7 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
           winningIndex = payload['winningIndex'];
         });
       } else if (type == 'CMD_CLOSE_MODAL') {
-        setState(() {
-          _showWheelModal = false;
-          winningIndex = null;
-        });
+        _clearWheelState();
       }
     });
 
@@ -858,7 +860,7 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
 
       if (message.isBot) {
         _initConfirmStatus();
-
+        unawaited(_fetchInitialAppointment());
         _checkSpinWheelCondition();
       }
 
@@ -907,6 +909,17 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
     if (currentUserId == null || currentUserId.isEmpty) return;
     // Access status changed - may need to refresh for edge cases
     _refreshReadStatus();
+  }
+
+  void _clearWheelState() {
+    setState(() {
+      _showWheelModal = false;
+      _leaderId = null;
+      winningIndex = null;
+      _dynamicPrizes = [];
+      _indexMode = 1;
+      _currentRange = 20;
+    });
   }
 
   /// Handle real-time read event from WebSocket
@@ -962,12 +975,11 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
         int.parse(roomId),
       );
 
-      final active = appointments.where((a) => a.status != 'CANCELLED').toList()
-        ..sort((a, b) => b.appointmentId.compareTo(a.appointmentId));
-
       if (mounted) {
         setState(() {
-          _existingAppointment = active.isNotEmpty ? active.first : null;
+          _existingAppointment =
+              _findLatestActiveAppointment(appointments) ??
+              _findLatestNotActiveAppointment(appointments);
         });
 
         print("📅 appointmentId: ${_existingAppointment?.appointmentId}");
@@ -976,6 +988,51 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
     } catch (e) {
       debugPrint('Error fetching initial appointment: $e');
     }
+  }
+
+  Appointment? _findLatestActiveAppointment(List<Appointment> appointments) {
+    final active =
+        appointments
+            .where(
+              (a) => a.status == 'PLACE_SELECTED' || a.status == 'SCHEDULED',
+            )
+            .toList()
+          ..sort((a, b) => b.appointmentId.compareTo(a.appointmentId));
+
+    return active.isNotEmpty ? active.first : null;
+  }
+
+  Appointment? _findLatestNotActiveAppointment(List<Appointment> appointments) {
+    final active =
+        appointments
+            .where((a) => a.status == 'CANCELLED' || a.status == 'COMPLETED')
+            .toList()
+          ..sort((a, b) => b.appointmentId.compareTo(a.appointmentId));
+
+    return active.isNotEmpty ? active.first : null;
+  }
+
+  bool get _shouldShowCalendarIcon => _existingAppointment != null;
+
+  int? get _calendarBadgeCount {
+    final appointment = _existingAppointment;
+    final dateTime = appointment?.dateTime;
+
+    if (appointment == null ||
+        appointment.status != 'SCHEDULED' ||
+        dateTime == null) {
+      return null;
+    }
+
+    final appointmentDate = DateUtils.dateOnly(dateTime.toLocal());
+    final today = DateUtils.dateOnly(DateTime.now());
+    final daysUntil = appointmentDate.difference(today).inDays;
+
+    if (daysUntil < 0 || daysUntil > 2) {
+      return null;
+    }
+
+    return daysUntil == 0 ? 1 : daysUntil;
   }
 
   bool _isSvgImage(String? path) {
@@ -1153,7 +1210,6 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
   void _onSpinComplete(Map<String, dynamic> result) async {
     setState(() {
       _lastSpinDate = DateTime.now();
-      // ★ แก้: บันทึก placeId และ placeName จากผล Spin ไว้ใช้ตอนเปิด Calendar
       _lastSpunPlaceId = (result['placeId'] as String?) ?? '';
       _lastSpunPlaceName = (result['name'] as String?) ?? '';
     });
@@ -1162,13 +1218,16 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
       final service = ref.read(dateRecommendProvider);
       try {
         String mode = (_indexMode == 0) ? "DISTANCE" : "MIDPOINT";
+        String userTarget = (_indexSelected == 1) ? "ME" : "PARTNER";
         await service.closeRemoteModal(widget.roomId!);
         await service.confirmPlace(
           roomId: widget.roomId,
           placeName: result['name'],
           action: 'BLANK',
           mode: mode,
+          userTarget: userTarget,
         );
+        _clearWheelState();
       } catch (e) {
         print("Error fetching date recommendations: $e");
       }
@@ -1258,7 +1317,18 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
         }).toList();
       });
     } catch (e) {
-      print("Error fetching date recommendations: $e");
+      if (!mounted) return;
+
+      Toast.show(
+        context,
+        type: ToastType.error,
+        title: 'ไม่สามารถโหลดข้อมูลสถานที่ได้',
+        message: e.toString().replaceAll('Exception: ', ''),
+        durationSeconds: 3,
+        showCountdown: false,
+      );
+      _clearWheelState();
+      await ref.read(dateRecommendProvider).closeRemoteModal(widget.roomId!);
     }
   }
 
@@ -1278,13 +1348,9 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
         int.parse(roomId),
       );
 
-      // หา appointment ที่ active ล่าสุด (status != CANCELLED)
-      final active = appointments.where((a) => a.status != 'CANCELLED').toList()
-        ..sort((a, b) => b.appointmentId.compareTo(a.appointmentId));
-
       if (!mounted) return;
       setState(() {
-        _existingAppointment = active.isNotEmpty ? active.first : null;
+        _existingAppointment = _findLatestActiveAppointment(appointments);
         _isCalendarLoading = false;
       });
 
@@ -1336,7 +1402,6 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
     try {
       final service = ref.read(appointmentServiceProvider);
       Appointment result;
-
       if (isEditMode && existingId != null) {
         result = await service.updateAppointment(
           appointmentId: existingId,
@@ -1441,7 +1506,7 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
               ),
               const SizedBox(height: 6),
               const Text(
-                'ระบบจะแจ้งเตือนซัก 1 วัน',
+                'ระบบจะแจ้งเตือนก่อนวันนัด 1 วัน',
                 textAlign: TextAlign.center,
                 style: TextStyle(
                   fontSize: 12,
@@ -1504,14 +1569,14 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
     );
   }
 
-  /// State 7: ยืนยันลบนัดหมาย
+  /// State 7: ยืนยันยกเลิกนัดหมาย
   void _showDeleteConfirmDialog(int appointmentId) {
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         title: const Text(
-          'ยืนยันที่จะลบวันเดตหรือไม่',
+          'ยืนยันที่จะยกเลิกวันเดตหรือไม่',
           style: TextStyle(
             fontFamily: 'Inter',
             fontWeight: FontWeight.w700,
@@ -1519,7 +1584,7 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
           ),
         ),
         content: const Text(
-          'หากยืนยัน สถานที่เดตจะถูกลบออกและต้องสุ่มใหม่อีกครั้ง',
+          'หากยืนยัน ระบบจะยกเลิกนัดหมายนี้ และคุณจะต้องสุ่มสถานที่ใหม่อีกครั้ง',
           style: TextStyle(
             fontFamily: 'Inter',
             fontSize: 14,
@@ -1553,7 +1618,7 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
     );
   }
 
-  /// ลบ appointment + แสดง State 8 success
+  /// ยกเลิก appointment + แสดง State 8 success
   Future<void> _deleteAppointment(int appointmentId) async {
     try {
       final service = ref.read(appointmentServiceProvider);
@@ -1566,7 +1631,7 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
       Toast.show(
         context,
         type: ToastType.error,
-        title: 'ไม่สามารถลบนัดหมายได้',
+        title: 'ไม่สามารถยกเลิกนัดหมายได้',
         message: e.toString().replaceAll('Exception: ', ''),
         durationSeconds: 3,
         showCountdown: false,
@@ -1574,7 +1639,7 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
     }
   }
 
-  /// State 8: แสดง success dialog หลังลบ
+  /// State 8: แสดง success dialog หลังยกเลิก
   void _showDeleteSuccessDialog() {
     showDialog(
       context: context,
@@ -1611,7 +1676,7 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
               ),
               const SizedBox(height: 8),
               const Text(
-                'ลบวันเดตเรียบร้อยแล้ว\nสถานที่เดตถูกลบออกแล้ว',
+                'ยกเลิกวันเดตเรียบร้อยแล้ว\nนัดหมายนี้ถูกปรับเป็นยกเลิกแล้ว',
                 textAlign: TextAlign.center,
                 style: TextStyle(
                   fontSize: 14,
@@ -1642,6 +1707,9 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
       final data = await service.checkStatusSpin(roomId: roomId);
 
       _canSpin = data['canSpin'] ?? false;
+
+      print(_canSpin);
+      print(_existingAppointment?.appointmentId);
       if (_canSpin && _existingAppointment != null) {
         try {
           await service.deleteAppointmentAfterCooldown(roomId: roomId);
@@ -1860,10 +1928,11 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
     }
   }
 
-  //review
+  //review & emergency suggestion
   bool _isResultModalShown = false;
   bool _hasShownBadEnding = false;
   bool _hasShownEmergencySuggestion = false;
+  bool _isEmergencyLoaded = false;
   Future<void> _handleReviewEvent(Map<String, dynamic> payload) async {
     if (!mounted) return;
     final type = payload['type'];
@@ -2464,6 +2533,8 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
                     name: _chatUserName,
                     avatarUrl: _chatUserAvatar,
                     cooldownDays: _cooldownDays,
+                    showCalendar: _shouldShowCalendarIcon,
+                    calendarBadgeCount: _calendarBadgeCount,
                     showBorder: false,
                     onBack: () async {
                       await _exitRoomOnce();
@@ -2550,7 +2621,8 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
                                 ) {
                                   if (_emergencyNumbers.isEmpty &&
                                       mounted &&
-                                      !_hasShownEmergencySuggestion) {
+                                      !_hasShownEmergencySuggestion &&
+                                      _isEmergencyLoaded) {
                                     _hasShownEmergencySuggestion = true;
                                     _showEmergencyNumberSuggestionDialog();
                                   }
@@ -2841,10 +2913,10 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
                   child: GestureDetector(
                     onTap: () async {
                       if (_currentUserId == _leaderId) {
-                        setState(() => _showWheelModal = false);
                         await ref
                             .read(dateRecommendProvider)
                             .closeRemoteModal(widget.roomId!);
+                        _clearWheelState();
                       } else {
                         Toast.show(
                           context,
@@ -2997,7 +3069,10 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
                   initialTime: _calendarIsEditMode
                       ? () {
                           final dt =
-                              _existingAppointment?.dateTime ?? DateTime.now();
+                              _existingAppointment?.dateTime?.add(
+                                Duration(hours: 7),
+                              ) ??
+                              DateTime.now();
                           return TimeOfDay.fromDateTime(dt);
                         }()
                       : null,

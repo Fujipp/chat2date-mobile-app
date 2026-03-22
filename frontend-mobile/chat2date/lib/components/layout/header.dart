@@ -10,13 +10,13 @@ import 'package:flutter_svg/svg.dart';
 enum ChatHeaderVariant {
   /// Chat 1: แค่ปุ่ม Back, Avatar, Name, Flag
   chat1,
-  
+
   /// Chat 2: + Calendar, Spinwheel, Heart (ไม่มี cooldown number)
   chat2,
-  
+
   /// Chat 3: + Cooldown number บน spinwheel (enabled, สีสัน)
   chat3,
-  
+
   /// Chat 4: + Cooldown number บน spinwheel (disabled, สีเทา)
   chat4,
 }
@@ -36,6 +36,7 @@ class Header extends StatelessWidget {
   final bool showSpinCooldown;
   final int? cooldownDays;
   final bool isSpinCooldownEnabled;
+  final int? calendarBadgeCount;
   // Variant for quick setup
   final ChatHeaderVariant? variant;
   final VoidCallback? onBack;
@@ -55,6 +56,7 @@ class Header extends StatelessWidget {
     this.showSpinCooldown = false,
     this.cooldownDays,
     this.isSpinCooldownEnabled = true,
+    this.calendarBadgeCount,
     this.showOptions = false,
     this.showFlag = false,
     this.showHeart = false,
@@ -64,7 +66,7 @@ class Header extends StatelessWidget {
     this.onCalendar,
     this.onSettings,
     this.onFlag,
-    this.onSpinwheel
+    this.onSpinwheel,
   });
 
   /// Factory สร้าง Header จาก ChatHeaderVariant
@@ -77,6 +79,8 @@ class Header extends StatelessWidget {
     required String name,
     String? avatarUrl,
     int? cooldownDays,
+    bool showCalendar = true,
+    int? calendarBadgeCount,
     VoidCallback? onBack,
     VoidCallback? onCalendar,
     VoidCallback? onSpinwheel,
@@ -93,6 +97,7 @@ class Header extends StatelessWidget {
           showFlag: true,
           showBorder: showBorder,
           variant: variant,
+          calendarBadgeCount: calendarBadgeCount,
           onBack: onBack,
           onFlag: onFlag,
         );
@@ -101,11 +106,12 @@ class Header extends StatelessWidget {
         return Header(
           name: name,
           avatarUrl: avatarUrl,
-          showCalendar: true,
+          showCalendar: showCalendar,
           showSpinwheel: true,
           showFlag: true,
           showBorder: showBorder,
           variant: variant,
+          calendarBadgeCount: calendarBadgeCount,
           onBack: onBack,
           onCalendar: onCalendar,
           onSpinwheel: onSpinwheel,
@@ -116,13 +122,14 @@ class Header extends StatelessWidget {
         return Header(
           name: name,
           avatarUrl: avatarUrl,
-          showCalendar: true,
+          showCalendar: showCalendar,
           showSpinCooldown: true,
           cooldownDays: cooldownDays ?? 7,
           isSpinCooldownEnabled: true,
           showFlag: true,
           showBorder: showBorder,
           variant: variant,
+          calendarBadgeCount: calendarBadgeCount,
           onBack: onBack,
           onCalendar: onCalendar,
           onSpinwheel: onSpinwheel,
@@ -133,13 +140,14 @@ class Header extends StatelessWidget {
         return Header(
           name: name,
           avatarUrl: avatarUrl,
-          showCalendar: true,
+          showCalendar: showCalendar,
           showSpinCooldown: true,
           cooldownDays: cooldownDays ?? 7,
           isSpinCooldownEnabled: false,
           showFlag: true,
           showBorder: showBorder,
           variant: variant,
+          calendarBadgeCount: calendarBadgeCount,
           onBack: onBack,
           onCalendar: onCalendar,
           onFlag: onFlag,
@@ -157,7 +165,9 @@ class Header extends StatelessWidget {
       width: double.infinity,
       decoration: BoxDecoration(
         color: Colors.white,
-        border: showBorder ? Border(bottom: BorderSide(color: Colors.grey[300]!)) : null,
+        border: showBorder
+            ? Border(bottom: BorderSide(color: Colors.grey[300]!))
+            : null,
       ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -198,7 +208,11 @@ class Header extends StatelessWidget {
                     clipBehavior: Clip.antiAlias,
                     child: avatarUrl != null
                         ? Image.network(avatarUrl!, fit: BoxFit.cover)
-                        : const Icon(Icons.person, color: Colors.white, size: 32),
+                        : const Icon(
+                            Icons.person,
+                            color: Colors.white,
+                            size: 32,
+                          ),
                   ),
                 if (showAvatar) const SizedBox(height: 4),
                 Text(
@@ -225,13 +239,9 @@ class Header extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.center,
               children: [
                 if (showCalendar) ...[
-                  InkWell(
+                  _CalendarIcon(
                     onTap: onCalendar,
-                    child: SvgPicture.asset(
-                      'assets/icons/icon_calendar.svg',
-                      width: 19,
-                      height: 21,
-                    ),
+                    badgeCount: calendarBadgeCount,
                   ),
                   const SizedBox(width: 10),
                 ],
@@ -275,7 +285,10 @@ class Header extends StatelessWidget {
                     ),
                   ),
                 if (showHeart) ...[
-                  if (showFlag || showCalendar || showSpinwheel || showSpinCooldown) 
+                  if (showFlag ||
+                      showCalendar ||
+                      showSpinwheel ||
+                      showSpinCooldown)
                     const SizedBox(width: 10),
                   InkWell(
                     onTap: onSettings,
@@ -305,6 +318,66 @@ class Header extends StatelessWidget {
         ],
       ),
     );
+  }
+}
+
+class _CalendarIcon extends StatelessWidget {
+  final VoidCallback? onTap;
+  final int? badgeCount;
+
+  const _CalendarIcon({this.onTap, this.badgeCount});
+
+  @override
+  Widget build(BuildContext context) {
+    final icon = SizedBox(
+      width: 24,
+      height: 24,
+      child: Stack(
+        clipBehavior: Clip.none,
+        children: [
+          Positioned.fill(
+            child: Align(
+              alignment: Alignment.center,
+              child: SvgPicture.asset(
+                'assets/icons/icon_calendar.svg',
+                width: 19,
+                height: 21,
+              ),
+            ),
+          ),
+          if (badgeCount != null && badgeCount! > 0)
+            Positioned(
+              top: -5,
+              right: -7,
+              child: Container(
+                constraints: const BoxConstraints(minWidth: 16, minHeight: 16),
+                padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
+                decoration: const BoxDecoration(
+                  color: AppColors.error,
+                  shape: BoxShape.circle,
+                ),
+                alignment: Alignment.center,
+                child: Text(
+                  badgeCount!.toString(),
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 9,
+                    fontWeight: FontWeight.w700,
+                    fontFamily: 'Inter',
+                    height: 1.0,
+                  ),
+                ),
+              ),
+            ),
+        ],
+      ),
+    );
+
+    if (onTap == null) {
+      return icon;
+    }
+
+    return InkWell(onTap: onTap, child: icon);
   }
 }
 
@@ -352,7 +425,9 @@ class _CooldownSpinwheelIcon extends StatelessWidget {
               child: Text(
                 days.toString(),
                 style: TextStyle(
-                  color: enabled ? const Color(0xFF6B7280) : AppColors.textSecondary,
+                  color: enabled
+                      ? const Color(0xFF6B7280)
+                      : AppColors.textSecondary,
                   fontSize: 10,
                   fontWeight: FontWeight.w700,
                   height: 1.0,
@@ -369,10 +444,7 @@ class _CooldownSpinwheelIcon extends StatelessWidget {
       return icon;
     }
 
-    return InkWell(
-      onTap: onTap,
-      child: icon,
-    );
+    return InkWell(onTap: onTap, child: icon);
   }
 }
 
@@ -428,20 +500,20 @@ class ChatToDateHeaderWhite extends StatelessWidget {
           const Spacer(),
 
           if (rightIconPath.isNotEmpty)
-          InkWell(
-            onTap: onSettings,
-            child: SizedBox(
-              width: 24,
-              height: 24,
-              child: SvgPicture.asset(
-                rightIconPath,
+            InkWell(
+              onTap: onSettings,
+              child: SizedBox(
                 width: 24,
                 height: 24,
-                color: svgColor,
-                fit: BoxFit.contain,
+                child: SvgPicture.asset(
+                  rightIconPath,
+                  width: 24,
+                  height: 24,
+                  color: svgColor,
+                  fit: BoxFit.contain,
+                ),
               ),
             ),
-          ),
         ],
       ),
     );

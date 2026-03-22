@@ -607,6 +607,40 @@ CREATE TABLE IF NOT EXISTS `chat2date`.`post_trip_reviews` (
     ON DELETE CASCADE
 ) ENGINE = InnoDB DEFAULT CHARACTER SET = utf8mb4;
 
+CREATE TABLE IF NOT EXISTS `chat2date`.`contact_messages` (
+  `contactId`     INT          NOT NULL AUTO_INCREMENT,
+  `userId`        VARCHAR(36)  NOT NULL,
+  `contactName`   VARCHAR(100) NULL DEFAULT NULL,
+  `contactEmail`  VARCHAR(100) NULL DEFAULT NULL,
+  `subject`       VARCHAR(100) NOT NULL,
+  `message`       TEXT         NOT NULL,
+  `status`        ENUM('NEW', 'IN_PROGRESS', 'RESOLVED') NOT NULL DEFAULT 'NEW',
+  `repliedAt`     TIMESTAMP    NULL,
+  `createdAt`     TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `updatedAt`     TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (`contactId`),
+  INDEX `idx_contact_user`   (`userId` ASC) VISIBLE,
+  INDEX `idx_contact_status` (`status` ASC) VISIBLE,
+  CONSTRAINT `fk_contact_user`
+    FOREIGN KEY (`userId`)
+    REFERENCES `chat2date`.`user` (`userId`)
+    ON DELETE CASCADE
+) ENGINE = InnoDB DEFAULT CHARACTER SET = utf8mb4;
+
+CREATE TABLE IF NOT EXISTS chat2date.swipe_quota (
+  quotaId       INT          NOT NULL AUTO_INCREMENT,
+  userId        VARCHAR(36)  NOT NULL,
+  swipeCount    INT          NOT NULL DEFAULT 0, 
+  swipeDate     DATE         NULL,             
+  restrictUntil TIMESTAMP    NULL,          
+  lastReportAt  DATE         NULL,               
+  PRIMARY KEY (quotaId),
+  UNIQUE INDEX uk_swipe_quota_user (userId ASC),
+  CONSTRAINT fk_swipe_quota_user
+    FOREIGN KEY (userId)
+    REFERENCES chat2date.user (userId)
+    ON DELETE CASCADE
+) ENGINE = InnoDB DEFAULT CHARACTER SET = utf8mb4;
 
 ENGINE = InnoDB
 DEFAULT CHARACTER SET = utf8mb4
