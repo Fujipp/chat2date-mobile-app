@@ -8,6 +8,8 @@ import com.google.firebase.messaging.Notification;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.List;
 
 @Service
@@ -106,12 +108,16 @@ public class NotificationService {
 
     // ★ ใหม่: ส่งแจ้งเตือนล่วงหน้าก่อนวันนัด 1 วัน
     public void sendAppointmentReminderNotification(String receiverUserId, String partnerNickname,
-            Integer roomId, String placeName) {
+            Integer roomId, String placeName, LocalDateTime appointmentDateTimeUtc) {
         List<String> tokens = deviceTokenService.getTokensForUser(receiverUserId);
         if (tokens == null || tokens.isEmpty()) {
             System.out.println("[FCM] No device token for user " + receiverUserId);
             return;
         }
+
+        // แปลงเวลาจาก UTC ใน DB เป็นเวลาไทย (+7)
+        LocalDateTime bangkokTime = appointmentDateTimeUtc.plusHours(7);
+        String formattedDateTime = bangkokTime.format(DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm"));
 
         for (String token : tokens) {
             Message message = Message.builder()
@@ -119,7 +125,7 @@ public class NotificationService {
                     .setNotification(
                             Notification.builder()
                                     .setTitle("พรุ่งนี้มีนัดเดตนะ! 📅")
-                                    .setBody("อีก 1 วันคุณมีนัดที่ " + placeName + " กับ " + partnerNickname)
+                                    .setBody("คุณมีนัดที่ " + placeName + " กับ " + partnerNickname + " วันที่ " + formattedDateTime + " น.")
                                     .build())
                     .putData("type", "APPOINTMENT_REMINDER")
                     .putData("roomId", roomId != null ? roomId.toString() : "")
