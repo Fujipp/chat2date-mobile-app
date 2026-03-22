@@ -304,18 +304,43 @@
 </template>
 
 <script setup>
-import { ref, onMounted, computed } from 'vue'
-import { useAuthStore } from '../stores/auth'
 import {
-  ClipboardList, FileStack, Clock, CheckCircle, Filter, ArrowUpDown,
-  ListOrdered, RotateCw, Loader2, AlertTriangle, Hash, UserCircle,
-  UserX, Tag, Badge, Calendar, Settings, InboxIcon, Eye, ChevronLeft,
-  ChevronRight, FileText, X, User, Info, ImageIcon, ZoomIn, XCircle,
-  Ban, RotateCcw, AlertCircle
+  AlertCircle,
+  AlertTriangle,
+  ArrowUpDown,
+  Badge,
+  Ban,
+  Calendar,
+  CheckCircle,
+  ChevronLeft,
+  ChevronRight,
+  ClipboardList,
+  Clock,
+  Eye,
+  FileStack,
+  FileText,
+  Filter,
+  Hash,
+  ImageIcon,
+  InboxIcon,
+  Info,
+  ListOrdered,
+  Loader2,
+  RotateCcw,
+  RotateCw,
+  Settings,
+  Tag,
+  User,
+  UserCircle,
+  UserX,
+  X,
+  XCircle,
+  ZoomIn
 } from 'lucide-vue-next'
-
+import { computed, onMounted, ref } from 'vue'
+import { useAuthStore } from '../stores/auth'
 // API Configuration
-const API_BASE_URL = 'http://cp25ssi2.sit.kmutt.ac.th:8080/api/v1/admin'
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL + '/admin'
 const authStore = useAuthStore()
 
 // State
