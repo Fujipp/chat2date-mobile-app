@@ -49,20 +49,11 @@ public class ContactMessage {
     @Column(name = "repliedAt")
     private LocalDateTime repliedAt;
 
+    @Builder.Default
     @Column(name = "createdAt", nullable = false, updatable = false)
-    private LocalDateTime createdAt;
+    private LocalDateTime createdAt = LocalDateTime.now(java.time.ZoneOffset.UTC);
 
+    @Builder.Default
     @Column(name = "updatedAt", nullable = false)
-    private LocalDateTime updatedAt;
-
-    @PrePersist
-    protected void onCreate() {
-        createdAt = LocalDateTime.now();
-        updatedAt = LocalDateTime.now();
-    }
-
-    @PreUpdate
-    protected void onUpdate() {
-        updatedAt = LocalDateTime.now();
-    }
+    private LocalDateTime updatedAt = LocalDateTime.now(java.time.ZoneOffset.UTC);
 }

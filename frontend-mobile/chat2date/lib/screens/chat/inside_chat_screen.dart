@@ -976,9 +976,6 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
               _findLatestActiveAppointment(appointments) ??
               _findLatestNotActiveAppointment(appointments);
         });
-
-        print("📅 appointmentId: ${_existingAppointment?.appointmentId}");
-        print("📅 placeId: ${_existingAppointment?.placeId}");
       }
     } catch (e) {
       debugPrint('Error fetching initial appointment: $e');
@@ -1702,9 +1699,6 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
       final data = await service.checkStatusSpin(roomId: roomId);
 
       _canSpin = data['canSpin'] ?? false;
-
-      print(_canSpin);
-      print(_existingAppointment?.appointmentId);
       if (_canSpin && _existingAppointment != null) {
         try {
           await service.deleteAppointmentAfterCooldown(roomId: roomId);
@@ -1933,12 +1927,12 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
     final type = payload['type'];
 
     if (type == 'REVIEW_WAITING') {
-      print("⏳ REVIEW_WAITING received for me");
       _showWaitingModal();
       return;
     }
 
     if (type == 'REVIEW_RESULT') {
+      await _fetchInitialAppointment();
       final outcome = payload['outcome'] as String?;
 
       if (mounted) {
@@ -1957,7 +1951,6 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
         return;
       }
       _isResultModalShown = true;
-      print("🎯 REVIEW_RESULT received: outcome = $outcome");
 
       await Future.delayed(const Duration(milliseconds: 150));
       if (!mounted) return;
@@ -2012,7 +2005,7 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
         !DateTime.now().isAfter(
           appt.dateTime!
               .add(const Duration(hours: 7))
-              .add(const Duration(days: 1)),
+              .add(const Duration(hours: 5)),
         )) {
       return;
     }
@@ -2035,8 +2028,6 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
   }
 
   void _showReviewFlow() {
-    print("👤 myUserId: $_currentUserId");
-    print("👤 targetUserId: $_chatUserId");
     final appt = _existingAppointment;
     if (appt == null) return;
 
@@ -2066,13 +2057,11 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
               'ไม่พอใจฝ่ายใดฝ่ายหนึ่ง จะมีให้เลือกไปต่อหรือพอแค่นี้\n'
               'หากฝ่ายใดฝ่ายหนึ่งเลือก unmatch หรือ พอแค่นี้ จะจบทันที',
           onFirstChoice: () async {
-            print("🔴 กด ไม่พอใจ → isSatisfied = false");
             Navigator.pop(ctx);
             setState(() => _myReviewSatisfied = false);
             await _submitReview(appt: appt, isSatisfied: false);
           },
           onSecondChoice: () async {
-            print("🟢 กด พอใจ → isSatisfied = true");
             Navigator.pop(ctx);
             setState(() => _myReviewSatisfied = true);
             await _submitReview(appt: appt, isSatisfied: true);
@@ -2095,7 +2084,6 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
         wantToContinue: null,
         wantToUnmatch: null,
       );
-      print("✅ submitReview success");
     } catch (e) {
       print("❌ submitReview error: $e");
     }
@@ -2330,7 +2318,6 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
               actionButtonText: "เริ่มเกมไปแล้ว",
             );
           });
-          print("🔘 Bot Button Clicked: ${message.botType}");
           if (message.botType == BotMessageType.minigame ||
               message.botType == BotMessageType.minigameFail) {
             print("🚀 Navigating to Game...");
@@ -2605,7 +2592,7 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
                                   .dateTime!
                                   .add(const Duration(hours: 7));
                               final dateEndTime = dateStartTime.add(
-                                const Duration(hours: 3),
+                                const Duration(hours: 5),
                               );
 
                               // เช็กว่าเลยเวลานัดมาแล้ว AND ยังไม่หมดเวลาเดต
@@ -2957,7 +2944,7 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
                               children: [
                                 SpinDateComponent(
                                   key: ValueKey(
-                                    '${_leaderId}_${_indexMode}_${_indexSelected}',
+                                    '${_leaderId}_${_indexMode}_$_indexSelected',
                                   ),
                                   currentRange: _currentRange,
                                   indexMode: _indexMode,

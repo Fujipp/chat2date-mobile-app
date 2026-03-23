@@ -10,6 +10,7 @@ import sit.chat2date.cp25ssi2.entities.Appointment;
 import sit.chat2date.cp25ssi2.entities.Match;
 import sit.chat2date.cp25ssi2.entities.PostTripReview;
 import sit.chat2date.cp25ssi2.entities.RelationshipStats;
+import sit.chat2date.cp25ssi2.enums.AppointmentStatus;
 import sit.chat2date.cp25ssi2.repositories.AppointmentRepository;
 import sit.chat2date.cp25ssi2.repositories.MatchRepository;
 import sit.chat2date.cp25ssi2.repositories.PostTripReviewRepository;
@@ -35,6 +36,11 @@ public class PostTripReviewService {
         }
         return postTripReviewRepository
                 .existsByAppointment_AppointmentIdAndReviewerId(appointmentId, userId);
+    }
+
+    private void completeAppointment(Appointment appointment) {
+        appointment.setStatus(AppointmentStatus.COMPLETED);
+        appointmentRepository.save(appointment);
     }
 
     @Transactional
@@ -108,6 +114,7 @@ public class PostTripReviewService {
                 stats.setScore(stats.getScore() + 20);
                 relationshipStatsRepository.save(stats);
             }
+            completeAppointment(appointment);
             chatSocketService.broadcastReviewResult(roomId, resultPayload);
             return;
         }
@@ -136,6 +143,7 @@ public class PostTripReviewService {
                     stats.setScore(stats.getScore() + 20);
                     relationshipStatsRepository.save(stats);
                 }
+                completeAppointment(appointment);
                 chatSocketService.broadcastReviewResult(roomId, resultPayload);
                 return;
             }
@@ -146,6 +154,7 @@ public class PostTripReviewService {
 
         if (aUnmatch || bUnmatch) {
             resultPayload.put("outcome", "UNMATCH");
+            completeAppointment(appointment);
             chatSocketService.broadcastReviewResult(roomId, resultPayload);
 
             Match findMatch = matchRepository.findById(match.getId()).orElse(null);
@@ -159,6 +168,7 @@ public class PostTripReviewService {
         if (reviewA.getWantToUnmatch() == null || reviewB.getWantToUnmatch() == null) {
             if (reviewA.getWantToUnmatch() == null && reviewB.getWantToUnmatch() == null) {
                 resultPayload.put("outcome", "BOTH_UNSATISFIED");
+                completeAppointment(appointment);
                 chatSocketService.broadcastReviewResult(roomId, resultPayload);
             } else {
                 Map<String, Object> waitingPayload = new HashMap<>();
@@ -174,6 +184,7 @@ public class PostTripReviewService {
             stats.setScore(stats.getScore() + 20);
             relationshipStatsRepository.save(stats);
         }
+        completeAppointment(appointment);
         chatSocketService.broadcastReviewResult(roomId, resultPayload);
     }
 }

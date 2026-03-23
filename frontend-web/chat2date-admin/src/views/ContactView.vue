@@ -261,7 +261,9 @@ onMounted(fetchContacts)
               </span>
             </td>
             <td>
-              <span class="date-cell">{{ formatDate(contact.createdAt) }}</span>
+              <span class="date-cell">
+                {{ formatDate(new Date(new Date(contact.createdAt).getTime() + 7 * 60 * 60 * 1000)) }}
+              </span>
             </td>
             <td>
               <button class="btn-action" @click="viewContact(contact)">
