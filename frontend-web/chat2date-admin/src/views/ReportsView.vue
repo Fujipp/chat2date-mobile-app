@@ -454,7 +454,7 @@
 
           <div v-if="selectedReport?.anotherReason" class="pm-reason-chip">
             <Tag :size="13" />
-            <span>Reason:</span>
+            <span>Additional:</span>
             <strong>{{ selectedReport.anotherReason }}</strong>
           </div>
 
@@ -1772,6 +1772,7 @@ onMounted(() => {
   font-size: 0.8125rem;
   color: var(--text-secondary);
   margin-bottom: 0 !important; /* ลบ margin เดิมออกเพื่อให้ใช้ gap จากกลุ่มแทน */
+  margin-top: 20px;
 }
 
 .pm-reason-chip strong {
