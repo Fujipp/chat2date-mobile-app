@@ -111,7 +111,7 @@ public class AdminReportService {
         if (newStatus == ReportStatus.RESOLVED) {
             User user = userRepository.findByUserId(report.getTargetUserId())
                     .orElseThrow(() -> new NotFoundException("Target user not found"));
-            user.setBehaviorScore(user.getBehaviorScore() - decreasePoint);
+            user.setBehaviorScore(Math.max(0, user.getBehaviorScore() - decreasePoint));
             if (user.getBehaviorScore() <= 50 && user.getBehaviorScore() >= 30) {
                 SwipeQuota swipeQuota = swipeQuotaRepository.findByUserId(user.getUserId())
                         .orElseGet(() -> {
