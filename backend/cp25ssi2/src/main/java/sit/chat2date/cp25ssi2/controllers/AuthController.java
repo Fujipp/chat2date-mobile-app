@@ -4,11 +4,13 @@ import java.util.HashMap;
 import java.util.Map;
 
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import org.springframework.web.server.ResponseStatusException;
 import sit.chat2date.cp25ssi2.clients.SmsmktClient;
 import sit.chat2date.cp25ssi2.dto.*;
 import sit.chat2date.cp25ssi2.services.AuthService;
@@ -27,6 +29,9 @@ public class AuthController {
     private JwtTokenUtil jwtTokenUtil;
     @Autowired
     private TokenBlacklistService tokenBlacklistService;
+
+    @Value("${admin.password}")
+    private String adminPassword;
 
     @PostMapping("/google")
     public ResponseEntity<AuthenticationResponse> authenticateWithGoogle(
@@ -66,6 +71,22 @@ public class AuthController {
         String newAccessToken = jwtTokenUtil.generateToken(subject);
 
         return ResponseEntity.ok(new RefreshTokenResponse(newAccessToken));
+    }
+
+    @PostMapping("/admin-login")
+    public Map<String, Object> adminLogin(@RequestBody Map<String, String> requestBody) {
+        String identifier = requestBody.get("identifier");
+        String password = requestBody.get("password");
+
+        if (password == null || !adminPassword.equals(password)) {
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Incorrect password");
+        }
+
+        String jwtToken = jwtTokenUtil.generateToken(identifier);
+
+        Map<String, Object> response = new HashMap<>();
+        response.put("token", jwtToken);
+        return response;
     }
 
     @PostMapping("/logout")
