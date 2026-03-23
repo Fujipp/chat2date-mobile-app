@@ -9,6 +9,8 @@ class CalendarDayCell extends StatelessWidget {
   final DateTime? selected;
   final ValueChanged<DateTime>? onSelect;
   final Size? size;
+  final Color selectedColor;
+  final Color selectedTextColor;
 
   const CalendarDayCell({
     super.key,
@@ -17,6 +19,8 @@ class CalendarDayCell extends StatelessWidget {
     this.selected,
     this.onSelect,
     this.size,
+    this.selectedColor = const Color(0xFF5CE1E6),
+    this.selectedTextColor = Colors.white,
   });
 
   bool get _isCurrentMonth =>
@@ -66,7 +70,7 @@ class CalendarDayCell extends StatelessWidget {
           width: w,
           height: h,
           decoration: ShapeDecoration(
-            color: const Color(0xFF5CE1E6), // btn-bg-Primary
+            color: selectedColor,
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(4.65),
             ),
@@ -77,11 +81,10 @@ class CalendarDayCell extends StatelessWidget {
             dayStr,
             style: const TextStyle(
               fontFamily: 'Inter',
-              color: Colors.white,
               fontSize: 13.95,
               fontWeight: FontWeight.w700,
               height: 1,
-            ),
+            ).copyWith(color: selectedTextColor),
           ),
         ),
       );

@@ -97,6 +97,7 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
   String _calendarPlaceName = '';
   String _calendarPlaceId = '';
   bool _calendarIsEditMode = false;
+  bool _calendarHasUnsavedChanges = false;
   bool _isLoadingMessages = true;
   bool _isLoadingMore = false;
   bool _hasMoreMessages = true;
@@ -1371,13 +1372,17 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
       _calendarPlaceName = placeName;
       _calendarPlaceId = placeId;
       _calendarIsEditMode = isEditMode;
+      _calendarHasUnsavedChanges = false;
       _showCalendarModal = true;
     });
   }
 
   /// ปิด CalendarModal overlay
   void _closeCalendar() {
-    setState(() => _showCalendarModal = false);
+    setState(() {
+      _showCalendarModal = false;
+      _calendarHasUnsavedChanges = false;
+    });
   }
 
   /// บันทึกนัดหมาย (create หรือ update)
@@ -1524,39 +1529,25 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
   void _showCancelEditConfirmDialog() {
     showDialog(
       context: context,
-      builder: (ctx) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: const Text(
-          'ยกเลิกการแก้ไข',
-          style: TextStyle(
-            fontFamily: 'Inter',
-            fontWeight: FontWeight.w700,
-            fontSize: 16,
-          ),
+      barrierDismissible: true,
+      builder: (ctx) => Dialog(
+        backgroundColor: Colors.transparent,
+        insetPadding: const EdgeInsets.symmetric(horizontal: 24),
+        child: ModalComponent(
+          svgPath: 'assets/icons/icon_warning.svg',
+          heightSvg: 68,
+          widthSvg: 77,
+          topic: 'ยกเลิกการแก้ไข',
+          description: 'ต้องการยกเลิกวันออกเดตใช่หรือไม่\nข้อมูลที่เลือกจะสูญหาย',
+          choice: true,
+          firstChoiceText: 'ออกจากหน้า',
+          secondChoiceText: 'กลับไปแก้ต่อ',
+          onFirstChoice: () {
+            Navigator.pop(ctx);
+            _closeCalendar();
+          },
+          onSecondChoice: () => Navigator.pop(ctx),
         ),
-        content: const Text(
-          'ต้องการยกเลิกวันออกเดตใช่หรือไม่\nข้อมูลที่เลือกจะสูญหาย',
-          style: TextStyle(
-            fontFamily: 'Inter',
-            fontSize: 14,
-            color: Color(0xFF64748B),
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: const Text(
-              'ยกเลิก',
-              style: TextStyle(color: AppColors.textMuted),
-            ),
-          ),
-          DsButton(
-            label: 'ยืนยัน',
-            variant: DsButtonVariant.primary,
-            size: DsButtonSize.sm,
-            onPressed: () => Navigator.pop(ctx),
-          ),
-        ],
       ),
     );
   }
@@ -1565,47 +1556,27 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
   void _showDeleteConfirmDialog(int appointmentId) {
     showDialog(
       context: context,
-      builder: (ctx) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: const Text(
-          'ยืนยันที่จะยกเลิกวันเดตหรือไม่',
-          style: TextStyle(
-            fontFamily: 'Inter',
-            fontWeight: FontWeight.w700,
-            fontSize: 16,
-          ),
+      barrierDismissible: true,
+      builder: (ctx) => Dialog(
+        backgroundColor: Colors.transparent,
+        insetPadding: const EdgeInsets.symmetric(horizontal: 24),
+        child: ModalComponent(
+          svgPath: 'assets/icons/icon_warning.svg',
+          heightSvg: 68,
+          widthSvg: 77,
+          topic: 'ยืนยันที่จะยกเลิกวันเดตหรือไม่',
+          description:
+              'หากยืนยัน ระบบจะยกเลิกนัดหมายนี้ และคุณจะต้องสุ่มสถานที่ใหม่อีกครั้ง',
+          choice: true,
+          firstChoiceText: 'ยืนยัน',
+          secondChoiceText: 'ยกเลิก',
+          onFirstChoice: () {
+            Navigator.pop(ctx);
+            _closeCalendar();
+            _deleteAppointment(appointmentId);
+          },
+          onSecondChoice: () => Navigator.pop(ctx),
         ),
-        content: const Text(
-          'หากยืนยัน ระบบจะยกเลิกนัดหมายนี้ และคุณจะต้องสุ่มสถานที่ใหม่อีกครั้ง',
-          style: TextStyle(
-            fontFamily: 'Inter',
-            fontSize: 14,
-            color: Color(0xFF64748B),
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: const Text(
-              'ยกเลิก',
-              style: TextStyle(color: AppColors.error),
-            ),
-          ),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF4CAF50),
-              elevation: 0,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(8),
-              ),
-            ),
-            onPressed: () async {
-              Navigator.pop(ctx);
-              await _deleteAppointment(appointmentId);
-            },
-            child: const Text('ยืนยัน', style: TextStyle(color: Colors.white)),
-          ),
-        ],
       ),
     );
   }
@@ -3040,9 +3011,11 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
                   isVisible: _showCalendarModal,
                   placeName: _calendarPlaceName,
                   placeCountText: 'คุณมี 1 สถานที่เดต!!',
+                  hasUnsavedChanges: _calendarHasUnsavedChanges,
                   initialMonth: () {
                     final dt = _calendarIsEditMode
-                        ? (_existingAppointment?.dateTime ?? DateTime.now())
+                        ? (_existingAppointment?.dateTime?.toLocal() ??
+                              DateTime.now())
                         : DateTime.now();
                     return DateTime(dt.year, dt.month, 1);
                   }(),
@@ -3051,26 +3024,30 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
                   initialTime: _calendarIsEditMode
                       ? () {
                           final dt =
-                              _existingAppointment?.dateTime?.add(
-                                Duration(hours: 7),
-                              ) ??
+                              _existingAppointment?.dateTime?.toLocal() ??
                               DateTime.now();
                           return TimeOfDay.fromDateTime(dt);
                         }()
                       : null,
                   // ★ ใหม่: pre-select เฉพาะ edit mode เท่านั้น
                   initialSelectedDate: _calendarIsEditMode
-                      ? _existingAppointment?.dateTime
+                      ? _existingAppointment?.dateTime?.toLocal()
                       : null,
                   isEditMode: _calendarIsEditMode,
-                  onClose: () {
-                    _closeCalendar();
-                    if (_calendarIsEditMode) {
+                  onDirtyChanged: (dirty) {
+                    if (!mounted) return;
+                    setState(() {
+                      _calendarHasUnsavedChanges = dirty;
+                    });
+                  },
+                  onClose: (hasUnsavedChanges) {
+                    if (hasUnsavedChanges) {
                       _showCancelEditConfirmDialog();
+                    } else {
+                      _closeCalendar();
                     }
                   },
                   onTrash: () {
-                    _closeCalendar();
                     final id = _existingAppointment?.appointmentId;
                     if (id != null) _showDeleteConfirmDialog(id);
                   },
