@@ -619,7 +619,7 @@ import {
 import { computed, onMounted, ref } from 'vue'
 import { useAuthStore } from '../stores/auth'
 // API Configuration
-const API_BASE_URL = '/api/v1/admin'
+const API_BASE_URL = `${import.meta.env.VITE_API_BASE_URL || '/api/v1'}/admin`
 const authStore = useAuthStore()
 
 // State
