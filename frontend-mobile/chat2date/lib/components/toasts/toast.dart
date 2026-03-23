@@ -68,10 +68,6 @@ class Toast extends StatelessWidget {
     );
 
     overlay.insert(entry);
-
-    Future.delayed(Duration(seconds: durationSeconds), () {
-      if (entry.mounted) entry.remove();
-    });
   }
 
   Color _backgroundColor(ToastType type) {

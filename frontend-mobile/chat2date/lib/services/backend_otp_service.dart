@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:chat2date/components/dialogs/restore_account_dialog.dart';
+import 'package:chat2date/components/toasts/toast.dart';
 import 'package:chat2date/config/backend_base.dart'; // << เพิ่มบรรทัดนี้
 import 'package:chat2date/services/preference_service.dart';
 import 'package:device_info_plus/device_info_plus.dart';
@@ -81,9 +82,20 @@ class BackendOtpService {
 
         throw Exception('ACCOUNT_DELETED');
       }
-    }
 
-    if (res.statusCode != 200) throw 'HTTP ${res.statusCode}: ${res.body}';
+      if (data['message'] == 'ACCOUNT_SUSPENDED') {
+        if (context.mounted) {
+          Toast.show(
+            context,
+            type: ToastType.error,
+            title: 'บัญชีถูกระงับ',
+            message:
+                'ขออภัย บัญชีของคุณถูกระงับการใช้งาน',
+          );
+          return '';
+        }
+      }
+    }
     final token = (jsonDecode(res.body)['token'] ?? '') as String;
     if (token.isEmpty) throw 'No token from backend';
     return token;
