@@ -27,18 +27,24 @@ public class SwipeQuotaService {
     @Transactional
     public SwipeQuotaResponse getQuotaStatus(String accessToken) {
         User user = extractToken(accessToken);
-        SwipeQuota quota = getOrInitQuota(user.getUserId());
-
-        refreshQuota(quota);
-
-        return convertToResponse(quota);
+        return swipeQuotaRepository.findByUserId(user.getUserId())
+                .map(quota -> {
+                    refreshQuota(quota);
+                    return convertToResponse(quota);
+                })
+                .orElseGet(() -> defaultQuotaResponse());
     }
 
     @Transactional
     public SwipeQuotaResponse processSwipe(String accessToken) {
         User user = extractToken(accessToken);
 
-        SwipeQuota quota = getOrInitQuota(user.getUserId());
+        SwipeQuota quota = swipeQuotaRepository.findByUserId(user.getUserId())
+                .orElse(null);
+
+        if (quota == null) {
+            return defaultQuotaResponse();
+        }
 
         LocalDateTime nowTH = LocalDateTime.now(ZoneId.of("Asia/Bangkok"));
         LocalDate todayTH = nowTH.toLocalDate();
@@ -112,13 +118,13 @@ public class SwipeQuotaService {
         }
     }
 
-    private SwipeQuota getOrInitQuota(String userId) {
-        return swipeQuotaRepository.findByUserId(userId)
-                .orElseGet(() -> swipeQuotaRepository.save(SwipeQuota.builder()
-                        .userId(userId)
-                        .swipeCount(0)
-                        .swipeDate(LocalDate.now(ZoneId.of("Asia/Bangkok")))
-                        .build()));
+    private SwipeQuotaResponse defaultQuotaResponse() {
+        return SwipeQuotaResponse.builder()
+                .currentCount(0)
+                .remainingCount(10)
+                .isRestricted(false)
+                .unlockAt(null)
+                .build();
     }
 
     public User extractToken(String accessToken) {
