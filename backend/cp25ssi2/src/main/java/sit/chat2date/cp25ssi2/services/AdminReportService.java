@@ -23,9 +23,7 @@ import sit.chat2date.cp25ssi2.repositories.UserRepository;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.Period;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Optional;
+import java.util.*;
 
 @Service
 @RequiredArgsConstructor
@@ -36,6 +34,7 @@ public class AdminReportService {
     private final UserRepository userRepository;
     private final ObjectMapper objectMapper;
     private final SwipeQuotaRepository swipeQuotaRepository;
+    private final ChatSocketService chatSocketService;
 
     /**
      * Get all reports with optional status filter and pagination
@@ -102,7 +101,7 @@ public class AdminReportService {
      * Update report status
      */
     @Transactional
-    public Report updateReportStatus(Integer reportId, ReportStatus newStatus, int decreasePoint) {
+    public Report updateReportStatus(Integer reportId, ReportStatus newStatus, Integer decreasePoint) {
         Report report = reportRepository.findById(reportId)
                 .orElseThrow(() -> new NotFoundException("Report not found"));
 
@@ -111,7 +110,10 @@ public class AdminReportService {
         if (newStatus == ReportStatus.RESOLVED) {
             User user = userRepository.findByUserId(report.getTargetUserId())
                     .orElseThrow(() -> new NotFoundException("Target user not found"));
-            user.setBehaviorScore(Math.max(0, user.getBehaviorScore() - decreasePoint));
+            user.setBehaviorScore(user.getBehaviorScore() - decreasePoint);
+            if (user.getBehaviorScore() <= 0) {
+                user.setBehaviorScore(0);
+            }
             if (user.getBehaviorScore() <= 50 && user.getBehaviorScore() >= 30) {
                 SwipeQuota swipeQuota = swipeQuotaRepository.findByUserId(user.getUserId())
                         .orElseGet(() -> {
@@ -131,6 +133,10 @@ public class AdminReportService {
                 swipeQuotaRepository.save(swipeQuota);
 
             } else if (user.getBehaviorScore() < 30) {
+                Map<String, Object> payload = new HashMap<>();
+                payload.put("type", "BEHAVIOR_BANNED");
+                payload.put("message", "คะแนนพฤติกรรมของคุณเป็น 0 บัญชีถูกระงับ");
+                chatSocketService.notifyUser(user.getUserId(), payload);
                 user.setIsBlacklist(true);
                 user.setDeletedAt(LocalDateTime.now());
                 user.setAccountStatus(AccountStatus.SUSPENDED);
