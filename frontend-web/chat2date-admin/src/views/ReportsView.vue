@@ -804,6 +804,12 @@ const customSeverity = computed(() => {
   return 'heavy'
 })
 
+const backupPmState = ref({
+  selectedCase: null,
+  scoreInRange: null,
+  customScore: 50,
+})
+
 // quick score presets 5 จุด spread ทั่วช่วง
 const quickScores = computed(() => {
   if (!pmSelectedCase.value) return []
@@ -849,21 +855,31 @@ const selectCase = (c) => {
 
 const resetPenaltyModal = () => {
   pmSelectedCase.value = null
-  
+
   pmScoreInRange.value = null
-  
+
   pmCustomScore.value = null
-  
+
   confirmedPenalty.value = null
-  
+
   updateError.value = null
   updateSuccess.value = null
 }
 
 const openPenaltyModal = () => {
+  backupPmState.value = {
+    selectedCase: pmSelectedCase.value,
+    scoreInRange: pmScoreInRange.value,
+    customScore: pmCustomScore.value,
+  }
   showPenaltyModal.value = true
 }
 const closePenaltyModal = () => {
+  pmSelectedCase.value = backupPmState.value.selectedCase
+  pmScoreInRange.value = backupPmState.value.scoreInRange
+  pmCustomScore.value = backupPmState.value.customScore
+  
+
   showPenaltyModal.value = false
 }
 
