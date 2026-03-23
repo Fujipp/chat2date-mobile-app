@@ -135,6 +135,8 @@ class _DiscoveryScreenState extends ConsumerState<DiscoveryScreen>
 
         if (quota.isRestricted) {
           remainingAction = quota.remainingCount;
+        } else {
+          remainingAction = null;
         }
 
         if (userId != null) {
@@ -325,8 +327,7 @@ class _DiscoveryScreenState extends ConsumerState<DiscoveryScreen>
     showDialog(
       context: context,
       builder: (context) {
-        // ✅ สั่งให้ปิด Modal เองภายใน 2.5 วินาที
-        Future.delayed(const Duration(milliseconds: 2500), () {
+        Future.delayed(const Duration(milliseconds: 7500), () {
           if (Navigator.canPop(context)) {
             Navigator.pop(context);
           }
@@ -342,7 +343,7 @@ class _DiscoveryScreenState extends ConsumerState<DiscoveryScreen>
               topic: 'แจ้งเตือน',
               description:
                   'คุณใช้สิทธิ์การปัดไปแล้ว $currentCount/10 ครั้ง\n'
-                  'คะแนนความประพฤติ: $behaviorScore'
+                  'คะแนนความประพฤติ: $behaviorScore\n'
                   'สามารถอ่านเกณฑ์ได้ที่ เมนูรูปโปรไฟล์',
               spaceBottom: 20,
               spaceTop: 20,
@@ -440,6 +441,8 @@ class _DiscoveryScreenState extends ConsumerState<DiscoveryScreen>
 
           if (quota.isRestricted) {
             remainingAction = quota.remainingCount;
+          } else {
+            remainingAction = null;
           }
 
           // โหลดค่า range ที่บันทึกไว้ของผู้ใช้นี้
@@ -1497,22 +1500,25 @@ class _CandidateViewState extends ConsumerState<_CandidateView> {
                             iconSize: 60,
                             activeIconSize: 80,
                             padding: 0,
-                            onPressed:
-                                (widget.remainingAction != null &&
-                                    widget.remainingAction! > 0)
-                                ? widget.onUnlike
-                                : () {
-                                    // แจ้งเตือนผู้ใช้ว่าโควตาหมด (เช่น Show SnackBar หรือ Toast)
-                                    Toast.show(
-                                      context,
-                                      type: ToastType
-                                          .warning, // ใช้สีเหลือง/ส้มดูซอฟต์กว่าสีแดง
-                                      title: 'โควตาเต็มแล้ว',
-                                      message:
-                                          'คุณปัดครบ 10 คนสำหรับวันนี้แล้วจ้า พรุ่งนี้มาหาคู่ใหม่นะ!',
-                                      durationSeconds: 4,
-                                    );
-                                  },
+                            onPressed: () async {
+                              final quota = await ref
+                                  .read(swipeQuotaProvider)
+                                  .checkSwipeStatus();
+
+                              if (quota.isRestricted &&
+                                  quota.remainingCount == 0) {
+                                Toast.show(
+                                  context,
+                                  type: ToastType.warning,
+                                  title: 'โควตาเต็มแล้ว',
+                                  message:
+                                      'คุณปัดครบ 10 คนสำหรับวันนี้แล้วจ้า พรุ่งนี้มาหาคู่ใหม่นะ!',
+                                  durationSeconds: 4,
+                                );
+                              } else {
+                                widget.onUnlike();
+                              }
+                            },
                           ),
                         );
                       },
@@ -1535,22 +1541,25 @@ class _CandidateViewState extends ConsumerState<_CandidateView> {
                             iconSize: 60,
                             activeIconSize: 77,
                             padding: 0,
-                            onPressed:
-                                (widget.remainingAction != null &&
-                                    widget.remainingAction! > 0)
-                                ? widget.onLike
-                                : () {
-                                    // แจ้งเตือนผู้ใช้ว่าโควตาหมด (เช่น Show SnackBar หรือ Toast)
-                                    Toast.show(
-                                      context,
-                                      type: ToastType
-                                          .warning, // ใช้สีเหลือง/ส้มดูซอฟต์กว่าสีแดง
-                                      title: 'โควตาเต็มแล้ว',
-                                      message:
-                                          'คุณปัดครบ 10 คนสำหรับวันนี้แล้วจ้า พรุ่งนี้มาหาคู่ใหม่นะ!',
-                                      durationSeconds: 4,
-                                    );
-                                  },
+                            onPressed: () async {
+                              final quota = await ref
+                                  .read(swipeQuotaProvider)
+                                  .checkSwipeStatus();
+
+                              if (quota.isRestricted &&
+                                  quota.remainingCount == 0) {
+                                Toast.show(
+                                  context,
+                                  type: ToastType.warning,
+                                  title: 'โควตาเต็มแล้ว',
+                                  message:
+                                      'คุณปัดครบ 10 คนสำหรับวันนี้แล้วจ้า พรุ่งนี้มาหาคู่ใหม่นะ!',
+                                  durationSeconds: 4,
+                                );
+                              } else {
+                                widget.onLike();
+                              }
+                            },
                           ),
                         );
                       },
