@@ -26,7 +26,7 @@ class ResponsiveContainer extends StatelessWidget {
     this.crossAxisAlignment = CrossAxisAlignment.center,
     this.backgroundColor,
     this.shrinkWrap = false,
-    this.useMaxWidth = false,
+    this.useMaxWidth = false, required SingleChildScrollView child,
   });
 
   /// Preset: Standard Screen Layout (responsive)

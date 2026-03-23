@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:chat2date/theme/app_colors.dart';
@@ -39,6 +40,7 @@ class _MatchSuccessScreenState extends State<MatchSuccessScreen>
     with TickerProviderStateMixin {
   late AnimationController _mainController;
   late AnimationController _heartController;
+  Timer? _navigateTimer;
   
   late Animation<double> _fadeAnimation;
   late Animation<double> _scaleAnimation;
@@ -88,8 +90,12 @@ class _MatchSuccessScreenState extends State<MatchSuccessScreen>
     _mainController.forward();
 
     // ✅ ตั้ง timer 5 วิ แล้วไปหน้า chat
-    Future.delayed(const Duration(seconds: 5), () {
+    _navigateTimer = Timer(const Duration(seconds: 5), () {
       if (!mounted) return;
+      // ถ้าหน้านี้ไม่ได้อยู่บนสุดแล้ว ให้ยกเลิกการพาไปแชทจาก timer เก่า
+      final route = ModalRoute.of(context);
+      if (route?.isCurrent != true) return;
+
       final args = widget.args;
       // Navigate to chat screen with matchId as roomId
       Navigator.of(context).pushReplacementNamed(
@@ -106,6 +112,7 @@ class _MatchSuccessScreenState extends State<MatchSuccessScreen>
 
   @override
   void dispose() {
+    _navigateTimer?.cancel();
     _mainController.dispose();
     _heartController.dispose();
     super.dispose();

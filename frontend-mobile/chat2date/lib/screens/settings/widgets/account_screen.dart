@@ -1,0 +1,253 @@
+import 'package:chat2date/components/inputs/ds_edit_input.dart';
+import 'package:chat2date/components/inputs/ds_text_field/ds_text_field.dart';
+import 'package:chat2date/components/toasts/toast.dart';
+import 'package:chat2date/models/user.dart';
+import 'package:chat2date/services/emergency_service.dart';
+import 'package:chat2date/stores/user_store.dart'; // เพิ่ม import UserStore ของคุณ
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+
+class AccountSettingsScreen extends ConsumerStatefulWidget {
+  const AccountSettingsScreen({super.key});
+
+  @override
+  ConsumerState<AccountSettingsScreen> createState() =>
+      _AccountSettingsScreenState();
+}
+
+class _AccountSettingsScreenState extends ConsumerState<AccountSettingsScreen> {
+  bool _isLoading = true;
+  final List<String> _phones = ['', '', ''];
+  int _rebuildCounter = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchEmergencyContacts();
+  }
+
+  Future<void> _fetchEmergencyContacts() async {
+    try {
+      final service = ref.read(emergencyCallServiceProvider);
+      final numbers = await service.getEmergencyCalls();
+
+      setState(() {
+        if (numbers.isNotEmpty) _phones[0] = _formatPhoneNumber(numbers[0]);
+        if (numbers.length > 1) _phones[1] = _formatPhoneNumber(numbers[1]);
+        if (numbers.length > 2) _phones[2] = _formatPhoneNumber(numbers[2]);
+        _isLoading = false;
+      });
+    } catch (e) {
+      setState(() => _isLoading = false);
+      Toast.show(
+        context,
+        type: ToastType.error,
+        title: 'ผิดพลาด',
+        message: 'ไม่สามารถดึงเบอร์โทรฉุกเฉินได้',
+        durationSeconds: 3,
+        showCountdown: false,
+      );
+    }
+  }
+
+  Future<void> _saveEmergencyContact(int index, String newValue) async {
+    final tempPhones = List<String>.from(_phones);
+    tempPhones[index] = newValue;
+
+    final numbersToSend = tempPhones
+        .map((p) => p.replaceAll('-', '').trim())
+        .where((p) => p.isNotEmpty)
+        .toList();
+
+    if (numbersToSend.isEmpty) {
+      Toast.show(
+        context,
+        type: ToastType.error,
+        title: 'ผิดพลาด',
+        message: 'กรุณากรอกเบอร์โทรฉุกเฉินอย่างน้อย 1 เบอร์',
+        durationSeconds: 3,
+        showCountdown: false,
+      );
+      setState(() => _rebuildCounter++);
+      return;
+    }
+
+    _phones[index] = newValue;
+
+    final filled = _phones
+        .map((p) => p.replaceAll('-', '').trim())
+        .where((p) => p.isNotEmpty)
+        .toList();
+
+    setState(() {
+      for (int i = 0; i < 3; i++) {
+        _phones[i] = i < filled.length ? _formatPhoneNumber(filled[i]) : '';
+      }
+      _rebuildCounter++;
+    });
+
+    try {
+      final service = ref.read(emergencyCallServiceProvider);
+      await service.updateEmergencyCalls(filled);
+      Toast.show(
+        context,
+        type: ToastType.success,
+        title: 'บันทึกสำเร็จ',
+        message: 'เบอร์โทรฉุกเฉินได้รับการอัปเดตแล้ว',
+        durationSeconds: 3,
+        showCountdown: false,
+      );
+    } catch (e) {
+      Toast.show(
+        context,
+        type: ToastType.error,
+        title: 'ผิดพลาด',
+        message: 'เกิดข้อผิดพลาดในการบันทึกเบอร์โทรฉุกเฉิน',
+        durationSeconds: 3,
+        showCountdown: false,
+      );
+    }
+  }
+
+  String _formatPhoneNumber(String phone) {
+    String cleanPhone = phone.replaceAll(RegExp(r'\D'), '');
+
+    if (cleanPhone.length == 10) {
+      return '${cleanPhone.substring(0, 3)}-${cleanPhone.substring(3, 6)}-${cleanPhone.substring(6)}';
+    } else if (phone.startsWith('+66') && cleanPhone.length == 11) {
+      return '+66 ${cleanPhone.substring(2, 4)}-${cleanPhone.substring(4, 7)}-${cleanPhone.substring(7)}';
+    }
+
+    return phone;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final userState = ref.watch(userStoreProvider);
+
+    final user = userState['user'] as User?;
+
+    final String phoneNumber = _formatPhoneNumber(user?.phoneNumber ?? '');
+    final String email = user?.email ?? '';
+
+    final String dob = user?.birthday?.toIso8601String().split('T').first ?? '';
+
+    final String gender = user?.sex?.name ?? '';
+    return Scaffold(
+      backgroundColor: Colors.white,
+      appBar: AppBar(
+        backgroundColor: Colors.white,
+        elevation: 0,
+        leading: Padding(
+          padding: const EdgeInsets.only(left: 16.0),
+          child: InkWell(
+            onTap: () => Navigator.pop(context),
+            child: Container(
+              width: 40,
+              height: 40,
+              decoration: const BoxDecoration(
+                color: Color(0xFF98FB98),
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(
+                Icons.arrow_back,
+                color: Colors.white,
+                size: 20,
+              ),
+            ),
+          ),
+        ),
+        title: const Text(
+          'Account',
+          style: TextStyle(
+            color: Color(0xFF0F172A),
+            fontSize: 22,
+            fontFamily: 'Inter',
+            fontWeight: FontWeight.w400,
+          ),
+        ),
+        centerTitle: true,
+      ),
+      body: _isLoading
+          ? const Center(
+              child: CircularProgressIndicator(color: Color(0xFF98FB98)),
+            )
+          : SingleChildScrollView(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 24.0,
+                  vertical: 20.0,
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    if (phoneNumber.isNotEmpty)
+                      DsTextField(
+                        label: 'หมายเลขโทรศัพท์',
+                        hintText: phoneNumber,
+                        enabled: false,
+                      ),
+
+                    if (email.isNotEmpty)
+                      DsTextField(
+                        label: 'อีเมล',
+                        hintText: email,
+                        enabled: false,
+                      ),
+
+                    if (dob.isNotEmpty)
+                      DsTextField(
+                        label: 'วันเกิด',
+                        hintText: dob,
+                        enabled: false,
+                      ),
+
+                    if (gender.isNotEmpty)
+                      DsTextField(
+                        label: 'เพศ',
+                        hintText: gender,
+                        enabled: false,
+                      ),
+
+                    const SizedBox(height: 16),
+
+                    EditInputField(
+                      key: ValueKey('phone1_${_phones[0]}_$_rebuildCounter'),
+                      label: 'เบอร์ฉุกเฉินลำดับ 1',
+                      placeholder: '099-999-9999',
+                      initialValue: _phones[0],
+                      onSaved: (value) => _saveEmergencyContact(0, value),
+                    ),
+                    const SizedBox(height: 16),
+                    EditInputField(
+                      key: ValueKey('phone2_${_phones[1]}_$_rebuildCounter'),
+                      label: 'เบอร์ฉุกเฉินลำดับ 2',
+                      placeholder: 'เพิ่มเบอร์ที่นี่',
+                      initialValue: _phones[1],
+                      onSaved: (value) => _saveEmergencyContact(1, value),
+                    ),
+                    const SizedBox(height: 16),
+                    EditInputField(
+                      key: ValueKey('phone3_${_phones[2]}_$_rebuildCounter'),
+                      label: 'เบอร์ฉุกเฉินลำดับ 3',
+                      placeholder: 'เพิ่มเบอร์ที่นี่',
+                      initialValue: _phones[2],
+                      onSaved: (value) => _saveEmergencyContact(2, value),
+                    ),
+
+                    const SizedBox(height: 24),
+                    const Text(
+                      'หมายเหตุ: เบอร์ที่คุณกรอกจะเป็น เบอร์โทรฉุกเฉินแรก เมื่อกดปุ่ม SOS หากเว้นว่าง ระบบจะโทรไปยัง 191 อัตโนมัติ',
+                      style: TextStyle(
+                        color: Colors.redAccent,
+                        fontSize: 12,
+                        fontFamily: 'Inter',
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+    );
+  }
+}

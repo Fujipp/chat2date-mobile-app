@@ -117,6 +117,7 @@ class _OtpPageState extends ConsumerState<OtpPage> {
   Future<void> _verify() async {
     final code = _code();
     if (code.length != _length) {
+      if (!mounted) return;
       Toast.show(
         context,
         type: ToastType.warning,
@@ -178,7 +179,7 @@ class _OtpPageState extends ConsumerState<OtpPage> {
     if (_seconds > 0 || _resending) return;
     setState(() => _resending = true);
     try {
-      final newToken = await BackendOtpService.sendOtp(_phone,context);
+      final newToken = await BackendOtpService.sendOtp(_phone, context);
       if (!mounted) return;
       _token = newToken;
       _startTimer();

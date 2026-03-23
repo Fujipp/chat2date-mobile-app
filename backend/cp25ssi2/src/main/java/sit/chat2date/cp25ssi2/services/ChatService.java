@@ -3,6 +3,7 @@ package sit.chat2date.cp25ssi2.services;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -12,6 +13,7 @@ import org.springframework.transaction.annotation.Transactional;
 import sit.chat2date.cp25ssi2.dto.*;
 import sit.chat2date.cp25ssi2.entities.*;
 import sit.chat2date.cp25ssi2.enums.MessageType;
+import sit.chat2date.cp25ssi2.enums.NotifyStatus;
 import sit.chat2date.cp25ssi2.exceptions.ForbiddenAccessException;
 import sit.chat2date.cp25ssi2.exceptions.NotFoundException;
 import sit.chat2date.cp25ssi2.exceptions.TooManyRequestException;
@@ -39,6 +41,10 @@ public class ChatService {
     private final ObjectMapper objectMapper;
     private final RedisTemplate<String, Object> redisTemplate;
 
+    @Lazy
+    @Autowired
+    private GameService gameService;
+
     private static final int DEFAULT_PAGE_SIZE = 20;
     private static final int RATE_LIMIT_MAX_MESSAGES = 30; // Max messages per window
     private static final int RATE_LIMIT_WINDOW_SECONDS = 60; // 1 minute window
@@ -53,10 +59,23 @@ public class ChatService {
         List<Match> matches = matchRepository.findAllByUser(user);
 
         List<ChatRoomDTO> roomDTOs = matches.stream().map(match -> {
-                    Integer roomId = match.getId(); // matchId as roomId (Integer)
+                    Integer roomId = match.getId();
+
+                    // ดึง stats มาเช็ค
+                    RelationshipStats stats = relationshipStatsRepository.findByRoomId(roomId).orElse(null);
+                    if (stats != null) {
+                        boolean isUser1 = match.getUserId1().getUserId().equals(userId);
+                        NotifyStatus unmatchStatus = stats.getNotiUnmatch();
+                        NotifyStatus mySide = isUser1 ? NotifyStatus.LEFT : NotifyStatus.RIGHT;
+
+                        // ถ้าสถานะเป็น BOTH หรือเป็นฝั่งเราเอง แปลว่าแจ้งเตือน "จบความสัมพันธ์" ไปแล้ว
+                        // ให้คืนค่า null เพื่อ filter ออกจาก List (ทำให้ห้องหายไป)
+                        if (unmatchStatus == NotifyStatus.BOTH || unmatchStatus == mySide) {
+                            return null;
+                        }
+                    }
                     User partner = match.getUserId1().getUserId().equals(userId)
-                            ? match.getUserId2()
-                            : match.getUserId1();
+                            ? match.getUserId2() : match.getUserId1();
 
                     if (match.getDeleteFlag()) {
                         return null;
@@ -310,6 +329,8 @@ public class ChatService {
 
         message = messageRepository.save(message);
 
+        String userId1 = match.getUserId1().getUserId();
+        GameCheckResponse gameStatus = gameService.checkGameStatus(roomId, userId1);
 
         SendMessageResponse response = SendMessageResponse.builder()
                 .roomId(String.valueOf(message.getRoomId()))
@@ -318,7 +339,9 @@ public class ChatService {
                 .senderId("SYSTEM")
                 .created(message.getCreatedAt())
                 .type(message.getMessageType())
+                .gameStatus(gameStatus.getGameStatus())
                 .build();
+
 
         // REUSE: ใช้ chatSocketService ของเพื่อนเพื่อ Broadcast ไปหา User
         chatSocketService.broadcastMessage(

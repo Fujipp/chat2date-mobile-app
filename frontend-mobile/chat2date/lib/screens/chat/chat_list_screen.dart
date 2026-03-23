@@ -16,6 +16,7 @@ import 'package:chat2date/stores/user_store.dart';
 import 'package:chat2date/theme/app_colors.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 
 class ChatListScreen extends ConsumerStatefulWidget {
   final bool showBottomNav;
@@ -40,6 +41,7 @@ class _ChatListScreenState extends ConsumerState<ChatListScreen>
   bool _isLoadingMatches = true;
   String? _chatError;
   String? _matchError;
+  List<Map<String, String>> pendingNotis = [];
 
   // WebSocket for realtime updates
   ChatListSocketService? _chatListSocket;
@@ -193,6 +195,31 @@ class _ChatListScreenState extends ConsumerState<ChatListScreen>
     await Future.wait([_loadChatRooms(), _loadMatches()]);
   }
 
+  Future<void> _checkAndShowNotifications(
+    String roomId,
+    String partnerName,
+  ) async {
+    if (!mounted) return;
+    final chatService = ref.read(chatServiceProvider);
+
+    // เช็ค Noti ของทุกห้อง
+    try {
+      // เช็ค Noti เฉพาะห้องที่ส่ง Id เข้ามา
+      final String notiType = await chatService.checkNotiStatus(roomId);
+
+      if (notiType != "NONE" && notiType.isNotEmpty) {
+        final List<Map<String, String>> toShow = [
+          {'name': partnerName, 'type': notiType, 'roomId': roomId},
+        ];
+
+        // แสดง Dialog (ใช้ Logic เดิมของคุณ)
+        await _showSequentialDialogs(toShow);
+      }
+    } catch (e) {
+      debugPrint('Check Noti Error for $roomId: $e');
+    }
+  }
+
   Future<void> _loadChatRooms() async {
     setState(() {
       _isLoadingChats = true;
@@ -200,19 +227,8 @@ class _ChatListScreenState extends ConsumerState<ChatListScreen>
     });
 
     try {
+      pendingNotis = [];
       final chatService = ref.read(chatServiceProvider);
-      final roomsRefresh = await chatService.getChatRooms();
-      if (roomsRefresh.isNotEmpty) {
-        await Future.wait(
-          roomsRefresh.map(
-            (room) => chatService
-                .updateRelationshipBar(room.roomId)
-                .catchError(
-                  (e) => print('Failed to update room ${room.roomId}: $e'),
-                ),
-          ),
-        );
-      }
       final rooms = await chatService.getChatRooms();
       if (mounted) {
         setState(() {
@@ -244,19 +260,10 @@ class _ChatListScreenState extends ConsumerState<ChatListScreen>
     });
 
     try {
+      pendingNotis = [];
       final chatService = ref.read(chatServiceProvider);
       final matches = await chatService.getMatches();
-      if (matches.isNotEmpty) {
-        await Future.wait(
-          matches.map(
-            (match) => chatService
-                .updateRelationshipBar(match.matchId)
-                .catchError(
-                  (e) => print('Failed to update room ${match.matchId}: $e'),
-                ),
-          ),
-        );
-      }
+
       if (mounted) {
         setState(() {
           _matches = matches.where((match) => match.type == 'new').toList();
@@ -269,6 +276,146 @@ class _ChatListScreenState extends ConsumerState<ChatListScreen>
           _matchError = e.toString().replaceAll('Exception: ', '');
           _isLoadingMatches = false;
         });
+      }
+    }
+  }
+
+  Future<void> _showSequentialDialogs(List<Map<String, String>> notis) async {
+    final chatService = ref.read(chatServiceProvider);
+
+    for (var noti in notis) {
+      if (!mounted) return;
+
+      final isBefore = noti['type'] == "BEFORE";
+
+      await showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (BuildContext dialogContext) => Dialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(24),
+          ),
+          backgroundColor: AppColors.background,
+          child: Padding(
+            padding: const EdgeInsets.all(24.0),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // Icon Header พร้อมวงกลมซ้อนหลัง
+                Stack(
+                  alignment: Alignment.center,
+                  children: [
+                    Container(
+                      width: 80,
+                      height: 80,
+                      decoration: BoxDecoration(
+                        color: isBefore
+                            ? AppColors.badgeWarning
+                            : AppColors.badgeErrorBg,
+                        shape: BoxShape.circle,
+                      ),
+                    ),
+                    SvgPicture.asset(
+                      isBefore
+                          ? 'assets/icons/icon_warning.svg' // <-- ใส่ path ของคุณที่นี่
+                          : 'assets/icons/icon_bad-ending.svg', // <-- ใส่ path ของคุณที่นี่
+                      width: 40,
+                      height: 40,
+                      colorFilter: ColorFilter.mode(
+                        isBefore
+                            ? AppColors.warning
+                            : AppColors.brandAccentStrong,
+                        BlendMode.srcIn,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 24),
+
+                // Title
+                Text(
+                  isBefore ? "ใกล้หมดเวลาแล้วนะ!" : "ความสัมพันธ์สิ้นสุดลง",
+                  style: const TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                    color: AppColors.textPrimary,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 12),
+
+                // Content
+                RichText(
+                  textAlign: TextAlign.center,
+                  text: TextSpan(
+                    style: const TextStyle(
+                      fontSize: 15,
+                      color: AppColors.textSecondary,
+                      height: 1.5,
+                    ),
+                    children: [
+                      const TextSpan(text: "คุณและ "),
+                      TextSpan(
+                        text: "${noti['name']} ",
+                        style: const TextStyle(
+                          fontWeight: FontWeight.bold,
+                          color: AppColors.textPrimary,
+                        ),
+                      ),
+                      TextSpan(
+                        text: isBefore
+                            ? "ไม่ได้คุยกันนานแล้ว รีบทักไปคุยก่อนจะสายเกินไปนะ!"
+                            : "Unmatch กันเรียบร้อยแล้ว เนื่องจากไม่ได้มีการเคลื่อนไหวในช่วงที่ผ่านมา",
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 32),
+
+                // Button
+                SizedBox(
+                  width: double.infinity,
+                  height: 50,
+                  child: ElevatedButton(
+                    onPressed: () => Navigator.of(dialogContext).pop(),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: isBefore
+                          ? AppColors.btnPrimary
+                          : AppColors.brandPrimary200,
+                      foregroundColor: AppColors.btnTextPrimary,
+                      elevation: 0,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                    ),
+                    child: const Text(
+                      "รับทราบ",
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+
+      // หลังจากกดปิด Dialog แล้ว ค่อยแจ้ง Backend
+      try {
+        await chatService.triggerNotificationUpdate(noti['roomId']!);
+
+        if (!isBefore) {
+          // ถ้าเป็น UNMATCH (ความสัมพันธ์จบแล้ว) ให้ลบออกจาก List ทันที
+          setState(() {
+            _chatRooms.removeWhere((room) => room.roomId == noti['roomId']);
+            _matches.removeWhere((match) => match.matchId == noti['roomId']);
+          });
+        }
+      } catch (e) {
+        debugPrint("Failed to trigger update: $e");
       }
     }
   }
@@ -391,16 +538,25 @@ class _ChatListScreenState extends ConsumerState<ChatListScreen>
               setState(() {
                 _clearedUnreadRoomIds.add(room.roomId);
               });
-              await Navigator.pushNamed(
-                context,
-                '/chat',
-                arguments: {
-                  'roomId': room.roomId,
-                  'targetUserId': room.partnerId,
-                  'userName': room.partnerName,
-                  'avatarUrl': room.partnerImage,
-                },
+
+              await _checkAndShowNotifications(room.roomId, room.partnerName);
+
+              final bool roomStillExists = _chatRooms.any(
+                (r) => r.roomId == room.roomId,
               );
+
+              if (roomStillExists) {
+                await Navigator.pushNamed(
+                  context,
+                  '/chat',
+                  arguments: {
+                    'roomId': room.roomId,
+                    'targetUserId': room.partnerId,
+                    'userName': room.partnerName,
+                    'avatarUrl': room.partnerImage,
+                  },
+                );
+              }
               if (!mounted) return;
               await _loadChatRooms();
             },
@@ -468,20 +624,40 @@ class _ChatListScreenState extends ConsumerState<ChatListScreen>
             isNewMatch: isNew,
             colors: isNew ? null : [AppColors.backgroundWhite],
             onClick: () async {
+              final chatService = ref.read(chatServiceProvider);
+              
               setState(() {
                 _viewedMatchIds.add(match.matchId);
               });
+
+              try {
+                await chatService.updateRelationshipBar(match.matchId);
+              } catch (e) {
+                debugPrint("Stats update failed: $e");
+              }
+
               // เปิดแชทกับ match
-              await Navigator.pushNamed(
-                context,
-                '/chat',
-                arguments: {
-                  'roomId': match.matchId,
-                  'targetUserId': match.partnerId,
-                  'userName': match.partnerName,
-                  'avatarUrl': match.partnerImage,
-                },
+              await _checkAndShowNotifications(
+                match.matchId,
+                match.partnerName,
               );
+
+              final bool matchStillExists = _matches.any(
+                (m) => m.matchId == match.matchId,
+              );
+
+              if (matchStillExists) {
+                await Navigator.pushNamed(
+                  context,
+                  '/chat',
+                  arguments: {
+                    'roomId': match.matchId,
+                    'targetUserId': match.partnerId,
+                    'userName': match.partnerName,
+                    'avatarUrl': match.partnerImage,
+                  },
+                );
+              }
               if (!mounted) return;
               await Future.wait([_loadMatches(), _loadChatRooms()]);
             },

@@ -29,6 +29,12 @@
               <span>About</span>
             </router-link>
           </li>
+          <li>
+            <router-link to="/contact" :class="{ active: $route.path === '/contact' }">
+              <Mail :size="18" :stroke-width="2" />
+              <span>Contact</span>
+            </router-link>
+          </li>
         </ul>
         <div class="navbar-right">
           <span class="user-email" v-if="authStore.userEmail">
@@ -101,22 +107,22 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
+import {
+  Code,
+  FileText,
+  Github,
+  Heart,
+  Info,
+  LogOut,
+  Mail,
+  Menu,
+  MessageCircleHeart,
+  Users,
+  X
+} from 'lucide-vue-next'
+import { computed, ref } from 'vue'
 import { RouterView, useRoute, useRouter } from 'vue-router'
 import { useAuthStore } from './stores/auth'
-import {
-  MessageCircleHeart,
-  FileText,
-  Users,
-  Info,
-  Menu,
-  X,
-  Github,
-  Code,
-  Heart,
-  LogOut,
-  Mail
-} from 'lucide-vue-next'
 
 const route = useRoute()
 const router = useRouter()
@@ -210,7 +216,9 @@ const handleLogout = async () => {
   padding: 0;
 }
 
-.navbar-menu li { display: flex; }
+.navbar-menu li {
+  display: flex;
+}
 
 .navbar-menu a {
   display: flex;
@@ -277,6 +285,7 @@ const handleLogout = async () => {
   font-family: inherit;
   transition: all var(--transition-base);
 }
+
 .btn-logout:hover {
   background: rgba(248, 113, 113, 0.15);
   border-color: rgba(248, 113, 113, 0.3);
@@ -296,7 +305,10 @@ const handleLogout = async () => {
   align-items: center;
   justify-content: center;
 }
-.mobile-menu-toggle:hover { background: rgba(96, 212, 255, 0.1); }
+
+.mobile-menu-toggle:hover {
+  background: rgba(96, 212, 255, 0.1);
+}
 
 .mobile-menu {
   display: flex;
@@ -320,10 +332,12 @@ const handleLogout = async () => {
   transition: all 0.2s ease;
   border: 1px solid transparent;
 }
+
 .mobile-menu a:hover {
   background: rgba(99, 118, 148, 0.1);
   color: var(--text-primary);
 }
+
 .mobile-menu a.active {
   background: rgba(96, 212, 255, 0.08);
   color: var(--brand-primary);
@@ -360,19 +374,32 @@ const handleLogout = async () => {
   font-family: inherit;
   transition: all 0.2s ease;
 }
+
 .mobile-logout:hover {
   background: rgba(248, 113, 113, 0.12);
 }
 
 /* Slide animation */
-.slide-down-enter-active, .slide-down-leave-active {
+.slide-down-enter-active,
+.slide-down-leave-active {
   transition: all 0.3s ease;
 }
-.slide-down-enter-from { opacity: 0; transform: translateY(-10px); }
-.slide-down-leave-to { opacity: 0; transform: translateY(-10px); }
+
+.slide-down-enter-from {
+  opacity: 0;
+  transform: translateY(-10px);
+}
+
+.slide-down-leave-to {
+  opacity: 0;
+  transform: translateY(-10px);
+}
 
 /* ===== Main Content ===== */
-.main-content { flex: 1; width: 100%; }
+.main-content {
+  flex: 1;
+  width: 100%;
+}
 
 /* ===== Footer ===== */
 .footer {
@@ -408,6 +435,7 @@ const handleLogout = async () => {
   padding: 0.375rem 0.625rem;
   border-radius: var(--radius-md);
 }
+
 .footer-link:hover {
   color: var(--brand-primary);
   background: rgba(96, 212, 255, 0.06);
@@ -435,31 +463,82 @@ const handleLogout = async () => {
 }
 
 @keyframes heartbeat {
-  0%, 100% { transform: scale(1); }
-  10%, 30% { transform: scale(1.15); }
-  20%, 40% { transform: scale(1.05); }
+
+  0%,
+  100% {
+    transform: scale(1);
+  }
+
+  10%,
+  30% {
+    transform: scale(1.15);
+  }
+
+  20%,
+  40% {
+    transform: scale(1.05);
+  }
 }
 
 @keyframes glowPulse {
-  0%, 100% { box-shadow: 0 0 15px rgba(96, 212, 255, 0.2); }
-  50% { box-shadow: 0 0 25px rgba(96, 212, 255, 0.35); }
+
+  0%,
+  100% {
+    box-shadow: 0 0 15px rgba(96, 212, 255, 0.2);
+  }
+
+  50% {
+    box-shadow: 0 0 25px rgba(96, 212, 255, 0.35);
+  }
 }
 
 /* ===== Responsive ===== */
 @media (max-width: 768px) {
-  .navbar-container { padding: 0.75rem 1rem; }
-  .brand-title { font-size: 1.125rem; }
-  .navbar-menu { display: none; }
-  .user-email { display: none; }
-  .logout-text { display: none; }
-  .btn-logout { padding: 0.5rem; }
-  .mobile-menu-toggle { display: flex; }
-  .footer-content { gap: 0.5rem; }
-  .footer-links { flex-direction: column; gap: 0.25rem; }
-  .footer-dot { display: none; }
+  .navbar-container {
+    padding: 0.75rem 1rem;
+  }
+
+  .brand-title {
+    font-size: 1.125rem;
+  }
+
+  .navbar-menu {
+    display: none;
+  }
+
+  .user-email {
+    display: none;
+  }
+
+  .logout-text {
+    display: none;
+  }
+
+  .btn-logout {
+    padding: 0.5rem;
+  }
+
+  .mobile-menu-toggle {
+    display: flex;
+  }
+
+  .footer-content {
+    gap: 0.5rem;
+  }
+
+  .footer-links {
+    flex-direction: column;
+    gap: 0.25rem;
+  }
+
+  .footer-dot {
+    display: none;
+  }
 }
 
 @media (min-width: 769px) {
-  .mobile-menu { display: none !important; }
+  .mobile-menu {
+    display: none !important;
+  }
 }
 </style>

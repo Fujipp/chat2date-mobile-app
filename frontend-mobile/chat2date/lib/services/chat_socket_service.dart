@@ -23,6 +23,10 @@ class ChatSocketService {
   final _messageController = StreamController<ChatMessage>.broadcast();
   final _accessController = StreamController<ChatAccessStatus>.broadcast();
   final _readController = StreamController<Map<String, dynamic>>.broadcast();
+  final _relationshipController =
+      StreamController<Map<String, dynamic>>.broadcast();
+  final _reviewController = StreamController<Map<String, dynamic>>.broadcast();
+  final _spinController = StreamController<Map<String, dynamic>>.broadcast();
   StompClient? _client;
   bool _connecting = false;
   bool _disposed = false;
@@ -31,6 +35,10 @@ class ChatSocketService {
   Stream<ChatMessage> get messageStream => _messageController.stream;
   Stream<ChatAccessStatus> get accessStream => _accessController.stream;
   Stream<Map<String, dynamic>> get readStream => _readController.stream;
+  Stream<Map<String, dynamic>> get relationshipStream =>
+      _relationshipController.stream;
+  Stream<Map<String, dynamic>> get reviewStream => _reviewController.stream;
+  Stream<Map<String, dynamic>> get spinStream => _spinController.stream;
 
   void connect() {
     if (_client != null || _connecting) return;
@@ -38,7 +46,8 @@ class ChatSocketService {
 
     final wsUrl = '${ApiBase.websocketBase}${ApiBase.websocketPath}';
     final headers = <String, String>{
-      if (accessToken?.isNotEmpty == true) 'Authorization': 'Bearer $accessToken',
+      if (accessToken?.isNotEmpty == true)
+        'Authorization': 'Bearer $accessToken',
     };
 
     _client = StompClient(
@@ -114,13 +123,71 @@ class ChatSocketService {
         } catch (_) {}
       },
     );
+
+    _client?.subscribe(
+      destination:
+          '/topic/relationship/$roomId', // ตรงกับที่เขียนใน Spring Boot
+      callback: (frame) {
+        final body = frame.body;
+        if (body == null) return;
+        try {
+          final json = jsonDecode(body) as Map<String, dynamic>;
+          _relationshipController.add(json); // ส่งข้อมูลเข้า Stream
+        } catch (e) {
+          print("Error decoding relationship stats: $e");
+        }
+      },
+    );
+    _client?.subscribe(
+      destination: '/topic/chat/$roomId/review',
+      callback: (frame) {
+        final body = frame.body;
+        if (body == null) return;
+        try {
+          final json = jsonDecode(body) as Map<String, dynamic>;
+          _reviewController.add(json);
+        } catch (e) {
+          print("Error decoding review event: $e");
+        }
+      },
+    );
+    _client?.subscribe(
+      destination: '/topic/chat/user/$userId',
+      callback: (frame) {
+        final body = frame.body;
+        if (body == null) return;
+        try {
+          final json = jsonDecode(body) as Map<String, dynamic>;
+          _reviewController.add(json);
+        } catch (e) {
+          print("Error decoding user review event: $e");
+        }
+      },
+    );
+    _client?.subscribe(
+      destination: '/topic/spin/$roomId',
+      callback: (frame) {
+        final body = frame.body;
+        if (body == null) return;
+        try {
+          final json = jsonDecode(body) as Map<String, dynamic>;
+          _spinController.add(
+            json,
+          ); // ส่งข้อมูล FRESH_MODE หรือ CMD_SPIN_START เข้า Stream
+        } catch (e) {
+          print("Error decoding spin event: $e");
+        }
+      },
+    );
   }
 
   void _scheduleReconnect() {
     if (_disposed) return;
     _reconnectAttempts = (_reconnectAttempts + 1).clamp(0, 10);
-    final int seconds =
-        min(30, 1 << (_reconnectAttempts - 1 >= 0 ? _reconnectAttempts - 1 : 0));
+    final int seconds = min(
+      30,
+      1 << (_reconnectAttempts - 1 >= 0 ? _reconnectAttempts - 1 : 0),
+    );
     final delay = Duration(seconds: max(1, seconds));
     Future.delayed(delay, () {
       if (_disposed) return;
@@ -148,6 +215,13 @@ class ChatSocketService {
     try {
       _readController.close();
     } catch (_) {}
+    try {
+      _relationshipController.close();
+    } catch (_) {
+      _reviewController.close();
+    }
+    try {
+      _spinController.close();
+    } catch (_) {}
   }
 }
-

@@ -1,3 +1,6 @@
+import 'package:chat2date/utils/backend_datetime_parser.dart';
+import 'package:geolocator/geolocator.dart';
+
 /// ประเภทข้อความ Bot ตาม Figma design
 enum BotMessageType {
   /// Bot Minigame - พื้นเหลือง พร้อมปุ่ม "เริ่ม" สีฟ้า (enabled)
@@ -36,6 +39,7 @@ class ChatMessage {
   final String? secondChoiceText;
   final int? answeredCount;
   final int? totalCount;
+  final String? gameStatus;
 
   const ChatMessage({
     required this.id,
@@ -54,6 +58,7 @@ class ChatMessage {
     this.answeredCount,
     this.totalCount,
     this.remainingSeconds,
+    this.gameStatus,
   });
 
   ChatMessage copyWith({
@@ -72,6 +77,7 @@ class ChatMessage {
     String? secondChoiceText,
     int? answeredCount,
     int? totalCount,
+    String? gameStatus,
   }) {
     return ChatMessage(
       id: id ?? this.id,
@@ -89,6 +95,7 @@ class ChatMessage {
       secondChoiceText: secondChoiceText ?? this.secondChoiceText,
       answeredCount: answeredCount ?? this.answeredCount,
       totalCount: totalCount ?? this.totalCount,
+      gameStatus: gameStatus ?? this.gameStatus,
     );
   }
 
@@ -100,31 +107,12 @@ class ChatMessage {
     final senderId = json['senderId']?.toString() ?? '';
     final message = json['message']?.toString() ?? '';
     final createdRaw = json['created']?.toString();
-    
-    // แปลง timestamp - Backend ส่งมาเป็น local time (Thailand) ไม่มี timezone marker
+
+    // แปลง timestamp - ใช้ parser กลางให้ logic ตรงกันทั้งแอป
     final typeStr =
         json['messageType']?.toString() ?? json['type']?.toString() ?? 'TEXT';
 
-    DateTime timestamp;
-    if (createdRaw != null) {
-      final parsedTime = DateTime.tryParse(createdRaw);
-      if (parsedTime != null) {
-        final hasTimezone = RegExp(r'(Z|[+-]\d{2}:?\d{2})$')
-            .hasMatch(createdRaw);
-        if (hasTimezone) {
-          // ถ้ามี timezone marker (Z หรือ +07:00) ให้แปลงเป็น local time
-          timestamp = parsedTime.isUtc ? parsedTime.toLocal() : parsedTime;
-        } else {
-          // ไม่มี timezone marker = Backend VM ใช้ UTC
-          // ต้องบวก 7 ชั่วโมงให้เป็น Thailand time (UTC+7)
-          timestamp = parsedTime.add(const Duration(hours: 7));
-        }
-      } else {
-        timestamp = DateTime.now();
-      }
-    } else {
-      timestamp = DateTime.now();
-    }
+    final timestamp = parseBackendDateTime(createdRaw) ?? DateTime.now();
     final isOwn = senderId == currentUserId;
     final rawRead =
         json['isRead'] ?? json['is_read'] ?? json['isread'] ?? json['read'];
@@ -142,6 +130,7 @@ class ChatMessage {
     String? displayTitle;
     String? displayDescription;
     String? btnText;
+    int? answerCount;
 
     if (senderId == 'SYSTEM' || typeStr != 'TEXT') {
       if (typeStr == 'GAME') {
@@ -151,9 +140,17 @@ class ChatMessage {
 
         displayDescription = message;
 
-    // Debug log เพื่อตรวจสอบค่า isRead ที่ได้รับจาก API
-    print('[ChatMessage.fromApi] messageId=${json['messageId']}, senderId=$senderId, currentUserId=$currentUserId, isOwn=$isOwn, rawRead=$rawRead (${rawRead.runtimeType}), messageRead=$messageRead, isSeen=${isOwn && messageRead}');
+        // Debug log เพื่อตรวจสอบค่า isRead ที่ได้รับจาก API
+        print(
+          '[ChatMessage.fromApi] messageId=${json['messageId']}, senderId=$senderId, currentUserId=$currentUserId, isOwn=$isOwn, rawRead=$rawRead (${rawRead.runtimeType}), messageRead=$messageRead, isSeen=${isOwn && messageRead}',
+        );
         btnText = "เข้าร่วม / เริ่มเกม";
+      } else if (typeStr == 'FAIL' &&
+          message.contains('ความคิดเห็นที่ไม่ตรงกัน')) {
+        isBotMessage = true;
+        displayTitle = "เสียใจด้วย!";
+        displayDescription = message;
+        mappedBotType = BotMessageType.askFail;
       } else if (typeStr == 'FAIL') {
         isBotMessage = true;
         mappedBotType = BotMessageType.minigameFail;
@@ -162,6 +159,31 @@ class ChatMessage {
         displayDescription = message;
 
         btnText = "เริ่มเกมใหม่";
+      } else if (typeStr == 'DATE') {
+        isBotMessage = true;
+        mappedBotType = BotMessageType.ask;
+        final parts = message.split('|');
+        displayTitle = parts[0].trim();
+        displayDescription = parts[1].trim();
+
+        // --- เพิ่มส่วนการแกะตัวเลขตรงนี้ ---
+        if (parts.length > 2) {
+          // parts[2] คือ "ตอบแล้ว 1/2"
+          final regExp = RegExp(r'(\d+)/(\d+)');
+          final match = regExp.firstMatch(parts[2]);
+
+          if (match != null) {
+            // ดึงเลข 1 และเลข 2 ออกมา
+            answerCount = int.tryParse(match.group(1) ?? '');
+          }
+        }
+
+        //displayDescription = ;
+      } else if (typeStr == 'SUCCESS') {
+        isBotMessage = true;
+        displayTitle = "สำเร็จ!";
+        displayDescription = message;
+        mappedBotType = BotMessageType.askSuccess;
       }
     }
 
@@ -182,9 +204,10 @@ class ChatMessage {
       description: displayDescription,
       actionButtonText: btnText,
       isActionDisabled: false,
+      answeredCount: answerCount,
     );
   }
-  
+
   /// สร้าง User message (ส่งออก - ขวา)
   factory ChatMessage.sent({
     required String id,
@@ -200,7 +223,7 @@ class ChatMessage {
       isSeen: isSeen,
     );
   }
-  
+
   /// สร้าง User message (รับเข้า - ซ้าย)
   factory ChatMessage.received({
     required String id,
@@ -246,8 +269,8 @@ class ChatMessage {
     required String id,
     required String text,
     required String description,
-    String firstChoiceText = 'ใช่',
-    String secondChoiceText = 'ไม่',
+    String firstChoiceText = 'ไป',
+    String secondChoiceText = 'ไม่ไป',
     int answeredCount = 0,
     int totalCount = 2,
     DateTime? timestamp,

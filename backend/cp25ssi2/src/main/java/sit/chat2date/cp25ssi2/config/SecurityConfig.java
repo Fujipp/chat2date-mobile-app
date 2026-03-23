@@ -25,19 +25,21 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
+                .cors(Customizer.withDefaults())
                 .csrf(csrf -> csrf.disable())
                 .authorizeHttpRequests(auth -> auth
-                                .requestMatchers("/preferences").permitAll()
-                                .requestMatchers("/auth/**").permitAll()
-                                .requestMatchers("/ws/**").permitAll()
-                                .requestMatchers("/users/*/restore").permitAll()
-                                .requestMatchers("/test/**").permitAll()
-                                .requestMatchers(HttpMethod.POST, "/users/phone").permitAll()
-                                .requestMatchers(HttpMethod.GET, "/users").hasRole(Role.ADMIN.name())
-                                .anyRequest().hasAnyRole(Role.USER.name(), Role.ADMIN.name())
-                        //.anyRequest().authenticated()
+                        .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
+                        .requestMatchers("/preferences").permitAll()
+                        .requestMatchers("/auth/**").permitAll()
+                        .requestMatchers("/ws/**").permitAll()
+                        .requestMatchers("/users/*/restore").permitAll()
+                        .requestMatchers("/test/**").permitAll()
+                        .requestMatchers(HttpMethod.POST, "/users/phone").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/users").hasRole(Role.ADMIN.name())
+                        .anyRequest().hasAnyRole(Role.USER.name(), Role.ADMIN.name())
                 )
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS));
+
         http.addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();

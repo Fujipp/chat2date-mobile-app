@@ -14,6 +14,7 @@ import sit.chat2date.cp25ssi2.entities.User;
 import sit.chat2date.cp25ssi2.exceptions.NotFoundException;
 import sit.chat2date.cp25ssi2.repositories.UserRepository;
 import sit.chat2date.cp25ssi2.services.IdentityService;
+import sit.chat2date.cp25ssi2.services.SosIncidentService;
 import sit.chat2date.cp25ssi2.services.UserService;
 
 import java.io.IOException;
@@ -22,39 +23,39 @@ import java.util.Map;
 import java.util.Optional;
 
 @RestController
+@RequestMapping("/users")
 public class UserController {
 
     @Autowired
     private UserRepository userRepository;
-
     @Autowired
     private UserService userService;
-
     @Autowired
     private IdentityService identityService;
 
-    @GetMapping("/users")
+
+    @GetMapping("")
     public List<User> getAllUsers() {
         return userRepository.findAll();
     }
 
-    @GetMapping("/users/{id}")
+    @GetMapping("/{id}")
     public User getUserById(@PathVariable String id) {
         return userRepository.findByUserId(id).orElseThrow(() -> new NotFoundException("User not found"));
     }
 
-    @PutMapping("/users/{id}")
+    @PutMapping("/{id}")
     public ResponseEntity<User> updateUserById(@PathVariable String id, @Valid @RequestBody User user) {
         return userService.updateUserById(id, user);
     }
 
-    @PostMapping("/users")
+    @PostMapping("")
     public ResponseEntity<User> createUser(@RequestBody User user) {
         User created = userService.createUser(user);
         return ResponseEntity.status(201).body(created);
     }
 
-    @DeleteMapping("/users/{id}")
+    @DeleteMapping("/{id}")
     public ResponseEntity<Void> deleteUser(@PathVariable String id) {
         return userService.deleteUser(id);
     }
@@ -62,14 +63,14 @@ public class UserController {
     /**
      * กู้คืนบัญชีที่ถูกลบปลอม (ภายใน 30 วัน)
      */
-    @PostMapping("/users/{id}/restore")
+    @PostMapping("/{id}/restore")
     public ResponseEntity<User> restoreUser(@PathVariable String id) {
         return userService.restoreUser(id);
     }
     /**
      * เช็คสถานะบัญชี (ว่าถูกลบปลอมหรือไม่)
      */
-    @GetMapping("/users/{id}/deletion-status")
+    @GetMapping("/{id}/deletion-status")
     public ResponseEntity<?> checkDeletionStatus(@PathVariable String id) {
         User user = userRepository.findByUserId(id).orElseThrow(() -> new NotFoundException("User not found"));
 
@@ -89,29 +90,29 @@ public class UserController {
         return ResponseEntity.ok(Map.of("isDeleted", false));
     }
 
-    @PostMapping("/users/preference")
+    @PostMapping("/preference")
     public ResponseEntity<PreferenceUserDTO> createUserPreference(@RequestHeader("Authorization") String accessToken, @RequestBody PreferenceUserDTO preferenceUser) {
         return userService.createUserPreference(accessToken, preferenceUser);
     }
 
-    @PostMapping("/users/phone")
+    @PostMapping("/phone")
     public boolean checkPhone(@RequestBody Map<String, String> requestBody) {
         String phoneNumber = requestBody.get("phoneNumber");
         User user = userRepository.findByPhoneNumber(phoneNumber).orElseThrow(() -> new NotFoundException("User not found"));
         return user != null;
     }
 
-    @PostMapping("/users/preferenceMatch")
+    @PostMapping("/preferenceMatch")
     public ResponseEntity<PreferenceMatchUserDTO> createUserPreferenceMatch(@RequestHeader("Authorization") String accessToken, @RequestBody PreferenceMatchUserDTO preferenceUser) {
         return userService.createUserPreferenceMatch(accessToken, preferenceUser);
     }
 
-    @GetMapping("/users/{id}/profile")
+    @GetMapping("/{id}/profile")
     public PreferenceUserProfileDTO getUserProfile(@PathVariable String id) {
         return userService.getUserProfile(id);
     }
 
-    @DeleteMapping("/users/{id}/photo")
+    @DeleteMapping("/{id}/photo")
     public ResponseEntity<Void> deletePhoto(
             @PathVariable String id,
             @RequestParam List<String> imageUrl
@@ -119,5 +120,6 @@ public class UserController {
         identityService.deleteUserPhoto(id, imageUrl);
         return ResponseEntity.noContent().build();
     }
+
 
 }

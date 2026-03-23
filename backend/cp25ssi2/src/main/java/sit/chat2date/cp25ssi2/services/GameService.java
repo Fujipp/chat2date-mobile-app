@@ -3,18 +3,24 @@ package sit.chat2date.cp25ssi2.services;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Lazy;
+import org.springframework.http.HttpStatus;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.server.ResponseStatusException;
 import sit.chat2date.cp25ssi2.clients.GeminiClient;
 import sit.chat2date.cp25ssi2.dto.*;
 import sit.chat2date.cp25ssi2.entities.*;
 import sit.chat2date.cp25ssi2.enums.GameSessionStatus;
+import sit.chat2date.cp25ssi2.enums.MessageType;
 import sit.chat2date.cp25ssi2.exceptions.ConflictException;
 import sit.chat2date.cp25ssi2.exceptions.ForbiddenAccessException;
 import sit.chat2date.cp25ssi2.exceptions.NotFoundException;
 import sit.chat2date.cp25ssi2.repositories.*;
 
+import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
@@ -35,7 +41,9 @@ public class GameService {
     private final ObjectMapper objectMapper;
     private final SimpMessagingTemplate messagingTemplate;
 
-    private final ChatService chatService;
+    @Lazy
+    @Autowired
+    private ChatService chatService;
 
     private final Map<String, Set<String>> readyPlayers = new java.util.concurrent.ConcurrentHashMap<>();
     private final Map<String, Object> roomLocks = new ConcurrentHashMap<>();
@@ -63,6 +71,23 @@ public class GameService {
                 throw new ForbiddenAccessException("You are not allowed to create a game for this room.");
             }
 
+            String user1Id = match.getUserId1().getUserId();
+            String user2Id = match.getUserId2().getUserId();
+
+            boolean isUser1Online = isUserOnline(roomId, user1Id);
+            boolean isUser2Online = isUserOnline(roomId, user2Id);
+
+            if (!isUser1Online || !isUser2Online) {
+                throw new ForbiddenAccessException(
+                        "ไม่สามารถเริ่มเกมได้ เนื่องจากอีกฝ่ายไม่ได้อยู่ในแชท"
+                );
+            }
+
+            Optional<RelationshipStats> statsOpt = relationshipStatsRepository.findByRoomId(roomId);
+            int currentScore = statsOpt.map(RelationshipStats::getScore).orElse(0);
+
+            int targetScore = calculateTargetScore(currentScore);
+
             Optional<GameSessions> existingSession = gameSessionRepository.findTopByRoomIdOrderByCreatedAtDesc(roomId.toString());
 
             if (existingSession.isPresent() && existingSession.get().getStatus() == GameSessionStatus.ACTIVE) {
@@ -76,14 +101,6 @@ public class GameService {
                     oldSession.setStatus(GameSessionStatus.FAILED);
                     gameSessionRepository.save(oldSession);
                 }
-
-//                try {
-//                    chatService.sendSystemMessage(
-//                            roomId,
-//                            "เกมรอบที่แล้วจบไม่สมบูรณ์ หรือหมดเวลา",
-//                            sit.chat2date.cp25ssi2.enums.MessageType.FAIL
-//                    );
-//                } catch (Exception e) {}
             }
 
             try {
@@ -98,7 +115,7 @@ public class GameService {
 
                 for (Message msg : messages) {
                     String senderId = msg.getSenderId();
-                    
+
                     if ("SYSTEM".equals(senderId)) {
                         continue;
                     }
@@ -116,13 +133,13 @@ public class GameService {
                 }
 
                 String jsonResult = geminiClient.generateQuestions(chatLogForAI.toString());
-                List<GameQuestionDTO> questions = objectMapper.readValue(jsonResult, new TypeReference<>() {
-                });
+                List<GameQuestionDTO> questions = objectMapper.readValue(jsonResult, new TypeReference<>() {});
 
                 GameSessions session = new GameSessions();
                 session.setRoomId(roomId.toString());
                 session.setStatus(GameSessionStatus.ACTIVE);
                 session.setTotalScore(0);
+                session.setTargetScore(targetScore);
                 session.setCreatedAt(LocalDateTime.now());
                 session = gameSessionRepository.save(session);
 
@@ -171,6 +188,22 @@ public class GameService {
         }
     }
 
+    private int calculateTargetScore(int score) {
+        if (score >= 375) return 375;
+        else if (score >= 350) return 350;
+        else if (score >= 325) return 325;
+        else if (score >= 275) return 275;
+        else if (score >= 250) return 250;
+        else if (score >= 225) return 225;
+        else if (score >= 175) return 175;
+        else if (score >= 150) return 150;
+        else if (score >= 125) return 125;
+        else if (score >= 75) return 75;
+        else if (score >= 50) return 50;
+        else if (score >= 25) return 25;
+        return 0;
+    }
+
     private GameStartResponse buildGameResponse(GameSessions session, String userId, Match match) {
         List<GameQuestions> questionsEntity = gameQuestionRepository.findAllByGameId(session.getGameId());
 
@@ -210,7 +243,7 @@ public class GameService {
         response.setGameId(session.getGameId());
         response.setMyAvatar(myAvatar);
         response.setPartnerAvatar(partnerAvatar);
-        response.setRelationshipScore(relScore);  
+        response.setRelationshipScore(relScore);
 
         return response;
     }
@@ -455,91 +488,106 @@ public class GameService {
                 .build();
     }
 
-    public void checkAndTriggerGame(Integer roomId, int currentScore) {
-        int targetScore = 0;
-        if (currentScore >= 75) {
-            targetScore = 75;
-        } else if (currentScore >= 50) {
-            targetScore = 50;
-        } else if (currentScore >= 25) {
-            targetScore = 25;
+    public void checkAndTriggerGame(Integer roomId) {
+        Optional<RelationshipStats> statsOpt = relationshipStatsRepository.findByRoomId(roomId);
+        if (statsOpt.isEmpty()) {
+            System.out.println("⛔ No relationship stats found for roomId: " + roomId);
+            return;
         }
 
-        if (targetScore == 0) return;
+        int currentScore = statsOpt.get().getScore();
 
         boolean hasActiveGame = gameSessionRepository.existsByRoomIdAndStatus(
-                roomId.toString(), GameSessionStatus.ACTIVE
+                roomId.toString(),
+                GameSessionStatus.ACTIVE
         );
-        if (hasActiveGame) return;
+        if (hasActiveGame) {
+            System.out.println("⛔ Game already active");
+            return;
+        }
 
-        long completedGamesCount = gameSessionRepository.countByRoomIdAndStatus(
-                roomId.toString(), GameSessionStatus.COMPLETED
-        );
+        System.out.println("=== LEVEL TRIGGER CHECK ===");
+        System.out.println("RoomId: " + roomId + " | Score: " + currentScore);
 
-        boolean shouldTrigger = false;
-        if (targetScore == 25 && completedGamesCount == 0) shouldTrigger = true;
-        else if (targetScore == 50 && completedGamesCount == 1) shouldTrigger = true;
-        else if (targetScore == 75 && completedGamesCount == 2) shouldTrigger = true;
+        int targetScore = calculateTargetScore(currentScore);
 
-        if (!shouldTrigger) return;
+        if (targetScore == 0) {
+            System.out.println("⛔ Score below 25, no trigger");
+            return;
+        }
 
-        Match match = matchRepository.findById(roomId).orElseThrow();
-        String user1 = match.getUserId1().getUserId();
-        String user2 = match.getUserId2().getUserId();
+        List<GameSessions> allSessions = gameSessionRepository.findAllByRoomId(roomId.toString());
 
-        if (isUserOnline(roomId, user1) && isUserOnline(roomId, user2)) {
-            System.out.println("🚀 AUTO TRIGGER GAME Level " + targetScore + " for Room: " + roomId);
+        boolean alreadyAutoTriggeredInThisLevel = allSessions.stream()
+                .anyMatch(s -> s.getTargetScore() != null && s.getTargetScore().equals(targetScore));
+
+        if (alreadyAutoTriggeredInThisLevel) {
+            System.out.println("⛔ Already auto-triggered game for score level " + targetScore);
+            return;
+        }
+
+        Match match = matchRepository.findById(roomId)
+                .orElseThrow(() -> new NotFoundException("Match not found"));
+
+        if (isUserOnline(roomId, match.getUserId1().getUserId())
+                && isUserOnline(roomId, match.getUserId2().getUserId())) {
+
+            System.out.println("🚀 AUTO TRIGGER GAME at score level " + targetScore);
 
             Map<String, Object> payload = new HashMap<>();
             payload.put("type", "GAME_START");
             payload.put("level", targetScore);
 
             messagingTemplate.convertAndSend("/topic/games/" + roomId, payload);
+        } else {
+            System.out.println("⛔ One or both users are offline");
         }
     }
 
     @Transactional
     public void gameTimeout(String gameId) {
-        Optional<GameSessions> sessionOpt = gameSessionRepository.findById(gameId);
 
-        if (sessionOpt.isPresent()) {
-            GameSessions session = sessionOpt.get();
-            String roomId = session.getRoomId();
+        GameSessions session = gameSessionRepository.findById(gameId)
+                .orElseThrow(() -> new NotFoundException("Game session not found"));
 
-            Object lock = roomLocks.computeIfAbsent(roomId, k -> new Object());
+        String roomId = session.getRoomId();
+        Object lock = roomLocks.computeIfAbsent(roomId, k -> new Object());
 
-            synchronized (lock) {
-                GameSessions currentSession = gameSessionRepository.findById(gameId)
-                        .orElseThrow(() -> new NotFoundException("Game session not found"));
+        synchronized (lock) {
 
-                if (currentSession.getStatus() == GameSessionStatus.ACTIVE) {
-                    currentSession.setStatus(GameSessionStatus.FAILED);
-                    gameSessionRepository.save(currentSession);
+            GameSessions currentSession = gameSessionRepository.findById(gameId)
+                    .orElseThrow(() -> new NotFoundException("Game session not found"));
 
-                    try {
-                        chatService.sendSystemMessage(
-                                Integer.parseInt(currentSession.getRoomId()),
-                                "เกมรอบที่แล้วจบไม่สมบูรณ์ หรือหมดเวลา",
-                                sit.chat2date.cp25ssi2.enums.MessageType.FAIL
-                        );
-                    } catch (Exception e) {
-                        System.err.println("Error saving timeout message: " + e.getMessage());
-                    }
+            if (currentSession.getStatus() == GameSessionStatus.ACTIVE) {
+                currentSession.setStatus(GameSessionStatus.FAILED);
+                gameSessionRepository.save(currentSession);
 
-                    LocalDateTime unlockTime = currentSession.getCreatedAt().plusHours(24);
-                    long secondsLeft = java.time.Duration.between(LocalDateTime.now(), unlockTime).getSeconds();
-
-                    Map<String, Object> payload = new HashMap<>();
-                    payload.put("type", "GAME_CANCELLED");
-                    payload.put("remainingSeconds", secondsLeft);
-                    messagingTemplate.convertAndSend("/topic/games/" + currentSession.getRoomId(), payload);
+                try {
+                    chatService.sendSystemMessage(
+                            Integer.parseInt(currentSession.getRoomId()),
+                            "เกมรอบที่แล้วจบไม่สมบูรณ์ หรือหมดเวลา",
+                            MessageType.FAIL
+                    );
+                } catch (Exception e) {
+                    System.err.println("Error saving timeout message: " + e.getMessage());
                 }
+
+                LocalDateTime unlockTime = currentSession.getCreatedAt().plusHours(24);
+                long secondsLeft = Duration.between(LocalDateTime.now(), unlockTime).getSeconds();
+
+                Map<String, Object> payload = new HashMap<>();
+                payload.put("type", "GAME_CANCELLED");
+                payload.put("remainingSeconds", secondsLeft);
+
+                messagingTemplate.convertAndSend(
+                        "/topic/games/" + currentSession.getRoomId(),
+                        payload
+                );
             }
         }
     }
 
     private boolean isUserOnline(Integer roomId, String userId) {
-        System.out.println("test");
         return chatAccessLogRepository.findFirstByRoomIdAndUserIdOrderByCreatedAtDesc(roomId, userId)
                 .map(log -> sit.chat2date.cp25ssi2.enums.ChatAccessActionType.ENTER.equals(log.getActionType()))
                 .orElse(false);

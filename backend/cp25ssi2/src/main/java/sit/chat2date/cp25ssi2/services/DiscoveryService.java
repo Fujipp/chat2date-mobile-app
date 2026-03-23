@@ -87,7 +87,7 @@ public class DiscoveryService {
             candidates = userRepository.findCandidatesBasic(
                     userId,
                     myLocation.getLatitude().doubleValue(),
-                    myLocation.getLongtitude().doubleValue(),
+                    myLocation.getLongitude().doubleValue(),
                     minDistance,
                     maxDistance,
                     pref.getInterestedAgeMin(),
@@ -99,7 +99,7 @@ public class DiscoveryService {
             candidates = userRepository.findCandidatesWithPreference(
                     userId,
                     myLocation.getLatitude().doubleValue(),
-                    myLocation.getLongtitude().doubleValue(),
+                    myLocation.getLongitude().doubleValue(),
                     minDistance,
                     maxDistance,
                     pref.getInterestedAgeMin(),
@@ -173,9 +173,9 @@ public class DiscoveryService {
         }
 
         double lat1 = loc1.getLatitude().doubleValue();
-        double lon1 = loc1.getLongtitude().doubleValue();
+        double lon1 = loc1.getLongitude().doubleValue();
         double lat2 = loc2.getLatitude().doubleValue();
-        double lon2 = loc2.getLongtitude().doubleValue();
+        double lon2 = loc2.getLongitude().doubleValue();
 
         // Haversine formula
         final double EARTH_RADIUS_KM = 6371;

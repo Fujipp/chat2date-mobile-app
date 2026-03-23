@@ -28,10 +28,17 @@ class WaitingView extends StatefulWidget {
 }
 
 class _WaitingViewState extends State<WaitingView> {
+  // 🔥 Static variable เก็บว่ารูปโหลดไปแล้วหรือยัง (ข้าม Widget lifecycle)
+  static final Set<String> _loadedImageUrls = {};
+
   Timer? _countdownTimer;
   int? _remainingSeconds;
 
   bool _hasTimerStarted = false;
+  bool _isLoading = true;
+
+  ImageProvider? _myImageProvider;
+  ImageProvider? _partnerImageProvider;
 
   @override
   void initState() {
@@ -41,18 +48,231 @@ class _WaitingViewState extends State<WaitingView> {
     debugPrint("👤 My Avatar: '${widget.myAvatarUrl}'");
     debugPrint("👥 Partner Avatar: '${widget.partnerAvatarUrl}'");
     debugPrint("--------------------------------------------------");
+
+    // 🔥 ถ้า URL ว่างเปล่า → ยังคง loading รอ API
+    bool hasValidUrls =
+        (widget.myAvatarUrl?.isNotEmpty ?? false) ||
+        (widget.partnerAvatarUrl?.isNotEmpty ?? false);
+
+    if (!hasValidUrls) {
+      debugPrint("⏸️ URLs not ready yet. Staying in loading...");
+      // ⬅️ ไม่ต้อง set _isLoading = false เพราะเราต้องการให้ขึ้น loading
+      return;
+    }
+
+    // เช็ค cache ตั้งแต่เริ่มต้น
+    bool myImageAlreadyLoaded =
+        widget.myAvatarUrl != null &&
+        widget.myAvatarUrl!.isNotEmpty &&
+        _loadedImageUrls.contains(widget.myAvatarUrl);
+    bool partnerImageAlreadyLoaded =
+        widget.partnerAvatarUrl != null &&
+        widget.partnerAvatarUrl!.isNotEmpty &&
+        _loadedImageUrls.contains(widget.partnerAvatarUrl);
+
+    bool allImagesInCache = myImageAlreadyLoaded && partnerImageAlreadyLoaded;
+
+    debugPrint("📦 Initial Cache Check:");
+    debugPrint("   My Image in cache: $myImageAlreadyLoaded");
+    debugPrint("   Partner Image in cache: $partnerImageAlreadyLoaded");
+    debugPrint("   All in cache: $allImagesInCache");
+
+    // ถ้ารูปอยู่ใน cache หมดแล้ว → ไม่ต้องโหลดเลย
+    if (allImagesInCache) {
+      _isLoading = false;
+      debugPrint("✅ Skip loading! Images already cached.");
+    }
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (_isLoading) {
+        _initializeData();
+      }
+    });
   }
 
   @override
   void didUpdateWidget(WaitingView oldWidget) {
     super.didUpdateWidget(oldWidget);
 
-    // 🔥 ถ้ามีคนพร้อมคนแรก และยัง start timer ไม่ได้ → start เลย
-    final bool someoneIsReady = widget.isMeReady || widget.isPartnerReady;
+    bool myUrlChanged = widget.myAvatarUrl != oldWidget.myAvatarUrl;
+    bool partnerUrlChanged =
+        widget.partnerAvatarUrl != oldWidget.partnerAvatarUrl;
 
+    // 🔥 ถ้า URL เปลี่ยนจาก empty → มีค่า (API response มาแล้ว)
+    bool urlsJustArrived =
+        (myUrlChanged &&
+            (oldWidget.myAvatarUrl?.isEmpty ?? true) &&
+            (widget.myAvatarUrl?.isNotEmpty ?? false)) ||
+        (partnerUrlChanged &&
+            (oldWidget.partnerAvatarUrl?.isEmpty ?? true) &&
+            (widget.partnerAvatarUrl?.isNotEmpty ?? false));
+
+    if (urlsJustArrived) {
+      debugPrint("🆕 URLs just arrived! Starting loading...");
+
+      // 🔥 ขึ้น loading เสมอ (ไม่เช็ค cache ก่อน)
+      if (mounted) {
+        setState(() {
+          _isLoading = true;
+        });
+
+        // รอให้ UI update แล้วค่อยโหลด
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          _loadImagesAndShow();
+        });
+      }
+      return;
+    }
+
+    // ถ้า URL เปลี่ยนแต่ไม่ใช่กรณี empty → มีค่า (แค่ refresh background)
+    if (myUrlChanged || partnerUrlChanged) {
+      debugPrint("🔄 URL Update detected. Background refreshing...");
+      _preloadImages().then((_) {
+        if (mounted) setState(() {});
+      });
+    }
+
+    // ถ้ามีคนพร้อมคนแรก → start timer
+    final bool someoneIsReady = widget.isMeReady || widget.isPartnerReady;
     if (someoneIsReady && !_hasTimerStarted) {
       debugPrint("⏰ Someone is ready! Starting countdown...");
       _startCountdown();
+    }
+  }
+
+  // 🔥 ฟังก์ชันใหม่: โหลดรูปและแสดงผล
+  Future<void> _loadImagesAndShow() async {
+    debugPrint("⏳ Loading images...");
+
+    // เช็คว่ารูปอยู่ใน cache หรือยัง
+    bool myImageAlreadyLoaded =
+        widget.myAvatarUrl != null &&
+        widget.myAvatarUrl!.isNotEmpty &&
+        _loadedImageUrls.contains(widget.myAvatarUrl);
+    bool partnerImageAlreadyLoaded =
+        widget.partnerAvatarUrl != null &&
+        widget.partnerAvatarUrl!.isNotEmpty &&
+        _loadedImageUrls.contains(widget.partnerAvatarUrl);
+
+    bool allImagesInCache = myImageAlreadyLoaded && partnerImageAlreadyLoaded;
+
+    debugPrint("📦 Cache Status:");
+    debugPrint("   My Image in cache: $myImageAlreadyLoaded");
+    debugPrint("   Partner Image in cache: $partnerImageAlreadyLoaded");
+    debugPrint("   All in cache: $allImagesInCache");
+
+    if (allImagesInCache) {
+      // ถ้าอยู่ใน cache แล้ว → set provider แล้วแสดงทันที (User B)
+      debugPrint("✅ Images in cache! Setting providers...");
+
+      if (widget.myAvatarUrl?.isNotEmpty == true &&
+          !widget.myAvatarUrl!.toLowerCase().endsWith('.svg')) {
+        _myImageProvider = NetworkImage(widget.myAvatarUrl!);
+      }
+      if (widget.partnerAvatarUrl?.isNotEmpty == true &&
+          !widget.partnerAvatarUrl!.toLowerCase().endsWith('.svg')) {
+        _partnerImageProvider = NetworkImage(widget.partnerAvatarUrl!);
+      }
+
+      // แสดงทันที
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
+    } else {
+      // ถ้ายังไม่มีใน cache → โหลดจาก network (User A)
+      debugPrint("📥 Loading from network...");
+      await _preloadImages();
+
+      // รอให้แน่ใจว่า log ขึ้นหมดแล้ว
+      await Future.delayed(const Duration(milliseconds: 100));
+
+      // รอให้ครบ 1.5 วินาที
+      debugPrint("⏳ Wait 1.5s for smooth transition");
+      await Future.delayed(const Duration(milliseconds: 1500));
+
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
+    }
+
+    debugPrint("✅ Ready to show game!");
+  }
+
+  Future<void> _initializeData() async {
+    debugPrint("⏳ Loading new images...");
+
+    // โหลดรูปใหม่
+    await _preloadImages();
+
+    // รอให้แน่ใจว่า log ขึ้นหมดแล้ว
+    await Future.delayed(const Duration(milliseconds: 100));
+
+    // รอให้ครบ 1.5 วินาที (User A)
+    debugPrint("⏳ Wait 1.5s for smooth transition");
+    await Future.delayed(const Duration(milliseconds: 1500));
+
+    if (mounted) {
+      setState(() {
+        _isLoading = false;
+      });
+    }
+
+    debugPrint("✅ Ready to show game!");
+  }
+
+  Future<void> _preloadImages() async {
+    List<Future> tasks = [];
+
+    // โหลดรูปฉัน
+    if (widget.myAvatarUrl?.isNotEmpty ?? false) {
+      if (!widget.myAvatarUrl!.toLowerCase().endsWith('.svg')) {
+        _myImageProvider = NetworkImage(widget.myAvatarUrl!);
+        tasks.add(
+          precacheImage(_myImageProvider!, context)
+              .then((_) {
+                // เก็บ URL ที่โหลดเสร็จแล้ว
+                _loadedImageUrls.add(widget.myAvatarUrl!);
+                debugPrint("✅ My image cached: ${widget.myAvatarUrl}");
+              })
+              .catchError((e) {
+                debugPrint("❌ My Image Error: $e");
+              }),
+        );
+      }
+    }
+
+    // โหลดรูปคู่
+    if (widget.partnerAvatarUrl?.isNotEmpty ?? false) {
+      if (!widget.partnerAvatarUrl!.toLowerCase().endsWith('.svg')) {
+        _partnerImageProvider = NetworkImage(widget.partnerAvatarUrl!);
+        tasks.add(
+          precacheImage(_partnerImageProvider!, context)
+              .then((_) {
+                // เก็บ URL ที่โหลดเสร็จแล้ว
+                _loadedImageUrls.add(widget.partnerAvatarUrl!);
+                debugPrint(
+                  "✅ Partner image cached: ${widget.partnerAvatarUrl}",
+                );
+              })
+              .catchError((e) {
+                debugPrint("❌ Partner Image Error: $e");
+              }),
+        );
+      }
+    }
+
+    if (tasks.isNotEmpty) {
+      try {
+        // 🔥 รอให้ทุก task เสร็จจริงๆ
+        await Future.wait(tasks);
+        debugPrint("✅ All precache tasks completed!");
+      } catch (e) {
+        debugPrint("⚠️ Image load warning: $e");
+      }
     }
   }
 
@@ -87,6 +307,42 @@ class _WaitingViewState extends State<WaitingView> {
 
   @override
   Widget build(BuildContext context) {
+    // แสดง Loading Screen ถ้ายังโหลดไม่เสร็จ
+    if (_isLoading) {
+      return Scaffold(
+        backgroundColor: Colors.white,
+        body: SafeArea(
+          child: Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                SvgPicture.asset(
+                  "assets/images/question.svg",
+                  width: 100,
+                  height: 100,
+                ),
+                const SizedBox(height: 32),
+                const CircularProgressIndicator(
+                  valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF5CE1E6)),
+                  strokeWidth: 3,
+                ),
+                const SizedBox(height: 24),
+                const Text(
+                  'กำลังเตรียมเกม...',
+                  style: TextStyle(
+                    color: Color(0xFF64748B),
+                    fontSize: 16,
+                    fontFamily: 'Inter',
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+    }
+
     final bool isMeReady = widget.isMeReady;
     final bool isPartnerReady = widget.isPartnerReady;
     final bool isTimerStarted = _remainingSeconds != null;
@@ -163,7 +419,7 @@ class _WaitingViewState extends State<WaitingView> {
 
               const Spacer(),
 
-              // 🔥 Timer Widget
+              // Timer Widget
               if (isTimerStarted) ...[
                 Container(
                   padding: const EdgeInsets.symmetric(
@@ -233,6 +489,7 @@ class _WaitingViewState extends State<WaitingView> {
                         isReady: isMeReady,
                         label: 'คุณ',
                         avatarUrl: widget.myAvatarUrl,
+                        provider: _myImageProvider,
                       ),
                       const SizedBox(width: 24),
                       const Icon(
@@ -245,6 +502,7 @@ class _WaitingViewState extends State<WaitingView> {
                         isReady: isPartnerReady,
                         label: 'คู่',
                         avatarUrl: widget.partnerAvatarUrl,
+                        provider: _partnerImageProvider,
                       ),
                     ],
                   ),
@@ -299,6 +557,7 @@ class _WaitingViewState extends State<WaitingView> {
     required bool isReady,
     required String label,
     String? avatarUrl,
+    ImageProvider? provider,
   }) {
     Widget imageWidget;
     if (avatarUrl != null && avatarUrl.isNotEmpty) {
@@ -310,9 +569,10 @@ class _WaitingViewState extends State<WaitingView> {
               const Icon(Icons.person, color: Color(0xFF94A3B8)),
         );
       } else {
-        imageWidget = Image.network(
-          avatarUrl,
+        imageWidget = Image(
+          image: provider ?? NetworkImage(avatarUrl),
           fit: BoxFit.cover,
+          gaplessPlayback: true,
           errorBuilder: (context, error, stackTrace) {
             debugPrint("❌ LOAD IMAGE ERROR: $error");
             return const Icon(Icons.person, color: Color(0xFF94A3B8));

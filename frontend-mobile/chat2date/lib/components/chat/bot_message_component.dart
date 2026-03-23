@@ -308,7 +308,8 @@ class _BotMessageComponentState extends State<BotMessageComponent> {
           'ตอบแล้ว ${widget.answeredCount}/${widget.totalCount}',
           textAlign: TextAlign.center,
           style: const TextStyle(
-            color: AppColors.textMuted,
+            //color: AppColors.textMuted,
+            color: AppColors.error,
             fontSize: 10,
             fontFamily: 'Inter',
             fontWeight: FontWeight.w400,
@@ -321,14 +322,14 @@ class _BotMessageComponentState extends State<BotMessageComponent> {
           children: [
             // ปุ่ม "ไม่" (แดง)
             _buildChoiceButton(
-              text: widget.secondChoiceText ?? 'ไม่',
+              text: widget.secondChoiceText ?? 'ไม่ไป',
               color: const Color(0xFFFF6B6B),
               onPressed: widget.onSecondChoice,
             ),
             const SizedBox(width: 12),
             // ปุ่ม "ใช่" (เขียว)
             _buildChoiceButton(
-              text: widget.firstChoiceText ?? 'ใช่',
+              text: widget.firstChoiceText ?? 'ไป',
               color: const Color(0xFF98FB98),
               onPressed: widget.onFirstChoice,
             ),
@@ -408,19 +409,21 @@ class _BotMessageComponentState extends State<BotMessageComponent> {
     required Color color,
     VoidCallback? onPressed,
   }) {
+    final bool isDisabled = onPressed == null;
+
     return GestureDetector(
       onTap: onPressed,
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 10),
         decoration: BoxDecoration(
-          color: color,
+          color: isDisabled ? AppColors.btnDisabledPrimary : color,
           borderRadius: BorderRadius.circular(16),
         ),
         child: Text(
           text,
           textAlign: TextAlign.center,
-          style: const TextStyle(
-            color: AppColors.textPrimary,
+          style: TextStyle(
+            color: isDisabled ? AppColors.textMuted : AppColors.neutral100,
             fontSize: 14,
             fontFamily: 'Inter',
             fontWeight: FontWeight.w700,

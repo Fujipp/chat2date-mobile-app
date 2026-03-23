@@ -7,14 +7,13 @@ import sit.chat2date.cp25ssi2.dto.MatchDTO;
 import sit.chat2date.cp25ssi2.dto.MatchListResponse;
 import sit.chat2date.cp25ssi2.dto.PhotoDTO;
 import sit.chat2date.cp25ssi2.entities.Match;
+import sit.chat2date.cp25ssi2.entities.RelationshipStats;
 import sit.chat2date.cp25ssi2.entities.User;
+import sit.chat2date.cp25ssi2.enums.NotifyStatus;
 import sit.chat2date.cp25ssi2.exceptions.BadRequestException;
 import sit.chat2date.cp25ssi2.exceptions.ForbiddenAccessException;
 import sit.chat2date.cp25ssi2.exceptions.NotFoundException;
-import sit.chat2date.cp25ssi2.repositories.MatchRepository;
-import sit.chat2date.cp25ssi2.repositories.MessageRepository;
-import sit.chat2date.cp25ssi2.repositories.UserPhotoRepository;
-import sit.chat2date.cp25ssi2.repositories.UserRepository;
+import sit.chat2date.cp25ssi2.repositories.*;
 
 import java.util.Collections;
 import java.util.List;
@@ -30,6 +29,7 @@ public class MatchService {
     private final UserPhotoRepository userPhotoRepository;
     private final MessageRepository messageRepository;
     private final ObjectMapper objectMapper;
+    private final RelationshipStatsRepository relationshipStatsRepository;
 
     /**
      * Get all matches for a user
@@ -41,15 +41,24 @@ public class MatchService {
         List<Match> matches = matchRepository.findAllByUser(user);
 
         List<MatchDTO> matchDTOs = matches.stream().map(match -> {
-                    User partner = match.getUserId1().getUserId().equals(userId)
-                            ? match.getUserId2()
-                            : match.getUserId1();
-
-                    if (match.getDeleteFlag()) {
-                        return null;
-                    }
-
                     Integer roomId = match.getId();
+
+                    // ดึง stats มาเช็ค
+                    RelationshipStats stats = relationshipStatsRepository.findByRoomId(roomId).orElse(null);
+                    if (stats != null) {
+                        boolean isUser1 = match.getUserId1().getUserId().equals(userId);
+                        NotifyStatus unmatchStatus = stats.getNotiUnmatch();
+                        NotifyStatus mySide = isUser1 ? NotifyStatus.LEFT : NotifyStatus.RIGHT;
+
+                        // ถ้าสถานะเป็น BOTH หรือเป็นฝั่งเราเอง แปลว่าแจ้งเตือน "จบความสัมพันธ์" ไปแล้ว
+                        // ให้คืนค่า null เพื่อ filter ออกจาก List (ทำให้ห้องหายไป)
+                        if (unmatchStatus == NotifyStatus.BOTH || unmatchStatus == mySide) {
+                            return null;
+                        }
+                    }
+                    User partner = match.getUserId1().getUserId().equals(userId)
+                            ? match.getUserId2() : match.getUserId1();
+
                     boolean hasMessages = messageRepository.findFirstByRoomIdOrderByCreatedAtDesc(roomId).isPresent();
                     String type = hasMessages ? "old" : "new";
 

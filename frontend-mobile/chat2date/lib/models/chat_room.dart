@@ -1,3 +1,5 @@
+import 'package:chat2date/utils/backend_datetime_parser.dart';
+
 /// Model สำหรับข้อมูลห้องแชท
 /// ใช้กับ GET /api/v1/chats/rooms
 class ChatRoom {
@@ -28,9 +30,9 @@ class ChatRoom {
       partnerName: json['partnerName'] ?? '',
       partnerImage: json['partnerImage'],
       lastMessage: json['lastMessage'],
-      lastMessageTime: json['lastMessageTime'] != null
-          ? DateTime.tryParse(json['lastMessageTime'].toString())
-          : null,
+      lastMessageTime: parseBackendDateTime(
+        json['lastMessageTime']?.toString(),
+      ),
       unreadCount: json['unreadCount'] ?? 0,
       type: json['type'] ?? 'old',
     );

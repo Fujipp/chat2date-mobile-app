@@ -15,7 +15,6 @@ import 'package:chat2date/components/inputs/index.dart';
 import 'package:chat2date/components/layout/header.dart';
 import 'package:chat2date/components/layout/menu_bar.dart';
 import 'package:chat2date/components/layout/responsive_container.dart';
-import 'package:chat2date/components/status_bar/gps_alert.dart';
 // Status Bar components
 import 'package:chat2date/components/status_bar/score_row.dart';
 import 'package:chat2date/components/toasts/toast.dart';
@@ -354,8 +353,7 @@ class _ComponentTestScreenState extends State<ComponentTestScreen> {
 
           const SizedBox(height: 12),
 
-          const GpsMapAlert(),
-
+          // const GpsMapAlert(),
           const SizedBox(height: 24),
 
           const Text(

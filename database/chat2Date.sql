@@ -35,6 +35,7 @@ CREATE TABLE IF NOT EXISTS `chat2date`.`user` (
   `role` ENUM('USER', 'ADMIN') NOT NULL,
   `deleted_at` TIMESTAMP NULL,
   `delete_flag` BOOLEAN  NULL DEFAULT FALSE,
+  `isTutorial` tinyint(1) DEFAULT '0',
   PRIMARY KEY (`userId`),
   UNIQUE INDEX `Email` (`email` ASC) VISIBLE,
   UNIQUE INDEX `PhoneNumber` (`phoneNumber` ASC) VISIBLE,
@@ -186,7 +187,7 @@ COLLATE = utf8mb4_0900_ai_ci;
 CREATE TABLE IF NOT EXISTS `chat2date`.`userlocation` (
   `locationId` INT NOT NULL AUTO_INCREMENT,
   `latitude` DECIMAL(11,8) NOT NULL,
-  `longtitude` DECIMAL(11,8) NOT NULL,
+  `longitude` DECIMAL(11,8) NOT NULL,
   `accuracy` DECIMAL(6,2) NOT NULL,
   `timestamp` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `userId` VARCHAR(36) NOT NULL,
@@ -360,7 +361,7 @@ CREATE TABLE IF NOT EXISTS `chat2date`.`messages` (
   `roomId` INT NOT NULL,  -- (FK to match table)
   `senderId` VARCHAR(36) NULL, -- (FK to user table)
   `message` TEXT NOT NULL,
-  `messageType` ENUM('TEXT', 'GAME', 'SUCCESS', 'FAIL') NOT NULL DEFAULT 'TEXT',
+  `messageType` ENUM('TEXT', 'GAME', 'SUCCESS', 'FAIL', 'DATE') NOT NULL DEFAULT 'TEXT',
   `isRead` BOOLEAN NOT NULL DEFAULT FALSE,
   `createdAt` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (`messageId`),
@@ -438,6 +439,8 @@ CREATE TABLE IF NOT EXISTS `chat2date`.`relationship_stats` (
   `dailyDate` DATE NULL, -- เอาไว้นับวันสำหรับ dailyMessageCount
   `createdAt` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `updatedAt` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  `notiBeforeUnmatch` enum('NONE','LEFT','RIGHT','BOTH') NOT NULL DEFAULT 'NONE',
+  `notiUnmatch` enum('NONE','LEFT','RIGHT','BOTH') NOT NULL DEFAULT 'NONE',
   PRIMARY KEY (`relationshipId`),
   CONSTRAINT `fk_relationship_match`
     FOREIGN KEY (`relationshipId`)
@@ -452,7 +455,10 @@ CREATE TABLE IF NOT EXISTS `chat2date`.`game_sessions` (
   `totalScore` INT NOT NULL DEFAULT 0,
   `status` ENUM('ACTIVE', 'COMPLETED', 'FAILED') NOT NULL DEFAULT 'ACTIVE',
   `createdAt` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `targetScore` INT NOT NULL DEFAULT 25 CHECK (`targetScore` IN (25, 50, 75)),
   PRIMARY KEY (`gameId`),
+  INDEX `idx_roomId_status` (`roomId`, `status`),
+  INDEX `idx_roomId_targetScore` (`roomId`, `targetScore`),
   CONSTRAINT `fk_game_match`
     FOREIGN KEY (`roomId`)
     REFERENCES `chat2date`.`match` (`matchId`)
@@ -492,6 +498,147 @@ CREATE TABLE IF NOT EXISTS `chat2date`.`game_answers` (
   CONSTRAINT `fk_answers_question`
     FOREIGN KEY (`questionId`)
     REFERENCES `chat2date`.`game_questions` (`questionId`)
+    ON DELETE CASCADE
+) ENGINE = InnoDB DEFAULT CHARACTER SET = utf8mb4;
+
+-- =====================================================
+-- RELEASE 3: DATE SPOT, APPOINTMENT, SOS, REVIEW
+-- =====================================================
+
+-- 1. Table: Places 
+CREATE TABLE IF NOT EXISTS `chat2date`.`places` (
+  `placeId` VARCHAR(255) NOT NULL, 
+  `placeName` VARCHAR(255) NOT NULL,
+  `address` TEXT NULL,
+  `imageUrl` TEXT NULL,
+  `latitude` DECIMAL(11,8) NOT NULL,
+  `longitude` DECIMAL(11,8) NOT NULL,
+  `createdAt` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`placeId`)
+) ENGINE = InnoDB DEFAULT CHARACTER SET = utf8mb4;
+
+
+-- 2. Table: Appointments 
+CREATE TABLE IF NOT EXISTS `chat2date`.`appointments` (
+  `appointmentId` INT NOT NULL AUTO_INCREMENT,
+  `roomId` INT NOT NULL, 
+  `placeId` VARCHAR(255) NOT NULL, 
+  `dateTime` DATETIME NULL, 
+  `status` ENUM('PLACE_SELECTED', 'SCHEDULED', 'CANCELLED', 'COMPLETED') NOT NULL DEFAULT 'PLACE_SELECTED',
+  `isNotified` BOOLEAN NOT NULL DEFAULT FALSE,
+  `createdAt` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `updatedAt` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (`appointmentId`),
+  INDEX `idx_appointments_roomId` (`roomId` ASC) VISIBLE,
+  INDEX `idx_appointments_placeId` (`placeId` ASC) VISIBLE,
+  CONSTRAINT `fk_appointments_match`
+    FOREIGN KEY (`roomId`)
+    REFERENCES `chat2date`.`match` (`matchId`)
+    ON DELETE CASCADE,
+  CONSTRAINT `fk_appointments_place`
+    FOREIGN KEY (`placeId`)
+    REFERENCES `chat2date`.`places` (`placeId`)
+    ON DELETE CASCADE
+) ENGINE = InnoDB DEFAULT CHARACTER SET = utf8mb4;
+
+CREATE TABLE IF NOT EXISTS `chat2date`.`place_confirmations` (
+  `confirmId` INT NOT NULL AUTO_INCREMENT,
+  `roomId` INT NOT NULL, 
+  `placeId` VARCHAR(255) NOT NULL,  
+  `user1Confirmed` ENUM('AGREED', 'DISAGREED', 'BLANK') NOT NULL DEFAULT 'BLANK',
+  `user2Confirmed` ENUM('AGREED', 'DISAGREED', 'BLANK') NOT NULL DEFAULT 'BLANK',
+  `status` ENUM('PENDING', 'AGREED', 'REJECTED') NOT NULL DEFAULT 'PENDING',
+  `createdAt` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`confirmId`),
+  CONSTRAINT `fk_confirm_match` FOREIGN KEY (`roomId`) REFERENCES `chat2date`.`match` (`matchId`) ON DELETE CASCADE,
+  CONSTRAINT `fk_confirm_place` FOREIGN KEY (`placeId`) REFERENCES `chat2date`.`places` (`placeId`) ON DELETE CASCADE
+) ENGINE = InnoDB DEFAULT CHARACTER SET = utf8mb4;
+
+-- 3. Table: SOS Incidents
+CREATE TABLE IF NOT EXISTS `chat2date`.`sos_incidents` (
+  `incidentId` INT NOT NULL AUTO_INCREMENT,
+  `appointmentId` INT NOT NULL,
+  `reporterId` VARCHAR(36) NOT NULL,
+  `targetUserId` VARCHAR(36) NOT NULL,
+  `latitude` DECIMAL(11,8) NOT NULL, 
+  `longitude` DECIMAL(11,8) NOT NULL,
+  `calledNumber` VARCHAR(15) NOT NULL, 
+  `status` ENUM('NEW', 'INVESTIGATING', 'RESOLVED') NOT NULL DEFAULT 'NEW',
+  `createdAt` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`incidentId`),
+  INDEX `idx_sos_appointment` (`appointmentId` ASC) VISIBLE,
+  CONSTRAINT `fk_sos_appointment`
+    FOREIGN KEY (`appointmentId`)
+    REFERENCES `chat2date`.`appointments` (`appointmentId`)
+    ON DELETE CASCADE,
+  CONSTRAINT `fk_sos_reporter`
+    FOREIGN KEY (`reporterId`)
+    REFERENCES `chat2date`.`user` (`userId`)
+    ON DELETE CASCADE,
+  CONSTRAINT `fk_sos_target`
+    FOREIGN KEY (`targetUserId`)
+    REFERENCES `chat2date`.`user` (`userId`)
+    ON DELETE CASCADE
+) ENGINE = InnoDB DEFAULT CHARACTER SET = utf8mb4;
+
+
+-- 4. Table: Post Trip Reviews
+CREATE TABLE IF NOT EXISTS `chat2date`.`post_trip_reviews` (
+  `reviewId` INT NOT NULL AUTO_INCREMENT,
+  `appointmentId` INT NOT NULL,
+  `reviewerId` VARCHAR(36) NOT NULL,
+  `targetUserId` VARCHAR(36) NOT NULL,
+  `isSatisfied` BOOLEAN NOT NULL, 
+  `wantToContinue` BOOLEAN NULL,  
+  `wantToUnmatch` BOOLEAN NULL,   
+  `createdAt` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`reviewId`),
+  CONSTRAINT `fk_review_appointment`
+    FOREIGN KEY (`appointmentId`)
+    REFERENCES `chat2date`.`appointments` (`appointmentId`)
+    ON DELETE CASCADE,
+  CONSTRAINT `fk_review_reviewer`
+    FOREIGN KEY (`reviewerId`)
+    REFERENCES `chat2date`.`user` (`userId`)
+    ON DELETE CASCADE,
+  CONSTRAINT `fk_review_target`
+    FOREIGN KEY (`targetUserId`)
+    REFERENCES `chat2date`.`user` (`userId`)
+    ON DELETE CASCADE
+) ENGINE = InnoDB DEFAULT CHARACTER SET = utf8mb4;
+
+CREATE TABLE IF NOT EXISTS `chat2date`.`contact_messages` (
+  `contactId`     INT          NOT NULL AUTO_INCREMENT,
+  `userId`        VARCHAR(36)  NOT NULL,
+  `contactName`   VARCHAR(100) NULL DEFAULT NULL,
+  `contactEmail`  VARCHAR(100) NULL DEFAULT NULL,
+  `subject`       VARCHAR(100) NOT NULL,
+  `message`       TEXT         NOT NULL,
+  `status`        ENUM('NEW', 'IN_PROGRESS', 'RESOLVED') NOT NULL DEFAULT 'NEW',
+  `repliedAt`     TIMESTAMP    NULL,
+  `createdAt`     TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `updatedAt`     TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (`contactId`),
+  INDEX `idx_contact_user`   (`userId` ASC) VISIBLE,
+  INDEX `idx_contact_status` (`status` ASC) VISIBLE,
+  CONSTRAINT `fk_contact_user`
+    FOREIGN KEY (`userId`)
+    REFERENCES `chat2date`.`user` (`userId`)
+    ON DELETE CASCADE
+) ENGINE = InnoDB DEFAULT CHARACTER SET = utf8mb4;
+
+CREATE TABLE IF NOT EXISTS chat2date.swipe_quota (
+  quotaId       INT          NOT NULL AUTO_INCREMENT,
+  userId        VARCHAR(36)  NOT NULL,
+  swipeCount    INT          NOT NULL DEFAULT 0, 
+  swipeDate     DATE         NULL,             
+  restrictUntil TIMESTAMP    NULL,          
+  lastReportAt  DATE         NULL,               
+  PRIMARY KEY (quotaId),
+  UNIQUE INDEX uk_swipe_quota_user (userId ASC),
+  CONSTRAINT fk_swipe_quota_user
+    FOREIGN KEY (userId)
+    REFERENCES chat2date.user (userId)
     ON DELETE CASCADE
 ) ENGINE = InnoDB DEFAULT CHARACTER SET = utf8mb4;
 

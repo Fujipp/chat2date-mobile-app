@@ -1,6 +1,7 @@
 package sit.chat2date.cp25ssi2.filter;
 
 import com.auth0.jwt.JWT;
+import com.auth0.jwt.exceptions.JWTDecodeException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.jsonwebtoken.ExpiredJwtException;
 import io.jsonwebtoken.io.IOException;
@@ -113,12 +114,19 @@ public class JwtAuthFilter extends OncePerRequestFilter {
                         }
                         
                     }
-                    AccessChecker checker = new AccessChecker(request, response, user.get(), matchUser1, matchUser2);
-                    if (!checker.checkUserAccess()) {
-                        return; // ถ้า check ไม่ผ่าน
+                    if (!path.equals("/api/v1/users/emergency-calls")) {
+                        AccessChecker checker = new AccessChecker(request, response, user.get(), matchUser1, matchUser2);
+                        if (!checker.checkUserAccess()) {
+                            return;
+                        }
                     }
                 }
-            } catch (SignatureException | IllegalArgumentException | ExpiredJwtException e) {
+            }
+            catch (JWTDecodeException e) {
+                sendErrorResponse(response, "Invalid token format", request, HttpStatus.UNAUTHORIZED);
+                return;
+            }
+            catch (SignatureException | IllegalArgumentException | ExpiredJwtException e) {
                 handleExceptionResponse(response, e, request);
                 return;
             }

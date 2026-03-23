@@ -53,7 +53,8 @@ class _GuessingGameScreenState extends ConsumerState<GuessingGameScreen> {
       return;
     }
 
-    if (gameState.gameId != null && widget.roomId != null) {
+
+    if (widget.roomId != null) {
       _socketService = GameSocketService(
         roomId: widget.roomId.toString(),
         accessToken: userStore['accessToken'].toString(),
@@ -100,6 +101,7 @@ class _GuessingGameScreenState extends ConsumerState<GuessingGameScreen> {
 
   void quitGame({bool isTimeout = false}) {
     if (mounted && !_isExiting) {
+      FocusScope.of(context).unfocus();
       final gameId = ref.read(gameProvider).gameId;
       if (gameId != null) {
         ref.read(gameServiceProvider).sendTimeout(gameId);
@@ -110,7 +112,7 @@ class _GuessingGameScreenState extends ConsumerState<GuessingGameScreen> {
         _canPop = true;
       });
 
-      Future.microtask(() {
+      Future.delayed(const Duration(milliseconds: 300), () {
         if (mounted && Navigator.canPop(context)) {
           Navigator.pop(context, 'FAILED');
         }
@@ -126,10 +128,10 @@ class _GuessingGameScreenState extends ConsumerState<GuessingGameScreen> {
       canPop: _canPop,
       onPopInvoked: (didPop) {
         if (didPop) return;
-
         quitGame();
       },
       child: Scaffold(
+        // resizeToAvoidBottomInset: false,
         backgroundColor: Colors.white,
         body: _buildCurrentView(gameState),
       ),
@@ -189,8 +191,8 @@ class _GuessingGameScreenState extends ConsumerState<GuessingGameScreen> {
     // 5. Loading View (ตอบครบแล้ว แต่รอคู่)
     if (state.hasUserFinishedAll) {
       return LoadingView(
-        partnerProgress: state.partnerAnsweredCount, 
-        totalQuestions: state.questions.length, 
+        partnerProgress: state.partnerAnsweredCount,
+        totalQuestions: state.questions.length,
         onBothComplete: () async {
           print("🔄 Loading complete callback triggered");
 

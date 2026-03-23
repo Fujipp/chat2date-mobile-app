@@ -20,4 +20,5 @@ public class SendMessageResponse {
     private LocalDateTime created;
     private MessageType type;
     private Boolean isRead;
+    private String gameStatus;
 }

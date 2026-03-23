@@ -6,6 +6,8 @@ class RelationshipBar {
   final int dailyMessageCount;
   final bool isDailyMessagesBonus;
   final DateTime dailyDate;
+  final String notiBeforeUnmatch;
+  final String notiUnmatch;
 
   RelationshipBar({
     required this.relationshipId,
@@ -15,6 +17,8 @@ class RelationshipBar {
     required this.dailyMessageCount,
     required this.isDailyMessagesBonus,
     required this.dailyDate,
+    required this.notiBeforeUnmatch,
+    required this.notiUnmatch
   });
 
   factory RelationshipBar.fromJson(Map<String, dynamic> json) {
@@ -26,6 +30,8 @@ class RelationshipBar {
       dailyMessageCount: json['dailyMessageCount'] as int,
       isDailyMessagesBonus: json['isDailyMessagesBonus'] as bool,
       dailyDate: DateTime.parse(json['dailyDate'] as String),
+      notiBeforeUnmatch: json['notiBeforeUnmatch'],
+      notiUnmatch: json['notiUnmatch']
     );
   }
 }

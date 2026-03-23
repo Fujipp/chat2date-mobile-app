@@ -132,7 +132,11 @@ class ChatService {
       throw Exception('ส่งข้อความถี่เกินไป กรุณารอสักครู่');
     }
 
-    throw Exception('ส่งข้อความไม่สำเร็จ: ${response.body}');
+    if (response.statusCode == 403) {
+      throw Exception('ส่งข้อความไม่สำเร็จ เนื่องจากคุณถูกคู่เดทของคุณรายงาน');
+    }
+
+    throw Exception('ส่งข้อความไม่สำเร็จ');
   }
 
   /// เข้าห้อง (Mark as Read)
@@ -332,5 +336,42 @@ class ChatService {
     }
 
     throw Exception('ไม่สามารถดึงข้อมูลความสัมพันธ์ได้: ${response.body}');
+  }
+
+  Future<String> checkNotiStatus(String roomId) async {
+    final userState = ref.read(userStoreProvider);
+    final accessToken = "${userState['accessToken']}";
+
+    // ใช้ Query Parameter ?type=...
+    final uri = Uri.parse('${ApiBase.baseUrl}/relationship/check-noti/$roomId');
+
+    try {
+      final response = await http.get(
+        uri,
+        headers: {
+          'Authorization': 'Bearer $accessToken',
+          'Content-Type': 'application/json',
+        },
+      );
+
+      if (response.statusCode == 200) {
+        // ลบฟันหนูออกและตัดช่องว่าง
+        return response.body.replaceAll('"', '').trim();
+      }
+      return ''; // กันพลาดให้เป็น true (คือเคยเห็นแล้ว) เพื่อไม่ให้ Noti เด้งค้าง
+    } catch (e) {
+      print('Check Noti Error: $e');
+      return '';
+    }
+  }
+
+  Future<void> triggerNotificationUpdate(String roomId) async {
+    final userState = ref.read(userStoreProvider);
+    final accessToken = "${userState['accessToken']}";
+
+    final uri = Uri.parse(
+      '${ApiBase.baseUrl}/relationship/$roomId/trigger-notification',
+    );
+    await http.patch(uri, headers: {'Authorization': 'Bearer $accessToken'});
   }
 }

@@ -33,7 +33,7 @@ public interface UserRepository extends JpaRepository<User, String> {
       AND (
         6371 * acos(
           cos(radians(:myLat)) * cos(radians(loc.latitude)) *
-          cos(radians(loc.longtitude) - radians(:myLon)) +
+          cos(radians(loc.longitude) - radians(:myLon)) +
           sin(radians(:myLat)) * sin(radians(loc.latitude))
         )
       ) BETWEEN :minDistance AND :maxDistance
@@ -97,7 +97,7 @@ public interface UserRepository extends JpaRepository<User, String> {
           AND (
             6371 * acos(
               cos(radians(:myLat)) * cos(radians(loc.latitude)) *
-              cos(radians(loc.longtitude) - radians(:myLon)) +
+              cos(radians(loc.longitude) - radians(:myLon)) +
               sin(radians(:myLat)) * sin(radians(loc.latitude))
             )
           ) BETWEEN :minDistance AND :maxDistance
