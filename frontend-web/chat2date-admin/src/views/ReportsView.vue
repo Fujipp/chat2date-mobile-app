@@ -849,8 +849,15 @@ const selectCase = (c) => {
 
 const resetPenaltyModal = () => {
   pmSelectedCase.value = null
+  
   pmScoreInRange.value = null
-  pmCustomScore.value = 50
+  
+  pmCustomScore.value = null
+  
+  confirmedPenalty.value = null
+  
+  updateError.value = null
+  updateSuccess.value = null
 }
 
 const openPenaltyModal = () => {
@@ -908,6 +915,7 @@ const fetchReports = async () => {
 }
 
 const viewReport = async (reportId) => {
+  resetPenaltyModal()
   loading.value = true
   error.value = null
   try {
@@ -982,6 +990,7 @@ const closeModal = () => {
   updateError.value = null
   updateSuccess.value = null
   previewTargetScore.value = null
+  resetPenaltyModal()
 }
 
 const changePage = (p) => {
