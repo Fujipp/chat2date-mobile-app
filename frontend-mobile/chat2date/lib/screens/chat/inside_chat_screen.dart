@@ -2487,6 +2487,7 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
                     avatarUrl: _chatUserAvatar,
                     cooldownDays: _cooldownDays,
                     showCalendar: _shouldShowCalendarIcon,
+                    showFlag: !_isChatDisabled,
                     calendarBadgeCount: _calendarBadgeCount,
                     showBorder: false,
                     onBack: () async {
