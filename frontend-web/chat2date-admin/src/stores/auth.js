@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia'
-import { ref, computed } from 'vue'
+import { computed, ref } from 'vue'
 
 const API_BASE_URL = 'http://cp25ssi2.sit.kmutt.ac.th:8080/api/v1'
 
@@ -16,16 +16,15 @@ export const useAuthStore = defineStore('auth', () => {
     const userEmail = computed(() => user.value?.email || user.value?.identifier || '')
 
     // Actions
-    const loginWithEmail = async (identifier) => {
+    const loginWithEmail = async (identifier, password) => {
         loading.value = true
         error.value = null
 
         try {
-            // Step 1: Get JWT token from /auth/request-token
-            const tokenResponse = await fetch(`${API_BASE_URL}/auth/request-token`, {
+            const tokenResponse = await fetch(`${API_BASE_URL}/auth/admin-login`, { 
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ identifier }),
+                body: JSON.stringify({ identifier, password }),
             })
 
             if (!tokenResponse.ok) {
@@ -38,7 +37,6 @@ export const useAuthStore = defineStore('auth', () => {
 
             if (!token) throw new Error('No token received from server')
 
-            // Step 2: Store token and user info
             accessToken.value = token
             user.value = { email: identifier, identifier }
 
