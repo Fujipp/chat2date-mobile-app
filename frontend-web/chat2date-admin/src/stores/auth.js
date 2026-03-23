@@ -21,7 +21,7 @@ export const useAuthStore = defineStore('auth', () => {
         error.value = null
 
         try {
-            const tokenResponse = await fetch(`${API_BASE_URL}/auth/admin-login`, { 
+            const tokenResponse = await fetch(`${API_BASE_URL}/auth/admin-login`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ identifier, password }),
