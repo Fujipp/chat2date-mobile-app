@@ -18,6 +18,7 @@ import org.springframework.web.client.RestTemplate;
 import org.springframework.web.server.ResponseStatusException;
 import sit.chat2date.cp25ssi2.dto.UserDTO;
 import sit.chat2date.cp25ssi2.enums.AccountStatus;
+import sit.chat2date.cp25ssi2.exceptions.ForbiddenAccessException;
 import sit.chat2date.cp25ssi2.exceptions.PreconditionFailedException;
 import sit.chat2date.cp25ssi2.exceptions.TooManyRequestException;
 import sit.chat2date.cp25ssi2.exceptions.UnprocessableEntityException;
@@ -81,6 +82,10 @@ public class SmsmktClient {
                 errorDetails.put("userId", user.getUserId());
 
                 throw new AuthService.AccountDeletedException(errorDetails);
+            }
+
+            if (user.getAccountStatus() == AccountStatus.SUSPENDED) {
+                throw new ForbiddenAccessException("ACCOUNT_SUSPENDED");
             }
         }
 //        String phone = normalizePhone(phone08);
