@@ -3,6 +3,7 @@ import jakarta.persistence.*;
 import lombok.*;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.ZoneId;
 
 @Entity
 @Table(name = "swipe_quota")
@@ -32,9 +33,4 @@ public class SwipeQuota {
 
     @Column(name = "lastReportAt")
     private LocalDate lastReportAt;
-
-    public boolean isRestricted() {
-        if (restrictUntil == null) return false;
-        return restrictUntil.isAfter(LocalDateTime.now());
-    }
 }

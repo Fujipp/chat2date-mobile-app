@@ -11,6 +11,7 @@ import sit.chat2date.cp25ssi2.enums.AppointmentStatus;
 import sit.chat2date.cp25ssi2.repositories.AppointmentRepository;
 
 import java.time.LocalDateTime;
+import java.time.ZoneOffset;
 import java.util.List;
 
 @Slf4j
@@ -25,7 +26,7 @@ public class AppointmentNotificationScheduler {
     @Scheduled(cron = "0 * * * * *")
     @Transactional
     public void notifyForUpcomingAppointments() {
-        LocalDateTime now = LocalDateTime.now();
+        LocalDateTime now = LocalDateTime.now(ZoneOffset.UTC);
         LocalDateTime reminderTime = now.plusDays(1);
         LocalDateTime reminderWindowStart = reminderTime.minusMinutes(1);
         LocalDateTime reminderWindowEnd = reminderTime.plusMinutes(1);
@@ -55,7 +56,8 @@ public class AppointmentNotificationScheduler {
                         user1.getUserId(),
                         user2.getNickname(),
                         roomId,
-                        placeName
+                        placeName,
+                        appointment.getDateTime()
                 );
 
                 // Send to User 2 (from User 1 context)
@@ -63,7 +65,8 @@ public class AppointmentNotificationScheduler {
                         user2.getUserId(),
                         user1.getNickname(),
                         roomId,
-                        placeName
+                        placeName,
+                        appointment.getDateTime()
                 );
 
                 // Mark as notified

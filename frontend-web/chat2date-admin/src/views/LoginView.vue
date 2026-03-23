@@ -25,15 +25,17 @@
               <Mail :size="14" />
               Email or Phone Number
             </label>
-            <input
-              id="identifier"
-              type="text"
-              v-model="identifier"
-              placeholder="e.g. admin@chat2date.internal"
-              required
-              autocomplete="email"
-              :disabled="authStore.loading"
-            />
+            <input id="identifier" type="text" v-model="identifier" placeholder="e.g. admin@chat2date.internal" required
+              autocomplete="email" :disabled="authStore.loading" />
+          </div>
+
+          <div class="input-group">
+            <label for="password">
+              <Lock :size="14" />
+              Password
+            </label>
+            <input id="password" type="password" v-model="password" placeholder="Enter admin password" required
+              autocomplete="current-password" :disabled="authStore.loading" />
           </div>
 
           <button type="submit" class="btn-login" :disabled="authStore.loading || !identifier.trim()">
@@ -57,18 +59,19 @@
 </template>
 
 <script setup>
+import { AlertTriangle, Loader2, LogIn, Mail, MessageCircleHeart, Shield } from 'lucide-vue-next'
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '../stores/auth'
-import { MessageCircleHeart, AlertTriangle, Shield, Loader2, LogIn, Mail } from 'lucide-vue-next'
 
 const router = useRouter()
 const authStore = useAuthStore()
 const identifier = ref('')
+const password = ref('')
 
 const handleLogin = async () => {
   try {
-    await authStore.loginWithEmail(identifier.value.trim())
+    await authStore.loginWithEmail(identifier.value.trim(), password.value)
     router.push('/')
   } catch (err) {
     console.error('Login failed:', err)
@@ -98,8 +101,13 @@ const handleLogin = async () => {
 }
 
 @keyframes meshShift {
-  0% { opacity: 0.5; }
-  100% { opacity: 1; }
+  0% {
+    opacity: 0.5;
+  }
+
+  100% {
+    opacity: 1;
+  }
 }
 
 .login-card {
@@ -118,8 +126,15 @@ const handleLogin = async () => {
 }
 
 @keyframes modalSlideUp {
-  from { opacity: 0; transform: translateY(30px) scale(0.97); }
-  to { opacity: 1; transform: translateY(0) scale(1); }
+  from {
+    opacity: 0;
+    transform: translateY(30px) scale(0.97);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
 }
 
 .login-header {
@@ -144,8 +159,15 @@ const handleLogin = async () => {
 }
 
 @keyframes float {
-  0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-6px); }
+
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+
+  50% {
+    transform: translateY(-6px);
+  }
 }
 
 .login-header h1 {
@@ -284,8 +306,13 @@ const handleLogin = async () => {
 }
 
 @keyframes spin {
-  from { transform: rotate(0deg); }
-  to { transform: rotate(360deg); }
+  from {
+    transform: rotate(0deg);
+  }
+
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 .login-divider {
@@ -326,10 +353,25 @@ const handleLogin = async () => {
 }
 
 @media (max-width: 480px) {
-  .login-view { padding: 1rem; }
-  .login-header { padding: 2rem 1.5rem 1.25rem; }
-  .login-body { padding: 1.5rem; }
-  .login-icon { width: 64px; height: 64px; }
-  .login-header h1 { font-size: 1.5rem; }
+  .login-view {
+    padding: 1rem;
+  }
+
+  .login-header {
+    padding: 2rem 1.5rem 1.25rem;
+  }
+
+  .login-body {
+    padding: 1.5rem;
+  }
+
+  .login-icon {
+    width: 64px;
+    height: 64px;
+  }
+
+  .login-header h1 {
+    font-size: 1.5rem;
+  }
 }
 </style>

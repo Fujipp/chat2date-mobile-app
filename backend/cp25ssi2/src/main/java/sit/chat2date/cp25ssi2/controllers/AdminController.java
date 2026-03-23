@@ -78,9 +78,12 @@ public class AdminController {
             @RequestBody Map<String, String> body) {
 
         String statusStr = body.get("status");
-        Integer points = Integer.valueOf(body.get("decreasePoint"));
+        Object pointsObj = body.get("decreasePoint");
+        int decreasePoint = 0;
 
-        int decreasePoint = (points != null) ? points : 0;
+        if (pointsObj != null) {
+            decreasePoint = Integer.parseInt(String.valueOf(pointsObj));
+        }
         ReportStatus status = ReportStatus.valueOf(statusStr.toUpperCase());
 
         Report updatedReport = adminReportService.updateReportStatus(id, status, decreasePoint);

@@ -1,16 +1,26 @@
-import 'package:flutter/material.dart';
 import 'package:chat2date/components/buttons/ds_button.dart';
+import 'package:chat2date/components/toasts/toast.dart';
+import 'package:chat2date/models/user.dart';
+import 'package:chat2date/services/contact_service.dart';
+import 'package:chat2date/stores/user_store.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-class ContactScreen extends StatefulWidget {
+class ContactScreen extends ConsumerStatefulWidget {
   const ContactScreen({super.key});
 
   static const String routeName = '/contact';
 
   @override
-  State<ContactScreen> createState() => _ContactScreenState();
+  ConsumerState<ContactScreen> createState() => _ContactScreenState();
 }
 
-class _ContactScreenState extends State<ContactScreen> {
+class _ContactScreenState extends ConsumerState<ContactScreen> {
+  bool _isValidEmail(String email) {
+    final emailRegex = RegExp(r'^[\w\.-]+@[\w\.-]+\.[a-zA-Z]{2,}$');
+    return emailRegex.hasMatch(email);
+  }
+
   final TextEditingController _nameController = TextEditingController();
   final TextEditingController _emailController = TextEditingController();
   String? _selectedSubject;
@@ -26,6 +36,32 @@ class _ContactScreenState extends State<ContactScreen> {
   ];
 
   @override
+  void initState() {
+    super.initState();
+    final user = ref.read(userStoreProvider)['user'] as User?;
+    if (user != null) {
+      if (user.firstname != null && user.lastname != null) {
+        _nameController.text = '${user.firstname} ${user.lastname}';
+      }
+      if (user.email != null && user.email!.isNotEmpty) {
+        _emailController.text = user.email!;
+      }
+    }
+  }
+
+  bool get _hasEmail {
+    final user =
+        ref.read(userStoreProvider)['user'] as User?; // ← เพิ่ม as User?
+    return user?.email != null && user!.email!.isNotEmpty;
+  }
+
+  bool get _hasName {
+    final user =
+        ref.read(userStoreProvider)['user'] as User?; // ← เพิ่ม as User?
+    return user?.firstname != null && user?.lastname != null;
+  }
+
+  @override
   void dispose() {
     _nameController.dispose();
     _emailController.dispose();
@@ -38,8 +74,21 @@ class _ContactScreenState extends State<ContactScreen> {
         _emailController.text.isEmpty ||
         _selectedSubject == null ||
         _messageController.text.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('กรุณากรอกข้อมูลให้ครบครัน')),
+      Toast.show(
+        context,
+        type: ToastType.error,
+        title: 'ข้อมูลไม่ครบถ้วน',
+        message: 'กรุณากรอกข้อมูลให้ครบถ้วน',
+      );
+      return;
+    }
+
+    if (!_isValidEmail(_emailController.text.trim())) {
+      Toast.show(
+        context,
+        type: ToastType.error,
+        title: 'อีเมลไม่ถูกต้อง',
+        message: 'รูปแบบอีเมลไม่ถูกต้อง',
       );
       return;
     }
@@ -47,30 +96,38 @@ class _ContactScreenState extends State<ContactScreen> {
     setState(() => _isLoading = true);
 
     try {
-      // TODO: API call to send contact form
-      await Future.delayed(const Duration(seconds: 2));
+      await ref
+          .read(contactServiceProvider)
+          .sendContactMessage(
+            contactName: _nameController.text.trim(),
+            contactEmail: _emailController.text.trim(),
+            subject: _selectedSubject!,
+            message: _messageController.text.trim(),
+          );
 
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('ส่งข้อมูลติดต่อเรียบร้อย')),
+        Toast.show(
+          context,
+          type: ToastType.success,
+          title: 'ส่งข้อมูลสำเร็จ',
+          message: 'ส่งข้อมูลติดต่อเรียบร้อย ทีมงานจะติดต่อกลับทางอีเมล',
         );
-
-        // Reset form
         _nameController.clear();
         _emailController.clear();
-        _selectedSubject = null;
+        setState(() => _selectedSubject = null);
         _messageController.clear();
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('เกิดข้อผิดพลาด: $e')),
+        Toast.show(
+          context,
+          type: ToastType.error,
+          title: 'เกิดข้อผิดพลาด',
+          message: 'เกิดข้อผิดพลาด: $e',
         );
       }
     } finally {
-      if (mounted) {
-        setState(() => _isLoading = false);
-      }
+      if (mounted) setState(() => _isLoading = false);
     }
   }
 
@@ -129,34 +186,32 @@ class _ContactScreenState extends State<ContactScreen> {
             const SizedBox(height: 8),
             TextField(
               controller: _nameController,
-              keyboardType: TextInputType.text,
-              style: const TextStyle(
-                color: Color(0xFF0F172A),
+              enabled: !_hasName,
+              style: TextStyle(
+                color: _hasName
+                    ? const Color(0xFF94A3B8)
+                    : const Color(0xFF0F172A),
                 fontSize: 14,
               ),
               decoration: InputDecoration(
-                hintText: 'Placeholder',
-                hintStyle: const TextStyle(
-                  color: Color(0xFFCBD5E1),
-                  fontSize: 14,
-                ),
                 filled: true,
-                fillColor: Colors.white,
+                fillColor: _fieldFillColor(_hasName), // ← สีเทาตอน disable
                 contentPadding: const EdgeInsets.symmetric(
                   horizontal: 16,
                   vertical: 14,
                 ),
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(16),
-                  borderSide: const BorderSide(
-                    color: Color(0xFFE2E8F0),
-                  ),
+                  borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
                 ),
                 enabledBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(16),
-                  borderSide: const BorderSide(
-                    color: Color(0xFFE2E8F0),
-                  ),
+                  borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
+                ),
+                disabledBorder: OutlineInputBorder(
+                  // ← เพิ่มตรงนี้
+                  borderRadius: BorderRadius.circular(16),
+                  borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
                 ),
                 focusedBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(16),
@@ -182,34 +237,37 @@ class _ContactScreenState extends State<ContactScreen> {
             const SizedBox(height: 8),
             TextField(
               controller: _emailController,
+              enabled: !_hasEmail,
               keyboardType: TextInputType.emailAddress,
-              style: const TextStyle(
-                color: Color(0xFF0F172A),
+              style: TextStyle(
+                color: _hasEmail
+                    ? const Color(0xFF94A3B8)
+                    : const Color(0xFF0F172A),
                 fontSize: 14,
               ),
               decoration: InputDecoration(
-                hintText: 'Placeholder',
+                hintText: !_hasEmail ? 'กรอกอีเมลของคุณ' : null,
                 hintStyle: const TextStyle(
                   color: Color(0xFFCBD5E1),
                   fontSize: 14,
                 ),
                 filled: true,
-                fillColor: Colors.white,
+                fillColor: _fieldFillColor(_hasEmail),
                 contentPadding: const EdgeInsets.symmetric(
                   horizontal: 16,
                   vertical: 14,
                 ),
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(16),
-                  borderSide: const BorderSide(
-                    color: Color(0xFFE2E8F0),
-                  ),
+                  borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
                 ),
                 enabledBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(16),
-                  borderSide: const BorderSide(
-                    color: Color(0xFFE2E8F0),
-                  ),
+                  borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
+                ),
+                disabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(16),
+                  borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
                 ),
                 focusedBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(16),
@@ -224,7 +282,7 @@ class _ContactScreenState extends State<ContactScreen> {
 
             // Subject Dropdown
             const Text(
-              'เรื่อง',
+              'หัวข้อ',
               style: TextStyle(
                 color: Color(0xFF0F172A),
                 fontSize: 14,
@@ -237,45 +295,46 @@ class _ContactScreenState extends State<ContactScreen> {
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(16),
                 border: Border.all(color: const Color(0xFFE2E8F0)),
+                color: Colors.white,
               ),
-              child: DropdownButton<String>(
-                value: _selectedSubject,
-                hint: const Text(
-                  'Placeholder',
-                  style: TextStyle(
-                    color: Color(0xFFCBD5E1),
-                    fontSize: 14,
-                  ),
-                ),
-                isExpanded: true,
-                underline: const SizedBox(),
-                icon: const Padding(
-                  padding: EdgeInsets.only(right: 12.0),
-                  child: Icon(
-                    Icons.expand_more,
-                    color: Color(0xFF5ce1e6),
-                  ),
-                ),
-                items: _subjectOptions.map((String value) {
-                  return DropdownMenuItem<String>(
-                    value: value,
-                    child: Padding(
-                      padding: const EdgeInsets.only(left: 16.0),
-                      child: Text(
-                        value,
-                        style: const TextStyle(
-                          color: Color(0xFF0F172A),
-                          fontSize: 14,
-                        ),
-                      ),
+              child: DropdownButtonHideUnderline(
+                child: ButtonTheme(
+                  child: DropdownButton<String>(
+                    value: _selectedSubject,
+                    hint: const Text(
+                      'เลือกหัวข้อที่ต้องการติดต่อ',
+                      style: TextStyle(color: Color(0xFFCBD5E1), fontSize: 14),
                     ),
-                  );
-                }).toList(),
-                onChanged: (String? newValue) {
-                  setState(() {
-                    _selectedSubject = newValue;
-                  });
-                },
+                    isExpanded: true,
+                    borderRadius: BorderRadius.circular(
+                      16,
+                    ), // ← มุมโค้ง dropdown list
+                    dropdownColor: Colors.white, // ← สีพื้นหลัง dropdown
+                    icon: const Padding(
+                      padding: EdgeInsets.only(right: 12.0),
+                      child: Icon(Icons.expand_more, color: Color(0xFF5ce1e6)),
+                    ),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 4,
+                    ),
+                    items: _subjectOptions.map((String value) {
+                      return DropdownMenuItem<String>(
+                        value: value,
+                        child: Text(
+                          value,
+                          style: const TextStyle(
+                            color: Color(0xFF0F172A),
+                            fontSize: 14,
+                          ),
+                        ),
+                      );
+                    }).toList(),
+                    onChanged: (String? newValue) {
+                      setState(() => _selectedSubject = newValue);
+                    },
+                  ),
+                ),
               ),
             ),
             const SizedBox(height: 24),
@@ -296,12 +355,9 @@ class _ContactScreenState extends State<ContactScreen> {
               maxLines: 6,
               minLines: 4,
               keyboardType: TextInputType.multiline,
-              style: const TextStyle(
-                color: Color(0xFF0F172A),
-                fontSize: 14,
-              ),
+              style: const TextStyle(color: Color(0xFF0F172A), fontSize: 14),
               decoration: InputDecoration(
-                hintText: 'Placeholder',
+                hintText: 'โปรดระบุรายละเอียดเพิ่มเติม',
                 hintStyle: const TextStyle(
                   color: Color(0xFFCBD5E1),
                   fontSize: 14,
@@ -314,15 +370,11 @@ class _ContactScreenState extends State<ContactScreen> {
                 ),
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(16),
-                  borderSide: const BorderSide(
-                    color: Color(0xFFE2E8F0),
-                  ),
+                  borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
                 ),
                 enabledBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(16),
-                  borderSide: const BorderSide(
-                    color: Color(0xFFE2E8F0),
-                  ),
+                  borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
                 ),
                 focusedBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(16),
@@ -351,4 +403,10 @@ class _ContactScreenState extends State<ContactScreen> {
       ),
     );
   }
+
+  Color _fieldFillColor(bool disabled) =>
+      disabled ? const Color(0xFFF1F5F9) : Colors.white;
+
+  BorderSide _disabledBorderSide() =>
+      const BorderSide(color: Color(0xFFE2E8F0));
 }
