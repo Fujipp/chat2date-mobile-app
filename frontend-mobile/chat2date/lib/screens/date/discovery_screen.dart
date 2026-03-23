@@ -108,7 +108,7 @@ class _DiscoveryScreenState extends ConsumerState<DiscoveryScreen>
     Navigator.pushReplacementNamed(context, '/home');
   }
 
-  void _handleBottomNavTap(int index) {
+  void _handleBottomNavTap(int index) async {
     // ปิด settings overlay เมื่อมีการเปลี่ยนหน้า
     if (_isSettingsOpen) {
       _settingsOverlay?.remove();
@@ -123,6 +123,19 @@ class _DiscoveryScreenState extends ConsumerState<DiscoveryScreen>
       case 0:
         final userStore = ref.read(userStoreProvider);
         final userId = (userStore['user'] as User?)?.userId;
+
+        if (userId != null) {
+          await ref.read(userServiceProvider).getUser(userId);
+        }
+        final freshStore = ref.read(userStoreProvider) as Map<String, dynamic>;
+        final currentUser = freshStore['user'] as User;
+        behaviorScore = currentUser.behaviorScore;
+
+        final quota = await ref.read(swipeQuotaProvider).checkSwipeStatus();
+
+        if (quota.isRestricted) {
+          remainingAction = quota.remainingCount;
+        }
 
         if (userId != null) {
           ref
@@ -178,6 +191,7 @@ class _DiscoveryScreenState extends ConsumerState<DiscoveryScreen>
 
   int _index = 0;
   String? _userId;
+  int? behaviorScore;
 
   // Settings
   OverlayEntry? _settingsOverlay;
@@ -244,18 +258,17 @@ class _DiscoveryScreenState extends ConsumerState<DiscoveryScreen>
     if (_userId == null) return;
 
     if (remainingAction == 0) {
-      Toast.show(
-        context,
-        type: ToastType.error,
-        title: 'โควตาเต็มแล้วจ้า',
-        message: 'วันนี้คุณปัดครบ 10 คนแล้ว พรุ่งนี้ค่อยมาหาคู่ใหม่นะ! 💖',
-        durationSeconds: 3,
-      );
+      if (remainingAction == 0) {
+        _showQuotaLimitModal(10); // แสดง Modal ทันทีถ้าโควตาเดิมหมด
+        return;
+      }
       return;
     }
 
     final quota = await ref.read(swipeQuotaProvider).processSwipe();
-    remainingAction = quota.remainingCount;
+    if (quota.isRestricted != false) {
+      remainingAction = quota.remainingCount;
+    }
 
     _animateCard(to: const Offset(-500, 0), rot: -pi / 10);
 
@@ -268,10 +281,9 @@ class _DiscoveryScreenState extends ConsumerState<DiscoveryScreen>
       }
     });
 
-    if (remainingAction != null &&
-        remainingAction! > 0 &&
-        remainingAction! <= 3) {
-      _showQuotaWarning(remainingAction!);
+    if (remainingAction == 0) {
+      _showQuotaLimitModal(10); // แสดง Modal ทันทีถ้าโควตาเดิมหมด
+      return;
     }
   }
 
@@ -279,18 +291,17 @@ class _DiscoveryScreenState extends ConsumerState<DiscoveryScreen>
     if (_userId == null) return;
 
     if (remainingAction == 0) {
-      Toast.show(
-        context,
-        type: ToastType.error,
-        title: 'โควตาเต็มแล้วจ้า',
-        message: 'วันนี้คุณปัดครบ 10 คนแล้ว พรุ่งนี้ค่อยมาหาคู่ใหม่นะ! 💖',
-        durationSeconds: 3,
-      );
+      if (remainingAction == 0) {
+        _showQuotaLimitModal(10); // แสดง Modal ทันทีถ้าโควตาเดิมหมด
+        return;
+      }
       return;
     }
 
     final quota = await ref.read(swipeQuotaProvider).processSwipe();
-    remainingAction = quota.remainingCount;
+    if (quota.isRestricted != false) {
+      remainingAction = quota.remainingCount;
+    }
 
     _animateCard(to: const Offset(0, 400), rot: 0);
 
@@ -303,23 +314,42 @@ class _DiscoveryScreenState extends ConsumerState<DiscoveryScreen>
         });
       }
     });
+
+    if (remainingAction == 0) {
+      _showQuotaLimitModal(10);
+      return;
+    }
   }
 
-  void _showQuotaWarning(int remaining) {
+  void _showQuotaLimitModal(int currentCount) {
     showDialog(
       context: context,
-      builder: (context) => ModalComponent(
-        svgPath:
-            'assets/icons/icon_exclamation.svg', // หรือไอคอนแจ้งเตือนของคุณ
-        heightSvg: 78,
-        widthSvg: 77,
-        topic: 'โควตาใกล้หมดแล้ว!',
-        description:
-            'วันนี้คุณเหลือสิทธิ์ในการปัดอีกเพียง $remaining ครั้ง\n'
-            'เลือกคนที่ใช่ให้ดีนะจ๊ะ! 💖',
-        spaceBottom: 15,
-        spaceTop: 15,
-      ),
+      builder: (context) {
+        // ✅ สั่งให้ปิด Modal เองภายใน 2.5 วินาที
+        Future.delayed(const Duration(milliseconds: 2500), () {
+          if (Navigator.canPop(context)) {
+            Navigator.pop(context);
+          }
+        });
+
+        return Center(
+          child: Material(
+            color: Colors.transparent,
+            child: ModalComponent(
+              svgPath: 'assets/icons/icon_warning.svg',
+              heightSvg: 80,
+              widthSvg: 80,
+              topic: 'แจ้งเตือน',
+              description:
+                  'คุณใช้สิทธิ์การปัดไปแล้ว $currentCount/10 ครั้ง\n'
+                  'คะแนนความประพฤติ: $behaviorScore'
+                  'สามารถอ่านเกณฑ์ได้ที่ เมนูรูปโปรไฟล์',
+              spaceBottom: 20,
+              spaceTop: 20,
+            ),
+          ),
+        );
+      },
     );
   }
 
@@ -391,6 +421,10 @@ class _DiscoveryScreenState extends ConsumerState<DiscoveryScreen>
 
           debugPrint('[Discovery] 👤 Loading users');
           await ref.read(userServiceProvider).getUser(userId);
+          final freshStore =
+              ref.read(userStoreProvider) as Map<String, dynamic>;
+          final currentUser = freshStore['user'] as User;
+          behaviorScore = currentUser.behaviorScore;
 
           if (!mounted) return;
           debugPrint('[Discovery] ✅ users loaded');
