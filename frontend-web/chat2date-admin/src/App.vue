@@ -92,7 +92,7 @@
             <span>GitHub</span>
           </a>
           <span class="footer-dot"></span>
-          <a href="http://cp25ssi2.sit.kmutt.ac.th:8080/api/v1/swagger-ui.html" target="_blank" class="footer-link">
+          <a href="/api/v1/swagger-ui.html" target="_blank" class="footer-link">
             <Code :size="15" />
             <span>API Docs</span>
           </a>
