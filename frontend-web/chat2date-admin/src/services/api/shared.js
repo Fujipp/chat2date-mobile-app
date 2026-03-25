@@ -1,4 +1,4 @@
-export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://cp25ssi2.sit.kmutt.ac.th:8080/api/v1'
+export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '/api/v1'
 export const ADMIN_API_URL = `${API_BASE_URL}/admin`
 
 export const getHeaders = () => {
@@ -13,5 +13,19 @@ export const handleResponse = async (response) => {
     const errorData = await response.json().catch(() => ({}))
     throw new Error(errorData.message || `API Error: ${response.status} ${response.statusText}`)
   }
-  return response.json()
+
+  if (response.status === 204) {
+    return null
+  }
+
+  const text = await response.text()
+  if (!text) {
+    return null
+  }
+
+  try {
+    return JSON.parse(text)
+  } catch {
+    return text
+  }
 }

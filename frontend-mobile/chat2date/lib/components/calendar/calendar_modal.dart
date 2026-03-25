@@ -9,6 +9,7 @@ import 'package:flutter/material.dart';
 /// แล้ว control visibility ด้วย bool flag
 class CalendarModal extends StatelessWidget {
   final bool isVisible;
+  final bool hasUnsavedChanges;
 
   /// ข้อมูลสถานที่ (จาก spinwheel หรือ existing appointment)
   final String placeName;
@@ -25,12 +26,14 @@ class CalendarModal extends StatelessWidget {
 
   /// Callbacks
   final void Function(DateTime date, TimeOfDay time)? onSave;
-  final VoidCallback? onClose;
+  final void Function(bool hasUnsavedChanges)? onClose;
   final VoidCallback? onTrash;
+  final ValueChanged<bool>? onDirtyChanged;
 
   const CalendarModal({
     super.key,
     required this.isVisible,
+    this.hasUnsavedChanges = false,
     this.placeName = '',
     this.placeCountText = 'คุณมี 1 สถานที่เดต!!',
     required this.initialMonth,
@@ -40,6 +43,7 @@ class CalendarModal extends StatelessWidget {
     this.onSave,
     this.onClose,
     this.onTrash,
+    this.onDirtyChanged,
   });
 
   @override
@@ -51,7 +55,7 @@ class CalendarModal extends StatelessWidget {
         // 1. Backdrop สีเข้มจาง (กดเพื่อปิด)
         Positioned.fill(
           child: GestureDetector(
-            onTap: onClose,
+            onTap: () => onClose?.call(hasUnsavedChanges),
             child: BackdropFilter(
               filter: ImageFilter.blur(sigmaX: 2, sigmaY: 2),
               child: Container(color: Colors.black.withOpacity(0.45)),
@@ -88,12 +92,14 @@ class CalendarModal extends StatelessWidget {
                       initialMonth: initialMonth,
                       initialTime: initialTime,
                       initialSelectedDate: initialSelectedDate,
+                      isEditMode: isEditMode,
                       placeName: placeName.isNotEmpty
                           ? placeName
                           : 'ยังไม่ได้เลือกสถานที่',
                       placeCountText: placeCountText,
                       onSave: onSave,
                       onClose: onClose,
+                      onDirtyChanged: onDirtyChanged,
                       onTrash: isEditMode ? onTrash : null,
                     ),
                   ),

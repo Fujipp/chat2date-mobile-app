@@ -4,15 +4,18 @@ import 'dart:ui';
 import 'package:chat2date/components/buttons/ds_button.dart';
 import 'package:chat2date/components/buttons/ds_svg_swap_button.dart';
 import 'package:chat2date/components/common/custom_range_slider.dart';
+import 'package:chat2date/components/common/modal_component.dart';
 import 'package:chat2date/components/common/style_component.dart';
 import 'package:chat2date/components/inputs/ds_label.dart';
 import 'package:chat2date/components/layout/header.dart';
 import 'package:chat2date/components/layout/menu_bar.dart';
+import 'package:chat2date/components/toasts/toast.dart';
 import 'package:chat2date/models/dto/discovery_dto.dart';
 import 'package:chat2date/models/user.dart';
 import 'package:chat2date/services/discovery_service.dart';
 import 'package:chat2date/services/fcm_token_service.dart';
 import 'package:chat2date/services/location_service.dart';
+import 'package:chat2date/services/swipe_quota_service.dart';
 import 'package:chat2date/services/user_service.dart';
 import 'package:chat2date/stores/user_store.dart';
 import 'package:chat2date/theme/app_colors.dart';
@@ -105,7 +108,7 @@ class _DiscoveryScreenState extends ConsumerState<DiscoveryScreen>
     Navigator.pushReplacementNamed(context, '/home');
   }
 
-  void _handleBottomNavTap(int index) {
+  void _handleBottomNavTap(int index) async {
     // ปิด settings overlay เมื่อมีการเปลี่ยนหน้า
     if (_isSettingsOpen) {
       _settingsOverlay?.remove();
@@ -122,7 +125,24 @@ class _DiscoveryScreenState extends ConsumerState<DiscoveryScreen>
         final userId = (userStore['user'] as User?)?.userId;
 
         if (userId != null) {
-          ref.read(discoveryProvider(userId).notifier).refresh(
+          await ref.read(userServiceProvider).getUser(userId);
+        }
+        final freshStore = ref.read(userStoreProvider) as Map<String, dynamic>;
+        final currentUser = freshStore['user'] as User;
+        behaviorScore = currentUser.behaviorScore;
+
+        final quota = await ref.read(swipeQuotaProvider).checkSwipeStatus();
+
+        if (quota.isRestricted) {
+          remainingAction = quota.remainingCount;
+        } else {
+          remainingAction = null;
+        }
+
+        if (userId != null) {
+          ref
+              .read(discoveryProvider(userId).notifier)
+              .refresh(
                 minDistance: _selectedRange.start.round(),
                 maxDistance: _selectedRange.end.round(),
               );
@@ -169,8 +189,11 @@ class _DiscoveryScreenState extends ConsumerState<DiscoveryScreen>
   double _targetRot = 0;
   double _opacity = 1.0;
 
+  int? remainingAction;
+
   int _index = 0;
   String? _userId;
+  int? behaviorScore;
 
   // Settings
   OverlayEntry? _settingsOverlay;
@@ -183,6 +206,7 @@ class _DiscoveryScreenState extends ConsumerState<DiscoveryScreen>
       _isSettingsOpen = false;
     }
   }
+
   Future<void> _loadPersistedRange() async {
     if (_userId == null) return;
     try {
@@ -232,24 +256,54 @@ class _DiscoveryScreenState extends ConsumerState<DiscoveryScreen>
     _cardCtrl.forward();
   }
 
-  void _onUnlike() {
+  void _onUnlike() async {
     if (_userId == null) return;
+
+    if (remainingAction == 0) {
+      if (remainingAction == 0) {
+        _showQuotaLimitModal(10); // แสดง Modal ทันทีถ้าโควตาเดิมหมด
+        return;
+      }
+      return;
+    }
+
+    final quota = await ref.read(swipeQuotaProvider).processSwipe();
+    if (quota.isRestricted != false) {
+      remainingAction = quota.remainingCount;
+    }
 
     _animateCard(to: const Offset(-500, 0), rot: -pi / 10);
 
     Future.delayed(const Duration(milliseconds: 200), () {
       if (mounted) {
         ref.read(discoveryProvider(_userId!).notifier).unlikeCurrentCandidate();
-        // ✅ สร้าง key ใหม่เพื่อ rebuild widget
         setState(() {
           _candidateKey = UniqueKey();
         });
       }
     });
+
+    if (remainingAction == 0) {
+      _showQuotaLimitModal(10); // แสดง Modal ทันทีถ้าโควตาเดิมหมด
+      return;
+    }
   }
 
-  void _onLike() {
+  void _onLike() async {
     if (_userId == null) return;
+
+    if (remainingAction == 0) {
+      if (remainingAction == 0) {
+        _showQuotaLimitModal(10); // แสดง Modal ทันทีถ้าโควตาเดิมหมด
+        return;
+      }
+      return;
+    }
+
+    final quota = await ref.read(swipeQuotaProvider).processSwipe();
+    if (quota.isRestricted != false) {
+      remainingAction = quota.remainingCount;
+    }
 
     _animateCard(to: const Offset(0, 400), rot: 0);
 
@@ -262,6 +316,42 @@ class _DiscoveryScreenState extends ConsumerState<DiscoveryScreen>
         });
       }
     });
+
+    if (remainingAction == 0) {
+      _showQuotaLimitModal(10);
+      return;
+    }
+  }
+
+  void _showQuotaLimitModal(int currentCount) {
+    showDialog(
+      context: context,
+      builder: (context) {
+        Future.delayed(const Duration(milliseconds: 7500), () {
+          if (Navigator.canPop(context)) {
+            Navigator.pop(context);
+          }
+        });
+
+        return Center(
+          child: Material(
+            color: Colors.transparent,
+            child: ModalComponent(
+              svgPath: 'assets/icons/icon_warning.svg',
+              heightSvg: 80,
+              widthSvg: 80,
+              topic: 'แจ้งเตือน',
+              description:
+                  'คุณใช้สิทธิ์การปัดไปแล้ว $currentCount/10 ครั้ง\n'
+                  'คะแนนความประพฤติ: $behaviorScore\n'
+                  'สามารถอ่านเกณฑ์ได้ที่ เมนูรูปโปรไฟล์',
+              spaceBottom: 20,
+              spaceTop: 20,
+            ),
+          ),
+        );
+      },
+    );
   }
 
   @override
@@ -332,6 +422,10 @@ class _DiscoveryScreenState extends ConsumerState<DiscoveryScreen>
 
           debugPrint('[Discovery] 👤 Loading users');
           await ref.read(userServiceProvider).getUser(userId);
+          final freshStore =
+              ref.read(userStoreProvider) as Map<String, dynamic>;
+          final currentUser = freshStore['user'] as User;
+          behaviorScore = currentUser.behaviorScore;
 
           if (!mounted) return;
           debugPrint('[Discovery] ✅ users loaded');
@@ -342,6 +436,14 @@ class _DiscoveryScreenState extends ConsumerState<DiscoveryScreen>
 
           if (!mounted) return;
           debugPrint('[Discovery] ✅ Profile loaded');
+
+          final quota = await ref.read(swipeQuotaProvider).checkSwipeStatus();
+
+          if (quota.isRestricted) {
+            remainingAction = quota.remainingCount;
+          } else {
+            remainingAction = null;
+          }
 
           // โหลดค่า range ที่บันทึกไว้ของผู้ใช้นี้
           await _loadPersistedRange();
@@ -484,7 +586,9 @@ class _DiscoveryScreenState extends ConsumerState<DiscoveryScreen>
                           values: _selectedRange,
                           min: 0,
                           max: 1800,
-                          persistKey: _userId != null ? 'distanceRange:${_userId}' : null,
+                          persistKey: _userId != null
+                              ? 'distanceRange:${_userId}'
+                              : null,
                           onChangeEnd: (r) async {
                             // sync ค่าที่แสดงกับที่บันทึกไว้
                             setStateOverlay(() {
@@ -984,6 +1088,7 @@ class _DiscoveryScreenState extends ConsumerState<DiscoveryScreen>
         });
       },
       onBottomNavTap: _handleBottomNavTap,
+      remainingAction: remainingAction,
     );
   }
 }
@@ -1018,6 +1123,7 @@ class _CandidateView extends ConsumerStatefulWidget {
   final void Function(double) onPanelSlideBottom;
   final VoidCallback onPanelClosedBottom;
   final void Function(int) onBottomNavTap;
+  final int? remainingAction;
 
   const _CandidateView({
     super.key,
@@ -1049,6 +1155,7 @@ class _CandidateView extends ConsumerStatefulWidget {
     required this.onPanelSlideBottom,
     required this.onPanelClosedBottom,
     required this.onBottomNavTap,
+    this.remainingAction,
   });
 
   @override
@@ -1205,6 +1312,49 @@ class _CandidateViewState extends ConsumerState<_CandidateView> {
                       ),
                     ),
 
+                    if (widget.remainingAction !=
+                        null) // แสดงเฉพาะเมื่อมีการจำกัดโควตา
+                      Positioned(
+                        top: 20,
+                        right: 20,
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 12,
+                            vertical: 6,
+                          ),
+                          decoration: BoxDecoration(
+                            color: Colors.black.withOpacity(
+                              0.5,
+                            ), // พื้นหลังมืดเพื่อให้เลขสีขาวเด่น
+                            borderRadius: BorderRadius.circular(20),
+                            border: Border.all(
+                              color: Colors.white.withOpacity(0.3),
+                              width: 1,
+                            ),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              const Icon(
+                                Icons.bolt, // ไอคอนสายฟ้าสื่อถึงพลังงาน/โควตา
+                                color: Color(0xFFFFD700), // สีทอง
+                                size: 16,
+                              ),
+                              const SizedBox(width: 4),
+                              Text(
+                                '${widget.remainingAction}',
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 14,
+                                  fontFamily: 'Inter',
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+
                     // --- Bottom Panel ---
                     if (widget.activePanel.value != ActivePanel.top)
                       ValueListenableBuilder(
@@ -1350,7 +1500,25 @@ class _CandidateViewState extends ConsumerState<_CandidateView> {
                             iconSize: 60,
                             activeIconSize: 80,
                             padding: 0,
-                            onPressed: widget.onUnlike,
+                            onPressed: () async {
+                              final quota = await ref
+                                  .read(swipeQuotaProvider)
+                                  .checkSwipeStatus();
+
+                              if (quota.isRestricted &&
+                                  quota.remainingCount == 0) {
+                                Toast.show(
+                                  context,
+                                  type: ToastType.warning,
+                                  title: 'โควตาเต็มแล้ว',
+                                  message:
+                                      'คุณปัดครบ 10 คนสำหรับวันนี้แล้วจ้า พรุ่งนี้มาหาคู่ใหม่นะ!',
+                                  durationSeconds: 4,
+                                );
+                              } else {
+                                widget.onUnlike();
+                              }
+                            },
                           ),
                         );
                       },
@@ -1373,7 +1541,25 @@ class _CandidateViewState extends ConsumerState<_CandidateView> {
                             iconSize: 60,
                             activeIconSize: 77,
                             padding: 0,
-                            onPressed: widget.onLike,
+                            onPressed: () async {
+                              final quota = await ref
+                                  .read(swipeQuotaProvider)
+                                  .checkSwipeStatus();
+
+                              if (quota.isRestricted &&
+                                  quota.remainingCount == 0) {
+                                Toast.show(
+                                  context,
+                                  type: ToastType.warning,
+                                  title: 'โควตาเต็มแล้ว',
+                                  message:
+                                      'คุณปัดครบ 10 คนสำหรับวันนี้แล้วจ้า พรุ่งนี้มาหาคู่ใหม่นะ!',
+                                  durationSeconds: 4,
+                                );
+                              } else {
+                                widget.onLike();
+                              }
+                            },
                           ),
                         );
                       },

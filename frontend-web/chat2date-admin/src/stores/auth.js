@@ -1,7 +1,7 @@
 import { defineStore } from 'pinia'
 import { computed, ref } from 'vue'
 
-const API_BASE_URL = 'http://cp25ssi2.sit.kmutt.ac.th:8080/api/v1'
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '/api/v1'
 
 export const useAuthStore = defineStore('auth', () => {
     // State
@@ -21,7 +21,7 @@ export const useAuthStore = defineStore('auth', () => {
         error.value = null
 
         try {
-            const tokenResponse = await fetch(`${API_BASE_URL}/auth/admin-login`, { 
+            const tokenResponse = await fetch(`${API_BASE_URL}/auth/admin-login`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ identifier, password }),

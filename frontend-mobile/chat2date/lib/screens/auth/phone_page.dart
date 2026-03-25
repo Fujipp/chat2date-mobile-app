@@ -82,14 +82,16 @@ class _PhonePageState extends State<PhonePage> {
       }
 
       // STEP 2 — ส่ง OTP
-      final token = await BackendOtpService.sendOtp(phone, context);
+      final response = await BackendOtpService.sendOtp(phone, context);
 
-      if (!mounted) return;
-      Navigator.pushNamed(
-        context,
-        '/otp',
-        arguments: {'token': token, 'phone': phone, 'onLogin': onLogin},
-      );
+      if (response != "") {
+        if (!mounted) return;
+        Navigator.pushNamed(
+          context,
+          '/otp',
+          arguments: {'phone': phone, 'onLogin': onLogin},
+        );
+      }
     } catch (e) {
       if (!mounted) return;
 

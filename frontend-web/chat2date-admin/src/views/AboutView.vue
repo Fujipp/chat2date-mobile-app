@@ -174,7 +174,7 @@
         <h2>Quick Links</h2>
       </div>
       <div class="links-grid">
-        <a href="http://cp25ssi2.sit.kmutt.ac.th/api/v1/swagger-ui.html" target="_blank" class="link-card">
+        <a href="/api/v1/swagger-ui.html" target="_blank" class="link-card">
           <div class="icon-wrapper icon-wrapper-brand"><FileText :size="20" :stroke-width="2" /></div>
           <div class="link-content">
             <h4>API Docs</h4>

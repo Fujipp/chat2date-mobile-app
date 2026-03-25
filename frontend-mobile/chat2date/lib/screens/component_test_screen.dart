@@ -817,7 +817,7 @@ class _ComponentTestScreenState extends State<ComponentTestScreen> {
             initialMonth: DateTime(2026, 1, 1),
             initialTime: const TimeOfDay(hour: 12, minute: 0),
             accentColor: const Color(0xFFFF6B81),
-            onClose: () => Navigator.of(context).maybePop(),
+            onClose: (_) => Navigator.of(context).maybePop(),
             onSave: (date, time) {
               Toast.show(
                 context,
@@ -832,7 +832,7 @@ class _ComponentTestScreenState extends State<ComponentTestScreen> {
             initialMonth: DateTime(2026, 1, 1),
             initialTime: const TimeOfDay(hour: 12, minute: 0),
             accentColor: const Color(0xFFFF6B81),
-            onClose: () => Navigator.of(context).maybePop(),
+            onClose: (_) => Navigator.of(context).maybePop(),
             onTrash: () {
               // TODO: เคลียร์ค่าที่ Dev อยากลบ เช่น วันที่/เวลา/สถานที่
               Toast.show(

@@ -11,7 +11,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import org.springframework.web.server.ResponseStatusException;
-import sit.chat2date.cp25ssi2.clients.SmsmktClient;
+import sit.chat2date.cp25ssi2.clients.ThSMSClient;
 import sit.chat2date.cp25ssi2.dto.*;
 import sit.chat2date.cp25ssi2.services.AuthService;
 import sit.chat2date.cp25ssi2.services.JwtTokenUtil;
@@ -24,7 +24,7 @@ public class AuthController {
 
     @Autowired
     private final AuthService authService;
-    private final SmsmktClient client;
+    private final ThSMSClient client;
     @Autowired
     private JwtTokenUtil jwtTokenUtil;
     @Autowired
@@ -43,13 +43,22 @@ public class AuthController {
 
     @PostMapping("/request-otp")
     public Map<String, Object> send(@RequestBody OtpSendRequest body) {
-        String token = client.send(body.getPhoneNumber(), body.getRefCode(), body.getDeviceId());
-        return Map.of("token", token);
+        String result = client.send(body.getPhoneNumber(), body.getRefCode(), body.getDeviceId());
+
+        // ส่งกลับไปให้ Frontend เพื่อบอกว่า "ส่งรหัสไปที่เบอร์นี้แล้วนะ"
+        return Map.of(
+                "phoneNumber", body.getPhoneNumber()
+        );
     }
 
     @PostMapping("/verify-otp")
     public Map<String, Object> validate(@RequestBody OtpValidateRequest body) {
-        return client.validate(body.getToken(), body.getOtpCode(), body.getRefCode(), body.getPhoneNumber(), body.isOnLogin());
+        // client.validate จะทำการ: ดึงจาก Redis มาเทียบ -> ถ้าผ่านก็สร้าง JWT/User
+        return client.validate(// ส่งไปเฉยๆ ตามโครงสร้างเดิม (หรือส่ง null ก็ได้)
+                body.getOtpCode(),
+                body.getPhoneNumber(),
+                body.isOnLogin()
+        );
     }
 
     @PostMapping("/request-token")

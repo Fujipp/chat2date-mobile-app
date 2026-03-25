@@ -228,7 +228,9 @@
                 alt="Profile"
                 class="user-avatar"
               />
-              <div class="user-avatar-placeholder" v-else><User :size="28" /></div>
+              <div class="user-avatar-placeholder" v-else>
+                <User :size="28" />
+              </div>
               <div class="user-details">
                 <p>
                   <strong>ID:</strong> <span class="mono">{{ selectedReport.reporterId }}</span>
@@ -265,7 +267,9 @@
                 alt="Profile"
                 class="user-avatar"
               />
-              <div class="user-avatar-placeholder" v-else><User :size="28" /></div>
+              <div class="user-avatar-placeholder" v-else>
+                <User :size="28" />
+              </div>
               <div class="user-details">
                 <p>
                   <strong>ID:</strong> <span class="mono">{{ selectedReport.targetUserId }}</span>
@@ -355,7 +359,9 @@
                 class="evidence-item"
               >
                 <img :src="url" :alt="`Evidence ${index + 1}`" />
-                <div class="evidence-overlay"><ZoomIn :size="28" /></div>
+                <div class="evidence-overlay">
+                  <ZoomIn :size="28" />
+                </div>
               </a>
             </div>
           </div>
@@ -390,7 +396,7 @@
                   <CheckCircle :size="16" />
                   Resolve
                   <span v-if="hasPenaltyConfig && !confirmedPenalty" class="needs-penalty-hint">
-                    <AlertCircle :size="12" /> เลือก penalty ก่อน
+                    <AlertCircle :size="12" /> select penalty first
                   </span>
                 </button>
 
@@ -405,7 +411,7 @@
 
               <p v-else class="status-locked-notice">
                 <Lock :size="14" />
-                <span>รายงานนี้ถูกสรุปผลแล้ว ไม่สามารถเปลี่ยนสถานะได้อีก</span>
+                <span>This report has been finalized and its status can no longer be changed.</span>
               </p>
             </div>
 
@@ -430,24 +436,34 @@
         <div class="modal-header">
           <div class="modal-title">
             <Gavel :size="20" />
-            <h2>กำหนด Penalty Score</h2>
+            <h2>Determine Penalty Score</h2>
           </div>
-          <button class="btn-close" @click="closePenaltyModal"><X :size="22" /></button>
+          <button class="btn-close" @click="closePenaltyModal">
+            <X :size="22" />
+          </button>
         </div>
 
         <div class="modal-body penalty-modal-body">
-          <!-- Reason pill -->
           <div class="pm-reason-chip">
             <Tag :size="13" />
             <span>Reason:</span>
             <strong>{{ selectedReport?.reason }}</strong>
           </div>
 
+          &nbsp;
+
+          <div v-if="selectedReport?.anotherReason" class="pm-reason-chip">
+            <Tag :size="13" />
+            <span>Additional:</span>
+            <strong>{{ selectedReport.anotherReason }}</strong>
+          </div>
+
           <!-- ── Step 1: เลือก severity ── -->
           <div class="pm-step">
+            <br />
             <div class="pm-step-label">
               <span class="pm-step-num">1</span>
-              เลือกระดับความรุนแรง
+              Select Severity Level
             </div>
 
             <!-- Case buttons (preset reasons) -->
@@ -482,12 +498,12 @@
             <!-- Custom slider (อื่น ๆ) -->
             <div v-if="isCustomReason" class="pm-custom-block">
               <div class="pm-custom-header">
-                <span class="pm-custom-label">กำหนดคะแนนเอง</span>
+                <span class="pm-custom-label">Set the score manually</span>
                 <div class="pm-custom-score-row">
                   <span :class="['pm-score-big', `score-color-${customSeverity}`]">{{
                     pmCustomScore
                   }}</span>
-                  <span class="pm-score-unit">คะแนน</span>
+                  <span class="pm-score-unit">Score</span>
                 </div>
               </div>
               <input
@@ -502,9 +518,9 @@
                 <span>1</span><span>25</span><span>50</span><span>75</span><span>100</span>
               </div>
               <div class="custom-severity-tags">
-                <span class="csev-tag csev-light">1–10 เบา</span>
-                <span class="csev-tag csev-mid">11–50 กลาง</span>
-                <span class="csev-tag csev-heavy">51–100 หนัก</span>
+                <span class="csev-tag csev-light">1–10 Low</span>
+                <span class="csev-tag csev-mid">11–50 Medium</span>
+                <span class="csev-tag csev-heavy">51–100 High</span>
               </div>
             </div>
           </div>
@@ -517,7 +533,7 @@
             >
               <div class="pm-step-label">
                 <span class="pm-step-num">2</span>
-                เลือกคะแนนในช่วง
+                Select a score within the range
                 <span :class="['pm-range-hint', `hint-${pmSelectedCase.severity}`]">
                   {{ pmSelectedCase.scoreMin }} – {{ pmSelectedCase.scoreMax }}
                 </span>
@@ -570,7 +586,7 @@
             >
               <div class="pm-step-label">
                 <span class="pm-step-num">2</span>
-                คะแนนที่กำหนด
+                The specified score
               </div>
               <div :class="['pm-fixed-score-box', `fixed-${pmSelectedCase.severity}`]">
                 <span :class="['pm-score-big', `score-color-${pmSelectedCase.severity}`]">
@@ -595,23 +611,23 @@
                 :is="getSeverityIcon(isCustomReason ? customSeverity : pmSelectedCase?.severity)"
                 :size="15"
               />
-              <span>จะหักคะแนน</span>
+              <span>Behavior score will be reduce</span>
               <strong class="pm-preview-score">{{ finalPmScore }}</strong>
-              <span>คะแนนจาก behavior score ของผู้ถูกรายงาน</span>
+              <span>The behavior score of the reported user.</span>
             </div>
           </transition>
 
           <!-- ── Footer ── -->
           <div class="pm-footer">
             <button class="btn btn-secondary btn-sm" @click="closePenaltyModal">
-              <X :size="15" /> ยกเลิก
+              <X :size="15" /> cancel
             </button>
             <button
               class="btn btn-primary btn-sm"
               :disabled="!canConfirmPenalty"
               @click="confirmPenalty"
             >
-              <CheckCircle :size="15" /> ยืนยัน Penalty
+              <CheckCircle :size="15" /> confirm Penalty
             </button>
           </div>
         </div>
@@ -637,6 +653,8 @@ import {
   FileStack,
   FileText,
   Filter,
+  Flame,
+  Gavel,
   Hash,
   ImageIcon,
   InboxIcon,
@@ -644,26 +662,23 @@ import {
   ListOrdered,
   Loader2,
   Lock,
-  RotateCcw,
+  Pencil,
   RotateCw,
   Settings,
+  ShieldAlert,
   Tag,
   User,
   UserCircle,
   UserX,
+  Wind,
   X,
   XCircle,
   ZoomIn,
-  Gavel,
-  Pencil,
-  Wind,
-  ShieldAlert,
-  Flame,
 } from 'lucide-vue-next'
 import { computed, onMounted, ref } from 'vue'
 import { useAuthStore } from '../stores/auth'
 // API Configuration
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL + '/admin'
+const API_BASE_URL = `${import.meta.env.VITE_API_BASE_URL || '/api/v1'}/admin`
 const authStore = useAuthStore()
 
 // State
@@ -789,6 +804,12 @@ const customSeverity = computed(() => {
   return 'heavy'
 })
 
+const backupPmState = ref({
+  selectedCase: null,
+  scoreInRange: null,
+  customScore: 50,
+})
+
 // quick score presets 5 จุด spread ทั่วช่วง
 const quickScores = computed(() => {
   if (!pmSelectedCase.value) return []
@@ -834,15 +855,31 @@ const selectCase = (c) => {
 
 const resetPenaltyModal = () => {
   pmSelectedCase.value = null
+
   pmScoreInRange.value = null
-  pmCustomScore.value = 50
+
+  pmCustomScore.value = null
+
+  confirmedPenalty.value = null
+
+  updateError.value = null
+  updateSuccess.value = null
 }
 
 const openPenaltyModal = () => {
-  resetPenaltyModal()
+  backupPmState.value = {
+    selectedCase: pmSelectedCase.value,
+    scoreInRange: pmScoreInRange.value,
+    customScore: pmCustomScore.value,
+  }
   showPenaltyModal.value = true
 }
 const closePenaltyModal = () => {
+  pmSelectedCase.value = backupPmState.value.selectedCase
+  pmScoreInRange.value = backupPmState.value.scoreInRange
+  pmCustomScore.value = backupPmState.value.customScore
+  
+
   showPenaltyModal.value = false
 }
 
@@ -894,6 +931,7 @@ const fetchReports = async () => {
 }
 
 const viewReport = async (reportId) => {
+  resetPenaltyModal()
   loading.value = true
   error.value = null
   try {
@@ -948,8 +986,8 @@ const updateStatus = async (newStatus) => {
     selectedReport.value.status = updatedReport.status
     updateSuccess.value =
       pointToDecrease !== null
-        ? `สำเร็จ! ยืนยันรายงานและหัก ${pointToDecrease} คะแนน`
-        : `สำเร็จ! อัปเดตสถานะเป็น ${newStatus}`
+        ? `Success! Report confirmed and ${pointToDecrease} points deducted.`
+        : `Success! Status updated to ${newStatus}.`
     confirmedPenalty.value = null
     previewTargetScore.value == null
     setTimeout(() => {
@@ -968,6 +1006,7 @@ const closeModal = () => {
   updateError.value = null
   updateSuccess.value = null
   previewTargetScore.value = null
+  resetPenaltyModal()
 }
 
 const changePage = (p) => {
@@ -978,12 +1017,20 @@ const changePage = (p) => {
 }
 const formatDate = (d) => {
   if (!d) return 'N/A'
-  return new Date(d).toLocaleString('en-US', {
+
+  const dateStr = d.endsWith('Z') ? d : `${d}Z`
+  const date = new Date(dateStr)
+
+  if (isNaN(date.getTime())) return d
+
+  return date.toLocaleString('en-GB', {
+    timeZone: 'Asia/Bangkok',
     year: 'numeric',
     month: 'short',
     day: 'numeric',
     hour: '2-digit',
     minute: '2-digit',
+    hour12: false,
   })
 }
 
@@ -1017,14 +1064,17 @@ onMounted(() => {
   flex-wrap: wrap;
   gap: 1.5rem;
 }
+
 .header-text {
   flex: 1;
 }
+
 .header-title {
   display: flex;
   align-items: center;
   gap: 1rem;
 }
+
 .header-icon-wrap {
   display: flex;
   align-items: center;
@@ -1036,6 +1086,7 @@ onMounted(() => {
   color: var(--brand-primary);
   animation: fadeIn 0.5s ease;
 }
+
 .header h1 {
   margin: 0;
   animation: fadeIn 0.5s ease;
@@ -1047,6 +1098,7 @@ onMounted(() => {
   gap: 0.75rem;
   flex-wrap: wrap;
 }
+
 .stat-card {
   background: var(--glass-bg);
   backdrop-filter: var(--glass-blur);
@@ -1060,23 +1112,28 @@ onMounted(() => {
   transition: all var(--transition-base);
   animation: slideInRight 0.5s ease;
 }
+
 .stat-card:hover {
   transform: translateY(-3px);
   border-color: var(--glass-border-hover);
   box-shadow: var(--shadow-md);
 }
+
 .stat-total .stat-icon {
   background: linear-gradient(135deg, rgba(96, 212, 255, 0.15) 0%, rgba(77, 216, 230, 0.08) 100%);
   color: var(--brand-primary);
 }
+
 .stat-pending .stat-icon {
   background: linear-gradient(135deg, rgba(251, 191, 36, 0.15) 0%, rgba(245, 158, 11, 0.08) 100%);
   color: var(--color-warning);
 }
+
 .stat-resolved .stat-icon {
   background: linear-gradient(135deg, rgba(74, 222, 128, 0.15) 0%, rgba(34, 197, 94, 0.08) 100%);
   color: var(--color-success);
 }
+
 .stat-icon {
   display: flex;
   align-items: center;
@@ -1085,10 +1142,12 @@ onMounted(() => {
   height: 40px;
   border-radius: var(--radius-lg);
 }
+
 .stat-content {
   display: flex;
   flex-direction: column;
 }
+
 .stat-label {
   font-size: 0.6875rem;
   color: var(--text-muted);
@@ -1096,6 +1155,7 @@ onMounted(() => {
   letter-spacing: 0.06em;
   font-weight: 600;
 }
+
 .stat-value {
   font-size: 1.625rem;
   font-weight: 700;
@@ -1118,6 +1178,7 @@ onMounted(() => {
   align-items: flex-end;
   animation: fadeIn 0.5s ease 0.1s backwards;
 }
+
 .filter-group {
   display: flex;
   flex-direction: column;
@@ -1125,6 +1186,7 @@ onMounted(() => {
   flex: 1;
   min-width: 140px;
 }
+
 .filter-btn {
   align-self: flex-end;
   height: 40px;
@@ -1140,6 +1202,7 @@ onMounted(() => {
   padding: 4rem;
   gap: 1rem;
 }
+
 .spinner-icon {
   color: var(--brand-primary);
   animation: spin 1s linear infinite;
@@ -1149,6 +1212,7 @@ onMounted(() => {
   from {
     transform: rotate(0deg);
   }
+
   to {
     transform: rotate(360deg);
   }
@@ -1166,9 +1230,11 @@ onMounted(() => {
   border-radius: var(--radius-xl);
   border: 1px solid var(--glass-border);
 }
+
 .error-icon {
   color: var(--color-error);
 }
+
 .error-message p {
   color: var(--color-error);
   font-weight: 500;
@@ -1180,27 +1246,33 @@ onMounted(() => {
   font-size: 0.875rem;
   color: var(--text-primary);
 }
+
 .user-cell {
   display: flex;
   align-items: center;
   gap: 0.5rem;
 }
+
 .user-icon {
   color: var(--brand-primary);
   flex-shrink: 0;
 }
+
 .user-icon.target {
   color: var(--color-error);
 }
+
 .user-id {
   font-family: 'JetBrains Mono', monospace;
   font-size: 0.8125rem;
   color: var(--text-secondary);
 }
+
 .date-cell {
   color: var(--text-muted);
   font-size: 0.875rem;
 }
+
 .reason-badge {
   display: inline-flex;
   padding: 0.25rem 0.625rem;
@@ -1211,6 +1283,7 @@ onMounted(() => {
   color: var(--text-secondary);
   font-weight: 500;
 }
+
 .empty-state {
   padding: 3rem;
   display: flex;
@@ -1234,6 +1307,7 @@ onMounted(() => {
   background: rgba(96, 212, 255, 0.06);
   color: var(--brand-primary);
 }
+
 .btn-action:hover {
   background: rgba(96, 212, 255, 0.12);
   border-color: rgba(96, 212, 255, 0.35);
@@ -1259,11 +1333,13 @@ onMounted(() => {
   border-radius: var(--radius-xl);
   border: 1px solid var(--glass-border);
 }
+
 .page-info {
   font-weight: 500;
   color: var(--text-primary);
   font-size: 0.875rem;
 }
+
 .page-total {
   color: var(--text-muted);
   font-size: 0.8125rem;
@@ -1285,6 +1361,7 @@ onMounted(() => {
   padding: 1rem;
   overflow-y: auto;
 }
+
 .modal {
   background: var(--bg-white);
   border: 1px solid var(--glass-border);
@@ -1296,16 +1373,19 @@ onMounted(() => {
   overflow-y: auto;
   animation: modalSlideUp 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
+
 @keyframes modalSlideUp {
   from {
     opacity: 0;
     transform: translateY(30px) scale(0.97);
   }
+
   to {
     opacity: 1;
     transform: translateY(0) scale(1);
   }
 }
+
 .modal-header {
   display: flex;
   justify-content: space-between;
@@ -1317,17 +1397,20 @@ onMounted(() => {
   background: var(--bg-white);
   z-index: 10;
 }
+
 .modal-title {
   display: flex;
   align-items: center;
   gap: 0.75rem;
   color: var(--brand-primary);
 }
+
 .modal-title h2 {
   margin: 0;
   font-size: 1.25rem;
   color: var(--text-primary);
 }
+
 .btn-close {
   display: flex;
   align-items: center;
@@ -1340,23 +1423,28 @@ onMounted(() => {
   padding: 0.375rem;
   border-radius: var(--radius-md);
 }
+
 .btn-close:hover {
   color: var(--color-error);
   background: rgba(248, 113, 113, 0.08);
   border-color: rgba(248, 113, 113, 0.2);
 }
+
 .modal-body {
   padding: 1.5rem;
 }
+
 .detail-section {
   margin-bottom: 1.75rem;
 }
+
 .detail-top {
   display: flex;
   align-items: center;
   gap: 1rem;
   flex-wrap: wrap;
 }
+
 .detail-section h3 {
   display: flex;
   align-items: center;
@@ -1365,10 +1453,12 @@ onMounted(() => {
   margin-bottom: 0.875rem;
   font-size: 1.0625rem;
 }
+
 .badge-large {
   font-size: 0.875rem;
   padding: 0.5rem 1rem;
 }
+
 .detail-date {
   display: flex;
   align-items: center;
@@ -1376,6 +1466,7 @@ onMounted(() => {
   color: var(--text-muted);
   font-size: 0.8125rem;
 }
+
 .divider {
   height: 1px;
   background: var(--divider);
@@ -1391,6 +1482,7 @@ onMounted(() => {
   border-radius: var(--radius-xl);
   border: 1px solid var(--glass-border);
 }
+
 .user-avatar {
   width: 72px;
   height: 72px;
@@ -1399,6 +1491,7 @@ onMounted(() => {
   border: 2px solid var(--brand-primary);
   box-shadow: 0 0 15px rgba(96, 212, 255, 0.15);
 }
+
 .user-avatar-placeholder {
   width: 72px;
   height: 72px;
@@ -1411,9 +1504,11 @@ onMounted(() => {
   border: 2px solid rgba(96, 212, 255, 0.25);
   flex-shrink: 0;
 }
+
 .user-details {
   flex: 1;
 }
+
 .user-details p {
   display: flex;
   align-items: center;
@@ -1429,6 +1524,7 @@ onMounted(() => {
   border-radius: var(--radius-xl);
   border: 1px solid var(--glass-border);
 }
+
 .report-info p {
   display: flex;
   align-items: flex-start;
@@ -1436,6 +1532,7 @@ onMounted(() => {
   margin-bottom: 0.75rem;
   font-size: 0.9rem;
 }
+
 .description-text {
   display: block;
   margin-top: 0.375rem;
@@ -1455,6 +1552,7 @@ onMounted(() => {
   grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
   gap: 0.75rem;
 }
+
 .evidence-item {
   position: relative;
   aspect-ratio: 1;
@@ -1464,16 +1562,19 @@ onMounted(() => {
   transition: all 0.3s ease;
   border: 1px solid var(--glass-border);
 }
+
 .evidence-item:hover {
   transform: scale(1.03);
   border-color: var(--brand-primary);
   box-shadow: var(--shadow-glow-sm);
 }
+
 .evidence-item img {
   width: 100%;
   height: 100%;
   object-fit: cover;
 }
+
 .evidence-overlay {
   position: absolute;
   top: 0;
@@ -1488,6 +1589,7 @@ onMounted(() => {
   transition: opacity 0.3s ease;
   color: var(--brand-primary);
 }
+
 .evidence-item:hover .evidence-overlay {
   opacity: 1;
 }
@@ -1508,48 +1610,61 @@ onMounted(() => {
   .reports-view {
     padding: 1rem;
   }
+
   .header {
     flex-direction: column;
     align-items: stretch;
   }
+
   .stats-summary {
     width: 100%;
     flex-direction: column;
   }
+
   .stat-card {
     width: 100%;
   }
+
   .filters {
     flex-direction: column;
   }
+
   .filter-group {
     width: 100%;
   }
+
   .filter-btn {
     width: 100%;
   }
+
   .pagination {
     flex-direction: column;
   }
+
   .modal {
     margin: 0.5rem;
     max-height: calc(100vh - 1rem);
     border-radius: var(--radius-xl);
   }
+
   .modal-body {
     padding: 1rem;
   }
+
   .user-info {
     flex-direction: column;
     align-items: center;
     text-align: center;
   }
+
   .evidence-grid {
     grid-template-columns: repeat(2, 1fr);
   }
+
   .status-actions {
     flex-direction: column;
   }
+
   .status-actions .btn {
     width: 100%;
   }
@@ -1569,6 +1684,7 @@ onMounted(() => {
   margin-bottom: 0.875rem;
   flex-wrap: wrap;
 }
+
 .chip-severity {
   font-size: 0.6875rem;
   font-weight: 700;
@@ -1577,31 +1693,37 @@ onMounted(() => {
   text-transform: uppercase;
   letter-spacing: 0.04em;
 }
+
 .chip-light {
   background: rgba(74, 222, 128, 0.12);
   color: #4ade80;
   border: 1px solid rgba(74, 222, 128, 0.25);
 }
+
 .chip-mid {
   background: rgba(251, 191, 36, 0.12);
   color: #fbbf24;
   border: 1px solid rgba(251, 191, 36, 0.25);
 }
+
 .chip-heavy {
   background: rgba(248, 113, 113, 0.12);
   color: #f87171;
   border: 1px solid rgba(248, 113, 113, 0.25);
 }
+
 .chip-custom {
   background: rgba(96, 212, 255, 0.12);
   color: var(--brand-primary);
   border: 1px solid rgba(96, 212, 255, 0.25);
 }
+
 .chip-score {
   font-family: 'JetBrains Mono', monospace;
   color: var(--text-primary);
   font-size: 0.9375rem;
 }
+
 .chip-change {
   display: inline-flex;
   align-items: center;
@@ -1615,6 +1737,7 @@ onMounted(() => {
   padding: 0.2rem 0.5rem;
   transition: all 0.15s ease;
 }
+
 .chip-change:hover {
   background: rgba(96, 212, 255, 0.08);
 }
@@ -1626,6 +1749,7 @@ onMounted(() => {
   color: #4ade80 !important;
   box-shadow: none !important;
 }
+
 .needs-penalty-hint {
   display: inline-flex;
   align-items: center;
@@ -1663,16 +1787,24 @@ onMounted(() => {
   border-radius: var(--radius-full);
   font-size: 0.8125rem;
   color: var(--text-secondary);
-  margin-bottom: 1.25rem;
+  margin-bottom: 0 !important; /* ลบ margin เดิมออกเพื่อให้ใช้ gap จากกลุ่มแทน */
+  margin-top: 20px;
 }
+
 .pm-reason-chip strong {
   color: var(--text-primary);
 }
 
-/* steps */
+.is-additional {
+  background: rgba(255, 255, 255, 0.03);
+  border-style: dashed;
+  border-color: rgba(255, 255, 255, 0.1);
+}
+
 .pm-step {
   margin-bottom: 1.375rem;
 }
+
 .pm-step-label {
   display: flex;
   align-items: center;
@@ -1684,6 +1816,7 @@ onMounted(() => {
   letter-spacing: 0.06em;
   margin-bottom: 0.75rem;
 }
+
 .pm-step-num {
   display: inline-flex;
   align-items: center;
@@ -1697,17 +1830,21 @@ onMounted(() => {
   font-weight: 700;
   flex-shrink: 0;
 }
+
 .pm-range-hint {
   font-weight: 700;
   letter-spacing: 0;
   text-transform: none;
 }
+
 .hint-light {
   color: #4ade80;
 }
+
 .hint-mid {
   color: #fbbf24;
 }
+
 .hint-heavy {
   color: #f87171;
 }
@@ -1733,29 +1870,36 @@ onMounted(() => {
   transition: all var(--transition-fast);
   text-align: left;
 }
+
 .pm-severity-btn:hover {
   background: rgba(30, 41, 59, 0.7);
   border-color: rgba(99, 118, 148, 0.3);
 }
+
 .pm-severity-btn.sev-light:hover {
   border-color: rgba(74, 222, 128, 0.3);
 }
+
 .pm-severity-btn.sev-light.active {
   background: rgba(74, 222, 128, 0.07);
   border-color: rgba(74, 222, 128, 0.45);
   box-shadow: 0 0 18px rgba(74, 222, 128, 0.07);
 }
+
 .pm-severity-btn.sev-mid:hover {
   border-color: rgba(251, 191, 36, 0.3);
 }
+
 .pm-severity-btn.sev-mid.active {
   background: rgba(251, 191, 36, 0.07);
   border-color: rgba(251, 191, 36, 0.45);
   box-shadow: 0 0 18px rgba(251, 191, 36, 0.07);
 }
+
 .pm-severity-btn.sev-heavy:hover {
   border-color: rgba(248, 113, 113, 0.3);
 }
+
 .pm-severity-btn.sev-heavy.active {
   background: rgba(248, 113, 113, 0.07);
   border-color: rgba(248, 113, 113, 0.45);
@@ -1769,6 +1913,7 @@ onMounted(() => {
   flex: 1;
   min-width: 0;
 }
+
 .pm-sev-right {
   flex-shrink: 0;
 }
@@ -1785,16 +1930,19 @@ onMounted(() => {
   text-transform: uppercase;
   letter-spacing: 0.04em;
 }
+
 .sev-badge-light {
   background: rgba(74, 222, 128, 0.12);
   color: #4ade80;
   border: 1px solid rgba(74, 222, 128, 0.25);
 }
+
 .sev-badge-mid {
   background: rgba(251, 191, 36, 0.12);
   color: #fbbf24;
   border: 1px solid rgba(251, 191, 36, 0.25);
 }
+
 .sev-badge-heavy {
   background: rgba(248, 113, 113, 0.12);
   color: #f87171;
@@ -1809,12 +1957,14 @@ onMounted(() => {
   flex-direction: column;
   gap: 0.15rem;
 }
+
 .pm-examples li {
   font-size: 0.8125rem;
   color: var(--text-secondary);
   padding-left: 0.75rem;
   position: relative;
 }
+
 .pm-examples li::before {
   content: '·';
   position: absolute;
@@ -1830,21 +1980,25 @@ onMounted(() => {
   font-family: 'JetBrains Mono', monospace;
   transition: all var(--transition-fast);
 }
+
 .range-pill-light {
   background: rgba(74, 222, 128, 0.1);
   color: #4ade80;
   border: 1px solid rgba(74, 222, 128, 0.2);
 }
+
 .range-pill-mid {
   background: rgba(251, 191, 36, 0.1);
   color: #fbbf24;
   border: 1px solid rgba(251, 191, 36, 0.2);
 }
+
 .range-pill-heavy {
   background: rgba(248, 113, 113, 0.1);
   color: #f87171;
   border: 1px solid rgba(248, 113, 113, 0.2);
 }
+
 .pm-severity-btn.active .pm-range-pill {
   filter: brightness(1.2);
 }
@@ -1855,14 +2009,17 @@ onMounted(() => {
   border: 1px solid transparent;
   align-items: stretch;
 }
+
 .slider-wrap-light {
   background: rgba(74, 222, 128, 0.05);
   border-color: rgba(74, 222, 128, 0.15);
 }
+
 .slider-wrap-mid {
   background: rgba(251, 191, 36, 0.05);
   border-color: rgba(251, 191, 36, 0.15);
 }
+
 .slider-wrap-heavy {
   background: rgba(248, 113, 113, 0.05);
   border-color: rgba(248, 113, 113, 0.15);
@@ -1874,6 +2031,7 @@ onMounted(() => {
   gap: 0.5rem;
   margin-bottom: 0.875rem;
 }
+
 .pm-score-big {
   font-size: 2.75rem;
   font-weight: 700;
@@ -1881,19 +2039,24 @@ onMounted(() => {
   line-height: 1;
   transition: color 0.2s ease;
 }
+
 .pm-score-unit {
   font-size: 0.875rem;
   color: var(--text-muted);
 }
+
 .score-color-light {
   color: #4ade80;
 }
+
 .score-color-mid {
   color: #fbbf24;
 }
+
 .score-color-heavy {
   color: #f87171;
 }
+
 .score-color-custom {
   color: var(--brand-primary);
 }
@@ -1933,9 +2096,11 @@ onMounted(() => {
 .text-light {
   color: #4ade80;
 }
+
 .text-mid {
   color: #fbbf24;
 }
+
 .text-heavy {
   color: #f87171;
 }
@@ -1944,6 +2109,7 @@ onMounted(() => {
 .preview-fade-leave-active {
   transition: all 0.2s ease;
 }
+
 .preview-fade-enter-from,
 .preview-fade-leave-to {
   opacity: 0;
@@ -1967,6 +2133,7 @@ onMounted(() => {
   margin-top: 0.75rem;
   flex-wrap: wrap;
 }
+
 .pm-qs-btn {
   padding: 0.3rem 0.75rem;
   border-radius: var(--radius-md);
@@ -1978,22 +2145,26 @@ onMounted(() => {
   border: 1px solid rgba(99, 118, 148, 0.2);
   color: var(--text-secondary);
 }
+
 .pm-qs-btn:hover {
   border-color: rgba(99, 118, 148, 0.4);
   color: var(--text-primary);
 }
+
 .qs-light.active {
   background: rgba(74, 222, 128, 0.1);
   border-color: rgba(74, 222, 128, 0.4);
   color: #4ade80;
   font-weight: 600;
 }
+
 .qs-mid.active {
   background: rgba(251, 191, 36, 0.1);
   border-color: rgba(251, 191, 36, 0.4);
   color: #fbbf24;
   font-weight: 600;
 }
+
 .qs-heavy.active {
   background: rgba(248, 113, 113, 0.1);
   border-color: rgba(248, 113, 113, 0.4);
@@ -2009,18 +2180,22 @@ onMounted(() => {
   border-radius: var(--radius-lg);
   border: 1px solid transparent;
 }
+
 .fixed-heavy {
   background: rgba(248, 113, 113, 0.07);
   border-color: rgba(248, 113, 113, 0.2);
 }
+
 .fixed-mid {
   background: rgba(251, 191, 36, 0.07);
   border-color: rgba(251, 191, 36, 0.2);
 }
+
 .fixed-light {
   background: rgba(74, 222, 128, 0.07);
   border-color: rgba(74, 222, 128, 0.2);
 }
+
 .pm-fixed-label {
   font-size: 0.6875rem;
   font-weight: 600;
@@ -2036,16 +2211,19 @@ onMounted(() => {
   border-radius: var(--radius-lg);
   padding: 1rem 1.125rem;
 }
+
 .pm-custom-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
   margin-bottom: 0.875rem;
 }
+
 .pm-custom-label {
   font-size: 0.8125rem;
   color: var(--text-muted);
 }
+
 .pm-custom-score-row {
   display: flex;
   align-items: baseline;
@@ -2067,22 +2245,26 @@ onMounted(() => {
   margin-top: 0.75rem;
   flex-wrap: wrap;
 }
+
 .csev-tag {
   font-size: 0.6875rem;
   font-weight: 600;
   padding: 0.2rem 0.625rem;
   border-radius: var(--radius-full);
 }
+
 .csev-light {
   background: rgba(74, 222, 128, 0.1);
   color: #4ade80;
   border: 1px solid rgba(74, 222, 128, 0.2);
 }
+
 .csev-mid {
   background: rgba(251, 191, 36, 0.1);
   color: #fbbf24;
   border: 1px solid rgba(251, 191, 36, 0.2);
 }
+
 .csev-heavy {
   background: rgba(248, 113, 113, 0.1);
   color: #f87171;
@@ -2092,7 +2274,8 @@ onMounted(() => {
 .penalty-slider {
   width: 100%;
   appearance: none;
-  -webkit-appearance: none; /* สำหรับ Chrome/Safari */
+  -webkit-appearance: none;
+  /* สำหรับ Chrome/Safari */
   height: 6px;
   border-radius: 3px;
   background: rgba(99, 118, 148, 0.25);
@@ -2104,6 +2287,7 @@ onMounted(() => {
   margin: 1.5rem 0 1rem 0;
   box-shadow: none !important;
 }
+
 .penalty-slider::-webkit-slider-thumb {
   appearance: none;
   width: 18px;
@@ -2115,27 +2299,34 @@ onMounted(() => {
   cursor: pointer;
   transition: transform 0.1s ease;
 }
+
 .penalty-slider::-webkit-slider-thumb:hover {
   transform: scale(1.15);
 }
+
 .slider-light::-webkit-slider-thumb {
   background: #4ade80;
   box-shadow: 0 0 8px rgba(74, 222, 128, 0.5);
 }
+
 .slider-mid::-webkit-slider-thumb {
   background: #fbbf24;
   box-shadow: 0 0 8px rgba(251, 191, 36, 0.5);
 }
+
 .slider-heavy::-webkit-slider-thumb {
   background: #f87171;
   box-shadow: 0 0 8px rgba(248, 113, 113, 0.5);
 }
+
 .slider-light::-moz-range-thumb {
   background: #4ade80;
 }
+
 .slider-mid::-moz-range-thumb {
   background: #fbbf24;
 }
+
 .slider-heavy::-moz-range-thumb {
   background: #f87171;
 }
@@ -2151,26 +2342,31 @@ onMounted(() => {
   flex-wrap: wrap;
   margin-top: 0.25rem;
 }
+
 .preview-light {
   background: rgba(74, 222, 128, 0.07);
   border-color: rgba(74, 222, 128, 0.2);
   color: #4ade80;
 }
+
 .preview-mid {
   background: rgba(251, 191, 36, 0.07);
   border-color: rgba(251, 191, 36, 0.2);
   color: #fbbf24;
 }
+
 .preview-heavy {
   background: rgba(248, 113, 113, 0.07);
   border-color: rgba(248, 113, 113, 0.2);
   color: #f87171;
 }
+
 .preview-custom {
   background: rgba(96, 212, 255, 0.06);
   border-color: rgba(96, 212, 255, 0.15);
   color: var(--brand-primary);
 }
+
 .pm-preview-score {
   font-size: 1.125rem;
   font-weight: 700;
@@ -2183,15 +2379,18 @@ onMounted(() => {
     opacity 0.25s ease,
     transform 0.25s ease;
 }
+
 .step2-enter-from,
 .step2-leave-to {
   opacity: 0;
   transform: translateY(-8px);
 }
+
 .preview-fade-enter-active,
 .preview-fade-leave-active {
   transition: opacity 0.2s ease;
 }
+
 .preview-fade-enter-from,
 .preview-fade-leave-to {
   opacity: 0;
@@ -2211,7 +2410,8 @@ onMounted(() => {
   align-items: center;
   gap: 0.5rem;
   padding: 0.625rem 1rem;
-  background: rgba(248, 113, 113, 0.08); /* สีแดงอ่อนๆ บางๆ */
+  background: rgba(248, 113, 113, 0.08);
+  /* สีแดงอ่อนๆ บางๆ */
   border: 1px solid rgba(248, 113, 113, 0.2);
   border-radius: var(--radius-md);
   color: #f87171;
@@ -2228,59 +2428,75 @@ onMounted(() => {
   .reports-view {
     padding: 1rem;
   }
+
   .header {
     flex-direction: column;
     align-items: stretch;
   }
+
   .stats-summary {
     width: 100%;
     flex-direction: column;
   }
+
   .stat-card {
     width: 100%;
   }
+
   .filters {
     flex-direction: column;
   }
+
   .filter-group {
     width: 100%;
   }
+
   .filter-btn {
     width: 100%;
   }
+
   .pagination {
     flex-direction: column;
   }
+
   .modal {
     margin: 0.5rem;
     max-height: calc(100vh - 1rem);
     border-radius: var(--radius-xl);
   }
+
   .modal-body {
     padding: 1rem;
   }
+
   .user-info {
     flex-direction: column;
     align-items: center;
     text-align: center;
   }
+
   .evidence-grid {
     grid-template-columns: repeat(2, 1fr);
   }
+
   .status-actions {
     flex-direction: column;
   }
+
   .status-actions .btn {
     width: 100%;
   }
+
   .penalty-modal {
     max-width: 100%;
   }
+
   .pm-severity-btn {
     flex-direction: column;
     align-items: flex-start;
     gap: 0.5rem;
   }
+
   .pm-footer .btn {
     flex: 1;
   }

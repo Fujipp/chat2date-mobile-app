@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:chat2date/components/buttons/ds_button.dart';
+import 'package:chat2date/components/common/modal_component.dart';
 import 'calendar_utils.dart';
 import 'calendar_day_cell.dart';
 
@@ -12,8 +13,10 @@ class CalendarCard extends StatefulWidget {
 
   /// ★ ใหม่: วันที่ที่ถูกเลือกไว้แล้ว (edit mode) ถ้าเปิดใหม่ให้เป็น null
   final DateTime? initialSelectedDate;
+  final bool isEditMode;
   final void Function(DateTime date, TimeOfDay time)? onSave;
-  final VoidCallback? onClose;
+  final void Function(bool hasUnsavedChanges)? onClose;
+  final ValueChanged<bool>? onDirtyChanged;
   final VoidCallback? onTrash;
   final Color accentColor; // สีเน้น (เช่น ใช้กับชื่อเดือน)
 
@@ -26,8 +29,10 @@ class CalendarCard extends StatefulWidget {
     required this.initialMonth,
     this.initialTime,
     this.initialSelectedDate,
+    this.isEditMode = false,
     this.onSave,
     this.onClose,
+    this.onDirtyChanged,
     this.onTrash,
     this.accentColor = const Color(0xFFFF6B81),
     this.placeCountText = 'คุณมี 1 สถานที่เดต!!',
@@ -41,11 +46,14 @@ class CalendarCard extends StatefulWidget {
 class _CalendarCardState extends State<CalendarCard> {
   late DateTime _cursorMonth;
   DateTime? _selectedDate;
+  DateTime? _initialSelectedDate;
+  late TimeOfDay _initialTime;
 
   // Time (Dropdown)
   late int _hour12; // 1..12
   late int _minute; // 0..59
   bool _am = true;
+  bool _hasUnsavedChanges = false;
 
   @override
   void initState() {
@@ -57,9 +65,13 @@ class _CalendarCardState extends State<CalendarCard> {
     );
     // ★ แก้: ถ้าเปิดใหม่ (ไม่มี initialSelectedDate) → ไม่ไฮไลต์วันใด
     // ถ้าเป็น edit mode → ไฮไลต์วันที่เลือกไว้แล้ว
-    _selectedDate = widget.initialSelectedDate;
+    _initialSelectedDate = widget.initialSelectedDate == null
+        ? null
+        : DateUtils.dateOnly(widget.initialSelectedDate!);
+    _selectedDate = _initialSelectedDate;
 
-    final t = widget.initialTime ?? const TimeOfDay(hour: 12, minute: 0);
+    _initialTime = widget.initialTime ?? const TimeOfDay(hour: 12, minute: 0);
+    final t = _initialTime;
     _am = t.period == DayPeriod.am;
     final h12 = t.hour % 12 == 0 ? 12 : t.hour % 12;
     _hour12 = h12;
@@ -68,6 +80,33 @@ class _CalendarCardState extends State<CalendarCard> {
     // ปุ่มบันทึกจะถูก disabled จนกว่า user จะเลือกวัน/เวลาจริงๆ
     // ถ้ามี initialSelectedDate (edit mode) → ถือว่าเลือกแล้ว
     _hasUserPicked = widget.initialSelectedDate != null;
+  }
+
+  DateTime? get _currentSelectedDateOnly =>
+      _selectedDate == null ? null : DateUtils.dateOnly(_selectedDate!);
+
+  TimeOfDay get _currentTime => TimeOfDay(hour: _hour24, minute: _minute);
+
+  bool get _isDirty {
+    final initialDate = _initialSelectedDate;
+    final currentDate = _currentSelectedDateOnly;
+    final dateChanged = initialDate == null
+        ? currentDate != null
+        : currentDate == null ||
+            initialDate.year != currentDate.year ||
+            initialDate.month != currentDate.month ||
+            initialDate.day != currentDate.day;
+    final timeChanged = _currentTime.hour != _initialTime.hour ||
+        _currentTime.minute != _initialTime.minute;
+    return dateChanged || timeChanged;
+  }
+
+  void _commitState(VoidCallback update) {
+    setState(() {
+      update();
+      _hasUnsavedChanges = _isDirty;
+    });
+    widget.onDirtyChanged?.call(_hasUnsavedChanges);
   }
 
   // ==== Month / Year helpers ====
@@ -105,7 +144,7 @@ class _CalendarCardState extends State<CalendarCard> {
         newMonth = now.month; // บังคับเป็นเดือนปัจจุบัน
       }
 
-      setState(() {
+      _commitState(() {
         _cursorMonth = DateTime(_cursorMonth.year, newMonth, 1);
         _selectedDate = DateTime(_cursorMonth.year, _cursorMonth.month, 1);
       });
@@ -113,7 +152,7 @@ class _CalendarCardState extends State<CalendarCard> {
   }
 
   void _setYear(int year) {
-    setState(() {
+    _commitState(() {
       _cursorMonth = DateTime(year, _cursorMonth.month, 1);
       _selectedDate = DateTime(year, _cursorMonth.month, 1);
     });
@@ -127,14 +166,14 @@ class _CalendarCardState extends State<CalendarCard> {
       return;
     }
 
-    setState(() {
+    _commitState(() {
       _cursorMonth = DateTime(_cursorMonth.year, _cursorMonth.month - 1, 1);
       _selectedDate = DateTime(_cursorMonth.year, _cursorMonth.month, 1);
     });
   }
 
   void _nextMonth() {
-    setState(() {
+    _commitState(() {
       _cursorMonth = DateTime(_cursorMonth.year, _cursorMonth.month + 1, 1);
       _selectedDate = DateTime(_cursorMonth.year, _cursorMonth.month, 1);
     });
@@ -269,7 +308,7 @@ class _CalendarCardState extends State<CalendarCard> {
                         top: 0,
                         bottom: 0,
                         child: InkWell(
-                          onTap: widget.onClose,
+                          onTap: () => widget.onClose?.call(_hasUnsavedChanges),
                           borderRadius: BorderRadius.circular(16),
                           child: Padding(
                             padding: const EdgeInsets.all(6),
@@ -399,7 +438,11 @@ class _CalendarCardState extends State<CalendarCard> {
                                 date: d,
                                 currentMonth: _cursorMonth,
                                 selected: _selectedDate,
-                                onSelect: (day) => setState(() {
+                                selectedColor: widget.initialSelectedDate != null
+                                    ? widget.accentColor
+                                    : const Color(0xFF5CE1E6),
+                                selectedTextColor: Colors.white,
+                                onSelect: (day) => _commitState(() {
                                   _selectedDate = day;
                                   _hasUserPicked =
                                       true; // เลือกวันแล้ว enable ปุ่มบันทึก
@@ -446,7 +489,7 @@ class _CalendarCardState extends State<CalendarCard> {
                               width: 40, // เดิม 42
                               value: _hour12,
                               values: _hours12,
-                              onChanged: (v) => setState(() {
+                              onChanged: (v) => _commitState(() {
                                 _hour12 = v!;
                                 _hasUserPicked = true;
                               }),
@@ -470,7 +513,7 @@ class _CalendarCardState extends State<CalendarCard> {
                               value: _minute,
                               values: _minutes,
                               formatter: (m) => m.toString().padLeft(2, '0'),
-                              onChanged: (v) => setState(() {
+                              onChanged: (v) => _commitState(() {
                                 _minute = v!;
                                 _hasUserPicked = true;
                               }),
@@ -536,7 +579,7 @@ class _CalendarCardState extends State<CalendarCard> {
               ),
               const SizedBox(height: 12),
 
-              // —— ปุ่มบันทึก (ใช้ DsButton เพื่อให้ active/disabled เหมือนทั้ง project) ——
+              // —— ปุ่มบันทึก (ใช้ DsButton เพื่อให้ active/disabled เหมือนทั้ง project) ———
               DsButton(
                 label: 'บันทึก',
                 variant: DsButtonVariant.primary,
@@ -544,29 +587,61 @@ class _CalendarCardState extends State<CalendarCard> {
                 onPressed:
                     (_hasUserPicked &&
                         _selectedDate != null &&
-                        !_isPastTimeSelected)
-                    ? () {
-                        final h24 = _hour24;
-                        final m = _minute.clamp(0, 59);
-                        final selectedDateTime = DateTime(
-                          _selectedDate!.year,
-                          _selectedDate!.month,
-                          _selectedDate!.day,
-                          h24,
-                          m,
-                        );
-
-                        widget.onSave?.call(
-                          selectedDateTime,
-                          TimeOfDay(hour: h24, minute: m),
-                        );
-                      }
+                        !_isPastTimeSelected &&
+                        (!widget.isEditMode || _hasUnsavedChanges))
+                    ? _handleSavePressed
                     : null,
               ),
             ],
           ),
         ),
       ],
+    );
+  }
+
+  void _handleSavePressed() {
+    final h24 = _hour24;
+    final m = _minute.clamp(0, 59);
+    final selectedDateTime = DateTime(
+      _selectedDate!.year,
+      _selectedDate!.month,
+      _selectedDate!.day,
+      h24,
+      m,
+    );
+    final selectedTime = TimeOfDay(hour: h24, minute: m);
+
+    if (widget.isEditMode) {
+      _showSaveConfirmDialog(selectedDateTime, selectedTime);
+      return;
+    }
+
+    widget.onSave?.call(selectedDateTime, selectedTime);
+  }
+
+  void _showSaveConfirmDialog(DateTime date, TimeOfDay time) {
+    showDialog(
+      context: context,
+      barrierDismissible: true,
+      builder: (ctx) => Dialog(
+        backgroundColor: Colors.transparent,
+        insetPadding: const EdgeInsets.symmetric(horizontal: 24),
+        child: ModalComponent(
+          svgPath: 'assets/icons/icon_warning.svg',
+          heightSvg: 68,
+          widthSvg: 77,
+          topic: 'ยืนยันการเปลี่ยนวันเดต',
+          description: 'ต้องการบันทึกการเปลี่ยนแปลงวันเดตนี้ใช่หรือไม่',
+          choice: true,
+          firstChoiceText: 'ยกเลิก',
+          secondChoiceText: 'ยืนยัน',
+          onFirstChoice: () => Navigator.pop(ctx),
+          onSecondChoice: () {
+            Navigator.pop(ctx);
+            widget.onSave?.call(date, time);
+          },
+        ),
+      ),
     );
   }
 
@@ -773,7 +848,7 @@ class _CalendarCardState extends State<CalendarCard> {
             child: _segmented(
               label: 'AM',
               selected: _am,
-              onTap: () => setState(() => _am = true),
+              onTap: () => _commitState(() => _am = true),
             ),
           ),
           const SizedBox(width: 2),
@@ -781,7 +856,7 @@ class _CalendarCardState extends State<CalendarCard> {
             child: _segmented(
               label: 'PM',
               selected: !_am,
-              onTap: () => setState(() => _am = false),
+              onTap: () => _commitState(() => _am = false),
             ),
           ),
         ],

@@ -23,7 +23,6 @@ class _OtpPageState extends ConsumerState<OtpPage> {
   late final List<FocusNode> _nodes;
 
   String _phone = '';
-  String _token = '';
   bool onLogin = false;
   int _seconds = 60;
   Timer? _timer;
@@ -42,7 +41,6 @@ class _OtpPageState extends ConsumerState<OtpPage> {
       final args = ModalRoute.of(context)?.settings.arguments;
       if (args is Map) {
         _phone = (args['phone'] ?? '') as String;
-        _token = (args['token'] ?? '') as String;
         onLogin = (args['onLogin'] ?? '') as bool;
       }
       _startTimer();
@@ -117,6 +115,7 @@ class _OtpPageState extends ConsumerState<OtpPage> {
   Future<void> _verify() async {
     final code = _code();
     if (code.length != _length) {
+      if (!mounted) return;
       Toast.show(
         context,
         type: ToastType.warning,
@@ -131,12 +130,7 @@ class _OtpPageState extends ConsumerState<OtpPage> {
     try {
       final data = await ref
           .read(backendOtpServiceProvider)
-          .validateOtp(
-            token: _token,
-            code: code,
-            phone: _phone,
-            onLogin: onLogin,
-          );
+          .validateOtp(code: code, phone: _phone, onLogin: onLogin);
 
       if (!mounted) return;
 
@@ -178,9 +172,8 @@ class _OtpPageState extends ConsumerState<OtpPage> {
     if (_seconds > 0 || _resending) return;
     setState(() => _resending = true);
     try {
-      final newToken = await BackendOtpService.sendOtp(_phone,context);
+      await BackendOtpService.sendOtp(_phone, context);
       if (!mounted) return;
-      _token = newToken;
       _startTimer();
       Toast.show(
         context,
@@ -203,7 +196,7 @@ class _OtpPageState extends ConsumerState<OtpPage> {
 
   String _maskPhone(String p) {
     if (p.length != 10) return p;
-    return '${p.substring(0, 3)}-xxx-xx${p.substring(8)}'; // 081-xxx-xx89
+    return '${p.substring(0, 3)}-xxx-xx${p.substring(8)}';
   }
 
   @override
