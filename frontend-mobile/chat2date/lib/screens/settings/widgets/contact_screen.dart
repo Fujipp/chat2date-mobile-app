@@ -32,6 +32,7 @@ class _ContactScreenState extends ConsumerState<ContactScreen> {
     'ข้อเสนอแนะ',
     'ฟีเจอร์ใหม่',
     'บัคหรือปัญหา',
+    'ขอข้อมูล/หลักฐานเหตุฉุกเฉิน (SOS)',
     'อื่น ๆ',
   ];
 
@@ -50,15 +51,20 @@ class _ContactScreenState extends ConsumerState<ContactScreen> {
   }
 
   bool get _hasEmail {
-    final user =
-        ref.read(userStoreProvider)['user'] as User?; // ← เพิ่ม as User?
+    final user = ref.read(userStoreProvider)['user'] as User?;
     return user?.email != null && user!.email!.isNotEmpty;
   }
 
   bool get _hasName {
-    final user =
-        ref.read(userStoreProvider)['user'] as User?; // ← เพิ่ม as User?
+    final user = ref.read(userStoreProvider)['user'] as User?;
     return user?.firstname != null && user?.lastname != null;
+  }
+
+  String get _messageHintText {
+    if (_selectedSubject == 'ขอข้อมูล/หลักฐานเหตุฉุกเฉิน (SOS)') {
+      return 'โปรดระบุวันที่เกิดเหตุ หรือรายละเอียดสั้นๆ เพื่อให้ทีมงานตรวจสอบได้เร็วขึ้น';
+    }
+    return 'โปรดระบุรายละเอียดเพิ่มเติม';
   }
 
   @override
@@ -195,7 +201,7 @@ class _ContactScreenState extends ConsumerState<ContactScreen> {
               ),
               decoration: InputDecoration(
                 filled: true,
-                fillColor: _fieldFillColor(_hasName), // ← สีเทาตอน disable
+                fillColor: _fieldFillColor(_hasName),
                 contentPadding: const EdgeInsets.symmetric(
                   horizontal: 16,
                   vertical: 14,
@@ -209,7 +215,6 @@ class _ContactScreenState extends ConsumerState<ContactScreen> {
                   borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
                 ),
                 disabledBorder: OutlineInputBorder(
-                  // ← เพิ่มตรงนี้
                   borderRadius: BorderRadius.circular(16),
                   borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
                 ),
@@ -306,10 +311,8 @@ class _ContactScreenState extends ConsumerState<ContactScreen> {
                       style: TextStyle(color: Color(0xFFCBD5E1), fontSize: 14),
                     ),
                     isExpanded: true,
-                    borderRadius: BorderRadius.circular(
-                      16,
-                    ), // ← มุมโค้ง dropdown list
-                    dropdownColor: Colors.white, // ← สีพื้นหลัง dropdown
+                    borderRadius: BorderRadius.circular(16),
+                    dropdownColor: Colors.white,
                     icon: const Padding(
                       padding: EdgeInsets.only(right: 12.0),
                       child: Icon(Icons.expand_more, color: Color(0xFF5ce1e6)),
@@ -357,7 +360,8 @@ class _ContactScreenState extends ConsumerState<ContactScreen> {
               keyboardType: TextInputType.multiline,
               style: const TextStyle(color: Color(0xFF0F172A), fontSize: 14),
               decoration: InputDecoration(
-                hintText: 'โปรดระบุรายละเอียดเพิ่มเติม',
+                hintText:
+                    _messageHintText, 
                 hintStyle: const TextStyle(
                   color: Color(0xFFCBD5E1),
                   fontSize: 14,

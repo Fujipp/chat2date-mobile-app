@@ -70,9 +70,15 @@ const fetchContacts = async () => {
 
 const viewContact = (contact) => {
   selectedContact.value = contact
-  replyMessage.value = ''
   replyError.value = null
   replySuccess.value = null
+
+  // ✅ เตรียมข้อความตั้งต้นให้แอดมิน ถ้าเป็นเรื่อง SOS
+  if (contact.subject === 'ขอข้อมูล/หลักฐานเหตุฉุกเฉิน (SOS)') {
+    replyMessage.value = 'สวัสดีครับ/ค่ะ\n\nทีมงานขอส่งมอบข้อมูลหลักฐานการแจ้งเหตุฉุกเฉิน (SOS) ของคุณ เพื่อนำไปใช้ประกอบการดำเนินการต่อไปตามรายละเอียดด้านล่างนี้ครับ/ค่ะ\n'
+  } else {
+    replyMessage.value = ''
+  }
 }
 
 const sendReply = async () => {
@@ -353,6 +359,14 @@ onMounted(fetchContacts)
                 <MailIcon :size="14" />
                 <span>To: <strong>{{ selectedContact.contactEmail }}</strong></span>
               </div>
+
+              <div v-if="selectedContact.subject === 'ขอข้อมูล/หลักฐานเหตุฉุกเฉิน (SOS)'"
+                style="padding: 10px 15px; background: rgba(251, 191, 36, 0.1); border-bottom: 1px solid var(--glass-border); color: #d97706; font-size: 0.85rem; display: flex; align-items: center; gap: 8px;">
+                <AlertTriangle :size="16" />
+                <span><strong>หมายเหตุ:</strong> ระบบจะดึง "ข้อมูลพิกัด วันเวลา และคู่เดท (SOS)" ล่าสุด
+                  มาต่อท้ายข้อความนี้ให้อัตโนมัติ แอดมินสามารถกดส่งได้เลย</span>
+              </div>
+
               <textarea v-model="replyMessage" placeholder="Type your reply here..." rows="5"
                 :disabled="replying"></textarea>
               <div class="reply-actions">

@@ -1001,7 +1001,9 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
 
     final prefs = await SharedPreferences.getInstance();
     final prefsKey = _calendarSeenPrefsKey(roomId);
-    final signature = appointment == null ? null : _appointmentCalendarSignature(appointment);
+    final signature = appointment == null
+        ? null
+        : _appointmentCalendarSignature(appointment);
 
     if (signature == null) {
       await prefs.remove(prefsKey);
@@ -1015,7 +1017,9 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
     });
   }
 
-  Future<void> _refreshCalendarAppointmentState({bool markAsSeen = false}) async {
+  Future<void> _refreshCalendarAppointmentState({
+    bool markAsSeen = false,
+  }) async {
     final roomId = widget.roomId;
     if (roomId == null || roomId.isEmpty) return;
 
@@ -2024,9 +2028,7 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
     if (appt == null ||
         appt.dateTime == null ||
         !DateTime.now().isAfter(
-          appt.dateTime!
-              .add(const Duration(hours: 7))
-              .add(const Duration(hours: 5)),
+          appt.dateTime!.toLocal().add(const Duration(hours: 5)),
         )) {
       return;
     }
@@ -2613,7 +2615,7 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
                               final now = DateTime.now();
                               final dateStartTime = _existingAppointment!
                                   .dateTime!
-                                  .add(const Duration(hours: 7));
+                                  .toLocal();
                               final dateEndTime = dateStartTime.add(
                                 const Duration(hours: 5),
                               );
