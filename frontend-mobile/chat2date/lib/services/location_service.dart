@@ -65,7 +65,7 @@ class LocationService {
     final body = {
       'userId': userId,
       'latitude': pos.latitude,
-      'longtitude': pos.longitude, // ตามสะกดฝั่ง backend
+      'longitude': pos.longitude, // ตามสะกดฝั่ง backend
       'accuracy': pos.accuracy, // ถ้า backend รับได้เป็น double
     };
 
