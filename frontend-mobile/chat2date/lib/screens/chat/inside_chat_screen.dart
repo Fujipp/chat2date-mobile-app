@@ -2613,11 +2613,15 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
                           Builder(
                             builder: (context) {
                               final now = DateTime.now();
-                              final dateStartTime = _existingAppointment!
+                              final appointmentTime = _existingAppointment!
                                   .dateTime!
                                   .toLocal();
-                              final dateEndTime = dateStartTime.add(
-                                const Duration(hours: 5),
+
+                              final dateStartTime = appointmentTime.subtract(
+                                const Duration(hours: 2),
+                              );
+                              final dateEndTime = appointmentTime.add(
+                                const Duration(hours: 3),
                               );
 
                               // เช็กว่าเลยเวลานัดมาแล้ว AND ยังไม่หมดเวลาเดต
