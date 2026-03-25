@@ -2,6 +2,7 @@ import { createRouter, createWebHistory } from 'vue-router'
 import { useAuthStore } from '../stores/auth'
 import LoginView from '../views/LoginView.vue'
 import ReportsView from '../views/ReportsView.vue'
+import UserManagementView from '../views/UserManagementView.vue'
 
 const router = createRouter({
   history: createWebHistory('/'),
@@ -26,7 +27,7 @@ const router = createRouter({
     {
       path: '/users',
       name: 'users',
-      component: () => import('../views/HomeView.vue'),
+      component: UserManagementView,
       meta: {
         title: 'User Management - Chat2Date Admin',
       },

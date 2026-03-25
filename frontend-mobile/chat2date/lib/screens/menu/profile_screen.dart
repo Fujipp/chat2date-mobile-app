@@ -69,6 +69,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
   }
 
   void _loadInitialData() async {
+    final userService = ref.read(userServiceProvider);
     final userStore = ref.read(userStoreProvider);
     final userStoreMap = userStore as Map<String, dynamic>?;
 
@@ -78,10 +79,14 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
       return;
     }
 
+    final currentUser = userStoreMap['user'] as User;
+    await userService.getUser(currentUser.userId);
+    final freshStore = ref.read(userStoreProvider) as Map<String, dynamic>;
+
     final prefs = userStore['preferences'] as Map<String, dynamic>?;
     await _setDataFromStore(
       userStoreMap['profile'] as Map<String, dynamic>,
-      userStoreMap['user'] as User,
+      freshStore['user'] as User,
       prefs: {
         'travelStyles': prefs?['travelStyles'],
         'lifeStyles': prefs?['lifeStyles'],
@@ -407,6 +412,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     final userStore = ref.read(userStoreProvider) as Map<String, dynamic>?;
     final userService = ref.read(userServiceProvider);
     final currentUser = userStore?['user'] as User;
+    userService.getUser(currentUser.userId);
 
     List<Future> tasks = [];
 

@@ -31,8 +31,6 @@ class SwipeQuotaService {
 
     if (response.statusCode == 200) {
       final Map<String, dynamic> jsonData = jsonDecode(utf8.decode(response.bodyBytes));
-      print(jsonData['currentCount']);
-      print(jsonData['isRestricted']);
       return SwipeQuotaDto.fromJson(jsonData);
     } else {
       throw Exception('ไม่สามารถดึงข้อมูลโควตาได้');

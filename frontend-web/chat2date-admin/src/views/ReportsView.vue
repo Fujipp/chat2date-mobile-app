@@ -109,27 +109,13 @@
       <table>
         <thead>
           <tr>
-            <th>
-              <Hash :size="14" /> ID
-            </th>
-            <th>
-              <UserCircle :size="14" /> Reporter
-            </th>
-            <th>
-              <UserX :size="14" /> Target
-            </th>
-            <th>
-              <Tag :size="14" /> Reason
-            </th>
-            <th>
-              <Badge :size="14" /> Status
-            </th>
-            <th>
-              <Calendar :size="14" /> Date
-            </th>
-            <th>
-              <Settings :size="14" /> Actions
-            </th>
+            <th><Hash :size="14" /> ID</th>
+            <th><UserCircle :size="14" /> Reporter</th>
+            <th><UserX :size="14" /> Target</th>
+            <th><Tag :size="14" /> Reason</th>
+            <th><Badge :size="14" /> Status</th>
+            <th><Calendar :size="14" /> Date</th>
+            <th><Settings :size="14" /> Actions</th>
           </tr>
         </thead>
         <tbody>
@@ -184,7 +170,11 @@
 
     <!-- Pagination -->
     <div v-if="!loading && !error && totalPages > 0" class="pagination">
-      <button class="btn btn-outline btn-sm" :disabled="currentPage === 0" @click="changePage(currentPage - 1)">
+      <button
+        class="btn btn-outline btn-sm"
+        :disabled="currentPage === 0"
+        @click="changePage(currentPage - 1)"
+      >
         <ChevronLeft :size="16" />
         Prev
       </button>
@@ -192,8 +182,11 @@
         {{ currentPage + 1 }} / {{ totalPages }}
         <span class="page-total">({{ totalReports }})</span>
       </span>
-      <button class="btn btn-outline btn-sm" :disabled="currentPage >= totalPages - 1"
-        @click="changePage(currentPage + 1)">
+      <button
+        class="btn btn-outline btn-sm"
+        :disabled="currentPage >= totalPages - 1"
+        @click="changePage(currentPage + 1)"
+      >
         Next
         <ChevronRight :size="16" />
       </button>
@@ -227,12 +220,14 @@
 
           <!-- Reporter -->
           <div class="detail-section">
-            <h3>
-              <UserCircle :size="20" /> Reporter
-            </h3>
+            <h3><UserCircle :size="20" /> Reporter</h3>
             <div v-if="selectedReport.reporter" class="user-info">
-              <img v-if="selectedReport.reporter.profilePhotoUrl" :src="selectedReport.reporter.profilePhotoUrl"
-                alt="Profile" class="user-avatar" />
+              <img
+                v-if="selectedReport.reporter.profilePhotoUrl"
+                :src="selectedReport.reporter.profilePhotoUrl"
+                alt="Profile"
+                class="user-avatar"
+              />
               <div class="user-avatar-placeholder" v-else>
                 <User :size="28" />
               </div>
@@ -257,21 +252,21 @@
                 </p>
               </div>
             </div>
-            <p v-else class="text-muted">
-              <Info :size="14" /> Not available
-            </p>
+            <p v-else class="text-muted"><Info :size="14" /> Not available</p>
           </div>
 
           <div class="divider"></div>
 
           <!-- Target -->
           <div class="detail-section">
-            <h3>
-              <UserX :size="20" /> Target User
-            </h3>
+            <h3><UserX :size="20" /> Target User</h3>
             <div v-if="selectedReport.targetUser" class="user-info">
-              <img v-if="selectedReport.targetUser.profilePhotoUrl" :src="selectedReport.targetUser.profilePhotoUrl"
-                alt="Profile" class="user-avatar" />
+              <img
+                v-if="selectedReport.targetUser.profilePhotoUrl"
+                :src="selectedReport.targetUser.profilePhotoUrl"
+                alt="Profile"
+                class="user-avatar"
+              />
               <div class="user-avatar-placeholder" v-else>
                 <User :size="28" />
               </div>
@@ -294,15 +289,21 @@
                   <span class="score-label">Score:</span>
 
                   <transition name="score-fade" mode="out-in">
-                    <span v-if="finalPmScore <= 0 || finalPmScore == null" key="current" class="current-score mono">
+                    <span
+                      v-if="finalPmScore <= 0 || finalPmScore == null"
+                      key="current"
+                      class="current-score mono"
+                    >
                       {{ selectedReport.targetUser.behaviorScore }}
                     </span>
 
                     <div v-else key="preview" class="score-preview-wrap">
-                      <span :class="[
-                        'new-score mono',
-                        `text-${confirmedPenalty ? confirmedPenalty.severity : isCustomReason ? customSeverity : pmSelectedCase?.severity}`,
-                      ]">
+                      <span
+                        :class="[
+                          'new-score mono',
+                          `text-${confirmedPenalty ? confirmedPenalty.severity : isCustomReason ? customSeverity : pmSelectedCase?.severity}`,
+                        ]"
+                      >
                         {{ previewTargetScore }}
                       </span>
 
@@ -319,18 +320,14 @@
                 </p>
               </div>
             </div>
-            <p v-else class="text-muted">
-              <Info :size="14" /> Not available
-            </p>
+            <p v-else class="text-muted"><Info :size="14" /> Not available</p>
           </div>
 
           <div class="divider"></div>
 
           <!-- Report Info -->
           <div class="detail-section">
-            <h3>
-              <FileText :size="20" /> Details
-            </h3>
+            <h3><FileText :size="20" /> Details</h3>
             <div class="report-info">
               <p>
                 <strong>Reason:</strong>
@@ -348,13 +345,19 @@
           </div>
 
           <!-- Evidence -->
-          <div v-if="selectedReport.evidenceUrls && selectedReport.evidenceUrls.length > 0" class="detail-section">
-            <h3>
-              <ImageIcon :size="20" /> Evidence ({{ selectedReport.evidenceUrls.length }})
-            </h3>
+          <div
+            v-if="selectedReport.evidenceUrls && selectedReport.evidenceUrls.length > 0"
+            class="detail-section"
+          >
+            <h3><ImageIcon :size="20" /> Evidence ({{ selectedReport.evidenceUrls.length }})</h3>
             <div class="evidence-grid">
-              <a v-for="(url, index) in selectedReport.evidenceUrls" :key="index" :href="url" target="_blank"
-                class="evidence-item">
+              <a
+                v-for="(url, index) in selectedReport.evidenceUrls"
+                :key="index"
+                :href="url"
+                target="_blank"
+                class="evidence-item"
+              >
                 <img :src="url" :alt="`Evidence ${index + 1}`" />
                 <div class="evidence-overlay">
                   <ZoomIn :size="28" />
@@ -365,9 +368,7 @@
 
           <!-- Update Status -->
           <div class="detail-section">
-            <h3>
-              <Settings :size="20" /> Update Status
-            </h3>
+            <h3><Settings :size="20" /> Update Status</h3>
 
             <!-- Confirmed penalty chip — แสดงหลังจากยืนยัน penalty แล้ว -->
             <div v-if="confirmedPenalty" class="confirmed-penalty-chip">
@@ -384,25 +385,33 @@
 
             <div class="status-actions">
               <template v-if="selectedReport.status === 'PENDING'">
-                <button :class="[
-                  'btn btn-success btn-sm',
-                  { 'btn-needs-penalty': hasPenaltyConfig && !confirmedPenalty },
-                ]" @click="onClickResolve(selectedReport.reportId)" :disabled="updatingStatus">
+                <button
+                  :class="[
+                    'btn btn-success btn-sm',
+                    { 'btn-needs-penalty': hasPenaltyConfig && !confirmedPenalty },
+                  ]"
+                  @click="onClickResolve(selectedReport.reportId)"
+                  :disabled="updatingStatus"
+                >
                   <CheckCircle :size="16" />
                   Resolve
                   <span v-if="hasPenaltyConfig && !confirmedPenalty" class="needs-penalty-hint">
-                    <AlertCircle :size="12" /> เลือก penalty ก่อน
+                    <AlertCircle :size="12" /> select penalty first
                   </span>
                 </button>
 
-                <button class="btn btn-danger btn-sm" @click="updateStatus('REJECTED')" :disabled="updatingStatus">
+                <button
+                  class="btn btn-danger btn-sm"
+                  @click="updateStatus('REJECTED')"
+                  :disabled="updatingStatus"
+                >
                   <Ban :size="16" /> Reject
                 </button>
               </template>
 
               <p v-else class="status-locked-notice">
                 <Lock :size="14" />
-                <span>รายงานนี้ถูกสรุปผลแล้ว ไม่สามารถเปลี่ยนสถานะได้อีก</span>
+                <span>This report has been finalized and its status can no longer be changed.</span>
               </p>
             </div>
 
@@ -417,13 +426,17 @@
       </div>
     </div>
 
-    <div v-if="showPenaltyModal" class="modal-overlay penalty-overlay" @click.self="closePenaltyModal">
+    <div
+      v-if="showPenaltyModal"
+      class="modal-overlay penalty-overlay"
+      @click.self="closePenaltyModal"
+    >
       <div class="modal penalty-modal">
         <!-- Header -->
         <div class="modal-header">
           <div class="modal-title">
             <Gavel :size="20" />
-            <h2>กำหนด Penalty Score</h2>
+            <h2>Determine Penalty Score</h2>
           </div>
           <button class="btn-close" @click="closePenaltyModal">
             <X :size="22" />
@@ -431,27 +444,40 @@
         </div>
 
         <div class="modal-body penalty-modal-body">
-          <!-- Reason pill -->
           <div class="pm-reason-chip">
             <Tag :size="13" />
             <span>Reason:</span>
             <strong>{{ selectedReport?.reason }}</strong>
           </div>
 
+          &nbsp;
+
+          <div v-if="selectedReport?.anotherReason" class="pm-reason-chip">
+            <Tag :size="13" />
+            <span>Additional:</span>
+            <strong>{{ selectedReport.anotherReason }}</strong>
+          </div>
+
           <!-- ── Step 1: เลือก severity ── -->
           <div class="pm-step">
+            <br />
             <div class="pm-step-label">
               <span class="pm-step-num">1</span>
-              เลือกระดับความรุนแรง
+              Select Severity Level
             </div>
 
             <!-- Case buttons (preset reasons) -->
             <div v-if="!isCustomReason" class="pm-severity-grid">
-              <button v-for="c in penaltyCases" :key="c.key" :class="[
-                'pm-severity-btn',
-                `sev-${c.severity}`,
-                { active: pmSelectedCase?.key === c.key },
-              ]" @click="selectCase(c)">
+              <button
+                v-for="c in penaltyCases"
+                :key="c.key"
+                :class="[
+                  'pm-severity-btn',
+                  `sev-${c.severity}`,
+                  { active: pmSelectedCase?.key === c.key },
+                ]"
+                @click="selectCase(c)"
+              >
                 <div class="pm-sev-left">
                   <span :class="['sev-badge', `sev-badge-${c.severity}`]">
                     <component :is="getSeverityIcon(c.severity)" :size="11" />
@@ -472,33 +498,42 @@
             <!-- Custom slider (อื่น ๆ) -->
             <div v-if="isCustomReason" class="pm-custom-block">
               <div class="pm-custom-header">
-                <span class="pm-custom-label">กำหนดคะแนนเอง</span>
+                <span class="pm-custom-label">Set the score manually</span>
                 <div class="pm-custom-score-row">
                   <span :class="['pm-score-big', `score-color-${customSeverity}`]">{{
                     pmCustomScore
-                    }}</span>
-                  <span class="pm-score-unit">คะแนน</span>
+                  }}</span>
+                  <span class="pm-score-unit">Score</span>
                 </div>
               </div>
-              <input type="range" min="1" max="100" step="1" v-model.number="pmCustomScore"
-                :class="['penalty-slider', `slider-${customSeverity}`]" />
+              <input
+                type="range"
+                min="1"
+                max="100"
+                step="1"
+                v-model.number="pmCustomScore"
+                :class="['penalty-slider', `slider-${customSeverity}`]"
+              />
               <div class="slider-ticks">
                 <span>1</span><span>25</span><span>50</span><span>75</span><span>100</span>
               </div>
               <div class="custom-severity-tags">
-                <span class="csev-tag csev-light">1–10 เบา</span>
-                <span class="csev-tag csev-mid">11–50 กลาง</span>
-                <span class="csev-tag csev-heavy">51–100 หนัก</span>
+                <span class="csev-tag csev-light">1–10 Low</span>
+                <span class="csev-tag csev-mid">11–50 Medium</span>
+                <span class="csev-tag csev-heavy">51–100 High</span>
               </div>
             </div>
           </div>
 
           <!-- ── Step 2: เลือกคะแนนในช่วง (มีเฉพาะ case ที่ scoreMin ≠ scoreMax) ── -->
           <transition name="step2">
-            <div v-if="pmSelectedCase && pmSelectedCase.scoreMin !== pmSelectedCase.scoreMax" class="pm-step">
+            <div
+              v-if="pmSelectedCase && pmSelectedCase.scoreMin !== pmSelectedCase.scoreMax"
+              class="pm-step"
+            >
               <div class="pm-step-label">
                 <span class="pm-step-num">2</span>
-                เลือกคะแนนในช่วง
+                Select a score within the range
                 <span :class="['pm-range-hint', `hint-${pmSelectedCase.severity}`]">
                   {{ pmSelectedCase.scoreMin }} – {{ pmSelectedCase.scoreMax }}
                 </span>
@@ -511,8 +546,14 @@
                   </span>
                   <span class="pm-score-unit">คะแนน</span>
                 </div>
-                <input type="range" :min="pmSelectedCase.scoreMin" :max="pmSelectedCase.scoreMax" step="1"
-                  v-model.number="pmScoreInRange" :class="['penalty-slider', `slider-${pmSelectedCase.severity}`]" />
+                <input
+                  type="range"
+                  :min="pmSelectedCase.scoreMin"
+                  :max="pmSelectedCase.scoreMax"
+                  step="1"
+                  v-model.number="pmScoreInRange"
+                  :class="['penalty-slider', `slider-${pmSelectedCase.severity}`]"
+                />
                 <div class="pm-score-tick-row">
                   <span>{{ pmSelectedCase.scoreMin }}</span>
                   <span>{{ pmSelectedCase.scoreMax }}</span>
@@ -521,11 +562,16 @@
 
               <!-- Quick score buttons -->
               <div class="pm-quick-scores">
-                <button v-for="qs in quickScores" :key="qs" :class="[
-                  'pm-qs-btn',
-                  `qs-${pmSelectedCase.severity}`,
-                  { active: pmScoreInRange === qs },
-                ]" @click="pmScoreInRange = qs">
+                <button
+                  v-for="qs in quickScores"
+                  :key="qs"
+                  :class="[
+                    'pm-qs-btn',
+                    `qs-${pmSelectedCase.severity}`,
+                    { active: pmScoreInRange === qs },
+                  ]"
+                  @click="pmScoreInRange = qs"
+                >
                   {{ qs }}
                 </button>
               </div>
@@ -534,10 +580,13 @@
 
           <!-- ── Step 2 fixed (100 คะแนน) ── -->
           <transition name="step2">
-            <div v-if="pmSelectedCase && pmSelectedCase.scoreMin === pmSelectedCase.scoreMax" class="pm-step">
+            <div
+              v-if="pmSelectedCase && pmSelectedCase.scoreMin === pmSelectedCase.scoreMax"
+              class="pm-step"
+            >
               <div class="pm-step-label">
                 <span class="pm-step-num">2</span>
-                คะแนนที่กำหนด
+                The specified score
               </div>
               <div :class="['pm-fixed-score-box', `fixed-${pmSelectedCase.severity}`]">
                 <span :class="['pm-score-big', `score-color-${pmSelectedCase.severity}`]">
@@ -551,24 +600,34 @@
 
           <!-- ── Preview banner ── -->
           <transition name="preview-fade">
-            <div v-if="canConfirmPenalty" :class="[
-              'pm-preview',
-              `preview-${isCustomReason ? customSeverity : pmSelectedCase?.severity}`,
-            ]">
-              <component :is="getSeverityIcon(isCustomReason ? customSeverity : pmSelectedCase?.severity)" :size="15" />
-              <span>จะหักคะแนน</span>
+            <div
+              v-if="canConfirmPenalty"
+              :class="[
+                'pm-preview',
+                `preview-${isCustomReason ? customSeverity : pmSelectedCase?.severity}`,
+              ]"
+            >
+              <component
+                :is="getSeverityIcon(isCustomReason ? customSeverity : pmSelectedCase?.severity)"
+                :size="15"
+              />
+              <span>Behavior score will be reduce</span>
               <strong class="pm-preview-score">{{ finalPmScore }}</strong>
-              <span>คะแนนจาก behavior score ของผู้ถูกรายงาน</span>
+              <span>The behavior score of the reported user.</span>
             </div>
           </transition>
 
           <!-- ── Footer ── -->
           <div class="pm-footer">
             <button class="btn btn-secondary btn-sm" @click="closePenaltyModal">
-              <X :size="15" /> ยกเลิก
+              <X :size="15" /> cancel
             </button>
-            <button class="btn btn-primary btn-sm" :disabled="!canConfirmPenalty" @click="confirmPenalty">
-              <CheckCircle :size="15" /> ยืนยัน Penalty
+            <button
+              class="btn btn-primary btn-sm"
+              :disabled="!canConfirmPenalty"
+              @click="confirmPenalty"
+            >
+              <CheckCircle :size="15" /> confirm Penalty
             </button>
           </div>
         </div>
@@ -614,12 +673,12 @@ import {
   Wind,
   X,
   XCircle,
-  ZoomIn
+  ZoomIn,
 } from 'lucide-vue-next'
 import { computed, onMounted, ref } from 'vue'
 import { useAuthStore } from '../stores/auth'
 // API Configuration
-const API_BASE_URL = '/api/v1/admin'
+const API_BASE_URL = `${import.meta.env.VITE_API_BASE_URL || '/api/v1'}/admin`
 const authStore = useAuthStore()
 
 // State
@@ -745,6 +804,12 @@ const customSeverity = computed(() => {
   return 'heavy'
 })
 
+const backupPmState = ref({
+  selectedCase: null,
+  scoreInRange: null,
+  customScore: 50,
+})
+
 // quick score presets 5 จุด spread ทั่วช่วง
 const quickScores = computed(() => {
   if (!pmSelectedCase.value) return []
@@ -790,15 +855,31 @@ const selectCase = (c) => {
 
 const resetPenaltyModal = () => {
   pmSelectedCase.value = null
+
   pmScoreInRange.value = null
-  pmCustomScore.value = 50
+
+  pmCustomScore.value = null
+
+  confirmedPenalty.value = null
+
+  updateError.value = null
+  updateSuccess.value = null
 }
 
 const openPenaltyModal = () => {
-  resetPenaltyModal()
+  backupPmState.value = {
+    selectedCase: pmSelectedCase.value,
+    scoreInRange: pmScoreInRange.value,
+    customScore: pmCustomScore.value,
+  }
   showPenaltyModal.value = true
 }
 const closePenaltyModal = () => {
+  pmSelectedCase.value = backupPmState.value.selectedCase
+  pmScoreInRange.value = backupPmState.value.scoreInRange
+  pmCustomScore.value = backupPmState.value.customScore
+  
+
   showPenaltyModal.value = false
 }
 
@@ -850,6 +931,7 @@ const fetchReports = async () => {
 }
 
 const viewReport = async (reportId) => {
+  resetPenaltyModal()
   loading.value = true
   error.value = null
   try {
@@ -904,8 +986,8 @@ const updateStatus = async (newStatus) => {
     selectedReport.value.status = updatedReport.status
     updateSuccess.value =
       pointToDecrease !== null
-        ? `สำเร็จ! ยืนยันรายงานและหัก ${pointToDecrease} คะแนน`
-        : `สำเร็จ! อัปเดตสถานะเป็น ${newStatus}`
+        ? `Success! Report confirmed and ${pointToDecrease} points deducted.`
+        : `Success! Status updated to ${newStatus}.`
     confirmedPenalty.value = null
     previewTargetScore.value == null
     setTimeout(() => {
@@ -924,6 +1006,7 @@ const closeModal = () => {
   updateError.value = null
   updateSuccess.value = null
   previewTargetScore.value = null
+  resetPenaltyModal()
 }
 
 const changePage = (p) => {
@@ -934,12 +1017,20 @@ const changePage = (p) => {
 }
 const formatDate = (d) => {
   if (!d) return 'N/A'
-  return new Date(d).toLocaleString('en-US', {
+
+  const dateStr = d.endsWith('Z') ? d : `${d}Z`
+  const date = new Date(dateStr)
+
+  if (isNaN(date.getTime())) return d
+
+  return date.toLocaleString('en-GB', {
+    timeZone: 'Asia/Bangkok',
     year: 'numeric',
     month: 'short',
     day: 'numeric',
     hour: '2-digit',
     minute: '2-digit',
+    hour12: false,
   })
 }
 
@@ -1696,14 +1787,20 @@ onMounted(() => {
   border-radius: var(--radius-full);
   font-size: 0.8125rem;
   color: var(--text-secondary);
-  margin-bottom: 1.25rem;
+  margin-bottom: 0 !important; /* ลบ margin เดิมออกเพื่อให้ใช้ gap จากกลุ่มแทน */
+  margin-top: 20px;
 }
 
 .pm-reason-chip strong {
   color: var(--text-primary);
 }
 
-/* steps */
+.is-additional {
+  background: rgba(255, 255, 255, 0.03);
+  border-style: dashed;
+  border-color: rgba(255, 255, 255, 0.1);
+}
+
 .pm-step {
   margin-bottom: 1.375rem;
 }

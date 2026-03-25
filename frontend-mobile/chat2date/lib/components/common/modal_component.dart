@@ -307,78 +307,21 @@ class _ModalComponentState extends State<ModalComponent> {
                 ),
               ),
             if (widget.choice != false)
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                crossAxisAlignment: CrossAxisAlignment.center,
-                spacing: 15,
+              Wrap(
+                alignment: WrapAlignment.center,
+                runAlignment: WrapAlignment.center,
+                spacing: 12,
+                runSpacing: 12,
                 children: [
-                  GestureDetector(
+                  _choiceButton(
+                    label: widget.firstChoiceText!,
+                    backgroundColor: AppColors.error,
                     onTap: widget.onFirstChoice,
-                    child: Container(
-                      width: 105,
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 16,
-                        vertical: 12,
-                      ),
-                      clipBehavior: Clip.antiAlias,
-                      decoration: ShapeDecoration(
-                        color: AppColors.error /* Light-Error */,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                      ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        crossAxisAlignment: CrossAxisAlignment.center,
-                        spacing: 8,
-                        children: [
-                          Text(
-                            widget.firstChoiceText!,
-                            style: TextStyle(
-                              color: Colors.white /* Light-Text-Secondary */,
-                              fontSize: 14,
-                              fontFamily: 'Inter',
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
                   ),
-                  GestureDetector(
+                  _choiceButton(
+                    label: widget.secondChoiceText!,
+                    backgroundColor: AppColors.brandSecondary,
                     onTap: widget.onSecondChoice,
-                    child: Container(
-                      width: 105,
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 16,
-                        vertical: 12,
-                      ),
-                      clipBehavior: Clip.antiAlias,
-                      decoration: ShapeDecoration(
-                        color: AppColors.brandSecondary /* Light-Secondary */,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                      ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        crossAxisAlignment: CrossAxisAlignment.center,
-                        spacing: 8,
-                        children: [
-                          Text(
-                            widget.secondChoiceText!,
-                            style: TextStyle(
-                              color: Colors.white /* Light-Text-Secondary */,
-                              fontSize: 14,
-                              fontFamily: 'Inter',
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
                   ),
                 ],
               ),
@@ -433,6 +376,41 @@ class _ModalComponentState extends State<ModalComponent> {
             //   ),
             if (widget.spaceBottom != 0) SizedBox(height: widget.spaceBottom),
           ],
+        ),
+      ),
+    );
+  }
+
+  Widget _choiceButton({
+    required String label,
+    required Color backgroundColor,
+    required VoidCallback? onTap,
+  }) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        constraints: const BoxConstraints(minWidth: 105),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+        clipBehavior: Clip.antiAlias,
+        decoration: ShapeDecoration(
+          color: backgroundColor,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+        ),
+        child: Center(
+          child: FittedBox(
+            fit: BoxFit.scaleDown,
+            child: Text(
+              label,
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 14,
+                fontFamily: 'Inter',
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
         ),
       ),
     );

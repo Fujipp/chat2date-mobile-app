@@ -24,12 +24,15 @@ public class SwipeQuotaService {
     private final SwipeQuotaRepository swipeQuotaRepository;
     private final UserRepository userRepository;
 
-    @Transactional(readOnly = true)
+    @Transactional
     public SwipeQuotaResponse getQuotaStatus(String accessToken) {
         User user = extractToken(accessToken);
-        SwipeQuota quota = swipeQuotaRepository.findByUserId(user.getUserId())
-                .orElse(SwipeQuota.builder().userId(user.getUserId()).swipeCount(0).build());
-        return convertToResponse(quota);
+        return swipeQuotaRepository.findByUserId(user.getUserId())
+                .map(quota -> {
+                    refreshQuota(quota);
+                    return convertToResponse(quota);
+                })
+                .orElseGet(() -> defaultQuotaResponse());
     }
 
     @Transactional
@@ -37,19 +40,20 @@ public class SwipeQuotaService {
         User user = extractToken(accessToken);
 
         SwipeQuota quota = swipeQuotaRepository.findByUserId(user.getUserId())
-                .orElseGet(() -> swipeQuotaRepository.save(SwipeQuota.builder()
-                        .userId(user.getUserId()).swipeCount(0)
-                        .swipeDate(LocalDate.now(ZoneId.of("Asia/Bangkok")))
-                        .build()));
+                .orElse(null);
+
+        if (quota == null) {
+            return defaultQuotaResponse();
+        }
 
         LocalDateTime nowTH = LocalDateTime.now(ZoneId.of("Asia/Bangkok"));
         LocalDate todayTH = nowTH.toLocalDate();
 
         if (quota.getRestrictUntil() != null) {
-            if (quota.getRestrictUntil().plusHours(7).isAfter(nowTH)) {
+            if (quota.getRestrictUntil().plusHours(7).isBefore(nowTH)) {
+                quota.setRestrictUntil(null);
                 return convertToResponse(quota);
             }
-            quota.setRestrictUntil(null);
         }
 
         if (quota.getSwipeDate() == null || !quota.getSwipeDate().isEqual(todayTH)) {
@@ -92,6 +96,34 @@ public class SwipeQuotaService {
                 .remainingCount(Math.max(0, 10 - current))
                 .isRestricted(isRestricted)
                 .unlockAt(unlockTimeTH)
+                .build();
+    }
+
+    private void refreshQuota(SwipeQuota quota) {
+        LocalDateTime nowTH = LocalDateTime.now(ZoneId.of("Asia/Bangkok"));
+        LocalDate todayTH = nowTH.toLocalDate();
+
+        // เช็คการพ้นโทษ
+        if (quota.getRestrictUntil() != null) {
+            LocalDateTime unlockTimeTH = quota.getRestrictUntil().plusHours(7);
+            if (nowTH.isAfter(unlockTimeTH)) {
+                quota.setRestrictUntil(null);
+            }
+        }
+
+        // เช็คการ Reset วันใหม่
+        if (quota.getSwipeDate() == null || !quota.getSwipeDate().isEqual(todayTH)) {
+            quota.setSwipeCount(0);
+            quota.setSwipeDate(todayTH);
+        }
+    }
+
+    private SwipeQuotaResponse defaultQuotaResponse() {
+        return SwipeQuotaResponse.builder()
+                .currentCount(0)
+                .remainingCount(10)
+                .isRestricted(false)
+                .unlockAt(null)
                 .build();
     }
 

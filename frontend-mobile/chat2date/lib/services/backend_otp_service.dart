@@ -96,13 +96,12 @@ class BackendOtpService {
         }
       }
     }
-    final token = (jsonDecode(res.body)['token'] ?? '') as String;
-    if (token.isEmpty) throw 'No token from backend';
-    return token;
+    final phone = (jsonDecode(res.body)['phoneNumber'] ?? '') as String;
+    if (phone.isEmpty) throw 'No phone from backend';
+    return phone;
   }
 
   Future<Map<String, dynamic>> validateOtp({
-    required String token,
     required String code,
     required String phone,
     required bool onLogin,
@@ -113,7 +112,6 @@ class BackendOtpService {
           uri,
           headers: _headers,
           body: jsonEncode({
-            'token': token,
             'otpCode': code,
             'phoneNumber': phone,
             'onLogin': onLogin,
