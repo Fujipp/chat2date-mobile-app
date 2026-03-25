@@ -146,7 +146,7 @@ public class DateRecommendService {
                     targetLng = coordinates.lng;
                     targetLat = coordinates.lat;
                 }
-                List<PlaceDTO> allPlaces = fetchGooglePlaces(targetLat, targetLng, range, mode, userTarget, false);
+                List<PlaceDTO> allPlaces = fetchGooglePlaces(targetLat, targetLng, range, mode, userTarget, true);
 
                 Collections.shuffle(allPlaces);
                 List<PlaceDTO> selectedPlaces = allPlaces.stream().limit(10).collect(Collectors.toList());

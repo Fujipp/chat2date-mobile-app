@@ -3,6 +3,8 @@ package sit.chat2date.cp25ssi2.services;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 import sit.chat2date.cp25ssi2.dto.AppointmentListResponse;
 import sit.chat2date.cp25ssi2.dto.AppointmentRequest;
 import sit.chat2date.cp25ssi2.dto.AppointmentResponse;
@@ -20,7 +22,9 @@ import sit.chat2date.cp25ssi2.repositories.MatchRepository;
 import sit.chat2date.cp25ssi2.repositories.PlaceRepository;
 
 import java.time.LocalDateTime;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 @Service
@@ -30,6 +34,7 @@ public class AppointmentService {
     private final AppointmentRepository appointmentRepository;
     private final MatchRepository matchRepository;
     private final PlaceRepository placeRepository;
+    private final ChatSocketService chatSocketService;
 
     // ────────────────────────────────────────────────────────────────────────────
     // POST /dates/appointments → 201 Created
@@ -90,6 +95,7 @@ public class AppointmentService {
                 .build();
 
         appointment = appointmentRepository.save(appointment);
+        broadcastAppointmentChange("CREATED", userId, appointment);
         return toResponse(appointment);
     }
 
@@ -160,6 +166,8 @@ public class AppointmentService {
         appointment.setStatus(AppointmentStatus.SCHEDULED);
         appointment = appointmentRepository.save(appointment);
 
+        broadcastAppointmentChange("UPDATED", userId, appointment);
+
         return toResponse(appointment);
     }
 
@@ -184,6 +192,8 @@ public class AppointmentService {
             appointment.setStatus(AppointmentStatus.CANCELLED);
             appointment.setIsNotified(false);
             appointment = appointmentRepository.save(appointment);
+
+            broadcastAppointmentChange("CANCELLED", userId, appointment);
         }
 
         return toResponse(appointment);
@@ -213,5 +223,34 @@ public class AppointmentService {
                 .createdAt(a.getCreatedAt())
                 .updatedAt(a.getUpdatedAt())
                 .build();
+    }
+
+    private void broadcastAppointmentChange(String action, String actorUserId, Appointment appointment) {
+        Runnable broadcaster = () -> {
+            try {
+                Map<String, Object> payload = new HashMap<>();
+                payload.put("type", "APPOINTMENT_CHANGE");
+                payload.put("action", action);
+                payload.put("actorUserId", actorUserId);
+                payload.put("roomId", appointment.getMatch().getId());
+                payload.put("appointmentId", appointment.getAppointmentId());
+                payload.put("status", appointment.getStatus() != null ? appointment.getStatus().name() : null);
+                payload.put("updatedAt", appointment.getUpdatedAt());
+                chatSocketService.broadcastAppointmentChange(String.valueOf(appointment.getMatch().getId()), payload);
+            } catch (Exception e) {
+                System.out.println("[AppointmentSocket] Failed to broadcast appointment change: " + e.getMessage());
+            }
+        };
+
+        if (TransactionSynchronizationManager.isSynchronizationActive()) {
+            TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+                @Override
+                public void afterCommit() {
+                    broadcaster.run();
+                }
+            });
+        } else {
+            broadcaster.run();
+        }
     }
 }
