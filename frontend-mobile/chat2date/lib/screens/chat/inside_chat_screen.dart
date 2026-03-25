@@ -1083,6 +1083,21 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
 
   bool get _shouldShowCalendarIcon => _existingAppointment != null;
 
+  bool get _isCalendarViewOnly {
+    final appointment = _existingAppointment;
+    if (appointment == null) return false;
+
+    final status = appointment.status;
+    if (status == 'CANCELLED' || status == 'COMPLETED') return true;
+
+    final dateTime = appointment.dateTime;
+    if (dateTime == null) return false;
+
+    final today = DateUtils.dateOnly(DateTime.now());
+    final appointmentDay = DateUtils.dateOnly(dateTime.toLocal());
+    return !today.isBefore(appointmentDay);
+  }
+
   bool _isSvgImage(String? path) {
     if (path == null || path.isEmpty) return false;
     final uri = Uri.tryParse(path);
@@ -3070,6 +3085,7 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
                   placeName: _calendarPlaceName,
                   placeCountText: 'คุณมี 1 สถานที่เดต!!',
                   hasUnsavedChanges: _calendarHasUnsavedChanges,
+                  isReadOnly: _calendarIsEditMode && _isCalendarViewOnly,
                   initialMonth: () {
                     final dt = _calendarIsEditMode
                         ? (_existingAppointment?.dateTime?.toLocal() ??

@@ -18,6 +18,7 @@ class CalendarCard extends StatefulWidget {
   final void Function(bool hasUnsavedChanges)? onClose;
   final ValueChanged<bool>? onDirtyChanged;
   final VoidCallback? onTrash;
+  final bool isReadOnly;
   final Color accentColor; // สีเน้น (เช่น ใช้กับชื่อเดือน)
 
   /// ชื่อสถานที่ที่ได้จาก spinwheel (แสดงใต้ปุ่มบันทึก)
@@ -34,6 +35,7 @@ class CalendarCard extends StatefulWidget {
     this.onClose,
     this.onDirtyChanged,
     this.onTrash,
+    this.isReadOnly = false,
     this.accentColor = const Color(0xFFFF6B81),
     this.placeCountText = 'คุณมี 1 สถานที่เดต!!',
     this.placeName = 'อควาเรียมบางแสน',
@@ -230,6 +232,13 @@ class _CalendarCardState extends State<CalendarCard> {
   Widget build(BuildContext context) {
     final weeks = buildMonthMatrix(_cursorMonth);
     final now = DateTime.now();
+    final isReadOnly = widget.isReadOnly;
+    final canSave =
+        !isReadOnly &&
+        _hasUserPicked &&
+        _selectedDate != null &&
+        !_isPastTimeSelected &&
+        (!widget.isEditMode || _hasUnsavedChanges);
 
     // สร้างลิสต์เดือนใหม่ตามปีที่เลือก
     // ถ้าเป็นปีปัจจุบัน ให้เริ่มตั้งแต่เดือนปัจจุบัน ไม่งั้นเริ่มมกราคม
@@ -264,7 +273,7 @@ class _CalendarCardState extends State<CalendarCard> {
                 width: double.infinity,
                 child: Stack(
                   children: [
-                    if (widget.onTrash != null)
+                    if (widget.onTrash != null && !isReadOnly)
                       Positioned(
                         left: 0,
                         top: 0,
@@ -336,13 +345,15 @@ class _CalendarCardState extends State<CalendarCard> {
                     _circleIconButton(
                       Icons.chevron_left,
                       onTap:
-                          (_cursorMonth.year == now.year &&
-                              _cursorMonth.month <= now.month)
+                          isReadOnly ||
+                              (_cursorMonth.year == now.year &&
+                                  _cursorMonth.month <= now.month)
                           ? null
                           : _prevMonth,
                       color:
-                          (_cursorMonth.year == now.year &&
-                              _cursorMonth.month <= now.month)
+                          isReadOnly ||
+                              (_cursorMonth.year == now.year &&
+                                  _cursorMonth.month <= now.month)
                           ? Colors.grey.shade300
                           : Colors.black87,
                     ),
@@ -360,7 +371,8 @@ class _CalendarCardState extends State<CalendarCard> {
                                 textColor: const Color(0xFF141414),
                                 items: currentValidMonths,
                                 toLabel: (m) => m,
-                                onSelected: (m) => _setMonthByName(m),
+                                onSelected:
+                                    isReadOnly ? null : (m) => _setMonthByName(m),
                                 fixedWidth: 128,
                                 trailingSvg:
                                     'assets/icons/ic-chevron-down-6x19.svg',
@@ -374,7 +386,8 @@ class _CalendarCardState extends State<CalendarCard> {
                                 textColor: const Color(0xFF141414),
                                 items: _years,
                                 toLabel: (y) => y.toString(),
-                                onSelected: (y) => _setYear(y),
+                                onSelected:
+                                    isReadOnly ? null : (y) => _setYear(y),
                                 fixedWidth: 88,
                                 trailingSvg:
                                     'assets/icons/ic-chevron-down-6x19.svg',
@@ -388,7 +401,10 @@ class _CalendarCardState extends State<CalendarCard> {
                       ),
                     ),
 
-                    _circleIconButton(Icons.chevron_right, onTap: _nextMonth),
+                    _circleIconButton(
+                      Icons.chevron_right,
+                      onTap: isReadOnly ? null : _nextMonth,
+                    ),
                   ],
                 ),
               ),
@@ -442,11 +458,12 @@ class _CalendarCardState extends State<CalendarCard> {
                                     ? widget.accentColor
                                     : const Color(0xFF5CE1E6),
                                 selectedTextColor: Colors.white,
-                                onSelect: (day) => _commitState(() {
-                                  _selectedDate = day;
-                                  _hasUserPicked =
-                                      true; // เลือกวันแล้ว enable ปุ่มบันทึก
-                                }),
+                                onSelect: isReadOnly
+                                    ? null
+                                    : (day) => _commitState(() {
+                                          _selectedDate = day;
+                                          _hasUserPicked = true; // เลือกวันแล้ว enable ปุ่มบันทึก
+                                        }),
                                 size: Size(cellW, 34), // สูง 34 ตามดีไซน์
                               ),
                             );
@@ -489,10 +506,12 @@ class _CalendarCardState extends State<CalendarCard> {
                               width: 40, // เดิม 42
                               value: _hour12,
                               values: _hours12,
-                              onChanged: (v) => _commitState(() {
-                                _hour12 = v!;
-                                _hasUserPicked = true;
-                              }),
+                              onChanged: isReadOnly
+                                  ? null
+                                  : (v) => _commitState(() {
+                                        _hour12 = v!;
+                                        _hasUserPicked = true;
+                                      }),
                             ),
                           ),
                           const Padding(
@@ -513,10 +532,12 @@ class _CalendarCardState extends State<CalendarCard> {
                               value: _minute,
                               values: _minutes,
                               formatter: (m) => m.toString().padLeft(2, '0'),
-                              onChanged: (v) => _commitState(() {
-                                _minute = v!;
-                                _hasUserPicked = true;
-                              }),
+                              onChanged: isReadOnly
+                                  ? null
+                                  : (v) => _commitState(() {
+                                        _minute = v!;
+                                        _hasUserPicked = true;
+                                      }),
                             ),
                           ),
                           const SizedBox(width: 6),
@@ -525,7 +546,7 @@ class _CalendarCardState extends State<CalendarCard> {
                               minWidth: 86,
                               maxWidth: 92,
                             ),
-                            child: _amPmSegmented(),
+                            child: _amPmSegmented(isReadOnly: isReadOnly),
                           ),
                         ],
                       ),
@@ -584,13 +605,7 @@ class _CalendarCardState extends State<CalendarCard> {
                 label: 'บันทึก',
                 variant: DsButtonVariant.primary,
                 size: DsButtonSize.md,
-                onPressed:
-                    (_hasUserPicked &&
-                        _selectedDate != null &&
-                        !_isPastTimeSelected &&
-                        (!widget.isEditMode || _hasUnsavedChanges))
-                    ? _handleSavePressed
-                    : null,
+                onPressed: canSave ? _handleSavePressed : null,
               ),
             ],
           ),
@@ -682,7 +697,7 @@ class _CalendarCardState extends State<CalendarCard> {
     required Color textColor,
     required List<T> items,
     required String Function(T) toLabel,
-    required ValueChanged<T> onSelected,
+    required ValueChanged<T>? onSelected,
     double fixedWidth = 128,
     String? trailingSvg,
     Size trailingSvgSize = const Size(3.6, 10.8),
@@ -763,6 +778,7 @@ class _CalendarCardState extends State<CalendarCard> {
       child: PopupMenuButton<T>(
         padding: EdgeInsets.zero,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+        enabled: onSelected != null,
         onSelected: onSelected,
         itemBuilder: (context) => items
             .map(
@@ -805,7 +821,7 @@ class _CalendarCardState extends State<CalendarCard> {
     required T value,
     required List<T> values,
     String Function(T)? formatter,
-    required ValueChanged<T?> onChanged,
+    ValueChanged<T?>? onChanged,
   }) {
     String labelOf(T v) => formatter != null ? formatter(v) : v.toString();
 
@@ -836,7 +852,7 @@ class _CalendarCardState extends State<CalendarCard> {
   }
 
   // AM/PM segmented (เหมือนเดิม)
-  Widget _amPmSegmented() {
+  Widget _amPmSegmented({bool isReadOnly = false}) {
     return Container(
       height: 30, // ให้ match กับกล่อง dropdown
       padding: const EdgeInsets.all(2),
@@ -850,7 +866,7 @@ class _CalendarCardState extends State<CalendarCard> {
             child: _segmented(
               label: 'AM',
               selected: _am,
-              onTap: () => _commitState(() => _am = true),
+              onTap: isReadOnly ? null : () => _commitState(() => _am = true),
             ),
           ),
           const SizedBox(width: 2),
@@ -858,7 +874,7 @@ class _CalendarCardState extends State<CalendarCard> {
             child: _segmented(
               label: 'PM',
               selected: !_am,
-              onTap: () => _commitState(() => _am = false),
+              onTap: isReadOnly ? null : () => _commitState(() => _am = false),
             ),
           ),
         ],
