@@ -51,7 +51,7 @@ public class ThSMSClient {
      */
     public String send(String phone08, String refCode, String deviceId) {
         User user = userRepository.findUsersByPhoneNumber(phone08);
-        boolean mock = false;
+        boolean mock = true;
 
         if (user != null) {
             if (Boolean.TRUE.equals(user.getDeleteFlag())) {
@@ -126,7 +126,7 @@ public class ThSMSClient {
                                         boolean onLogin) {
         // URL ของ OTP validate API
         String phone = normalizePhone(phoneNumber);
-        boolean mock = false;
+        boolean mock = true;
         if (!mock) {
             String redisKey = "otp:value:" + phone;
 
