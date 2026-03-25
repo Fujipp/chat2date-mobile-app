@@ -25,6 +25,8 @@ class ChatSocketService {
   final _readController = StreamController<Map<String, dynamic>>.broadcast();
   final _relationshipController =
       StreamController<Map<String, dynamic>>.broadcast();
+  final _appointmentController =
+      StreamController<Map<String, dynamic>>.broadcast();
   final _reviewController = StreamController<Map<String, dynamic>>.broadcast();
   final _spinController = StreamController<Map<String, dynamic>>.broadcast();
   StompClient? _client;
@@ -37,6 +39,8 @@ class ChatSocketService {
   Stream<Map<String, dynamic>> get readStream => _readController.stream;
   Stream<Map<String, dynamic>> get relationshipStream =>
       _relationshipController.stream;
+  Stream<Map<String, dynamic>> get appointmentStream =>
+      _appointmentController.stream;
   Stream<Map<String, dynamic>> get reviewStream => _reviewController.stream;
   Stream<Map<String, dynamic>> get spinStream => _spinController.stream;
 
@@ -139,6 +143,19 @@ class ChatSocketService {
       },
     );
     _client?.subscribe(
+      destination: '/topic/chat/$roomId/appointment',
+      callback: (frame) {
+        final body = frame.body;
+        if (body == null) return;
+        try {
+          final json = jsonDecode(body) as Map<String, dynamic>;
+          _appointmentController.add(json);
+        } catch (e) {
+          print('Error decoding appointment event: $e');
+        }
+      },
+    );
+    _client?.subscribe(
       destination: '/topic/chat/$roomId/review',
       callback: (frame) {
         final body = frame.body;
@@ -220,6 +237,9 @@ class ChatSocketService {
     } catch (_) {
       _reviewController.close();
     }
+    try {
+      _appointmentController.close();
+    } catch (_) {}
     try {
       _spinController.close();
     } catch (_) {}

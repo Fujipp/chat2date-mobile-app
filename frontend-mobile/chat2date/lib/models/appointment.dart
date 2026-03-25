@@ -19,6 +19,14 @@ class Appointment {
     this.updatedAt,
   });
 
+  static DateTime? _parseUtcDateTime(dynamic value) {
+    if (value == null) return null;
+
+    final raw = value as String;
+    final normalized = (raw.endsWith('Z') || raw.contains('+')) ? raw : '${raw}Z';
+    return DateTime.parse(normalized).toUtc();
+  }
+
   factory Appointment.fromJson(Map<String, dynamic> json) {
     return Appointment(
       appointmentId: json['appointmentId'] as int,
@@ -27,18 +35,17 @@ class Appointment {
       placeId: (json['placeId'] as String?) ?? '',
       placeName: (json['placeName'] as String?) ?? '',
       // dateTime เป็น null ได้ (ยังไม่ได้นัด)
-      dateTime: json['dateTime'] != null
-          ? DateTime.parse(json['dateTime'] as String)
-          : null,
+      dateTime: _parseUtcDateTime(json['dateTime']),
       // backend default คือ PLACE_SELECTED ไม่ใช่ SCHEDULED
       status: (json['status'] as String?) ?? 'PLACE_SELECTED',
-      createdAt: json['createdAt'] != null
-          ? DateTime.parse(json['createdAt'] as String)
-          : null,
-      updatedAt: json['updatedAt'] != null
-          ? DateTime.parse(json['updatedAt'] as String)
-          : null,
+      createdAt: _parseUtcDateTime(json['createdAt']),
+      updatedAt: _parseUtcDateTime(json['updatedAt']),
     );
+  }
+
+  static String? _toUtcPayload(DateTime? dateTime) {
+    if (dateTime == null) return null;
+    return dateTime.toUtc().toIso8601String().replaceFirst('Z', '');
   }
 
   Map<String, dynamic> toJson() {
@@ -47,7 +54,7 @@ class Appointment {
       'roomId': roomId,
       'placeId': placeId,
       'placeName': placeName,
-      'dateTime': dateTime?.toIso8601String(),
+      'dateTime': _toUtcPayload(dateTime),
       'status': status,
     };
   }
