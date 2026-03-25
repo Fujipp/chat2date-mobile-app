@@ -1212,7 +1212,6 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
       try {
         String mode = (_indexMode == 0) ? "DISTANCE" : "MIDPOINT";
         String userTarget = (_indexSelected == 1) ? "ME" : "PARTNER";
-        await service.closeRemoteModal(widget.roomId!);
         await service.confirmPlace(
           roomId: widget.roomId,
           placeName: result['name'],
@@ -1220,6 +1219,7 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
           mode: mode,
           userTarget: userTarget,
         );
+        await service.closeRemoteModal(widget.roomId!);
         _clearWheelState();
       } catch (e) {
         print("Error fetching date recommendations: $e");
@@ -1298,7 +1298,7 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
         range: range.round(),
         mode: mode,
         userTarget: userTarget,
-        forceRefresh: refresh
+        forceRefresh: refresh,
       );
       if (!mounted) return;
       setState(() {
@@ -1538,7 +1538,8 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
           heightSvg: 68,
           widthSvg: 77,
           topic: 'ยกเลิกการแก้ไข',
-          description: 'ต้องการยกเลิกวันออกเดตใช่หรือไม่\nข้อมูลที่เลือกจะสูญหาย',
+          description:
+              'ต้องการยกเลิกวันออกเดตใช่หรือไม่\nข้อมูลที่เลือกจะสูญหาย',
           choice: true,
           firstChoiceText: 'ออกจากหน้า',
           secondChoiceText: 'กลับไปแก้ต่อ',
