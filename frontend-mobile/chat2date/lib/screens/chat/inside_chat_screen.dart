@@ -790,9 +790,9 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
             _indexMode = (modeStr == 'DISTANCE') ? 0 : 1;
 
             if (_currentUserId == leaderIdFromSocket) {
-              _indexSelected = (targetStr == 'ME') ? 1 : 0;
+              _indexSelected = (targetStr == nickname) ? 1 : 0;
             } else {
-              _indexSelected = (targetStr == 'ME') ? 0 : 1;
+              _indexSelected = (targetStr == _chatUserName) ? 0 : 1;
             }
 
             final List placesList = data['places'] ?? [];
@@ -1298,6 +1298,7 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
         range: range.round(),
         mode: mode,
         userTarget: userTarget,
+        forceRefresh: refresh
       );
       if (!mounted) return;
       setState(() {
@@ -1318,7 +1319,6 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
         title: 'ไม่สามารถโหลดข้อมูลสถานที่ได้',
         message: e.toString().replaceAll('Exception: ', ''),
         durationSeconds: 3,
-        showCountdown: false,
       );
       _clearWheelState();
       await ref.read(dateRecommendProvider).closeRemoteModal(widget.roomId!);
@@ -2964,7 +2964,7 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
                                           _indexMode = (mode == 'DISTANCE')
                                               ? 0
                                               : 1;
-                                          _indexSelected = (target == 'ME')
+                                          _indexSelected = (target == nickname)
                                               ? 1
                                               : 0;
                                         });
