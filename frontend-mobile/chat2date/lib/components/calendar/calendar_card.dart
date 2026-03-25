@@ -610,8 +610,10 @@ class _CalendarCardState extends State<CalendarCard> {
       m,
     );
     final selectedTime = TimeOfDay(hour: h24, minute: m);
+    final shouldConfirmEdit =
+        widget.isEditMode && widget.initialSelectedDate != null;
 
-    if (widget.isEditMode) {
+    if (shouldConfirmEdit) {
       _showSaveConfirmDialog(selectedDateTime, selectedTime);
       return;
     }
