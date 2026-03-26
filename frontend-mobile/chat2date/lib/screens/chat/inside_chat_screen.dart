@@ -1350,6 +1350,7 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
     await _prepareBeforeSpin(20, "MIDPOINT", "", false);
     // ผ่านทุกเงื่อนไข - เปิด modal
     setState(() {
+      _leaderId = _currentUserId;
       _showWheelModal = true;
     });
   }
