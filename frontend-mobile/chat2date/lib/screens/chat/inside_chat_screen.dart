@@ -1320,14 +1320,14 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
           type: ToastType.warning,
           title: "ไม่สามารถสุ่มใหม่ได้",
           message:
-              "กรุณาสรุปสถานที่เดทปัจจุบัน หรือจัดการนัดหมายเดิมให้เสร็จก่อน",
+              "กรุณาสรุปสถานที่เดตปัจจุบัน หรือจัดการนัดหมายเดิมให้เสร็จก่อน",
         );
       } else {
         // 📢 กรณีติด Cooldown วัน
         Toast.show(
           context,
           type: ToastType.info,
-          title: "อยู่ในช่วงพักเดท",
+          title: "อยู่ในช่วงพักเดต",
           message: "กรุณารอให้ครบกำหนด Cooldown ก่อนหมุนอีกครั้ง",
         );
       }
@@ -2048,7 +2048,7 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
     if (appt == null ||
         appt.dateTime == null ||
         !DateTime.now().isAfter(
-          appt.dateTime!.toLocal().add(const Duration(hours: 5)),
+          appt.dateTime!.toLocal().add(const Duration(hours: 3)),
         )) {
       return;
     }
@@ -2085,9 +2085,9 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
           heightSvg: 68,
           widthSvg: 77,
           imageName: _chatUserName,
-          topic: 'ประเมินคู่เดทของคุณ',
+          topic: 'ประเมินคู่เดตของคุณ',
           topicTop: true,
-          description: 'คุณพึงพอใจกับคู่เดทของคุณหรือไม่',
+          description: 'คุณพึงพอใจกับคู่เดตของคุณหรือไม่',
           choice: true,
           firstChoiceText: 'ไม่พอใจ',
           secondChoiceText: 'พอใจ',

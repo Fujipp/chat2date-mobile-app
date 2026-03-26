@@ -910,7 +910,7 @@ class _DiscoveryScreenState extends ConsumerState<DiscoveryScreen>
 
                               _SuggestionItem(
                                 icon: Icons.favorite,
-                                text: 'ปรับประเภทคู่เดทที่สนใจ',
+                                text: 'ปรับประเภทคู่เดตที่สนใจ',
                                 color: const Color(0xFFFF8FB3),
                               ),
                               const SizedBox(height: 12),

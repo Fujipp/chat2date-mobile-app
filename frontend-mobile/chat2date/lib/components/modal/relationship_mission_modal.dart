@@ -356,7 +356,7 @@ class RelationshipMissionModal extends StatelessWidget {
           ],
         ),
         const Text(
-          'ภารกิจจะช่วยเพิ่มแต้มความสัมพันธ์ และปลดล็อกฟีเจอร์นัดเดทเมื่อครบ 100 คะแนน',
+          'ภารกิจจะช่วยเพิ่มแต้มความสัมพันธ์ และปลดล็อกฟีเจอร์นัดเดตเมื่อครบ 100 คะแนน',
           style: TextStyle(
             fontSize: 11,
             color: AppColors.textMuted,
