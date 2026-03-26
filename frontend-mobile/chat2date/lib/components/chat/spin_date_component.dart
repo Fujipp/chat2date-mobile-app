@@ -206,10 +206,8 @@ class _SpinDateComponentState extends State<SpinDateComponent>
     String? mode;
     if (indexing == 0) {
       if (selectedIndex == 0) {
-        // คนแรกใน Switcher คือ Partner (_chatUserName)
         targetName = "PARTNER";
       } else {
-        // คนที่สองใน Switcher คือ เราเอง (nickname)
         targetName = "ME";
       }
       mode = "DISTANCE";

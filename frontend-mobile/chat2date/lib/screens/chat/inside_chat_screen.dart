@@ -41,6 +41,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:share_plus/share_plus.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class InsideChatScreen extends ConsumerStatefulWidget {
   final String? roomId;
@@ -88,6 +89,7 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
 
   // === Appointment / Calendar ===
   Appointment? _existingAppointment;
+  bool _calendarHasUnreadUpdate = false;
   String _lastSpunPlaceId = ''; // ★ แก้: ไม่ใช่ final เพื่อให้อัพเดตได้
   String _lastSpunPlaceName = ''; // ★ แก้: ไม่ใช่ final เพื่อให้อัพเดตได้
   bool _isCalendarLoading = false;
@@ -110,6 +112,7 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
   StreamSubscription<ChatAccessStatus>? _accessSubscription;
   StreamSubscription<Map<String, dynamic>>? _readSubscription;
   StreamSubscription<Map<String, dynamic>>? _relationshipSubscription;
+  StreamSubscription<Map<String, dynamic>>? _appointmentSubscription;
   StreamSubscription<Map<String, dynamic>>? _reviewSubscription;
   String? _currentUserId;
   bool _hasEntered = false;
@@ -235,6 +238,18 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
     if (_scrollController.position.pixels <= 80) {
       _loadMoreMessages();
     }
+  }
+
+  Future<void> _handleAppointmentEvent(Map<String, dynamic> payload) async {
+    if (!mounted) return;
+
+    final type = payload['type'];
+    if (type != 'APPOINTMENT_CHANGE') return;
+
+    final actorUserId = payload['actorUserId'] as String?;
+    final isSelfChange = actorUserId != null && actorUserId == _currentUserId;
+
+    await _refreshCalendarAppointmentState(markAsSeen: isSelfChange);
   }
 
   //game
@@ -529,6 +544,8 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
         });
         _enterRoom();
       }
+
+      _fetchInitialAppointment();
     }
   }
 
@@ -741,6 +758,9 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
     _accessSubscription = service.accessStream.listen(_handleAccessStatus);
     _readSubscription = service.readStream.listen(_handleReadEvent);
     _reviewSubscription = service.reviewStream.listen(_handleReviewEvent);
+    _appointmentSubscription = service.appointmentStream.listen(
+      _handleAppointmentEvent,
+    );
     _relationshipSubscription = service.relationshipStream.listen((data) {
       if (!mounted) return;
       setState(() {
@@ -790,9 +810,9 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
             _indexMode = (modeStr == 'DISTANCE') ? 0 : 1;
 
             if (_currentUserId == leaderIdFromSocket) {
-              _indexSelected = (targetStr == 'ME') ? 1 : 0;
+              _indexSelected = (targetStr == nickname) ? 1 : 0;
             } else {
-              _indexSelected = (targetStr == 'ME') ? 0 : 1;
+              _indexSelected = (targetStr == _chatUserName) ? 0 : 1;
             }
 
             final List placesList = data['places'] ?? [];
@@ -962,6 +982,44 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
   }
 
   Future<void> _fetchInitialAppointment() async {
+    await _refreshCalendarAppointmentState();
+  }
+
+  String _calendarSeenPrefsKey(String roomId) {
+    final userId = _currentUserId ?? 'guest';
+    return 'calendar_seen_appointment_${userId}_$roomId';
+  }
+
+  String _appointmentCalendarSignature(Appointment appointment) {
+    final updatedAt = appointment.updatedAt?.toUtc().toIso8601String() ?? '';
+    return '${appointment.appointmentId}:${appointment.status}:$updatedAt';
+  }
+
+  Future<void> _markCalendarAppointmentAsSeen(Appointment? appointment) async {
+    final roomId = widget.roomId;
+    if (roomId == null || roomId.isEmpty) return;
+
+    final prefs = await SharedPreferences.getInstance();
+    final prefsKey = _calendarSeenPrefsKey(roomId);
+    final signature = appointment == null
+        ? null
+        : _appointmentCalendarSignature(appointment);
+
+    if (signature == null) {
+      await prefs.remove(prefsKey);
+    } else {
+      await prefs.setString(prefsKey, signature);
+    }
+
+    if (!mounted) return;
+    setState(() {
+      _calendarHasUnreadUpdate = false;
+    });
+  }
+
+  Future<void> _refreshCalendarAppointmentState({
+    bool markAsSeen = false,
+  }) async {
     final roomId = widget.roomId;
     if (roomId == null || roomId.isEmpty) return;
 
@@ -971,15 +1029,33 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
         int.parse(roomId),
       );
 
-      if (mounted) {
-        setState(() {
-          _existingAppointment =
-              _findLatestActiveAppointment(appointments) ??
-              _findLatestNotActiveAppointment(appointments);
-        });
+      final latestAppointment =
+          _findLatestActiveAppointment(appointments) ??
+          _findLatestNotActiveAppointment(appointments);
+
+      final prefs = await SharedPreferences.getInstance();
+      final prefsKey = _calendarSeenPrefsKey(roomId);
+      final signature = latestAppointment == null
+          ? null
+          : _appointmentCalendarSignature(latestAppointment);
+      final savedSignature = prefs.getString(prefsKey);
+
+      if (markAsSeen) {
+        if (signature == null) {
+          await prefs.remove(prefsKey);
+        } else {
+          await prefs.setString(prefsKey, signature);
+        }
       }
+
+      if (!mounted) return;
+      setState(() {
+        _existingAppointment = latestAppointment;
+        _calendarHasUnreadUpdate =
+            signature != null && signature != savedSignature && !markAsSeen;
+      });
     } catch (e) {
-      debugPrint('Error fetching initial appointment: $e');
+      debugPrint('Error refreshing appointment state: $e');
     }
   }
 
@@ -1007,25 +1083,19 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
 
   bool get _shouldShowCalendarIcon => _existingAppointment != null;
 
-  int? get _calendarBadgeCount {
+  bool get _isCalendarViewOnly {
     final appointment = _existingAppointment;
-    final dateTime = appointment?.dateTime;
+    if (appointment == null) return false;
 
-    if (appointment == null ||
-        appointment.status != 'SCHEDULED' ||
-        dateTime == null) {
-      return null;
-    }
+    final status = appointment.status;
+    if (status == 'CANCELLED' || status == 'COMPLETED') return true;
 
-    final appointmentDate = DateUtils.dateOnly(dateTime.toLocal());
+    final dateTime = appointment.dateTime;
+    if (dateTime == null) return false;
+
     final today = DateUtils.dateOnly(DateTime.now());
-    final daysUntil = appointmentDate.difference(today).inDays;
-
-    if (daysUntil < 0 || daysUntil > 2) {
-      return null;
-    }
-
-    return daysUntil == 0 ? 1 : daysUntil;
+    final appointmentDay = DateUtils.dateOnly(dateTime.toLocal());
+    return !today.isBefore(appointmentDay);
   }
 
   bool _isSvgImage(String? path) {
@@ -1212,7 +1282,6 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
       try {
         String mode = (_indexMode == 0) ? "DISTANCE" : "MIDPOINT";
         String userTarget = (_indexSelected == 1) ? "ME" : "PARTNER";
-        await service.closeRemoteModal(widget.roomId!);
         await service.confirmPlace(
           roomId: widget.roomId,
           placeName: result['name'],
@@ -1220,6 +1289,7 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
           mode: mode,
           userTarget: userTarget,
         );
+        await service.closeRemoteModal(widget.roomId!);
         _clearWheelState();
       } catch (e) {
         print("Error fetching date recommendations: $e");
@@ -1298,6 +1368,7 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
         range: range.round(),
         mode: mode,
         userTarget: userTarget,
+        forceRefresh: refresh,
       );
       if (!mounted) return;
       setState(() {
@@ -1318,7 +1389,6 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
         title: 'ไม่สามารถโหลดข้อมูลสถานที่ได้',
         message: e.toString().replaceAll('Exception: ', ''),
         durationSeconds: 3,
-        showCountdown: false,
       );
       _clearWheelState();
       await ref.read(dateRecommendProvider).closeRemoteModal(widget.roomId!);
@@ -1336,14 +1406,10 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
     setState(() => _isCalendarLoading = true);
 
     try {
-      final appointmentService = ref.read(appointmentServiceProvider);
-      final appointments = await appointmentService.getAppointments(
-        int.parse(roomId),
-      );
+      await _refreshCalendarAppointmentState(markAsSeen: true);
 
       if (!mounted) return;
       setState(() {
-        _existingAppointment = _findLatestActiveAppointment(appointments);
         _isCalendarLoading = false;
       });
 
@@ -1415,6 +1481,7 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
 
       if (!mounted) return;
       setState(() => _existingAppointment = result);
+      await _markCalendarAppointmentAsSeen(result);
       _showSaveSuccessDialog(result);
     } catch (e) {
       if (!mounted) return;
@@ -1538,7 +1605,8 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
           heightSvg: 68,
           widthSvg: 77,
           topic: 'ยกเลิกการแก้ไข',
-          description: 'ต้องการยกเลิกวันออกเดตใช่หรือไม่\nข้อมูลที่เลือกจะสูญหาย',
+          description:
+              'ต้องการยกเลิกวันออกเดตใช่หรือไม่\nข้อมูลที่เลือกจะสูญหาย',
           choice: true,
           firstChoiceText: 'ออกจากหน้า',
           secondChoiceText: 'กลับไปแก้ต่อ',
@@ -1588,6 +1656,7 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
       await service.deleteAppointment(appointmentId);
       if (!mounted) return;
       setState(() => _existingAppointment = null);
+      await _markCalendarAppointmentAsSeen(null);
       _showDeleteSuccessDialog();
     } catch (e) {
       if (!mounted) return;
@@ -1974,9 +2043,7 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
     if (appt == null ||
         appt.dateTime == null ||
         !DateTime.now().isAfter(
-          appt.dateTime!
-              .add(const Duration(hours: 7))
-              .add(const Duration(hours: 5)),
+          appt.dateTime!.toLocal().add(const Duration(hours: 5)),
         )) {
       return;
     }
@@ -2458,6 +2525,7 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
     _gameSocketService?.dispose();
     _gameSubscription?.cancel();
     _relationshipSubscription?.cancel();
+    _appointmentSubscription?.cancel();
     _reviewSubscription?.cancel();
     super.dispose();
   }
@@ -2488,7 +2556,7 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
                     cooldownDays: _cooldownDays,
                     showCalendar: _shouldShowCalendarIcon,
                     showFlag: !_isChatDisabled,
-                    calendarBadgeCount: _calendarBadgeCount,
+                    calendarHasUnreadUpdate: _calendarHasUnreadUpdate,
                     showBorder: false,
                     onBack: () async {
                       await _exitRoomOnce();
@@ -2560,11 +2628,15 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
                           Builder(
                             builder: (context) {
                               final now = DateTime.now();
-                              final dateStartTime = _existingAppointment!
+                              final appointmentTime = _existingAppointment!
                                   .dateTime!
-                                  .add(const Duration(hours: 7));
-                              final dateEndTime = dateStartTime.add(
-                                const Duration(hours: 5),
+                                  .toLocal();
+
+                              final dateStartTime = appointmentTime.subtract(
+                                const Duration(hours: 2),
+                              );
+                              final dateEndTime = appointmentTime.add(
+                                const Duration(hours: 3),
                               );
 
                               // เช็กว่าเลยเวลานัดมาแล้ว AND ยังไม่หมดเวลาเดต
@@ -2964,7 +3036,7 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
                                           _indexMode = (mode == 'DISTANCE')
                                               ? 0
                                               : 1;
-                                          _indexSelected = (target == 'ME')
+                                          _indexSelected = (target == nickname)
                                               ? 1
                                               : 0;
                                         });
@@ -3013,6 +3085,7 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
                   placeName: _calendarPlaceName,
                   placeCountText: 'คุณมี 1 สถานที่เดต!!',
                   hasUnsavedChanges: _calendarHasUnsavedChanges,
+                  isReadOnly: _calendarIsEditMode && _isCalendarViewOnly,
                   initialMonth: () {
                     final dt = _calendarIsEditMode
                         ? (_existingAppointment?.dateTime?.toLocal() ??

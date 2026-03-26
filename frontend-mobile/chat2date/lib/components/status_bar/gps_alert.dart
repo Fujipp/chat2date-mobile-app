@@ -318,8 +318,8 @@ class _GpsMapAlertState extends State<GpsMapAlert> with WidgetsBindingObserver {
     }
   }
 
-  bool _isExpanded = false;
-  bool _showMapContent = false;
+  bool _isExpanded = true;
+  bool _showMapContent = true;
   bool _hasSosTriggered = false;
   bool _isKeyboardVisible = false;
 

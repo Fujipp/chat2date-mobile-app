@@ -25,6 +25,10 @@ class AppointmentService {
     'Content-Type': 'application/json',
   };
 
+  String _utcPayloadDateTime(DateTime dateTime) {
+    return dateTime.toUtc().toIso8601String().replaceFirst('Z', '');
+  }
+
   /// POST /api/v1/dates/appointments
   /// Creates a new appointment for the given room
   Future<Appointment> createAppointment({
@@ -41,10 +45,8 @@ class AppointmentService {
         'roomId': roomId,
         'placeId': placeId,
         'placeName': placeName,
-        // ★ แก้: ส่ง Local time พร้อม offset เพื่อไม่ให้เวลาเพี้ยน
-        // toUtc() จะทำให้ 16:18 +07:00 → 09:18 UTC ซึ่งผิด
-        // 'dateTime': dateTime.toIso8601String(),
-        'dateTime': dateTime,
+        // ส่งเป็น UTC เพื่อให้ DB เก็บเวลาแบบไม่บวก +7
+        'dateTime': _utcPayloadDateTime(dateTime),
       }),
     );
 
@@ -93,9 +95,8 @@ class AppointmentService {
       uri,
       headers: _headers,
       body: jsonEncode({
-        // ★ แก้: ส่ง Local time พร้อม offset เพื่อไม่ให้เวลาเพี้ยน
-        // 'dateTime': dateTime.toIso8601String(),
-        'dateTime': dateTime.toUtc().toIso8601String(),
+        // ส่งเป็น UTC เพื่อให้ DB เก็บเวลาแบบไม่บวก +7
+        'dateTime': _utcPayloadDateTime(dateTime),
       }),
     );
 

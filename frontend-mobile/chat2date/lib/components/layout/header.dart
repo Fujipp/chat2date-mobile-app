@@ -36,7 +36,7 @@ class Header extends StatelessWidget {
   final bool showSpinCooldown;
   final int? cooldownDays;
   final bool isSpinCooldownEnabled;
-  final int? calendarBadgeCount;
+  final bool calendarHasUnreadUpdate;
   // Variant for quick setup
   final ChatHeaderVariant? variant;
   final VoidCallback? onBack;
@@ -56,7 +56,7 @@ class Header extends StatelessWidget {
     this.showSpinCooldown = false,
     this.cooldownDays,
     this.isSpinCooldownEnabled = true,
-    this.calendarBadgeCount,
+    this.calendarHasUnreadUpdate = false,
     this.showOptions = false,
     this.showFlag = false,
     this.showHeart = false,
@@ -81,7 +81,7 @@ class Header extends StatelessWidget {
     int? cooldownDays,
     bool showCalendar = true,
     bool showFlag = true,
-    int? calendarBadgeCount,
+    bool calendarHasUnreadUpdate = false,
     VoidCallback? onBack,
     VoidCallback? onCalendar,
     VoidCallback? onSpinwheel,
@@ -98,7 +98,7 @@ class Header extends StatelessWidget {
           showFlag: showFlag,
           showBorder: showBorder,
           variant: variant,
-          calendarBadgeCount: calendarBadgeCount,
+          calendarHasUnreadUpdate: calendarHasUnreadUpdate,
           onBack: onBack,
           onFlag: onFlag,
         );
@@ -112,7 +112,7 @@ class Header extends StatelessWidget {
           showFlag: showFlag,
           showBorder: showBorder,
           variant: variant,
-          calendarBadgeCount: calendarBadgeCount,
+          calendarHasUnreadUpdate: calendarHasUnreadUpdate,
           onBack: onBack,
           onCalendar: onCalendar,
           onSpinwheel: onSpinwheel,
@@ -130,7 +130,7 @@ class Header extends StatelessWidget {
           showFlag: showFlag,
           showBorder: showBorder,
           variant: variant,
-          calendarBadgeCount: calendarBadgeCount,
+          calendarHasUnreadUpdate: calendarHasUnreadUpdate,
           onBack: onBack,
           onCalendar: onCalendar,
           onSpinwheel: onSpinwheel,
@@ -148,7 +148,7 @@ class Header extends StatelessWidget {
           showFlag: showFlag,
           showBorder: showBorder,
           variant: variant,
-          calendarBadgeCount: calendarBadgeCount,
+          calendarHasUnreadUpdate: calendarHasUnreadUpdate,
           onBack: onBack,
           onCalendar: onCalendar,
           onFlag: onFlag,
@@ -242,7 +242,7 @@ class Header extends StatelessWidget {
                 if (showCalendar) ...[
                   _CalendarIcon(
                     onTap: onCalendar,
-                    badgeCount: calendarBadgeCount,
+                    showUnreadDot: calendarHasUnreadUpdate,
                   ),
                   const SizedBox(width: 10),
                 ],
@@ -324,9 +324,9 @@ class Header extends StatelessWidget {
 
 class _CalendarIcon extends StatelessWidget {
   final VoidCallback? onTap;
-  final int? badgeCount;
+  final bool showUnreadDot;
 
-  const _CalendarIcon({this.onTap, this.badgeCount});
+  const _CalendarIcon({this.onTap, this.showUnreadDot = false});
 
   @override
   Widget build(BuildContext context) {
@@ -346,30 +346,20 @@ class _CalendarIcon extends StatelessWidget {
               ),
             ),
           ),
-          if (badgeCount != null && badgeCount! > 0)
+          if (showUnreadDot)
             Positioned(
-              top: -5,
-              right: -7,
+              top: -3,
+              right: -3,
               child: Container(
-                constraints: const BoxConstraints(minWidth: 16, minHeight: 16),
-                padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
-                decoration: const BoxDecoration(
+                width: 10,
+                height: 10,
+                decoration: BoxDecoration(
                   color: AppColors.error,
                   shape: BoxShape.circle,
-                ),
-                alignment: Alignment.center,
-                child: Text(
-                  badgeCount!.toString(),
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 9,
-                    fontWeight: FontWeight.w700,
-                    fontFamily: 'Inter',
-                    height: 1.0,
-                  ),
+                  border: Border.all(color: Colors.white, width: 1.4),
                 ),
               ),
-            ),
+            )
         ],
       ),
     );
