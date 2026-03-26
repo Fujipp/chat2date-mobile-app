@@ -72,7 +72,7 @@ class _GlobalUserListenerState extends ConsumerState<GlobalUserListener> {
       builder: (ctx) => const Dialog(
         backgroundColor: Colors.transparent,
         child: ModalComponent(
-          svgPath: 'assets/icons/icon_banning.svg',
+          svgPath: 'assets/icons/ui/icon_banning.svg',
           heightSvg: 68,
           widthSvg: 77,
           topic: 'คุณถูกแบน',

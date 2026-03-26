@@ -184,7 +184,7 @@ class Header extends StatelessWidget {
                 onTap: onBack ?? () => Navigator.pop(context),
                 borderRadius: BorderRadius.circular(22.5),
                 child: SvgPicture.asset(
-                  'assets/icons/icon_arrow-back-circle.svg',
+                  'assets/icons/ui/icon_arrow-back-circle.svg',
                   width: 45,
                   height: 45,
                 ),
@@ -250,7 +250,7 @@ class Header extends StatelessWidget {
                   InkWell(
                     onTap: onSpinwheel,
                     child: SvgPicture.asset(
-                      'assets/icons/icon_spinwheel.svg',
+                      'assets/icons/ui/icon_spinwheel.svg',
                       width: 25,
                       height: 25,
                     ),
@@ -261,7 +261,7 @@ class Header extends StatelessWidget {
                   InkWell(
                     onTap: onSpinwheel,
                     child: SvgPicture.asset(
-                      'assets/icons/icon_spinwheel_7.svg',
+                      'assets/icons/ui/icon_spinwheel_7.svg',
                       width: 25,
                       height: 25,
                     ),
@@ -280,7 +280,7 @@ class Header extends StatelessWidget {
                   InkWell(
                     onTap: onFlag,
                     child: SvgPicture.asset(
-                      'assets/icons/icon_report.svg',
+                      'assets/icons/ui/icon_report.svg',
                       width: 25,
                       height: 20,
                     ),
@@ -294,7 +294,7 @@ class Header extends StatelessWidget {
                   InkWell(
                     onTap: onSettings,
                     child: SvgPicture.asset(
-                      'assets/icons/icon_heart_active.svg',
+                      'assets/icons/ui/icon_heart_active.svg',
                       width: 25,
                       height: 25,
                     ),
@@ -340,7 +340,7 @@ class _CalendarIcon extends StatelessWidget {
             child: Align(
               alignment: Alignment.center,
               child: SvgPicture.asset(
-                'assets/icons/icon_calendar.svg',
+                'assets/icons/ui/icon_calendar.svg',
                 width: 19,
                 height: 21,
               ),
@@ -397,7 +397,7 @@ class _CooldownSpinwheelIcon extends StatelessWidget {
           Positioned(
             top: 5,
             child: SvgPicture.asset(
-              'assets/icons/icon_spinwheel.svg',
+              'assets/icons/ui/icon_spinwheel.svg',
               width: 25,
               height: 25,
               colorFilter: enabled

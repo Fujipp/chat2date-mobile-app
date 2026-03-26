@@ -337,7 +337,7 @@ class _DiscoveryScreenState extends ConsumerState<DiscoveryScreen>
           child: Material(
             color: Colors.transparent,
             child: ModalComponent(
-              svgPath: 'assets/icons/icon_warning.svg',
+              svgPath: 'assets/icons/ui/icon_warning.svg',
               heightSvg: 80,
               widthSvg: 80,
               topic: 'แจ้งเตือน',
@@ -663,8 +663,8 @@ class _DiscoveryScreenState extends ConsumerState<DiscoveryScreen>
           children: [
             const SizedBox(height: 25),
             ChatToDateHeaderWhite(
-              leftIconPath: 'assets/icons/icon_chat2date_full.svg',
-              rightIconPath: 'assets/icons/icon_menu.svg',
+              leftIconPath: 'assets/icons/ui/icon_chat2date_full.svg',
+              rightIconPath: 'assets/icons/ui/icon_menu.svg',
               iconColor: const Color(0xFF5ce1e6),
               onBack: () {},
               onSettings: () {},
@@ -691,8 +691,8 @@ class _DiscoveryScreenState extends ConsumerState<DiscoveryScreen>
           children: [
             const SizedBox(height: 25),
             ChatToDateHeaderWhite(
-              leftIconPath: 'assets/icons/icon_chat2date_full.svg',
-              rightIconPath: 'assets/icons/icon_menu.svg',
+              leftIconPath: 'assets/icons/ui/icon_chat2date_full.svg',
+              rightIconPath: 'assets/icons/ui/icon_menu.svg',
               iconColor: const Color(0xFF5ce1e6),
               onBack: () {},
               onSettings: () async {
@@ -721,8 +721,8 @@ class _DiscoveryScreenState extends ConsumerState<DiscoveryScreen>
           children: [
             const SizedBox(height: 25),
             ChatToDateHeaderWhite(
-              leftIconPath: 'assets/icons/icon_chat2date_full.svg',
-              rightIconPath: 'assets/icons/icon_menu.svg',
+              leftIconPath: 'assets/icons/ui/icon_chat2date_full.svg',
+              rightIconPath: 'assets/icons/ui/icon_menu.svg',
               iconColor: const Color(0xFF5ce1e6),
               onBack: () {},
               onSettings: () async {
@@ -778,8 +778,8 @@ class _DiscoveryScreenState extends ConsumerState<DiscoveryScreen>
           children: [
             const SizedBox(height: 25),
             ChatToDateHeaderWhite(
-              leftIconPath: 'assets/icons/icon_chat2date_full.svg',
-              rightIconPath: 'assets/icons/icon_menu.svg',
+              leftIconPath: 'assets/icons/ui/icon_chat2date_full.svg',
+              rightIconPath: 'assets/icons/ui/icon_menu.svg',
               iconColor: const Color(0xFF5ce1e6),
               onBack: () {},
               onSettings: () async {
@@ -1208,8 +1208,8 @@ class _CandidateViewState extends ConsumerState<_CandidateView> {
               children: [
                 const SizedBox(height: 25),
                 ChatToDateHeaderWhite(
-                  leftIconPath: 'assets/icons/icon_chat2date_full.svg',
-                  rightIconPath: 'assets/icons/icon_menu.svg',
+                  leftIconPath: 'assets/icons/ui/icon_chat2date_full.svg',
+                  rightIconPath: 'assets/icons/ui/icon_menu.svg',
                   iconColor: const Color(0xFF5ce1e6),
                   onBack: () {},
                   onSettings: () async {
@@ -1270,8 +1270,8 @@ class _CandidateViewState extends ConsumerState<_CandidateView> {
             children: [
               const SizedBox(height: 25),
               ChatToDateHeaderWhite(
-                leftIconPath: 'assets/icons/icon_chat2date_full.svg',
-                rightIconPath: 'assets/icons/icon_menu.svg',
+                leftIconPath: 'assets/icons/ui/icon_chat2date_full.svg',
+                rightIconPath: 'assets/icons/ui/icon_menu.svg',
                 iconColor: const Color(0xFF5ce1e6),
                 onBack: () {},
                 onSettings: () async {
@@ -1494,9 +1494,9 @@ class _CandidateViewState extends ConsumerState<_CandidateView> {
                           left: 75,
                           bottom: -30,
                           child: DsSvgSwapButton(
-                            assetA: 'assets/icons/icon_unlike.svg', // 60 x 60
+                            assetA: 'assets/icons/ui/icon_unlike.svg', // 60 x 60
                             assetB:
-                                'assets/icons/icon_unlike_active.svg', // 80 x 80
+                                'assets/icons/ui/icon_unlike_active.svg', // 80 x 80
                             iconSize: 60,
                             activeIconSize: 80,
                             padding: 0,
@@ -1535,9 +1535,9 @@ class _CandidateViewState extends ConsumerState<_CandidateView> {
                           right: 75,
                           bottom: -30,
                           child: DsSvgSwapButton(
-                            assetA: 'assets/icons/icon_heart.svg', // 60 x 60
+                            assetA: 'assets/icons/ui/icon_heart.svg', // 60 x 60
                             assetB:
-                                'assets/icons/icon_heart_active.svg', // 77 x 77
+                                'assets/icons/ui/icon_heart_active.svg', // 77 x 77
                             iconSize: 60,
                             activeIconSize: 77,
                             padding: 0,
@@ -1645,7 +1645,7 @@ class _CandidateViewState extends ConsumerState<_CandidateView> {
                                                 mainAxisSize: MainAxisSize.min,
                                                 children: [
                                                   SvgPicture.asset(
-                                                    'assets/icons/icon_tag.svg',
+                                                    'assets/icons/ui/icon_tag.svg',
                                                     width: 24,
                                                     height: 24,
                                                   ),
@@ -1698,14 +1698,14 @@ Widget _buildImageFallback(String? gender) {
   switch (gender?.toLowerCase()) {
     case 'female':
     case 'f':
-      assetPath = 'assets/images/female.jpg';
+      assetPath = 'assets/images/placeholders/female.jpg';
       break;
     case 'male':
     case 'm':
-      assetPath = 'assets/images/male.jpg';
+      assetPath = 'assets/images/placeholders/male.jpg';
       break;
     default:
-      assetPath = 'assets/images/female.jpg'; // หรือ default อื่น
+      assetPath = 'assets/images/placeholders/female.jpg'; // หรือ default อื่น
   }
 
   return SizedBox(

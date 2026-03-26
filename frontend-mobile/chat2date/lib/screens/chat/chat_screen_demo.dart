@@ -288,7 +288,7 @@ class _ChatScreenDemoState extends State<ChatScreenDemo> {
               textColor: AppColors.textMuted,
               textSize: 10,
               isMiddle: false,
-              svgPath: 'assets/icons/icon_seen.svg',
+              svgPath: 'assets/icons/ui/icon_seen.svg',
               size: 12,
             ),
           ),
@@ -298,8 +298,8 @@ class _ChatScreenDemoState extends State<ChatScreenDemo> {
 
   Widget _buildInputArea() {
     return InputChatComponent(
-      svgPath: 'assets/icons/icon_new-black.svg',
-      svgPathLast: _hasText ? 'assets/icons/icon_send.svg' : null,
+      svgPath: 'assets/icons/ui/icon_new-black.svg',
+      svgPathLast: _hasText ? 'assets/icons/ui/icon_send.svg' : null,
       leftIconColor: AppColors.surfaceLight,
       sendIconColor: Colors.white,
       sendIconBackgroundColor: AppColors.surfaceLight,

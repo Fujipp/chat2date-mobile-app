@@ -87,7 +87,7 @@ class HeadersWithStyles extends StatelessWidget {
                           mainAxisSize: MainAxisSize.min,
                           children: [
                             SvgPicture.asset(
-                              'assets/icons/icon_tag.svg',
+                              'assets/icons/ui/icon_tag.svg',
                               width: 2,
                               height: 2,
                             ),

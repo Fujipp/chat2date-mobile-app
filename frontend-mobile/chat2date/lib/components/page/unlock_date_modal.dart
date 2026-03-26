@@ -170,11 +170,11 @@ class UnlockDateModal extends StatelessWidget {
             ],
           ),
           padding: const EdgeInsets.all(5),
-          child: SvgPicture.asset('assets/icons/icon_spinwheel.svg', fit: BoxFit.contain),
+          child: SvgPicture.asset('assets/icons/ui/icon_spinwheel.svg', fit: BoxFit.contain),
         ),
         Positioned(
           top: 5, right: 5,
-          child: SvgPicture.asset('assets/icons/HEART_STATUS_BAR.svg', width: 28),
+          child: SvgPicture.asset('assets/icons/ui/HEART_STATUS_BAR.svg', width: 28),
         ),
         Positioned(
           bottom: 0, left: 10,
@@ -182,7 +182,7 @@ class UnlockDateModal extends StatelessWidget {
             padding: const EdgeInsets.all(8),
             decoration: const BoxDecoration(color: AppColors.textPrimary, shape: BoxShape.circle),
             child: SvgPicture.asset(
-              'assets/icons/icon_unlock.svg',
+              'assets/icons/ui/icon_unlock.svg',
               width: 20, color: AppColors.warning,
             ),
           ),

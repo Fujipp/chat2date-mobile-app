@@ -74,7 +74,7 @@ class KycResultFailScreen extends StatelessWidget {
                         width: 211,
                         height: 213,
                         child: SvgPicture.asset(
-                          'assets/icons/icon_fail_ring.svg',
+                          'assets/icons/ui/icon_fail_ring.svg',
                           fit: BoxFit.contain,
                         ),
                       ),

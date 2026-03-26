@@ -76,6 +76,7 @@ flutter:
 
   assets:
     - assets/icons/
+    - assets/branding/
     - assets/images/
     - .env
 
@@ -88,7 +89,7 @@ flutter:
 
     - family: Itim
       fonts:
-        - asset: assets/fonts/Inter/Inter-VariableFont_opsz,wght.ttf
+        - asset: assets/fonts/Itim/Itim-Regular.ttf
           weight: 400
 
 # ==============================
@@ -115,8 +116,8 @@ flutter_native_splash:
 
   # 🎯 โลโก้ตรงกลาง (ทุก platform)
   # ใช้โลโก้หลักของแอป
-  image: assets/images/logo_chat2date_android12.png
-  # image_dark: assets/images/logo_chat2date.png
+  image: assets/branding/logos/logo_chat2date_default.png
+  # image_dark: assets/branding/logos/logo_chat2date_default.png
 
   # ตำแหน่งรูปบนแต่ละ platform
   android_gravity: center
@@ -139,8 +140,8 @@ flutter_native_splash:
     # *ถ้าไม่กำหนด image ตรงนี้ Android จะใช้ app icon แทน*
     # ระวัง: Android 12 จะ clip เป็นวงกลม
     # แนะนำให้ใช้ไฟล์ PNG พื้นหลังโปร่ง (transparent) เช่น โลโก้เดี่ยว ๆ
-    image: assets/images/logo_chat2date_android12.png
-    # image_dark: assets/images/logo_chat2date.png
+    image: assets/branding/logos/logo_chat2date_default.png
+    # image_dark: assets/branding/logos/logo_chat2date_default.png
 
     # สีพื้นหลังของวงกลมด้านหลังโลโก้ (ถ้าอยากให้มีวงกลม)
     # ถ้าอยากให้โลโก้ลอย ๆ ไม่ต้องตั้งก็ได้
@@ -158,7 +159,7 @@ flutter_native_splash:
 flutter_launcher_icons:
   android: true
   ios: true
-  image_path: "assets/images/icon_chat2date.png"
+  image_path: "assets/branding/app_icon/icon_chat2date.png"
   min_sdk_android: 21
 
   # iOS: ให้ lib ช่วยลบ alpha ทิ้ง (ตามที่ Dev ตั้งไว้)

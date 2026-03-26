@@ -89,7 +89,7 @@ class _KycResultSuccessScreenState extends State<KycResultSuccessScreen> {
                         width: 211,
                         height: 213,
                         child: SvgPicture.asset(
-                          'assets/icons/icon_success_ring.svg',
+                          'assets/icons/ui/icon_success_ring.svg',
                           fit: BoxFit.contain,
                         ),
                       ),

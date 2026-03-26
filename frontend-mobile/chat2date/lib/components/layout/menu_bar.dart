@@ -32,10 +32,10 @@ class _CustomBottomNavBarState extends State<CustomBottomNavBar> {
   bool _isNavigating = false;
 
   final List<String> _iconPaths = [
-    'assets/icons/icon_home.svg',
-    'assets/icons/icon_chat.svg',
-    'assets/icons/icon_profile.svg',
-    'assets/icons/icon_setting.svg',
+    'assets/icons/ui/icon_home.svg',
+    'assets/icons/ui/icon_chat.svg',
+    'assets/icons/ui/icon_profile.svg',
+    'assets/icons/ui/icon_setting.svg',
   ];
 
   final List<String> _labels = const ['Home', 'Chat', 'Profile', 'Setting'];

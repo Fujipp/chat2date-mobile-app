@@ -58,7 +58,7 @@ class _LoadingViewState extends State<LoadingView>
                     curve: Curves.linear,
                   ),
                   child: SvgPicture.asset(
-                    'assets/images/loading.svg',
+                    'assets/images/illustrations/loading.svg',
                     width: 130,
                     height: 130,
                   ),

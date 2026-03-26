@@ -76,7 +76,7 @@ class AboutScreen extends StatelessWidget {
                     ),
                     child: Center(
                       child: Image.asset(
-                        'assets/images/logo_chat2date_text.png',
+                        'assets/branding/logos/logo_chat2date_default.png',
                         width: 80,
                         height: 80,
                         fit: BoxFit.contain,

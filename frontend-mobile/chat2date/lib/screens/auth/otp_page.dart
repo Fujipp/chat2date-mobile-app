@@ -227,7 +227,7 @@ class _OtpPageState extends ConsumerState<OtpPage> {
                     Navigator.pushNamed(context, '/phone', arguments: onLogin),
                   },
                   icon: SvgPicture.asset(
-                    'assets/icons/icon_arrow-back-circle.svg',
+                    'assets/icons/ui/icon_arrow-back-circle.svg',
                     width: 32,
                     height: 32,
                   ),

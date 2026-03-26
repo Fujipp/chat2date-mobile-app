@@ -57,7 +57,7 @@ class RelationshipMissionModal extends StatelessWidget {
                       _buildCompactScore(),
                       const SizedBox(height: 16),
                       _buildMissionCard(
-                        svgPath: "assets/icons/HEART_STATUS_BAR.svg",
+                        svgPath: "assets/icons/ui/HEART_STATUS_BAR.svg",
                         iconColor: AppColors.brandAccentStrong,
                         title: 'ก้าวแรกแห่งความสัมพันธ์ (ครั้งเดียว)',
                         description:
@@ -67,7 +67,7 @@ class RelationshipMissionModal extends StatelessWidget {
                       ),
                       const SizedBox(height: 12),
                       _buildMissionCard(
-                        svgPath: "assets/icons/icon_chat.svg",
+                        svgPath: "assets/icons/ui/icon_chat.svg",
                         iconColor: AppColors.brandPrimary,
                         title: 'บทสนทนาที่ไหลลื่น (รายวัน)',
                         description:
@@ -116,7 +116,7 @@ class RelationshipMissionModal extends StatelessWidget {
         child: Row(
           children: [
             SvgPicture.asset(
-              'assets/icons/icon_check.svg',
+              'assets/icons/ui/icon_check.svg',
               width: 20,
               height: 20,
               colorFilter: const ColorFilter.mode(
@@ -176,7 +176,7 @@ class RelationshipMissionModal extends StatelessWidget {
       child: Row(
         children: [
           SvgPicture.asset(
-            'assets/icons/icon_warning.svg',
+            'assets/icons/ui/icon_warning.svg',
             width: 24,
             height: 24,
             colorFilter: const ColorFilter.mode(
@@ -221,7 +221,7 @@ class RelationshipMissionModal extends StatelessWidget {
         Row(
           children: [
             SvgPicture.asset(
-              'assets/icons/icon_warning.svg',
+              'assets/icons/ui/icon_warning.svg',
               width: 20,
               height: 20,
               colorFilter: ColorFilter.mode(AppColors.error, BlendMode.srcIn),
@@ -316,7 +316,7 @@ class RelationshipMissionModal extends StatelessWidget {
     final double progress = (displayDays / targetDays).clamp(0.0, 1.0);
 
     return _buildMissionCard(
-      svgPath: "assets/icons/icon_one-sided.svg",
+      svgPath: "assets/icons/ui/icon_one-sided.svg",
       iconColor: AppColors.warning,
       title: 'คุยต่อเนื่อง $targetDays วัน',
       description: milestoneTitle,
@@ -344,7 +344,7 @@ class RelationshipMissionModal extends StatelessWidget {
             GestureDetector(
               onTap: () => Navigator.pop(context),
               child: SvgPicture.asset(
-                "assets/icons/icon_close.svg",
+                "assets/icons/ui/icon_close.svg",
                 width: 24,
                 height: 24,
                 colorFilter: const ColorFilter.mode(
@@ -413,7 +413,7 @@ class RelationshipMissionModal extends StatelessWidget {
               ),
               if (isCompleted)
                 SvgPicture.asset(
-                  'assets/icons/icon_check.svg',
+                  'assets/icons/ui/icon_check.svg',
                   width: 20,
                   height: 20,
                   colorFilter: const ColorFilter.mode(
@@ -493,7 +493,7 @@ class RelationshipMissionModal extends StatelessWidget {
             mainAxisSize: MainAxisSize.min,
             children: [
               SvgPicture.asset(
-                'assets/icons/icon_good-ending.svg',
+                'assets/icons/ui/icon_good-ending.svg',
                 width: 14,
                 height: 14,
                 colorFilter: ColorFilter.mode(
@@ -526,7 +526,7 @@ class RelationshipMissionModal extends StatelessWidget {
             mainAxisSize: MainAxisSize.min,
             children: [
               SvgPicture.asset(
-                'assets/icons/icon_heart_status.svg',
+                'assets/icons/ui/icon_heart_status.svg',
                 width: 14,
                 height: 14,
                 colorFilter: ColorFilter.mode(

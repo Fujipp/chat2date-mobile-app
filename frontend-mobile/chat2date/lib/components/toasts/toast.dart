@@ -99,13 +99,13 @@ class Toast extends StatelessWidget {
   String _iconAsset(ToastType type) {
     switch (type) {
       case ToastType.info:
-        return 'assets/icons/icon_info.svg';
+        return 'assets/icons/ui/icon_info.svg';
       case ToastType.success:
-        return 'assets/icons/icon_check.svg';
+        return 'assets/icons/ui/icon_check.svg';
       case ToastType.warning:
-        return 'assets/icons/icon_exclamation.svg';
+        return 'assets/icons/ui/icon_exclamation.svg';
       case ToastType.error:
-        return 'assets/icons/icon_exclamation.svg';
+        return 'assets/icons/ui/icon_exclamation.svg';
     }
   }
 

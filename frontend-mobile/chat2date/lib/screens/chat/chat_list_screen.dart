@@ -317,8 +317,8 @@ class _ChatListScreenState extends ConsumerState<ChatListScreen>
                     ),
                     SvgPicture.asset(
                       isBefore
-                          ? 'assets/icons/icon_warning.svg' // <-- ใส่ path ของคุณที่นี่
-                          : 'assets/icons/icon_bad-ending.svg', // <-- ใส่ path ของคุณที่นี่
+                          ? 'assets/icons/ui/icon_warning.svg' // <-- ใส่ path ของคุณที่นี่
+                          : 'assets/icons/ui/icon_bad-ending.svg', // <-- ใส่ path ของคุณที่นี่
                       width: 40,
                       height: 40,
                       colorFilter: ColorFilter.mode(
@@ -435,7 +435,7 @@ class _ChatListScreenState extends ConsumerState<ChatListScreen>
         children: [
           const SizedBox(height: 25),
           ChatToDateHeaderWhite(
-            leftIconPath: 'assets/icons/icon_chat2date_full.svg',
+            leftIconPath: 'assets/icons/ui/icon_chat2date_full.svg',
             rightIconPath: '',
             iconColor: const Color(0xFF5ce1e6),
             onBack: () async => true,

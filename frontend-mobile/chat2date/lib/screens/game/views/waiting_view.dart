@@ -317,7 +317,7 @@ class _WaitingViewState extends State<WaitingView> {
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 SvgPicture.asset(
-                  "assets/images/question.svg",
+                  "assets/images/illustrations/question.svg",
                   width: 100,
                   height: 100,
                 ),
@@ -360,7 +360,7 @@ class _WaitingViewState extends State<WaitingView> {
             children: [
               const SizedBox(height: 60),
               SvgPicture.asset(
-                "assets/images/question.svg",
+                "assets/images/illustrations/question.svg",
                 width: 130,
                 height: 130,
               ),

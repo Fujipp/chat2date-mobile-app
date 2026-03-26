@@ -2,13 +2,13 @@ import 'package:chat2date/components/index.dart'; // DsButton / Variant / Size
 import 'package:chat2date/components/toasts/toast.dart';
 import 'package:chat2date/controllers/auth_controller.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 class HomeLoginPage extends ConsumerWidget {
   const HomeLoginPage({super.key});
 
-  // ใช้ PNG แทน SVG
-  static const _logoPath = 'assets/images/logo_chat2date_text.png';
+  static const _logoPath = 'assets/branding/logos/logo_chat2date_default.svg';
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -28,13 +28,11 @@ class HomeLoginPage extends ConsumerWidget {
                   // โลโก้ด้านบน
                   Padding(
                     padding: const EdgeInsets.only(top: 24, bottom: 16),
-                    child: Image.asset(
+                    child: SvgPicture.asset(
                       _logoPath,
                       width: 250,
                       height: 250,
                       fit: BoxFit.contain,
-                      errorBuilder: (_, __, ___) =>
-                          const FlutterLogo(size: 120),
                     ),
                   ),
 

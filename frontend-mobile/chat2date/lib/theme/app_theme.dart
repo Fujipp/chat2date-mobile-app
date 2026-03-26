@@ -1,15 +1,16 @@
 import 'package:flutter/material.dart';
+
 import 'app_color_schemes.dart';
 import 'app_colors.dart';
+import 'tokens/colors/app_semantic_colors.dart';
+import 'tokens/typography/app_typography.dart';
 
 ThemeData buildLightTheme() {
-  const baseFont = 'Inter';
-  const fontFallback = ['Inter']; // เมื่อเจออักษรไทยจะตกไปใช้ Itim
-
   final base = ThemeData(
     useMaterial3: true,
     colorScheme: lightColorScheme,
     scaffoldBackgroundColor: AppColors.background,
+    extensions: const [AppSemanticColors.light],
     pageTransitionsTheme: const PageTransitionsTheme(
       builders: {
         TargetPlatform.android: NoTransitionsPageTransitionsBuilder(),
@@ -42,41 +43,11 @@ ThemeData buildLightTheme() {
       ),
     ),
     dividerColor: AppColors.divider,
-
-    // === ตั้งค่าฟอนต์หลักทั้งแอป ===
-    fontFamily: baseFont,
-    fontFamilyFallback: fontFallback,
+    fontFamily: AppTypography.fontFamily,
+    fontFamilyFallback: AppTypography.fontFamilyFallback,
   );
 
-  // ปรับน้ำหนักตัวอักษรที่ใช้บ่อย ๆ ให้เหมาะกับ Inter
-  return base.copyWith(
-    textTheme: base.textTheme.copyWith(
-      displayLarge: base.textTheme.displayLarge?.copyWith(
-        fontWeight: FontWeight.w700,
-      ),
-      displayMedium: base.textTheme.displayMedium?.copyWith(
-        fontWeight: FontWeight.w700,
-      ),
-      headlineLarge: base.textTheme.headlineLarge?.copyWith(
-        fontWeight: FontWeight.w600,
-      ),
-      headlineMedium: base.textTheme.headlineMedium?.copyWith(
-        fontWeight: FontWeight.w600,
-      ),
-      titleLarge: base.textTheme.titleLarge?.copyWith(
-        fontWeight: FontWeight.w600,
-      ),
-      bodyLarge: base.textTheme.bodyLarge?.copyWith(
-        fontWeight: FontWeight.w400,
-      ),
-      bodyMedium: base.textTheme.bodyMedium?.copyWith(
-        fontWeight: FontWeight.w400,
-      ),
-      labelLarge: base.textTheme.labelLarge?.copyWith(
-        fontWeight: FontWeight.w600,
-      ),
-    ),
-  );
+  return base.copyWith(textTheme: AppTypography.buildTextTheme(base.textTheme));
 }
 
 class NoTransitionsPageTransitionsBuilder extends PageTransitionsBuilder {

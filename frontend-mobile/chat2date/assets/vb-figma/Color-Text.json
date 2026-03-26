@@ -1,0 +1,105 @@
+{
+  "Primary": {
+    "$type": "color",
+    "$value": {
+      "colorSpace": "srgb",
+      "components": [
+        1,
+        1,
+        1
+      ],
+      "alpha": 1,
+      "hex": "#FFFFFF"
+    },
+    "$extensions": {
+      "com.figma.variableId": "VariableID:6355:12962",
+      "com.figma.scopes": [
+        "ALL_SCOPES"
+      ],
+      "com.figma.isOverride": true
+    }
+  },
+  "Secondary": {
+    "$type": "color",
+    "$value": {
+      "colorSpace": "srgb",
+      "components": [
+        0,
+        0,
+        0
+      ],
+      "alpha": 1,
+      "hex": "#000000"
+    },
+    "$extensions": {
+      "com.figma.variableId": "VariableID:6355:12966",
+      "com.figma.scopes": [
+        "ALL_SCOPES"
+      ],
+      "com.figma.isOverride": true
+    }
+  },
+  "Disabled": {
+    "$type": "color",
+    "$value": {
+      "colorSpace": "srgb",
+      "components": [
+        0.7238581776618958,
+        0.7238581776618958,
+        0.7238581776618958
+      ],
+      "alpha": 1,
+      "hex": "#B9B9B9"
+    },
+    "$extensions": {
+      "com.figma.variableId": "VariableID:6355:13029",
+      "com.figma.scopes": [
+        "ALL_SCOPES"
+      ],
+      "com.figma.isOverride": true
+    }
+  },
+  "Support-text": {
+    "$type": "color",
+    "$value": {
+      "colorSpace": "srgb",
+      "components": [
+        0.5607843399047852,
+        0.5647059082984924,
+        0.5960784554481506
+      ],
+      "alpha": 1,
+      "hex": "#8F9098"
+    },
+    "$extensions": {
+      "com.figma.variableId": "VariableID:6355:13033",
+      "com.figma.scopes": [
+        "ALL_SCOPES"
+      ],
+      "com.figma.isOverride": true
+    }
+  },
+  "Placeholder": {
+    "$type": "color",
+    "$value": {
+      "colorSpace": "srgb",
+      "components": [
+        0.5607843399047852,
+        0.5647059082984924,
+        0.5960784554481506
+      ],
+      "alpha": 1,
+      "hex": "#8F9098"
+    },
+    "$extensions": {
+      "com.figma.variableId": "VariableID:6358:15550",
+      "com.figma.scopes": [
+        "ALL_SCOPES"
+      ],
+      "com.figma.isOverride": true
+    }
+  },
+  "$extensions": {
+    "com.figma.modeName": "Mode 1"
+  }
+}

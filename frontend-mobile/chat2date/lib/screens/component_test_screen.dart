@@ -296,16 +296,16 @@ class _ComponentTestScreenState extends State<ComponentTestScreen> {
           Header(name: 'โมจิกิ', showOptions: true),
           SizedBox(height: 16),
           ChatToDateHeaderWhite(
-            leftIconPath: 'assets/icons/icon_chat2date_full.svg',
-            rightIconPath: 'assets/icons/icon_menu.svg',
+            leftIconPath: 'assets/icons/ui/icon_chat2date_full.svg',
+            rightIconPath: 'assets/icons/ui/icon_menu.svg',
             iconColor: Color(0xFF5ce1e6),
             onBack: () {},
             onSettings: () {},
           ),
           SizedBox(height: 16),
           ChatToDateHeaderGradient(
-            leftIconPath: 'assets/icons/icon_chat2date_full.svg',
-            rightIconPath: 'assets/icons/icon_menu.svg',
+            leftIconPath: 'assets/icons/ui/icon_chat2date_full.svg',
+            rightIconPath: 'assets/icons/ui/icon_menu.svg',
             iconColor: Colors.white,
             onBack: () {},
             onSettings: () {},
@@ -377,7 +377,7 @@ class _ComponentTestScreenState extends State<ComponentTestScreen> {
 
           //Hutch
           ModalComponent(
-            svgPath: 'assets/icons/icon_done.svg',
+            svgPath: 'assets/icons/ui/icon_done.svg',
             heightSvg: 78,
             widthSvg: 77,
             topic: 'บันทึกเสร็จสิ้น',
@@ -391,7 +391,7 @@ class _ComponentTestScreenState extends State<ComponentTestScreen> {
           const SizedBox(height: 12),
 
           ModalComponent(
-            svgPath: 'assets/icons/icon_warning.svg',
+            svgPath: 'assets/icons/ui/icon_warning.svg',
             heightSvg: 78,
             widthSvg: 77,
             topic: 'ติดคูลดาวน์การหาสถานที่เดต 7 วัน',
@@ -403,7 +403,7 @@ class _ComponentTestScreenState extends State<ComponentTestScreen> {
           const SizedBox(height: 12),
 
           ModalComponent(
-            svgPath: 'assets/icons/icon_banning.svg',
+            svgPath: 'assets/icons/ui/icon_banning.svg',
             heightSvg: 68,
             widthSvg: 77,
             topic: 'คุณถูกแบน',
@@ -417,7 +417,7 @@ class _ComponentTestScreenState extends State<ComponentTestScreen> {
           const SizedBox(height: 12),
 
           ModalComponent(
-            svgPath: 'assets/icons/icon_good-ending.svg',
+            svgPath: 'assets/icons/ui/icon_good-ending.svg',
             heightSvg: 68,
             widthSvg: 77,
             topic: 'คุณถูกแบน',
@@ -430,7 +430,7 @@ class _ComponentTestScreenState extends State<ComponentTestScreen> {
           const SizedBox(height: 12),
 
           ModalComponent(
-            svgPath: 'assets/icons/icon_one-sided.svg',
+            svgPath: 'assets/icons/ui/icon_one-sided.svg',
             heightSvg: 68,
             widthSvg: 77,
             topic: 'มีฝ่ายหนึ่งรู้สึกไม่พอใจกับการเดินทางครั้งนี้',
@@ -445,7 +445,7 @@ class _ComponentTestScreenState extends State<ComponentTestScreen> {
           const SizedBox(height: 12),
 
           ModalComponent(
-            svgPath: 'assets/icons/icon_bad-ending.svg',
+            svgPath: 'assets/icons/ui/icon_bad-ending.svg',
             heightSvg: 68,
             widthSvg: 77,
             topic: 'เสียใจด้วย',
@@ -484,7 +484,7 @@ class _ComponentTestScreenState extends State<ComponentTestScreen> {
           ModalComponent(
             spaceTop: 12,
             spaceBottom: 12,
-            svgPath: 'assets/icons/icon_star-rating.svg',
+            svgPath: 'assets/icons/ui/icon_star-rating.svg',
             heightSvg: 35,
             widthSvg: 203,
             topic: 'ให้คะแนนแอปเรา',
@@ -531,7 +531,7 @@ class _ComponentTestScreenState extends State<ComponentTestScreen> {
           StatusTextComponent(
             text: 'เห็นแล้ว',
             textSize: 12,
-            svgPath: "assets/icons/icon_seen.svg",
+            svgPath: "assets/icons/ui/icon_seen.svg",
             size: 12,
             isMiddle: false,
           ),
@@ -540,7 +540,7 @@ class _ComponentTestScreenState extends State<ComponentTestScreen> {
 
           ChatTextComponent(
             text: 'hi kate!',
-            svgPath: 'assets/icons/icon_avatar.svg',
+            svgPath: 'assets/icons/ui/icon_avatar.svg',
             bottomLeftRadius: 0,
             bottomRightRadius: 20,
             color: Color(0xFFF7FAFE),
@@ -557,7 +557,7 @@ class _ComponentTestScreenState extends State<ComponentTestScreen> {
             description: "กรุณากรอกวันที่ออกเดตของคุณในปฏิทิน",
             color: AppColors.badgeSecondaryBg,
             colorDescription: AppColors.successText,
-            svgPath: 'assets/icons/icon_bot.svg',
+            svgPath: 'assets/icons/ui/icon_bot.svg',
             bottomLeftRadius: 0,
             bottomRightRadius: 20,
             isContentMiddle: true,
@@ -570,7 +570,7 @@ class _ComponentTestScreenState extends State<ComponentTestScreen> {
             text: "เสียใจด้วย!",
             color: AppColors.badgeErrorBg,
             subDescription: "คุณทั้ง 2 คนความคิดเห็นไม่ตรงกัน",
-            svgPath: 'assets/icons/icon_bot.svg',
+            svgPath: 'assets/icons/ui/icon_bot.svg',
             bottomLeftRadius: 0,
             bottomRightRadius: 20,
           ),
@@ -586,7 +586,7 @@ class _ComponentTestScreenState extends State<ComponentTestScreen> {
                 "หมายเหตุ เมื่อกดเริ่มแล้วจะไม่สามารถกลับ\n"
                 "มาเล่นอีกรอบได้ควรคุยหรือรอคู่ของคุณก่อน",
             subDescription: 'เหลือเวลาเริ่มใหม่ 24 ชั่วโมง',
-            svgPath: 'assets/icons/icon_bot.svg',
+            svgPath: 'assets/icons/ui/icon_bot.svg',
             bottomLeftRadius: 0,
             bottomRightRadius: 20,
           ),
@@ -602,7 +602,7 @@ class _ComponentTestScreenState extends State<ComponentTestScreen> {
                 "หมายเหตุ เมื่อกดเริ่มแล้วจะไม่สามารถกลับ\n"
                 "มาเล่นอีกรอบได้ควรคุยหรือรอคู่ของคุณก่อน",
             subDescription: 'เหลือเวลาเริ่มใหม่ 24 ชั่วโมง',
-            svgPath: 'assets/icons/icon_bot.svg',
+            svgPath: 'assets/icons/ui/icon_bot.svg',
             bottomLeftRadius: 0,
             bottomRightRadius: 20,
             isDisabled: true,
@@ -619,7 +619,7 @@ class _ComponentTestScreenState extends State<ComponentTestScreen> {
             secondChoiceText: "ไป",
             description: "คุณอยากไปเที่ยว 'อความเรียมบางแสน' หรือไม่",
             subDescription: 'ตอบแล้ว 0/2',
-            svgPath: 'assets/icons/icon_bot.svg',
+            svgPath: 'assets/icons/ui/icon_bot.svg',
             bottomLeftRadius: 0,
             bottomRightRadius: 20,
           ),
@@ -667,8 +667,8 @@ class _ComponentTestScreenState extends State<ComponentTestScreen> {
           const SizedBox(height: 24),
 
           InputChatComponent(
-            svgPath: 'assets/icons/icon_more-options.svg',
-            svgPathLast: 'assets/icons/icon_send.svg',
+            svgPath: 'assets/icons/ui/icon_more-options.svg',
+            svgPathLast: 'assets/icons/ui/icon_send.svg',
           ),
 
           const SizedBox(height: 24),
@@ -681,7 +681,7 @@ class _ComponentTestScreenState extends State<ComponentTestScreen> {
           const SizedBox(height: 24),
 
           CardChatComponent(
-            svgPath: 'assets/icons/icon_avatar.svg',
+            svgPath: 'assets/icons/ui/icon_avatar.svg',
             title: 'Sassy',
             subtitle: 'Nuna',
           ),
@@ -689,35 +689,35 @@ class _ComponentTestScreenState extends State<ComponentTestScreen> {
           const SizedBox(height: 12),
 
           CardChatComponent(
-            svgPath: 'assets/icons/icon_avatar.svg',
+            svgPath: 'assets/icons/ui/icon_avatar.svg',
             title: 'Sassy',
             subtitle: 'Nuna',
-            svgPathEnd: 'assets/icons/icon_unseen-message.svg',
+            svgPathEnd: 'assets/icons/ui/icon_unseen-message.svg',
           ),
 
           const SizedBox(height: 12),
 
           CardChatComponent(
-            svgPath: 'assets/icons/icon_avatar.svg',
+            svgPath: 'assets/icons/ui/icon_avatar.svg',
             title: 'Sassy',
             subtitle: 'Nuna',
-            svgPathEnd: 'assets/icons/icon_new-white.svg',
+            svgPathEnd: 'assets/icons/ui/icon_new-white.svg',
           ),
 
           const SizedBox(height: 12),
 
           CardChatComponent(
-            svgPath: 'assets/icons/icon_avatar.svg',
+            svgPath: 'assets/icons/ui/icon_avatar.svg',
             title: 'Sassy',
             subtitle: 'Nuna',
-            svgPathEnd: 'assets/icons/icon_new-white.svg',
-            svgPathMiddle: 'assets/icons/icon_new-black.svg',
+            svgPathEnd: 'assets/icons/ui/icon_new-white.svg',
+            svgPathMiddle: 'assets/icons/ui/icon_new-black.svg',
           ),
 
           const SizedBox(height: 12),
 
           CardChatComponent(
-            svgPath: 'assets/icons/icon_avatar.svg',
+            svgPath: 'assets/icons/ui/icon_avatar.svg',
             title: 'Sassy',
             subtitle: 'Nuna',
             colors: [AppColors.backgroundWhite],
@@ -922,8 +922,8 @@ class _ComponentTestScreenState extends State<ComponentTestScreen> {
                           overlayPercent:
                               0, // ถ้าอยากเด้งเพิ่ม/ลด ค่อยใส่ทีหลัง
                           overlayDirection: ChangeDirection.none,
-                          heartSvg: 'assets/icons/HEART_STATUS_BAR.svg',
-                          rightSvg: 'assets/icons/INFO_STATUS_BAR.svg',
+                          heartSvg: 'assets/icons/ui/HEART_STATUS_BAR.svg',
+                          rightSvg: 'assets/icons/ui/INFO_STATUS_BAR.svg',
                           barWidth: 255,
                           barHeight: 10,
                           leadingWidth: 25,
@@ -939,8 +939,8 @@ class _ComponentTestScreenState extends State<ComponentTestScreen> {
                           basePercent: 0.27,
                           overlayPercent: 0.34,
                           overlayDirection: ChangeDirection.up,
-                          heartSvg: 'assets/icons/HEART_STATUS_BAR.svg',
-                          rightSvg: 'assets/icons/INFO_STATUS_BAR.svg',
+                          heartSvg: 'assets/icons/ui/HEART_STATUS_BAR.svg',
+                          rightSvg: 'assets/icons/ui/INFO_STATUS_BAR.svg',
                         ),
                         const SizedBox(height: 12),
 
@@ -950,8 +950,8 @@ class _ComponentTestScreenState extends State<ComponentTestScreen> {
                           basePercent: 0.50,
                           overlayPercent: 0.20,
                           overlayDirection: ChangeDirection.down,
-                          heartSvg: 'assets/icons/HEART_STATUS_BAR.svg',
-                          rightSvg: 'assets/icons/INFO_STATUS_BAR.svg',
+                          heartSvg: 'assets/icons/ui/HEART_STATUS_BAR.svg',
+                          rightSvg: 'assets/icons/ui/INFO_STATUS_BAR.svg',
                         ),
                         const SizedBox(height: 12),
 
@@ -961,8 +961,8 @@ class _ComponentTestScreenState extends State<ComponentTestScreen> {
                           basePercent: 0.74,
                           overlayPercent: 0.10,
                           overlayDirection: ChangeDirection.up,
-                          heartSvg: 'assets/icons/HEART_STATUS_BAR.svg',
-                          rightSvg: 'assets/icons/INFO_STATUS_BAR.svg',
+                          heartSvg: 'assets/icons/ui/HEART_STATUS_BAR.svg',
+                          rightSvg: 'assets/icons/ui/INFO_STATUS_BAR.svg',
                         ),
                         const SizedBox(height: 12),
 
@@ -972,8 +972,8 @@ class _ComponentTestScreenState extends State<ComponentTestScreen> {
                           basePercent: 0.60,
                           overlayPercent: 0.0,
                           overlayDirection: ChangeDirection.none,
-                          heartSvg: 'assets/icons/HEART_STATUS_BAR.svg',
-                          rightSvg: 'assets/icons/INFO_STATUS_BAR.svg',
+                          heartSvg: 'assets/icons/ui/HEART_STATUS_BAR.svg',
+                          rightSvg: 'assets/icons/ui/INFO_STATUS_BAR.svg',
                         ),
                       ],
                     );
@@ -1137,8 +1137,8 @@ class _ComponentTestScreenState extends State<ComponentTestScreen> {
                   left: 20,
                   top: 20,
                   child: DsSvgSwapButton(
-                    assetA: 'assets/icons/heart_normal.svg',
-                    assetB: 'assets/icons/heart_active.svg',
+                    assetA: 'assets/icons/ui/heart_normal.svg',
+                    assetB: 'assets/icons/ui/heart_active.svg',
                     iconSize: 60, // จาก SVG ปกติ
                     activeIconSize: 77, // จาก SVG active
                     padding: 0,
@@ -1149,8 +1149,8 @@ class _ComponentTestScreenState extends State<ComponentTestScreen> {
                   left: 91,
                   top: 20,
                   child: DsSvgSwapButton(
-                    assetA: 'assets/icons/heart_normal.svg',
-                    assetB: 'assets/icons/heart_active.svg',
+                    assetA: 'assets/icons/ui/heart_normal.svg',
+                    assetB: 'assets/icons/ui/heart_active.svg',
                     iconSize: 60,
                     activeIconSize: 77,
                     padding: 0,
@@ -1179,8 +1179,8 @@ class _ComponentTestScreenState extends State<ComponentTestScreen> {
                   left: 20,
                   top: 20,
                   child: DsSvgSwapButton(
-                    assetA: 'assets/icons/unlike_normal.svg',
-                    assetB: 'assets/icons/unlike_active.svg',
+                    assetA: 'assets/icons/ui/unlike_normal.svg',
+                    assetB: 'assets/icons/ui/unlike_active.svg',
                     iconSize: 60, // จาก SVG ปกติ
                     activeIconSize: 80, // จาก SVG active
                     padding: 0,
@@ -1191,8 +1191,8 @@ class _ComponentTestScreenState extends State<ComponentTestScreen> {
                   left: 91,
                   top: 20,
                   child: DsSvgSwapButton(
-                    assetA: 'assets/icons/unlike_normal.svg',
-                    assetB: 'assets/icons/unlike_active.svg',
+                    assetA: 'assets/icons/ui/unlike_normal.svg',
+                    assetB: 'assets/icons/ui/unlike_active.svg',
                     iconSize: 60,
                     activeIconSize: 80,
                     padding: 0,

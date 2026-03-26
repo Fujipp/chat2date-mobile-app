@@ -287,7 +287,7 @@ class _CalendarCardState extends State<CalendarCard> {
                               vertical: 7,
                             ),
                             child: SvgPicture.asset(
-                              'assets/icons/ic-trash-20x26.svg',
+                              'assets/icons/ui/ic-trash-20x26.svg',
                               width: 20,
                               height: 26,
                             ),
@@ -322,7 +322,7 @@ class _CalendarCardState extends State<CalendarCard> {
                           child: Padding(
                             padding: const EdgeInsets.all(6),
                             child: SvgPicture.asset(
-                              'assets/icons/ic-close-21.svg',
+                              'assets/icons/ui/ic-close-21.svg',
                               width: 21,
                               height: 21,
                             ),
@@ -375,7 +375,7 @@ class _CalendarCardState extends State<CalendarCard> {
                                     isReadOnly ? null : (m) => _setMonthByName(m),
                                 fixedWidth: 128,
                                 trailingSvg:
-                                    'assets/icons/ic-chevron-down-6x19.svg',
+                                    'assets/icons/ui/ic-chevron-down-6x19.svg',
                                 trailingSvgSize: const Size(3.6, 10.8),
                                 iconColor: const Color(0xFFFF6B81),
                                 trailingSvgDy: 3.0, // << ลงล่างแกน Y
@@ -390,7 +390,7 @@ class _CalendarCardState extends State<CalendarCard> {
                                     isReadOnly ? null : (y) => _setYear(y),
                                 fixedWidth: 88,
                                 trailingSvg:
-                                    'assets/icons/ic-chevron-down-6x19.svg',
+                                    'assets/icons/ui/ic-chevron-down-6x19.svg',
                                 trailingSvgSize: const Size(3.6, 10.8),
                                 iconColor: const Color(0xFFFF6B81),
                                 trailingSvgDy: 3.0, // << ลงล่างแกน Y
@@ -644,7 +644,7 @@ class _CalendarCardState extends State<CalendarCard> {
         backgroundColor: Colors.transparent,
         insetPadding: const EdgeInsets.symmetric(horizontal: 24),
         child: ModalComponent(
-          svgPath: 'assets/icons/icon_warning.svg',
+          svgPath: 'assets/icons/ui/icon_warning.svg',
           heightSvg: 68,
           widthSvg: 77,
           topic: 'ยืนยันการเปลี่ยนวันเดต',

@@ -1601,7 +1601,7 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
         backgroundColor: Colors.transparent,
         insetPadding: const EdgeInsets.symmetric(horizontal: 24),
         child: ModalComponent(
-          svgPath: 'assets/icons/icon_warning.svg',
+          svgPath: 'assets/icons/ui/icon_warning.svg',
           heightSvg: 68,
           widthSvg: 77,
           topic: 'ยกเลิกการแก้ไข',
@@ -1629,7 +1629,7 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
         backgroundColor: Colors.transparent,
         insetPadding: const EdgeInsets.symmetric(horizontal: 24),
         child: ModalComponent(
-          svgPath: 'assets/icons/icon_warning.svg',
+          svgPath: 'assets/icons/ui/icon_warning.svg',
           heightSvg: 68,
           widthSvg: 77,
           topic: 'ยืนยันที่จะยกเลิกวันเดตหรือไม่',
@@ -2146,7 +2146,7 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
           backgroundColor: Colors.transparent,
           insetPadding: const EdgeInsets.symmetric(horizontal: 24),
           child: ModalComponent(
-            svgPath: 'assets/icons/icon_done.svg',
+            svgPath: 'assets/icons/ui/icon_done.svg',
             heightSvg: 78,
             widthSvg: 77,
             topic: 'รอผลการประเมิน',
@@ -2180,7 +2180,7 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
           backgroundColor: Colors.transparent,
           insetPadding: const EdgeInsets.symmetric(horizontal: 24),
           child: ModalComponent(
-            svgPath: 'assets/icons/icon_good-ending.svg',
+            svgPath: 'assets/icons/ui/icon_good-ending.svg',
             heightSvg: 68,
             widthSvg: 77,
             topic: 'ยินดีด้วย!',
@@ -2209,7 +2209,7 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
         backgroundColor: Colors.transparent,
         insetPadding: const EdgeInsets.symmetric(horizontal: 24),
         child: ModalComponent(
-          svgPath: 'assets/icons/icon_one-sided.svg',
+          svgPath: 'assets/icons/ui/icon_one-sided.svg',
           heightSvg: 68,
           widthSvg: 77,
           topic: 'มีฝ่ายหนึ่งรู้สึกไม่พอใจกับการเดินทางครั้งนี้',
@@ -2250,7 +2250,7 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
         backgroundColor: Colors.transparent,
         insetPadding: const EdgeInsets.symmetric(horizontal: 24),
         child: ModalComponent(
-          svgPath: 'assets/icons/icon_bad-ending.svg',
+          svgPath: 'assets/icons/ui/icon_bad-ending.svg',
           heightSvg: 68,
           widthSvg: 77,
           topic: 'เสียใจด้วย',
@@ -2309,7 +2309,7 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
         backgroundColor: Colors.transparent,
         insetPadding: const EdgeInsets.symmetric(horizontal: 24),
         child: ModalComponent(
-          svgPath: 'assets/icons/icon_warning.svg',
+          svgPath: 'assets/icons/ui/icon_warning.svg',
           heightSvg: 68,
           widthSvg: 77,
           topic: 'เพื่อความปลอดภัยของคุณ',
@@ -2428,7 +2428,7 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
                 textColor: AppColors.textMuted,
                 textSize: 10,
                 isMiddle: false,
-                svgPath: 'assets/icons/icon_seen.svg',
+                svgPath: 'assets/icons/ui/icon_seen.svg',
                 size: 12,
               ),
             ),
@@ -2875,7 +2875,7 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
                           )
                         else
                           InputChatComponent(
-                            svgPathLast: 'assets/icons/icon_send.svg',
+                            svgPathLast: 'assets/icons/ui/icon_send.svg',
                             sendIconColor: null,
                             sendIconBackgroundColor: null,
                             isSendEnabled:

@@ -1,0 +1,105 @@
+{
+  "Active": {
+    "$type": "color",
+    "$value": {
+      "colorSpace": "srgb",
+      "components": [
+        0.17529296875,
+        0.17529296875,
+        0.17529296875
+      ],
+      "alpha": 1,
+      "hex": "#2D2D2D"
+    },
+    "$extensions": {
+      "com.figma.variableId": "VariableID:6366:7124",
+      "com.figma.scopes": [
+        "ALL_SCOPES"
+      ],
+      "com.figma.isOverride": true
+    }
+  },
+  "Disabled": {
+    "$type": "color",
+    "$value": {
+      "colorSpace": "srgb",
+      "components": [
+        0.7254902124404907,
+        0.7254902124404907,
+        0.7254902124404907
+      ],
+      "alpha": 1,
+      "hex": "#B9B9B9"
+    },
+    "$extensions": {
+      "com.figma.variableId": "VariableID:6355:14382",
+      "com.figma.scopes": [
+        "ALL_SCOPES"
+      ],
+      "com.figma.isOverride": true
+    }
+  },
+  "Background": {
+    "$type": "color",
+    "$value": {
+      "colorSpace": "srgb",
+      "components": [
+        1,
+        1,
+        1
+      ],
+      "alpha": 1,
+      "hex": "#FFFFFF"
+    },
+    "$extensions": {
+      "com.figma.variableId": "VariableID:6358:15543",
+      "com.figma.scopes": [
+        "ALL_SCOPES"
+      ],
+      "com.figma.isOverride": true
+    }
+  },
+  "Background-Disabled": {
+    "$type": "color",
+    "$value": {
+      "colorSpace": "srgb",
+      "components": [
+        0.9490196108818054,
+        0.95686274766922,
+        0.9686274528503418
+      ],
+      "alpha": 1,
+      "hex": "#F2F4F7"
+    },
+    "$extensions": {
+      "com.figma.variableId": "VariableID:6358:15547",
+      "com.figma.scopes": [
+        "ALL_SCOPES"
+      ],
+      "com.figma.isOverride": true
+    }
+  },
+  "Border": {
+    "$type": "color",
+    "$value": {
+      "colorSpace": "srgb",
+      "components": [
+        0.886274516582489,
+        0.9098039269447327,
+        0.9411764740943909
+      ],
+      "alpha": 1,
+      "hex": "#E2E8F0"
+    },
+    "$extensions": {
+      "com.figma.variableId": "VariableID:6358:15549",
+      "com.figma.scopes": [
+        "ALL_SCOPES"
+      ],
+      "com.figma.isOverride": true
+    }
+  },
+  "$extensions": {
+    "com.figma.modeName": "Mode 1"
+  }
+}

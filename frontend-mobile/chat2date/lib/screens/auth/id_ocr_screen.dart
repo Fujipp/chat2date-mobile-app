@@ -31,7 +31,7 @@ class _IdOcrScreenState extends ConsumerState<IdOcrScreen> {
   // === CONFIG ===
   late final ThaiIdOcrConfig _ocrCfg;
  
-  static const _backIcon = 'assets/icons/icon_arrow-back-circle.svg';
+  static const _backIcon = 'assets/icons/ui/icon_arrow-back-circle.svg';
   static const _maxFileBytes = 10 * 1024 * 1024; // 10MB
  
   File? _image;

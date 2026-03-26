@@ -524,7 +524,7 @@ class _GpsMapAlertState extends State<GpsMapAlert> with WidgetsBindingObserver {
       children: [
         _AlertActionButton(
           icon: SvgPicture.asset(
-            'assets/icons/icon_share.svg',
+            'assets/icons/ui/icon_share.svg',
             width: 25,
             height: 25,
           ),
@@ -533,7 +533,7 @@ class _GpsMapAlertState extends State<GpsMapAlert> with WidgetsBindingObserver {
         ),
         _AlertActionButton(
           icon: SvgPicture.asset(
-            'assets/icons/icon_emergency.svg',
+            'assets/icons/ui/icon_emergency.svg',
             width: 25,
             height: 25,
           ),

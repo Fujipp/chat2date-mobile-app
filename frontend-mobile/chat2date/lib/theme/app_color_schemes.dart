@@ -9,8 +9,7 @@ final ColorScheme lightColorScheme = const ColorScheme(
   onSecondary: AppColors.brandOnSecondary,
   error: AppColors.error,
   onError: Colors.white,
-  // ✅ ใช้ surface/onSurface แทน background/onBackground
   surface: AppColors.surface,
   onSurface: AppColors.textPrimary,
-  // ถ้าต้องการ “สีพื้นหลังของหน้าจอ” ใช้ scaffoldBackgroundColor ใน ThemeData
+  outline: AppColors.outline,
 );

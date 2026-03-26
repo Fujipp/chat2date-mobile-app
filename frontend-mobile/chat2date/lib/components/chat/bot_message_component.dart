@@ -132,7 +132,7 @@ class _BotMessageComponentState extends State<BotMessageComponent> {
           ),
           child: Center(
             child: SvgPicture.asset(
-              'assets/icons/icon_bot.svg',
+              'assets/icons/ui/icon_bot.svg',
               width: 20,
               height: 20,
               colorFilter: const ColorFilter.mode(

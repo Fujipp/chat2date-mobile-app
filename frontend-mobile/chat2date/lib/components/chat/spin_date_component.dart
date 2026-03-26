@@ -313,7 +313,7 @@ class _SpinDateComponentState extends State<SpinDateComponent>
                     shape: BoxShape.circle,
                   ),
                   child: SvgPicture.asset(
-                    "assets/icons/icon_success_ring.svg",
+                    "assets/icons/ui/icon_success_ring.svg",
                     width: 80,
                     height: 80,
                     // colorFilter: ColorFilter.mode(AppColors.brandSecondary700, ui.BlendMode.srcIn), // ถ้าต้องการเปลี่ยนสี icon
@@ -494,12 +494,12 @@ class _SpinDateComponentState extends State<SpinDateComponent>
                   widget.onRefreshSpin?.call();
                 },
                 child: SvgPicture.asset(
-                  "assets/icons/icon_refresh.svg",
+                  "assets/icons/ui/icon_refresh.svg",
                   width: 31,
                 ),
               )
             : SvgPicture.asset(
-                "assets/icons/icon_seen.svg",
+                "assets/icons/ui/icon_seen.svg",
                 width: 28,
                 colorFilter: const ColorFilter.mode(
                   AppColors.brandAccentStrong,
@@ -515,7 +515,7 @@ class _SpinDateComponentState extends State<SpinDateComponent>
             if (_controller.isAnimating || !widget.isLeader) return;
             widget.onCloseModal?.call();
           },
-          child: SvgPicture.asset("assets/icons/icon_close.svg", width: 31),
+          child: SvgPicture.asset("assets/icons/ui/icon_close.svg", width: 31),
         ),
       ],
     );

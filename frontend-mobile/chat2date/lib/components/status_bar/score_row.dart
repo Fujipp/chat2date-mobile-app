@@ -13,8 +13,8 @@ class ScoreRow extends StatelessWidget {
     this.overlayDirection = ChangeDirection.none,
     this.number = 0, // เลขบนหัวใจ (0 = ซ่อน)
     // ไฟล์ SVG
-    this.heartSvg = 'assets/icons/HEART_STATUS_BAR.svg',
-    this.rightSvg = 'assets/icons/INFO_STATUS_BAR.svg',
+    this.heartSvg = 'assets/icons/ui/HEART_STATUS_BAR.svg',
+    this.rightSvg = 'assets/icons/ui/INFO_STATUS_BAR.svg',
     // ขนาด
     this.barWidth = 255,
     this.barHeight = 10,

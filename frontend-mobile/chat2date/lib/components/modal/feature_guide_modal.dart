@@ -20,7 +20,7 @@ class _FeatureGuideModalState extends State<FeatureGuideModal> {
     _FeaturePageData(
       // ปรับขนาดไอคอน Chat2Date ให้ใหญ่ขึ้นเฉพาะหน้านี้
       iconSource: SvgPicture.asset(
-        'assets/icons/icon_chat2date_full.svg',
+        'assets/icons/ui/icon_chat2date_full.svg',
         width: 100, // เพิ่มขนาดจาก 60 เป็น 100
         height: 100,
         fit: BoxFit.contain,
@@ -31,8 +31,8 @@ class _FeatureGuideModalState extends State<FeatureGuideModal> {
     ),
     _FeaturePageData(
       iconSource: InputChatComponent(
-        svgPath: 'assets/icons/icon_more-options.svg',
-        svgPathLast: 'assets/icons/icon_send.svg',
+        svgPath: 'assets/icons/ui/icon_more-options.svg',
+        svgPathLast: 'assets/icons/ui/icon_send.svg',
         leftIconColor: AppColors.surfaceLight,
         sendIconColor: null,
         sendIconBackgroundColor: null,
@@ -57,7 +57,7 @@ class _FeatureGuideModalState extends State<FeatureGuideModal> {
     ),
     _FeaturePageData(
       iconSource: SvgPicture.asset(
-        "assets/images/question.svg",
+        "assets/images/illustrations/question.svg",
         width: 50,
         height: 50,
       ),
@@ -67,7 +67,7 @@ class _FeatureGuideModalState extends State<FeatureGuideModal> {
     ),
     _FeaturePageData(
       iconSource: SvgPicture.asset(
-        'assets/icons/icon_spinwheel.svg',
+        'assets/icons/ui/icon_spinwheel.svg',
         width: 50,
         height: 50,
       ),
@@ -77,7 +77,7 @@ class _FeatureGuideModalState extends State<FeatureGuideModal> {
     ),
     _FeaturePageData(
       iconSource: SvgPicture.asset(
-        'assets/icons/icon_calendar.svg',
+        'assets/icons/ui/icon_calendar.svg',
         width: 50,
         height: 50,
       ),
@@ -87,7 +87,7 @@ class _FeatureGuideModalState extends State<FeatureGuideModal> {
     ),
     _FeaturePageData(
       iconSource: SvgPicture.asset(
-        'assets/icons/icon_spinwheel_7.svg',
+        'assets/icons/ui/icon_spinwheel_7.svg',
         width: 50,
         height: 50,
       ),
@@ -97,7 +97,7 @@ class _FeatureGuideModalState extends State<FeatureGuideModal> {
     ),
     _FeaturePageData(
       iconSource: SvgPicture.asset(
-        'assets/icons/icon_report.svg',
+        'assets/icons/ui/icon_report.svg',
         width: 50,
         height: 50,
       ),
