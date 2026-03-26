@@ -539,6 +539,13 @@ class _ChatListScreenState extends ConsumerState<ChatListScreen>
                 _clearedUnreadRoomIds.add(room.roomId);
               });
 
+              final chatService = ref.read(chatServiceProvider);
+              try {
+                await chatService.updateRelationshipBar(room.roomId);
+              } catch (e) {
+                debugPrint("Stats update failed: $e");
+              }
+
               await _checkAndShowNotifications(room.roomId, room.partnerName);
 
               final bool roomStillExists = _chatRooms.any(
@@ -625,16 +632,15 @@ class _ChatListScreenState extends ConsumerState<ChatListScreen>
             colors: isNew ? null : [AppColors.backgroundWhite],
             onClick: () async {
               final chatService = ref.read(chatServiceProvider);
-              
-              setState(() {
-                _viewedMatchIds.add(match.matchId);
-              });
-
               try {
                 await chatService.updateRelationshipBar(match.matchId);
               } catch (e) {
                 debugPrint("Stats update failed: $e");
               }
+
+              setState(() {
+                _viewedMatchIds.add(match.matchId);
+              });
 
               // เปิดแชทกับ match
               await _checkAndShowNotifications(

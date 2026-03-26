@@ -1006,7 +1006,9 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
 
     final prefs = await SharedPreferences.getInstance();
     final prefsKey = _calendarSeenPrefsKey(roomId);
-    final signature = appointment == null ? null : _appointmentCalendarSignature(appointment);
+    final signature = appointment == null
+        ? null
+        : _appointmentCalendarSignature(appointment);
 
     if (signature == null) {
       await prefs.remove(prefsKey);
@@ -1020,7 +1022,9 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
     });
   }
 
-  Future<void> _refreshCalendarAppointmentState({bool markAsSeen = false}) async {
+  Future<void> _refreshCalendarAppointmentState({
+    bool markAsSeen = false,
+  }) async {
     final roomId = widget.roomId;
     if (roomId == null || roomId.isEmpty) return;
 
@@ -1083,6 +1087,21 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
   }
 
   bool get _shouldShowCalendarIcon => _existingAppointment != null;
+
+  bool get _isCalendarViewOnly {
+    final appointment = _existingAppointment;
+    if (appointment == null) return false;
+
+    final status = appointment.status;
+    if (status == 'CANCELLED' || status == 'COMPLETED') return true;
+
+    final dateTime = appointment.dateTime;
+    if (dateTime == null) return false;
+
+    final today = DateUtils.dateOnly(DateTime.now());
+    final appointmentDay = DateUtils.dateOnly(dateTime.toLocal());
+    return !today.isBefore(appointmentDay);
+  }
 
   bool _isSvgImage(String? path) {
     if (path == null || path.isEmpty) return false;
@@ -2029,9 +2048,7 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
     if (appt == null ||
         appt.dateTime == null ||
         !DateTime.now().isAfter(
-          appt.dateTime!
-              .add(const Duration(hours: 7))
-              .add(const Duration(hours: 5)),
+          appt.dateTime!.toLocal().add(const Duration(hours: 5)),
         )) {
       return;
     }
@@ -2616,11 +2633,15 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
                           Builder(
                             builder: (context) {
                               final now = DateTime.now();
-                              final dateStartTime = _existingAppointment!
+                              final appointmentTime = _existingAppointment!
                                   .dateTime!
-                                  .add(const Duration(hours: 7));
-                              final dateEndTime = dateStartTime.add(
-                                const Duration(hours: 5),
+                                  .toLocal();
+
+                              final dateStartTime = appointmentTime.subtract(
+                                const Duration(hours: 2),
+                              );
+                              final dateEndTime = appointmentTime.add(
+                                const Duration(hours: 3),
                               );
 
                               // เช็กว่าเลยเวลานัดมาแล้ว AND ยังไม่หมดเวลาเดต
@@ -3069,6 +3090,7 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
                   placeName: _calendarPlaceName,
                   placeCountText: 'คุณมี 1 สถานที่เดต!!',
                   hasUnsavedChanges: _calendarHasUnsavedChanges,
+                  isReadOnly: _calendarIsEditMode && _isCalendarViewOnly,
                   initialMonth: () {
                     final dt = _calendarIsEditMode
                         ? (_existingAppointment?.dateTime?.toLocal() ??

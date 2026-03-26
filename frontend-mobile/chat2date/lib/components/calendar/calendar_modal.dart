@@ -10,6 +10,7 @@ import 'package:flutter/material.dart';
 class CalendarModal extends StatelessWidget {
   final bool isVisible;
   final bool hasUnsavedChanges;
+  final bool isReadOnly;
 
   /// ข้อมูลสถานที่ (จาก spinwheel หรือ existing appointment)
   final String placeName;
@@ -34,6 +35,7 @@ class CalendarModal extends StatelessWidget {
     super.key,
     required this.isVisible,
     this.hasUnsavedChanges = false,
+    this.isReadOnly = false,
     this.placeName = '',
     this.placeCountText = 'คุณมี 1 สถานที่เดต!!',
     required this.initialMonth,
@@ -93,6 +95,7 @@ class CalendarModal extends StatelessWidget {
                       initialTime: initialTime,
                       initialSelectedDate: initialSelectedDate,
                       isEditMode: isEditMode,
+                      isReadOnly: isReadOnly,
                       placeName: placeName.isNotEmpty
                           ? placeName
                           : 'ยังไม่ได้เลือกสถานที่',
@@ -100,7 +103,7 @@ class CalendarModal extends StatelessWidget {
                       onSave: onSave,
                       onClose: onClose,
                       onDirtyChanged: onDirtyChanged,
-                      onTrash: isEditMode ? onTrash : null,
+                      onTrash: isEditMode && !isReadOnly ? onTrash : null,
                     ),
                   ),
                 ),
