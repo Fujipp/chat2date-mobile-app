@@ -363,7 +363,7 @@ onMounted(fetchContacts)
               <div v-if="selectedContact.subject === 'ขอข้อมูล/หลักฐานเหตุฉุกเฉิน (SOS)'"
                 style="padding: 10px 15px; background: rgba(251, 191, 36, 0.1); border-bottom: 1px solid var(--glass-border); color: #d97706; font-size: 0.85rem; display: flex; align-items: center; gap: 8px;">
                 <AlertTriangle :size="16" />
-                <span><strong>หมายเหตุ:</strong> ระบบจะดึง "ข้อมูลพิกัด วันเวลา และคู่เดท (SOS)" ล่าสุด
+                <span><strong>หมายเหตุ:</strong> ระบบจะดึง "ข้อมูลพิกัด วันเวลา และคู่เดต (SOS)" ล่าสุด
                   มาต่อท้ายข้อความนี้ให้อัตโนมัติ แอดมินสามารถกดส่งได้เลย</span>
               </div>
 
