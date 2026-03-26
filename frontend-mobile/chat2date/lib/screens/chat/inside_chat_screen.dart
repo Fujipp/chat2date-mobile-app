@@ -812,7 +812,7 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
             if (_currentUserId == leaderIdFromSocket) {
               _indexSelected = (targetStr == nickname) ? 1 : 0;
             } else {
-              _indexSelected = (targetStr == _chatUserName) ? 0 : 1;
+              _indexSelected = (targetStr == "PARTNER") ? 1 : 0;
             }
 
             final List placesList = data['places'] ?? [];
