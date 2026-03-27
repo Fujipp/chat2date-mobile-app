@@ -104,7 +104,12 @@ class DsTextFieldHelper {
   }
 
   static TextStyle supportStyle(DsInputVisualState state) {
-    return AppBodyTextStyles.helper.copyWith(color: supportColorFor(state));
+    return AppBodyTextStyles.helper.copyWith(
+      color: supportColorFor(state),
+      fontSize: 10,
+      height: 14 / 10,
+      letterSpacing: 0.15,
+    );
   }
 
   static InputBorder borderForVisualState(

@@ -1,0 +1,15 @@
+<svg preserveAspectRatio="none" width="100%" height="100%" overflow="visible" style="display: block;" viewBox="0 0 16 15.9997" fill="none" xmlns="http://www.w3.org/2000/svg">
+<g id="Check" clip-path="url(#clip0_0_71)">
+<mask id="mask0_0_71" style="mask-type:alpha" maskUnits="userSpaceOnUse" x="0" y="0" width="16" height="16">
+<path id="Vector" d="M2.37518 2.37027L8.24301 8.24218M8.24301 8.24218L14.1108 14.1141M8.24301 8.24218L1.8682 14.6126M8.24301 8.24218L14.6178 1.87178" stroke="var(--stroke-0, white)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+</mask>
+<g mask="url(#mask0_0_71)">
+<rect id="Fill" x="0.000488281" width="15.9994" height="15.9994" fill="var(--fill-0, white)"/>
+</g>
+</g>
+<defs>
+<clipPath id="clip0_0_71">
+<rect width="16" height="15.9997" fill="white"/>
+</clipPath>
+</defs>
+</svg>

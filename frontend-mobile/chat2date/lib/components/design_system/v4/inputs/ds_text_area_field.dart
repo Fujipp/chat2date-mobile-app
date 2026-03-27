@@ -16,8 +16,8 @@ class DsTextAreaField extends StatelessWidget {
     this.focusNode,
     this.state,
     this.showSupportText = false,
-    this.minLines = 4,
-    this.maxLines = 4,
+    this.minLines = 3,
+    this.maxLines = 3,
   });
 
   final String? label;

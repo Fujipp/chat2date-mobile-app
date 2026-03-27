@@ -11,6 +11,7 @@ import 'package:chat2date/components/common/custom_range_slider.dart';
 import 'package:chat2date/components/common/image_upload_grid.dart';
 import 'package:chat2date/components/common/loading_component.dart';
 import 'package:chat2date/components/common/modal_component.dart';
+import 'package:chat2date/components/design_system/v4/controls/index.dart';
 import 'package:chat2date/components/inputs/index.dart';
 import 'package:chat2date/components/layout/header.dart';
 import 'package:chat2date/components/layout/menu_bar.dart';
@@ -18,8 +19,10 @@ import 'package:chat2date/components/layout/responsive_container.dart';
 // Status Bar components
 import 'package:chat2date/components/status_bar/score_row.dart';
 import 'package:chat2date/components/toasts/toast.dart';
+import 'package:chat2date/theme/app_assets.dart';
 import 'package:chat2date/theme/app_colors.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 
 class ComponentTestScreen extends StatefulWidget {
   const ComponentTestScreen({super.key});
@@ -35,6 +38,9 @@ class _ComponentTestScreenState extends State<ComponentTestScreen> {
   int selectedIndex4 = 0; // เริ่มที่ Name A
 
   int bottomNavIndex = 0;
+  int _v4SegmentedIndex = 0;
+  double _v4SliderValue = 50;
+  DsUserSelectorValue _v4UserSelectorValue = DsUserSelectorValue.single;
 
   // final int _counter = 0;
 
@@ -42,7 +48,7 @@ class _ComponentTestScreenState extends State<ComponentTestScreen> {
   bool _submitting = false;
   RangeValues _selectedRange = const RangeValues(18, 100);
   final _nameCtrl = TextEditingController();
-  final _phoneCtrl = TextEditingController();
+  final _phoneCtrl = TextEditingController(text: '88-888-8888');
   final _nextCtrl = TextEditingController();
   final _addCtrl = TextEditingController();
   final _selectCtrl = TextEditingController();
@@ -110,15 +116,49 @@ class _ComponentTestScreenState extends State<ComponentTestScreen> {
         children: [
           const SizedBox(height: 16),
 
+          const Text(
+            'V4 Controls',
+            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+          ),
+          const SizedBox(height: 12),
+          DsSegmentedSwitcher(
+            items: const ['Section 1', 'Section 2'],
+            selectedIndex: _v4SegmentedIndex,
+            onChanged: (value) => setState(() => _v4SegmentedIndex = value),
+          ),
+          const SizedBox(height: 12),
+          DsUserSelector(
+            value: _v4UserSelectorValue,
+            onChanged: (value) => setState(() => _v4UserSelectorValue = value),
+          ),
+          const SizedBox(height: 12),
+          DsSlider(
+            value: _v4SliderValue,
+            onChanged: (value) => setState(() => _v4SliderValue = value),
+          ),
+          const SizedBox(height: 24),
+
           Toast(
             type: ToastType.info,
-            title: 'fuck',
-            message: "you",
+            title: 'Title',
+            message: 'Description. Lorem ipsum dolor sit amet.',
             onClose: () {},
           ),
-          Toast(type: ToastType.success, title: 'TITLE', message: "message"),
-          Toast(type: ToastType.warning, title: 'TITLE', message: "message"),
-          Toast(type: ToastType.error, title: 'TITLE', message: "message"),
+          Toast(
+            type: ToastType.success,
+            title: 'Title',
+            message: 'Description. Lorem ipsum dolor sit amet.',
+          ),
+          Toast(
+            type: ToastType.warning,
+            title: 'Title',
+            message: 'Description. Lorem ipsum dolor sit amet.',
+          ),
+          Toast(
+            type: ToastType.error,
+            title: 'Title',
+            message: 'Description. Lorem ipsum dolor sit amet.',
+          ),
           const SizedBox(height: 12),
           const Text(
             'Toast (Real Usage)',
@@ -769,28 +809,43 @@ class _ComponentTestScreenState extends State<ComponentTestScreen> {
 
           DsTextField(
             label: 'Title',
-            hintText: 'Text',
+            hintText: '88-888-8888',
             controller: _phoneCtrl,
+            unit: '+66',
             state: DsInputVisualState.filled,
-          ),
-          const SizedBox(height: 12),
-
-          DsTextField(
-            label: 'Title',
-            hintText: 'Text',
-            controller: _addCtrl,
-            state: DsInputVisualState.error,
-            supportText: 'Support text',
-            showSupportText: true,
-          ),
-          const SizedBox(height: 12),
-
-          DsTextField(
-            label: 'Title',
-            hintText: 'Text',
-            controller: _selectCtrl,
             enabled: false,
-            state: DsInputVisualState.inactive,
+          ),
+          const SizedBox(height: 12),
+
+          DsTextField(
+            label: 'Title',
+            hintText: 'Placeholder',
+            controller: _addCtrl,
+            required: true,
+            suffix: Padding(
+              padding: const EdgeInsets.only(right: 4),
+              child: SvgPicture.asset(
+                AppAssets.v4InputSelectMarkerIcon,
+                width: 20,
+                height: 20,
+              ),
+            ),
+          ),
+          const SizedBox(height: 12),
+
+          DsTextField(
+            label: 'Title',
+            hintText: 'Placeholder',
+            controller: _selectCtrl,
+            required: true,
+            suffix: Padding(
+              padding: const EdgeInsets.only(right: 4),
+              child: SvgPicture.asset(
+                AppAssets.v4InputAddIcon,
+                width: 14,
+                height: 14,
+              ),
+            ),
           ),
           const SizedBox(height: 12),
 
@@ -1208,7 +1263,7 @@ class _ComponentTestScreenState extends State<ComponentTestScreen> {
                 label: 'text',
                 onPressed: () {},
                 variant: DsButtonVariant.outlinePrimary,
-                leadingSvgAsset: 'assets/icons/ui/icon_refresh.svg',
+                leadingSvgAsset: AppAssets.v4RefreshIcon,
                 iconSize: 17,
               ),
               const SizedBox(height: 8),
@@ -1216,7 +1271,7 @@ class _ComponentTestScreenState extends State<ComponentTestScreen> {
                 label: 'text',
                 onPressed: () {},
                 variant: DsButtonVariant.outlinePrimary,
-                leadingSvgAsset: 'assets/icons/ui/icon_locate.svg',
+                leadingSvgAsset: AppAssets.v4SettingsIcon,
                 iconSize: 20,
               ),
               const SizedBox(height: 8),

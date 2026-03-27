@@ -72,20 +72,29 @@ class _DsDropdownFieldState<T> extends State<DsDropdownField<T>> {
     );
 
     final iconTurns = effectiveState == DsInputVisualState.typing ? 0.5 : 0.0;
+    final iconColor = switch (effectiveState) {
+      DsInputVisualState.error => DsTextFieldHelper.borderColorFor(
+        effectiveState,
+      ),
+      DsInputVisualState.inactive => DsTextFieldHelper.borderColorFor(
+        effectiveState,
+      ),
+      DsInputVisualState.empty => DsTextFieldHelper.borderColorFor(
+        DsInputVisualState.typing,
+      ),
+      DsInputVisualState.typing => DsTextFieldHelper.borderColorFor(
+        effectiveState,
+      ),
+      DsInputVisualState.filled => DsTextFieldHelper.borderColorFor(
+        DsInputVisualState.typing,
+      ),
+    };
     final dropdownIcon = Padding(
       padding: const EdgeInsets.only(right: 16),
       child: DsTextFieldHelper.buildSvgIcon(
-        AppAssets.chevronDown,
+        AppAssets.v4InputDropdownIcon,
         size: 12,
-        color: effectiveState == DsInputVisualState.error
-            ? DsTextFieldHelper.borderColorFor(effectiveState)
-            : (effectiveState == DsInputVisualState.inactive
-                  ? DsTextFieldHelper.hintColorFor(effectiveState)
-                  : DsTextFieldHelper.borderColorFor(
-                      effectiveState == DsInputVisualState.empty
-                          ? DsInputVisualState.typing
-                          : effectiveState,
-                    )),
+        color: iconColor,
         turns: iconTurns,
       ),
     );
@@ -156,9 +165,9 @@ class _DsDropdownFieldState<T> extends State<DsDropdownField<T>> {
                     child: Text(
                       item.label,
                       style: DsTextFieldHelper.bodyStyle(
-                        state: effectiveState == DsInputVisualState.inactive
-                            ? DsInputVisualState.inactive
-                            : DsInputVisualState.filled,
+                        state: widget.enabled
+                            ? DsInputVisualState.filled
+                            : DsInputVisualState.inactive,
                       ),
                     ),
                   ),

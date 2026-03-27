@@ -1,8 +1,10 @@
+import 'package:chat2date/theme/app_assets.dart';
 import 'package:chat2date/theme/app_colors.dart';
 import 'package:chat2date/theme/tokens/typography/body_text_styles.dart';
 import 'package:chat2date/theme/tokens/typography/display_text_styles.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 
 /// An editable input field component with confirm/cancel actions.
 ///
@@ -213,24 +215,24 @@ class _EditInputFieldState extends State<EditInputField> {
                       if (_state == _EditState.editing)
                         GestureDetector(
                           onTap: _clearText,
-                          child: const Padding(
+                          child: Padding(
                             padding: EdgeInsets.only(left: 8),
-                            child: Icon(
-                              Icons.remove,
-                              size: 16,
-                              color: AppColors.error,
+                            child: SvgPicture.asset(
+                              AppAssets.v4InputRemoveIcon,
+                              width: 14,
+                              height: 2,
                             ),
                           ),
                         ),
                       if (_state != _EditState.editing)
                         GestureDetector(
                           onTap: _startEditing,
-                          child: const Padding(
+                          child: Padding(
                             padding: EdgeInsets.only(left: 8),
-                            child: Icon(
-                              Icons.add,
-                              size: 16,
-                              color: AppColors.brandPrimary,
+                            child: SvgPicture.asset(
+                              AppAssets.v4InputAddIcon,
+                              width: 14,
+                              height: 14,
                             ),
                           ),
                         ),
@@ -245,13 +247,13 @@ class _EditInputFieldState extends State<EditInputField> {
               const SizedBox(width: 8),
               _IconButton(
                 color: AppColors.brandSecondary,
-                icon: Icons.check,
+                assetPath: AppAssets.v4InputAcceptIcon,
                 onTap: _confirmEdit,
               ),
               const SizedBox(width: 8),
               _IconButton(
                 color: AppColors.error,
-                icon: Icons.close,
+                assetPath: AppAssets.v4InputDeniedIcon,
                 onTap: _cancelEdit,
               ),
             ],
@@ -263,15 +265,14 @@ class _EditInputFieldState extends State<EditInputField> {
 }
 
 class _IconButton extends StatelessWidget {
-  // ... (โค้ด _IconButton คงเดิม) ...
   const _IconButton({
     required this.color,
-    required this.icon,
+    required this.assetPath,
     required this.onTap,
   });
 
   final Color color;
-  final IconData icon;
+  final String assetPath;
   final VoidCallback onTap;
 
   @override
@@ -288,7 +289,7 @@ class _IconButton extends StatelessWidget {
           ),
         ),
         child: Center(
-          child: Icon(icon, size: 16, color: AppColors.backgroundWhite),
+          child: SvgPicture.asset(assetPath, width: 16, height: 16),
         ),
       ),
     );
