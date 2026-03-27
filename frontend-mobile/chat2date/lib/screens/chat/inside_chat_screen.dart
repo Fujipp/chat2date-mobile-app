@@ -812,7 +812,7 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
             if (_currentUserId == leaderIdFromSocket) {
               _indexSelected = (targetStr == nickname) ? 1 : 0;
             } else {
-              _indexSelected = (targetStr == _chatUserName) ? 0 : 1;
+              _indexSelected = (targetStr == "PARTNER") ? 1 : 0;
             }
 
             final List placesList = data['places'] ?? [];
@@ -1355,6 +1355,7 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
     await _prepareBeforeSpin(20, "MIDPOINT", "", false);
     // ผ่านทุกเงื่อนไข - เปิด modal
     setState(() {
+      _leaderId = _currentUserId;
       _showWheelModal = true;
     });
   }
