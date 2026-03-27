@@ -340,6 +340,11 @@ public class DateRecommendService {
         Match match = matchRepository.findById(Integer.valueOf(roomId))
                 .orElseThrow(() -> new NotFoundException("Match not found with id: " + roomId));
 
+        if (!Objects.equals(user.getUserId(), match.getUserId1().getUserId()) &&
+                !Objects.equals(user.getUserId(), match.getUserId2().getUserId())) {
+            throw new ForbiddenAccessException("Forbidden: cannot access another user's data");
+        }
+
         Optional<PlaceConfirmation> pendingConfirmation = placeConfirmationRepository
                 .findFirstByMatchAndStatusOrderByConfirmIdDesc(match.getId(), ConfirmationStatus.PENDING);
 
