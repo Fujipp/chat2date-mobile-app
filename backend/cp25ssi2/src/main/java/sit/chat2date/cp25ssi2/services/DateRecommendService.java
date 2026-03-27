@@ -574,9 +574,7 @@ public class DateRecommendService {
                 return new SpinStatusResponse(false, 0);
             }
 
-            LocalDateTime baseTime = latest.getDateTime() != null
-                    ? latest.getDateTime()
-                    : latest.getUpdatedAt();
+            LocalDateTime baseTime = latest.getUpdatedAt();
 
             int cooldownDays;
             if (latest.getStatus() == AppointmentStatus.CANCELLED) {
