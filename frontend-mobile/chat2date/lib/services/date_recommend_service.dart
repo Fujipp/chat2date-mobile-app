@@ -67,7 +67,7 @@ class DateRecommendService {
       '${ApiBase.baseUrl}/dates/recommendations/$roomId/confirm',
     );
 
-    final response = await http.post(
+    final response = await http.put(
       url,
       headers: {
         'Authorization': 'Bearer $accessToken',
