@@ -621,9 +621,7 @@ public class DateRecommendService {
                 .findFirstByMatch_IdOrderByCreatedAtDesc(Integer.valueOf(roomId))
                 .orElseThrow(() -> new NotFoundException("Appointment not found for room: " + roomId));
 
-        LocalDateTime baseTime = latest.getDateTime() != null
-                ? latest.getDateTime()
-                : latest.getUpdatedAt();
+        LocalDateTime baseTime = latest.getUpdatedAt();
 
         ZoneId bangkokZone = ZoneId.of("Asia/Bangkok");
         ZonedDateTime nowThai = ZonedDateTime.now(bangkokZone);
