@@ -18,6 +18,14 @@ const router = createRouter({
     },
     {
       path: '/',
+      name: 'users',
+      component: UserManagementView,
+      meta: {
+        title: 'User Management - Chat2Date Admin',
+      },
+    },
+    {
+      path: '/reports',
       name: 'reports',
       component: ReportsView,
       meta: {
@@ -25,12 +33,9 @@ const router = createRouter({
       },
     },
     {
-      path: '/users',
-      name: 'users',
-      component: UserManagementView,
-      meta: {
-        title: 'User Management - Chat2Date Admin',
-      },
+      path: '/contact',
+      name: 'contact',
+      component: () => import('../views/ContactView.vue'),
     },
     {
       path: '/about',
@@ -40,11 +45,6 @@ const router = createRouter({
         title: 'About - Chat2Date Admin',
       },
     },
-    {
-      path: '/contact',
-      name: 'contact',
-      component: () => import('../views/ContactView.vue'),
-    }
   ],
 })
 

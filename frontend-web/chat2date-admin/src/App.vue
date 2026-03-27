@@ -11,28 +11,30 @@
           <span class="brand-badge">Admin</span>
         </div>
         <ul class="navbar-menu">
+
           <li>
             <router-link to="/" :class="{ active: $route.path === '/' }">
+              <Users :size="18" :stroke-width="2" />
+              <span>Users</span>
+            </router-link>
+          </li>
+          <li>
+            <router-link to="/reports" :class="{ active: $route.path === '/reports' }">
               <FileText :size="18" :stroke-width="2" />
               <span>Reports</span>
             </router-link>
           </li>
+
           <li>
-            <router-link to="/users" :class="{ active: $route.path === '/users' }">
-              <Users :size="18" :stroke-width="2" />
-              <span>Users</span>
+            <router-link to="/contact" :class="{ active: $route.path === '/contact' }">
+              <Mail :size="18" :stroke-width="2" />
+              <span>Contact</span>
             </router-link>
           </li>
           <li>
             <router-link to="/about" :class="{ active: $route.path === '/about' }">
               <Info :size="18" :stroke-width="2" />
               <span>About</span>
-            </router-link>
-          </li>
-          <li>
-            <router-link to="/contact" :class="{ active: $route.path === '/contact' }">
-              <Mail :size="18" :stroke-width="2" />
-              <span>Contact</span>
             </router-link>
           </li>
         </ul>

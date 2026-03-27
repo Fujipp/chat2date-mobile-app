@@ -311,7 +311,6 @@ class _GpsMapAlertState extends State<GpsMapAlert> with WidgetsBindingObserver {
             title: 'บันทึกหลักฐานแล้ว',
             message: 'ติดต่อแอดมินเพื่อขอพิกัดและเวลาได้เลย',
             durationSeconds: 5,
-            showCountdown: false,
           );
         }
       });
@@ -430,11 +429,22 @@ class _GpsMapAlertState extends State<GpsMapAlert> with WidgetsBindingObserver {
     return points;
   }
 
-  final List<String> _emergencyTexts = const [
-    'กดอีก 2 ครั้งเพื่อส่งสัญญาณฉุกเฉิน และโทรหาเบอร์ลำดับที่ 1 และแจ้งแอดมิน',
-    'กดอีก 1 ครั้งเพื่อส่งสัญญาณฉุกเฉิน และโทรหาเบอร์ลำดับที่ 1 และแจ้งแอดมิน',
-    'กดอีก 1 ครั้งเพื่อส่งสัญญาณฉุกเฉิน และโทรหาเบอร์ลำดับที่ 2 และแจ้งแอดมิน',
-  ];
+  List<String> get _emergencyTexts {
+    final int total = widget.emergencyNumbers.length;
+    return [
+      'กดอีก 2 ครั้งเพื่อส่งสัญญาณฉุกเฉิน และโทรหาเบอร์ลำดับที่ 1 และแจ้งแอดมิน',
+      'กดอีก 1 ครั้งเพื่อส่งสัญญาณฉุกเฉิน และโทรหาเบอร์ลำดับที่ 1 และแจ้งแอดมิน',
+      if (total >= 2)
+        'กดอีก 1 ครั้งเพื่อโทรหาเบอร์ลำดับที่ 2 และแจ้งแอดมิน'
+      else
+        'กดอีก 1 ครั้งเพื่อโทรหา 191 และแจ้งแอดมิน',
+      if (total >= 3)
+        'กดอีก 1 ครั้งเพื่อโทรหาเบอร์ลำดับที่ 3 และแจ้งแอดมิน'
+      else
+        'กดอีก 1 ครั้งเพื่อโทรหา 191 และแจ้งแอดมิน',
+    ];
+  }
+
   void _toggleExpansion() {
     final bottomInset = WidgetsBinding
         .instance
@@ -485,35 +495,43 @@ class _GpsMapAlertState extends State<GpsMapAlert> with WidgetsBindingObserver {
       );
       return;
     }
+
     if (index == 1) {
       widget.onShareLocation();
       setState(() => _selectedButtonIndex = 1);
       return;
     }
-    setState(() {
-      _selectedButtonIndex = 2;
-      _emergencyStep = (_emergencyStep < 3) ? _emergencyStep + 1 : 3;
-    });
 
-    if (_emergencyStep == 3) {
-      _triggerEmergency();
+    if (index == 2) {
+      setState(() {
+        _selectedButtonIndex = 2;
+        _emergencyStep++;
+      });
+
+      if (_emergencyStep >= 3) {
+        _triggerEmergency(callIndex: _emergencyStep - 3); // 0, 1, 2
+      }
     }
   }
 
-  void _triggerEmergency() {
-    final number = widget.emergencyNumbers.isNotEmpty
-        ? widget.emergencyNumbers[0].replaceAll('-', '')
-        : '191';
+  void _triggerEmergency({int callIndex = 0}) {
+    final String number;
+    if (callIndex < widget.emergencyNumbers.length) {
+      number = widget.emergencyNumbers[callIndex].replaceAll('-', '');
+    } else {
+      number = '191';
+    }
+
     launchUrl(Uri(scheme: 'tel', path: number));
     _hasSosTriggered = true;
     widget.onSosTriggered(number);
   }
 
   String _getCurrentInstructionText() {
-    if (_selectedButtonIndex == 2 &&
-        _emergencyStep > 0 &&
-        _emergencyStep <= 3) {
-      return _emergencyTexts[_emergencyStep - 1];
+    if (_selectedButtonIndex == 2 && _emergencyStep > 0) {
+      final texts = _emergencyTexts;
+      final idx = (_emergencyStep - 1).clamp(0, texts.length - 1);
+      return texts[idx];
     }
     return '';
   }

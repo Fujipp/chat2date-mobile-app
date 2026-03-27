@@ -52,6 +52,10 @@ public class PostTripReviewService {
         Appointment appointment = appointmentRepository.findById(appointmentId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "ไม่พบนัดหมาย (404)"));
 
+        if (appointment.getStatus() == AppointmentStatus.CANCELLED) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "ไม่สามารถประเมินนัดหมายที่ถูกยกเลิกไปแล้วได้ (400)");
+        }
+
         Match match = appointment.getMatch();
         String u1Id = match.getUserId1().getUserId();
         String u2Id = match.getUserId2().getUserId();
@@ -65,10 +69,6 @@ public class PostTripReviewService {
         if (!actualPartnerId.equals(req.getPartnerId())) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "ประเมินคนที่ไม่ใช่คู่เดทของตัวเอง (403)");
         }
-
-//        if (postTripReviewRepository.existsByAppointment_AppointmentIdAndReviewerId(appointmentId, userId)) {
-//            throw new ResponseStatusException(HttpStatus.CONFLICT, "ส่งประเมินซ้ำสำหรับนัดหมายนี้ไปแล้ว (409)");
-//        }
 
         PostTripReview existing = postTripReviewRepository
                 .findByAppointment_AppointmentIdAndReviewerId(appointmentId, userId)

@@ -56,7 +56,7 @@ public class DateRecommendController {
         return ResponseEntity.ok(response);
     }
 
-    @PostMapping("/{roomId}/confirm")
+    @PutMapping("/{roomId}/confirm")
     public PlaceConfirmation ConfirmDateRecommendation(@PathVariable String roomId, @RequestHeader("Authorization") String accessToken, @RequestBody ConfirmationRequest confirmationRequest) {
         return dateRecommendService.confirmPlace(roomId, accessToken, confirmationRequest);
     }
