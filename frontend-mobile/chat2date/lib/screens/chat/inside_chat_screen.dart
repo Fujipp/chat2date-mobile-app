@@ -1034,9 +1034,18 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
         int.parse(roomId),
       );
 
-      final latestAppointment =
-          _findLatestActiveAppointment(appointments) ??
-          _findLatestNotActiveAppointment(appointments);
+      final activeAppointment = _findLatestActiveAppointment(appointments);
+      final inactiveAppointment = _findLatestNotActiveAppointment(appointments);
+
+      if (inactiveAppointment != null) {
+        try {
+          await ref
+              .read(dateRecommendProvider)
+              .deleteAppointmentAfterCooldown(roomId: roomId);
+        } catch (_) {}
+      }
+
+      final latestAppointment = activeAppointment;
 
       final prefs = await SharedPreferences.getInstance();
       final prefsKey = _calendarSeenPrefsKey(roomId);
@@ -1639,10 +1648,13 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
           heightSvg: 68,
           widthSvg: 77,
           topic: 'ยืนยันที่จะยกเลิกวันเดตหรือไม่',
-          description:
-              'หากยืนยัน ระบบจะยกเลิกนัดหมายนี้ และคุณจะต้องสุ่มสถานที่ใหม่อีกครั้ง',
+          subDescription: true,
+          headingSubDescriptionText:
+              'หากยืนยันการลบ คุณจะต้องรอ Cooldown ก่อนจึงจะสามารถนัดหมายครั้งถัดไปได้',
+          headingSubDescriptionColor: Colors.red,
+          headingSubDescriptionWeight: FontWeight.w500,
           choice: true,
-          firstChoiceText: 'ยืนยัน',
+          firstChoiceText: 'ยืนยันการลบ',
           secondChoiceText: 'ยกเลิก',
           onFirstChoice: () {
             Navigator.pop(ctx);
@@ -2693,7 +2705,7 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
 
                                         if (shareUrl.isNotEmpty) {
                                           await Share.share(
-                                            'ฉันกำลังไปเดตนะ! สามารถติดตามโลเคชันแบบเรียลไทม์ของฉันได้ที่ลิงก์นี้เลย:\n$shareUrl',
+                                            'ฉันกำลังไปเดตนะ! นี่คือตำแหน่งล่าสุดของฉันตอนนี้นะ:\n$shareUrl',
                                           );
                                         }
                                       } catch (e) {
@@ -2716,6 +2728,7 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
                                               desiredAccuracy:
                                                   LocationAccuracy.high,
                                             );
+                                        if (calledNumber == '191') return;
 
                                         await ref
                                             .read(sosServiceProvider)

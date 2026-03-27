@@ -131,8 +131,46 @@ class AuthService {
       }
     } catch (e) {
       print('Google Sign-In Error: $e');
-      rethrow;
+
+      final String errorMessage = _getGoogleSignInErrorMessage(e);
+      throw Exception(errorMessage);
     }
+  }
+
+  String _getGoogleSignInErrorMessage(dynamic error) {
+    final errorStr = error.toString();
+
+    if (errorStr.contains('canceled') ||
+        errorStr.contains('cancelled') ||
+        errorStr.contains('Cancelled by user')) {
+      return 'ยกเลิกการเข้าสู่ระบบ';
+    }
+
+    if (errorStr.contains('network_error') ||
+        errorStr.contains('NetworkError') ||
+        errorStr.contains('SocketException')) {
+      return 'ไม่สามารถเชื่อมต่ออินเทอร์เน็ตได้ กรุณาตรวจสอบการเชื่อมต่อ';
+    }
+
+    if (errorStr.contains('sign_in_failed') ||
+        errorStr.contains('ApiException: 10')) {
+      return 'เกิดข้อผิดพลาดในการเข้าสู่ระบบด้วย Google กรุณาลองใหม่อีกครั้ง';
+    }
+
+    if (errorStr.contains('sign_in_required') ||
+        errorStr.contains('ApiException: 4')) {
+      return 'กรุณาเข้าสู่ระบบด้วยบัญชี Google ของคุณ';
+    }
+
+    if (errorStr.contains('Failed to get Google ID Token')) {
+      return 'ไม่สามารถยืนยันตัวตนกับ Google ได้ กรุณาลองใหม่อีกครั้ง';
+    }
+
+    if (errorStr.contains('Login failed')) {
+      return 'เข้าสู่ระบบไม่สำเร็จ กรุณาลองใหม่อีกครั้ง';
+    }
+
+    return 'เกิดข้อผิดพลาดที่ไม่คาดคิด กรุณาลองใหม่อีกครั้ง';
   }
 
   Future<void> signOut() async {
