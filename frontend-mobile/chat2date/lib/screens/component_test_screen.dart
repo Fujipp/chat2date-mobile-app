@@ -46,8 +46,12 @@ class _ComponentTestScreenState extends State<ComponentTestScreen> {
   final _nextCtrl = TextEditingController();
   final _addCtrl = TextEditingController();
   final _selectCtrl = TextEditingController();
+  final _searchCtrl = TextEditingController(text: 'Text');
+  final _messageCtrl = TextEditingController(text: 'Text');
+  final _bioCtrl = TextEditingController(text: 'Text');
   final _levelCtrl = TextEditingController(text: '1'); // 0..3
   final _percentCtrl = TextEditingController(text: '60');
+  String? _selectedRelationship = 'dating';
 
   void _onItemTapped(int index) {
     switch (index) {
@@ -732,67 +736,120 @@ class _ComponentTestScreenState extends State<ComponentTestScreen> {
 
           const SizedBox(height: 12),
 
-          //Fuji
+          const DsSearchBar(),
+          const SizedBox(height: 12),
+
+          DsSearchBar(
+            controller: _searchCtrl,
+            state: DsInputVisualState.typing,
+          ),
+          const SizedBox(height: 12),
+
+          DsSearchBar(
+            controller: _messageCtrl,
+            state: DsInputVisualState.filled,
+          ),
+          const SizedBox(height: 16),
+
           DsTextField(
-            label: 'Full name',
+            label: 'Title',
             required: true,
-            hintText: 'John Appleseed',
+            hintText: 'Placeholder',
             controller: _nameCtrl,
-            prefixIcon: Icons.person_rounded,
           ),
           const SizedBox(height: 12),
 
           DsTextField(
-            label: 'Phone',
-            hintText: '+66 88-888-8888',
-            enabled: false,
+            label: 'Title',
+            hintText: 'Text',
+            controller: _messageCtrl,
+            state: DsInputVisualState.typing,
+          ),
+          const SizedBox(height: 12),
+
+          DsTextField(
+            label: 'Title',
+            hintText: 'Text',
             controller: _phoneCtrl,
-            prefixIcon: Icons.phone_rounded,
+            state: DsInputVisualState.filled,
           ),
           const SizedBox(height: 12),
 
           DsTextField(
-            label: 'Next step',
-            required: true,
-            controller: _nextCtrl,
-            suffixIcon: Icons.arrow_forward_rounded,
-            onSuffixTap: () {
-              Toast.show(
-                context,
-                type: ToastType.info,
-                title: 'ไปต่อ',
-                message: 'กำลังไปยังขั้นตอนถัดไป',
-                durationSeconds: 6,
-              );
-            },
-          ),
-          const SizedBox(height: 12),
-
-          DsTextField(
-            label: 'Add item',
-            required: true,
+            label: 'Title',
+            hintText: 'Text',
             controller: _addCtrl,
-            suffixIcon: Icons.add_rounded,
+            state: DsInputVisualState.error,
+            supportText: 'Support text',
+            showSupportText: true,
           ),
           const SizedBox(height: 12),
 
           DsTextField(
-            label: 'Select option',
-            required: true,
+            label: 'Title',
+            hintText: 'Text',
             controller: _selectCtrl,
-            suffixIcon: Icons.keyboard_arrow_down_rounded,
+            enabled: false,
+            state: DsInputVisualState.inactive,
+          ),
+          const SizedBox(height: 12),
+
+          EditInputField(
+            label: 'Text',
+            prefixText: '+66',
+            placeholder: '88-8888-8888',
+            initialValue: '88-8888-8888',
+          ),
+          const SizedBox(height: 12),
+
+          DsDropdownField<String>(
+            label: 'Title',
+            required: true,
+            value: _selectedRelationship,
+            items: const [
+              DsDropdownItem(value: 'dating', label: 'Dating'),
+              DsDropdownItem(value: 'friend', label: 'Friend'),
+              DsDropdownItem(value: 'activity', label: 'Activity'),
+            ],
+            onChanged: (value) => setState(() => _selectedRelationship = value),
+          ),
+          const SizedBox(height: 12),
+
+          const DsDropdownField<String>(
+            label: 'Title',
+            required: true,
+            hintText: 'Placeholder',
+            items: [
+              DsDropdownItem(value: 'a', label: 'Dating'),
+              DsDropdownItem(value: 'b', label: 'Friend'),
+            ],
+            state: DsInputVisualState.error,
+            supportText: 'Support text',
+            showSupportText: true,
+          ),
+          const SizedBox(height: 12),
+
+          DsTextAreaField(
+            label: 'Title',
+            hintText: 'Placeholder',
+            controller: _bioCtrl,
+          ),
+          const SizedBox(height: 12),
+
+          const DsTextAreaField(
+            label: 'Title',
+            state: DsInputVisualState.error,
+            supportText: 'Support text',
+            showSupportText: true,
           ),
           const SizedBox(height: 16),
 
           DsOtpField(
-            label: 'Verification code',
+            label: 'Text',
             required: true,
-            supportText: 'We’ve sent a 6-digit code to your phone.',
-            autoFocus: true, // ให้โฟกัสช่องแรก
-            // length: 6,                 // ไม่ใส่ก็ได้ (ค่าเริ่มต้น 6)
-            // obscure: true,             // ถ้าอยากซ่อนตัวเลข
+            supportText: 'Support text',
             onChanged: (v) => setState(() => _otp = v),
-            onCompleted: (v) => _verifyCode(v), // กรอกครบ 6 หลักจะยิงทันที
+            onCompleted: (v) => _verifyCode(v),
           ),
 
           const SizedBox(height: 12),
@@ -993,121 +1050,181 @@ class _ComponentTestScreenState extends State<ComponentTestScreen> {
           const SizedBox(height: 12),
 
           Wrap(
-            spacing: 12,
-            runSpacing: 12,
+            spacing: 8,
+            runSpacing: 8,
             children: [
               DsButton(
-                label: 'เข้าสู่ระบบ',
+                label: 'text',
                 onPressed: () {},
                 variant: DsButtonVariant.primary,
-                size: DsButtonSize.sm,
               ),
               DsButton(
-                label: 'Primary (disabled)',
-                onPressed: null,
+                label: 'text',
+                onPressed: () {},
                 variant: DsButtonVariant.primary,
+                visualOverride: DsButtonVisualState.disabled,
               ),
               DsButton(
-                label: 'ลงทะเบียน',
+                label: 'text',
                 onPressed: () {},
-                variant: DsButtonVariant.error,
+                variant: DsButtonVariant.primary,
+                visualOverride: DsButtonVisualState.hover,
               ),
               DsButton(
-                label: 'Error (disabled)',
-                onPressed: null,
-                variant: DsButtonVariant.error,
-              ),
-              DsButton(
-                label: 'Secondary',
+                label: 'text',
                 onPressed: () {},
-                variant: DsButtonVariant.secondary,
-              ),
-              DsButton(
-                label: 'Secondary (disabled)',
-                onPressed: null,
-                variant: DsButtonVariant.secondary,
+                variant: DsButtonVariant.primary,
+                visualOverride: DsButtonVisualState.pressed,
               ),
             ],
           ),
 
           const SizedBox(height: 16),
           Text(
-            'Accent (Outline / Filled)',
+            'Outline Primary 231x40',
             style: Theme.of(context).textTheme.titleSmall,
           ),
           const SizedBox(height: 8),
           Wrap(
-            spacing: 12,
-            runSpacing: 12,
+            spacing: 8,
+            runSpacing: 8,
             children: [
               DsButton(
-                label: 'Accent Outline',
+                label: 'text',
                 onPressed: () {},
-                variant: DsButtonVariant.accentOutline,
+                variant: DsButtonVariant.outlinePrimary,
               ),
               DsButton(
-                label: 'Accent Filled',
+                label: 'text',
                 onPressed: () {},
-                variant: DsButtonVariant.accentFilled,
+                variant: DsButtonVariant.outlinePrimary,
+                visualOverride: DsButtonVisualState.disabled,
+              ),
+              DsButton(
+                label: 'text',
+                onPressed: () {},
+                variant: DsButtonVariant.outlinePrimary,
+                visualOverride: DsButtonVisualState.hover,
+              ),
+              DsButton(
+                label: 'text',
+                onPressed: () {},
+                variant: DsButtonVariant.outlinePrimary,
+                visualOverride: DsButtonVisualState.pressed,
               ),
             ],
           ),
 
           const SizedBox(height: 16),
           Text(
-            'Outline Primary',
+            'Mini Accept 100x40',
             style: Theme.of(context).textTheme.titleSmall,
           ),
           const SizedBox(height: 8),
           Wrap(
-            spacing: 12,
-            runSpacing: 12,
+            spacing: 8,
+            runSpacing: 8,
             children: [
               DsButton(
-                label: 'Outline (SM)',
+                label: 'text',
                 onPressed: () {},
-                variant: DsButtonVariant.outlinePrimary,
+                variant: DsButtonVariant.secondary,
                 size: DsButtonSize.sm,
               ),
               DsButton(
-                label: 'Outline (MD)',
+                label: 'text',
                 onPressed: () {},
-                variant: DsButtonVariant.outlinePrimary,
-                size: DsButtonSize.md,
+                variant: DsButtonVariant.secondary,
+                size: DsButtonSize.sm,
+                visualOverride: DsButtonVisualState.disabled,
               ),
               DsButton(
-                label: 'Outline (LG)',
+                label: 'text',
                 onPressed: () {},
-                variant: DsButtonVariant.outlinePrimary,
-                size: DsButtonSize.lg,
+                variant: DsButtonVariant.secondary,
+                size: DsButtonSize.sm,
+                visualOverride: DsButtonVisualState.hover,
+              ),
+              DsButton(
+                label: 'text',
+                onPressed: () {},
+                variant: DsButtonVariant.secondary,
+                size: DsButtonSize.sm,
+                visualOverride: DsButtonVisualState.pressed,
               ),
             ],
           ),
 
           const SizedBox(height: 16),
           Text(
-            'With Icons + Full width',
+            'Mini Denied 100x40',
+            style: Theme.of(context).textTheme.titleSmall,
+          ),
+          const SizedBox(height: 8),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              DsButton(
+                label: 'text',
+                onPressed: () {},
+                variant: DsButtonVariant.error,
+                size: DsButtonSize.sm,
+              ),
+              DsButton(
+                label: 'text',
+                onPressed: () {},
+                variant: DsButtonVariant.error,
+                size: DsButtonSize.sm,
+                visualOverride: DsButtonVisualState.disabled,
+              ),
+              DsButton(
+                label: 'text',
+                onPressed: () {},
+                variant: DsButtonVariant.error,
+                size: DsButtonSize.sm,
+                visualOverride: DsButtonVisualState.hover,
+              ),
+              DsButton(
+                label: 'text',
+                onPressed: () {},
+                variant: DsButtonVariant.error,
+                size: DsButtonSize.sm,
+                visualOverride: DsButtonVisualState.pressed,
+              ),
+            ],
+          ),
+
+          const SizedBox(height: 16),
+          Text(
+            'Reload / Setting / Exit',
             style: Theme.of(context).textTheme.titleSmall,
           ),
           const SizedBox(height: 8),
           Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               DsButton(
-                label: 'Continue',
+                label: 'text',
                 onPressed: () {},
-                variant: DsButtonVariant.primary,
-                leading: const Icon(Icons.play_arrow_rounded, size: 20),
+                variant: DsButtonVariant.outlinePrimary,
+                leadingSvgAsset: 'assets/icons/ui/icon_refresh.svg',
+                iconSize: 17,
               ),
               const SizedBox(height: 8),
-              SizedBox(
-                width: double.infinity,
-                child: DsButton(
-                  label: 'Next',
-                  onPressed: () {},
-                  variant: DsButtonVariant.accentFilled,
-                  trailing: const Icon(Icons.arrow_forward_rounded, size: 20),
-                ),
+              DsButton(
+                label: 'text',
+                onPressed: () {},
+                variant: DsButtonVariant.outlinePrimary,
+                leadingSvgAsset: 'assets/icons/ui/icon_locate.svg',
+                iconSize: 20,
+              ),
+              const SizedBox(height: 8),
+              DsButton(
+                label: 'text',
+                onPressed: () {},
+                variant: DsButtonVariant.error,
+                size: DsButtonSize.lg,
               ),
             ],
           ),

@@ -1,3 +1,1 @@
-export 'ds_text_field.dart';
-export 'ds_text_field_props.dart';
-export 'ds_text_field_helper.dart';
+export '../../design_system/v4/inputs/index.dart';

@@ -73,15 +73,14 @@ class _DsSvgSwapButtonState extends State<DsSvgSwapButton> {
     final disabled = widget.onPressed == null;
 
     // mobile จะมีแค่ pressed, web/desktop มี hover ด้วย
-    final bool isActive = widget.previewHoverLook ||
-        (!disabled && (_hovered || _pressed));
+    final bool isActive =
+        widget.previewHoverLook || (!disabled && (_hovered || _pressed));
 
     final double normalSize = widget.iconSize;
     final double activeSize = widget.activeIconSize;
 
     // กล่อง hit area ใหญ่กว่าหน่อย เพื่อให้กดติดง่าย
-    final double outerSize =
-        widget.hitSize ?? (widget.activeIconSize + 20);
+    final double outerSize = widget.hitSize ?? (widget.activeIconSize + 20);
 
     final core = TweenAnimationBuilder<double>(
       tween: Tween<double>(begin: 0, end: isActive ? 1 : 0),
@@ -93,8 +92,9 @@ class _DsSvgSwapButtonState extends State<DsSvgSwapButton> {
 
         // glow ยิ่ง active ยิ่งแรง
         final double blur = widget.glowBlur * t;
-        final Color glowColor =
-            widget.glowColor.withOpacity(widget.glowColor.opacity * t);
+        final Color glowColor = widget.glowColor.withOpacity(
+          widget.glowColor.opacity * t,
+        );
 
         return SizedBox(
           width: outerSize,
@@ -107,12 +107,7 @@ class _DsSvgSwapButtonState extends State<DsSvgSwapButton> {
               decoration: BoxDecoration(
                 // extra glow นอกเหนือจาก glow ที่อยู่ใน SVG
                 boxShadow: t > 0
-                    ? [
-                        BoxShadow(
-                          color: glowColor,
-                          blurRadius: blur,
-                        ),
-                      ]
+                    ? [BoxShadow(color: glowColor, blurRadius: blur)]
                     : const [],
               ),
               child: Stack(
@@ -124,10 +119,7 @@ class _DsSvgSwapButtonState extends State<DsSvgSwapButton> {
                     child: SvgPicture.asset(widget.assetA),
                   ),
                   // active SVG ค่อย ๆ โผล่
-                  Opacity(
-                    opacity: t,
-                    child: SvgPicture.asset(widget.assetB),
-                  ),
+                  Opacity(opacity: t, child: SvgPicture.asset(widget.assetB)),
                 ],
               ),
             ),
