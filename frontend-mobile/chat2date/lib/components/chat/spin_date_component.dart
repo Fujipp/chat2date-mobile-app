@@ -144,7 +144,7 @@ class _SpinDateComponentState extends State<SpinDateComponent>
       await Future.wait(
         widget.prizes.map((prize) async {
           final String? url = prize['imageUrl'];
-          if (url == null || _loadedImages.containsKey(url)) return;
+          if (url == null || url.isEmpty || _loadedImages.containsKey(url)) return;
 
           try {
             final Completer<ui.Image> completer = Completer();
@@ -164,7 +164,7 @@ class _SpinDateComponentState extends State<SpinDateComponent>
             );
 
             final ui.Image img = await completer.future.timeout(
-              const Duration(seconds: 5),
+              const Duration(seconds: 10),
             );
             _loadedImages[url] = img;
           } catch (e) {

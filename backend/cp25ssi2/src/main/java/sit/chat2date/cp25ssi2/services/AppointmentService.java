@@ -163,6 +163,7 @@ public class AppointmentService {
 
         // 5. Apply update
         appointment.setDateTime(request.getDateTime());
+        appointment.setIsNotified(false);
         appointment.setStatus(AppointmentStatus.SCHEDULED);
         appointment = appointmentRepository.save(appointment);
 
