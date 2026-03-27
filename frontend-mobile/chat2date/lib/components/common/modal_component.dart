@@ -305,6 +305,7 @@ class _ModalComponentState extends State<ModalComponent> {
                       ),
                   ],
                 ),
+                textAlign: TextAlign.center,
               ),
             if (widget.choice != false)
               Wrap(
