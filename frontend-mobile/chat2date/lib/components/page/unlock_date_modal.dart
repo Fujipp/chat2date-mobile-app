@@ -85,7 +85,7 @@ class UnlockDateModal extends StatelessWidget {
                 ),
                 const SizedBox(height: 12),
                 const Text(
-                  'เตรียมตัวไปสร้างเดทสุดพิเศษ\nกับคู่ของคุณกัน!',
+                  'เตรียมตัวไปสร้างเดตสุดพิเศษ\nกับคู่ของคุณกัน!',
                   textAlign: TextAlign.center,
                   style: TextStyle(
                     fontSize: 16,
@@ -213,7 +213,7 @@ class UnlockDateModal extends StatelessWidget {
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         ),
         child: const Text(
-          'ไปเดทกันเลย!',
+          'ไปเดตกันเลย!',
           style: TextStyle(color: AppColors.btnTextPrimary, fontSize: 18, fontWeight: FontWeight.bold),
         ),
       ),

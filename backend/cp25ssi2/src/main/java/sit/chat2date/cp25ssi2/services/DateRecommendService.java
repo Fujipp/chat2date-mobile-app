@@ -340,6 +340,11 @@ public class DateRecommendService {
         Match match = matchRepository.findById(Integer.valueOf(roomId))
                 .orElseThrow(() -> new NotFoundException("Match not found with id: " + roomId));
 
+        if (!Objects.equals(user.getUserId(), match.getUserId1().getUserId()) &&
+                !Objects.equals(user.getUserId(), match.getUserId2().getUserId())) {
+            throw new ForbiddenAccessException("Forbidden: cannot access another user's data");
+        }
+
         Optional<PlaceConfirmation> pendingConfirmation = placeConfirmationRepository
                 .findFirstByMatchAndStatusOrderByConfirmIdDesc(match.getId(), ConfirmationStatus.PENDING);
 
@@ -574,9 +579,7 @@ public class DateRecommendService {
                 return new SpinStatusResponse(false, 0);
             }
 
-            LocalDateTime baseTime = latest.getDateTime() != null
-                    ? latest.getDateTime()
-                    : latest.getUpdatedAt();
+            LocalDateTime baseTime = latest.getUpdatedAt();
 
             int cooldownDays;
             if (latest.getStatus() == AppointmentStatus.CANCELLED) {
@@ -623,9 +626,7 @@ public class DateRecommendService {
                 .findFirstByMatch_IdOrderByCreatedAtDesc(Integer.valueOf(roomId))
                 .orElseThrow(() -> new NotFoundException("Appointment not found for room: " + roomId));
 
-        LocalDateTime baseTime = latest.getDateTime() != null
-                ? latest.getDateTime()
-                : latest.getUpdatedAt();
+        LocalDateTime baseTime = latest.getUpdatedAt();
 
         ZoneId bangkokZone = ZoneId.of("Asia/Bangkok");
         ZonedDateTime nowThai = ZonedDateTime.now(bangkokZone);

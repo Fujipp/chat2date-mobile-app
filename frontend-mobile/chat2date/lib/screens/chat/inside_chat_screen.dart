@@ -812,7 +812,7 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
             if (_currentUserId == leaderIdFromSocket) {
               _indexSelected = (targetStr == nickname) ? 1 : 0;
             } else {
-              _indexSelected = (targetStr == _chatUserName) ? 0 : 1;
+              _indexSelected = (targetStr == "PARTNER") ? 1 : 0;
             }
 
             final List placesList = data['places'] ?? [];
@@ -1029,9 +1029,18 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
         int.parse(roomId),
       );
 
-      final latestAppointment =
-          _findLatestActiveAppointment(appointments) ??
-          _findLatestNotActiveAppointment(appointments);
+      final activeAppointment = _findLatestActiveAppointment(appointments);
+      final inactiveAppointment = _findLatestNotActiveAppointment(appointments);
+
+      if (inactiveAppointment != null) {
+        try {
+          await ref
+              .read(dateRecommendProvider)
+              .deleteAppointmentAfterCooldown(roomId: roomId);
+        } catch (_) {}
+      }
+
+      final latestAppointment = activeAppointment;
 
       final prefs = await SharedPreferences.getInstance();
       final prefsKey = _calendarSeenPrefsKey(roomId);
@@ -1315,14 +1324,14 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
           type: ToastType.warning,
           title: "ไม่สามารถสุ่มใหม่ได้",
           message:
-              "กรุณาสรุปสถานที่เดทปัจจุบัน หรือจัดการนัดหมายเดิมให้เสร็จก่อน",
+              "กรุณาสรุปสถานที่เดตปัจจุบัน หรือจัดการนัดหมายเดิมให้เสร็จก่อน",
         );
       } else {
         // 📢 กรณีติด Cooldown วัน
         Toast.show(
           context,
           type: ToastType.info,
-          title: "อยู่ในช่วงพักเดท",
+          title: "อยู่ในช่วงพักเดต",
           message: "กรุณารอให้ครบกำหนด Cooldown ก่อนหมุนอีกครั้ง",
         );
       }
@@ -1350,6 +1359,7 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
     await _prepareBeforeSpin(20, "MIDPOINT", "", false);
     // ผ่านทุกเงื่อนไข - เปิด modal
     setState(() {
+      _leaderId = _currentUserId;
       _showWheelModal = true;
     });
   }
@@ -1633,10 +1643,13 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
           heightSvg: 68,
           widthSvg: 77,
           topic: 'ยืนยันที่จะยกเลิกวันเดตหรือไม่',
-          description:
-              'หากยืนยัน ระบบจะยกเลิกนัดหมายนี้ และคุณจะต้องสุ่มสถานที่ใหม่อีกครั้ง',
+          subDescription: true,
+          headingSubDescriptionText:
+              'หากยืนยันการลบ คุณจะต้องรอ Cooldown ก่อนจึงจะสามารถนัดหมายครั้งถัดไปได้',
+          headingSubDescriptionColor: Colors.red,
+          headingSubDescriptionWeight: FontWeight.w500,
           choice: true,
-          firstChoiceText: 'ยืนยัน',
+          firstChoiceText: 'ยืนยันการลบ',
           secondChoiceText: 'ยกเลิก',
           onFirstChoice: () {
             Navigator.pop(ctx);
@@ -2043,7 +2056,7 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
     if (appt == null ||
         appt.dateTime == null ||
         !DateTime.now().isAfter(
-          appt.dateTime!.toLocal().add(const Duration(hours: 5)),
+          appt.dateTime!.toLocal().add(const Duration(hours: 3)),
         )) {
       return;
     }
@@ -2080,9 +2093,9 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
           heightSvg: 68,
           widthSvg: 77,
           imageName: _chatUserName,
-          topic: 'ประเมินคู่เดทของคุณ',
+          topic: 'ประเมินคู่เดตของคุณ',
           topicTop: true,
-          description: 'คุณพึงพอใจกับคู่เดทของคุณหรือไม่',
+          description: 'คุณพึงพอใจกับคู่เดตของคุณหรือไม่',
           choice: true,
           firstChoiceText: 'ไม่พอใจ',
           secondChoiceText: 'พอใจ',
@@ -2687,7 +2700,7 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
 
                                         if (shareUrl.isNotEmpty) {
                                           await Share.share(
-                                            'ฉันกำลังไปเดตนะ! สามารถติดตามโลเคชันแบบเรียลไทม์ของฉันได้ที่ลิงก์นี้เลย:\n$shareUrl',
+                                            'ฉันกำลังไปเดตนะ! นี่คือตำแหน่งล่าสุดของฉันตอนนี้นะ:\n$shareUrl',
                                           );
                                         }
                                       } catch (e) {
@@ -2710,6 +2723,7 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
                                               desiredAccuracy:
                                                   LocationAccuracy.high,
                                             );
+                                        if (calledNumber == '191') return;
 
                                         await ref
                                             .read(sosServiceProvider)

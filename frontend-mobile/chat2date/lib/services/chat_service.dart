@@ -133,7 +133,7 @@ class ChatService {
     }
 
     if (response.statusCode == 403) {
-      throw Exception('ส่งข้อความไม่สำเร็จ เนื่องจากคุณถูกคู่เดทของคุณรายงาน');
+      throw Exception('ส่งข้อความไม่สำเร็จ เนื่องจากคุณถูกคู่เดตของคุณรายงาน');
     }
 
     throw Exception('ส่งข้อความไม่สำเร็จ');

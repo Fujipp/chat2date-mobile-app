@@ -33,6 +33,10 @@ public class SosIncidentService {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "กรุณาระบุเบอร์โทรที่ติดต่อ (calledNumber)");
         }
 
+        if (!req.getCalledNumber().matches("^0\\d{8,9}$")) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "รูปแบบเบอร์โทรไม่ถูกต้อง (ต้องเป็นตัวเลข 9-10 หลัก และขึ้นต้นด้วย 0)");
+        }
+
         User reporter = userRepository.findById(userId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "ไม่พบผู้ใช้งานในระบบ"));
 
@@ -86,18 +90,27 @@ public class SosIncidentService {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "บันทึกเบอร์ฉุกเฉินได้สูงสุด 3 เบอร์เท่านั้น");
         }
 
+        java.util.Set<String> uniquePhones = new java.util.HashSet<>();
+        for (String phone : phoneNumbers) {
+            if (phone != null && !phone.trim().isEmpty()) {
+                String trimmedPhone = phone.trim();
+                if (!trimmedPhone.matches("^0\\d{8,9}$")) {
+                    throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "รูปแบบเบอร์โทรไม่ถูกต้อง: " + trimmedPhone);
+                }
+                uniquePhones.add(trimmedPhone);
+            }
+        }
+
         emergencyContactRepository.deleteByUser_UserId(userId);
 
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "ไม่พบผู้ใช้งาน"));
 
-        for (String phone : phoneNumbers) {
-            if (phone != null && !phone.trim().isEmpty()) {
-                EmergencyContact contact = new EmergencyContact();
-                contact.setUser(user);
-                contact.setTelephoneNumber(phone.trim());
-                emergencyContactRepository.save(contact);
-            }
+        for (String phone : uniquePhones) {
+            EmergencyContact contact = new EmergencyContact();
+            contact.setUser(user);
+            contact.setTelephoneNumber(phone);
+            emergencyContactRepository.save(contact);
         }
     }
 }

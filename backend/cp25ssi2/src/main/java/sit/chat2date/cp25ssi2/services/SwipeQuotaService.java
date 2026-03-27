@@ -29,6 +29,7 @@ public class SwipeQuotaService {
         User user = extractToken(accessToken);
         return swipeQuotaRepository.findByUserId(user.getUserId())
                 .map(quota -> {
+                    updateBehaviorScore(user, quota);
                     refreshQuota(quota);
                     return convertToResponse(quota);
                 })
@@ -115,6 +116,30 @@ public class SwipeQuotaService {
         if (quota.getSwipeDate() == null || !quota.getSwipeDate().isEqual(todayTH)) {
             quota.setSwipeCount(0);
             quota.setSwipeDate(todayTH);
+        }
+
+
+    }
+
+    @Transactional
+    public void updateBehaviorScore(User user, SwipeQuota quota) {
+        if (quota.getLastReportAt() == null) {
+            return;
+        }
+
+        LocalDateTime nowTH = LocalDateTime.now(ZoneId.of("Asia/Bangkok"));
+        LocalDateTime lastEvent = quota.getLastReportAt().atStartOfDay();
+
+        if (nowTH.isAfter(lastEvent.plusDays(30))) {
+
+            int currentScore = (user.getBehaviorScore() != null) ? user.getBehaviorScore() : 0;
+
+            user.setBehaviorScore(Math.min(currentScore + 15, 100));
+
+            quota.setLastReportAt(null);
+
+            userRepository.save(user);
+            swipeQuotaRepository.save(quota);
         }
     }
 

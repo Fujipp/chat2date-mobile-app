@@ -144,7 +144,7 @@ class _SpinDateComponentState extends State<SpinDateComponent>
       await Future.wait(
         widget.prizes.map((prize) async {
           final String? url = prize['imageUrl'];
-          if (url == null || _loadedImages.containsKey(url)) return;
+          if (url == null || url.isEmpty || _loadedImages.containsKey(url)) return;
 
           try {
             final Completer<ui.Image> completer = Completer();
@@ -164,7 +164,7 @@ class _SpinDateComponentState extends State<SpinDateComponent>
             );
 
             final ui.Image img = await completer.future.timeout(
-              const Duration(seconds: 5),
+              const Duration(seconds: 10),
             );
             _loadedImages[url] = img;
           } catch (e) {
@@ -289,7 +289,7 @@ class _SpinDateComponentState extends State<SpinDateComponent>
             mainAxisSize: MainAxisSize.min,
             children: [
               const Text(
-                'สถานที่เดทของคุณคือ...',
+                'สถานที่เดตของคุณคือ...',
                 style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
               ),
               const SizedBox(height: 15),
@@ -400,7 +400,7 @@ class _SpinDateComponentState extends State<SpinDateComponent>
                     CircularProgressIndicator(color: AppColors.brandPrimary),
                     SizedBox(height: 16),
                     Text(
-                      "กำลังเตรียมสถานที่เดท...",
+                      "กำลังเตรียมสถานที่เดต...",
                       style: TextStyle(color: AppColors.textMuted),
                     ),
                   ],
@@ -579,7 +579,7 @@ class _SpinDateComponentState extends State<SpinDateComponent>
           const Text(
             '* คุณกำลังอยู่ในโหมดผู้ชม สามารถดูได้อย่างเดียวเท่านั้น',
             style: TextStyle(
-              fontSize: 12, 
+              fontSize: 12,
               color: AppColors.error, // ใช้สีแดงแจ้งเตือน
               fontWeight: FontWeight.bold,
             ),

@@ -40,7 +40,7 @@ class _FeatureGuideModalState extends State<FeatureGuideModal> {
       ),
       title: 'ส่งข้อความ',
       description:
-          'คุณสามารถส่งข้อความหาคู่เดทของคุณได้ตามจุดส่งข้อความที่กำหนดไว้',
+          'คุณสามารถส่งข้อความหาคู่เดตของคุณได้ตามจุดส่งข้อความที่กำหนดไว้',
     ),
     _FeaturePageData(
       iconSource: const FittedBox(
@@ -63,7 +63,7 @@ class _FeatureGuideModalState extends State<FeatureGuideModal> {
       ),
       title: 'เกมทายใจ',
       description:
-          'เกมนี้สามารถเล่นได้เมื่อคุยกันได้ถึงระดับหนึ่ง เป็นเกมที่ช่วยเสริมสร้างความสัมพันธ์ระหว่างคุณกับคู่เดท โดยการตอบคำถามเกี่ยวกับตัวคุณและคู่เดทของคุณ เพื่อเพิ่มคะแนนความสัมพันธ์',
+          'เกมนี้สามารถเล่นได้เมื่อคุยกันได้ถึงระดับหนึ่ง เป็นเกมที่ช่วยเสริมสร้างความสัมพันธ์ระหว่างคุณกับคู่เดต โดยการตอบคำถามเกี่ยวกับตัวคุณและคู่เดตของคุณ เพื่อเพิ่มคะแนนความสัมพันธ์',
     ),
     _FeaturePageData(
       iconSource: SvgPicture.asset(
@@ -73,7 +73,7 @@ class _FeatureGuideModalState extends State<FeatureGuideModal> {
       ),
       title: 'วงล้อสุ่ม',
       description:
-          'สุ่มสถานที่ท่องเที่ยวนัดเดทสุดพิเศษที่ทั้งคู่จะต้องประทับใจ',
+          'สุ่มสถานที่ท่องเที่ยวนัดเดตสุดพิเศษที่ทั้งคู่จะต้องประทับใจ',
     ),
     _FeaturePageData(
       iconSource: SvgPicture.asset(
@@ -81,9 +81,9 @@ class _FeatureGuideModalState extends State<FeatureGuideModal> {
         width: 50,
         height: 50,
       ),
-      title: 'ปฏิทินนัดเดท',
+      title: 'ปฏิทินนัดเดต',
       description:
-          'ตั้งเวลาและจัดการวันที่เดทเพื่อให้คุณและคู่ของคุณมีเวลาในการพบปะกันอย่างมีประสิทธิภาพ',
+          'ตั้งเวลาและจัดการวันที่เดตเพื่อให้คุณและคู่ของคุณมีเวลาในการพบปะกันอย่างมีประสิทธิภาพ',
     ),
     _FeaturePageData(
       iconSource: SvgPicture.asset(
@@ -103,7 +103,7 @@ class _FeatureGuideModalState extends State<FeatureGuideModal> {
       ),
       title: 'รายงานปัญหา',
       description:
-          'หากพบปัญหาใดๆ สามารถรายงานคู่เดทของคุณได้ทันทีผ่านฟีเจอร์รายงาน',
+          'หากพบปัญหาใดๆ สามารถรายงานคู่เดตของคุณได้ทันทีผ่านฟีเจอร์รายงาน',
     ),
   ];
 
