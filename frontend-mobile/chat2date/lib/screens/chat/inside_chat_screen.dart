@@ -2700,7 +2700,7 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
 
                                         if (shareUrl.isNotEmpty) {
                                           await Share.share(
-                                            'ฉันกำลังไปเดตนะ! สามารถติดตามโลเคชันแบบเรียลไทม์ของฉันได้ที่ลิงก์นี้เลย:\n$shareUrl',
+                                            'ฉันกำลังไปเดตนะ! นี่คือตำแหน่งล่าสุดของฉันตอนนี้นะ:\n$shareUrl',
                                           );
                                         }
                                       } catch (e) {
@@ -2723,6 +2723,7 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
                                               desiredAccuracy:
                                                   LocationAccuracy.high,
                                             );
+                                        if (calledNumber == '191') return;
 
                                         await ref
                                             .read(sosServiceProvider)
