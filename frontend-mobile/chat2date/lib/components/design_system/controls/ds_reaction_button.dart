@@ -132,13 +132,10 @@ class _DsReactionButtonState extends State<DsReactionButton> {
                     scale: isActive ? 1.02 : 1,
                     duration: const Duration(milliseconds: 180),
                     curve: Curves.easeOut,
-                    child: Icon(
-                      switch (widget.type) {
-                        DsReactionButtonType.match => Icons.favorite,
-                        DsReactionButtonType.pass => Icons.close_rounded,
-                      },
-                      size: widget.type == DsReactionButtonType.match ? 31 : 29,
+                    child: _ReactionGlyph(
+                      type: widget.type,
                       color: iconColor,
+                      size: widget.type == DsReactionButtonType.match ? 31 : 24,
                     ),
                   ),
                 ),
@@ -148,5 +145,69 @@ class _DsReactionButtonState extends State<DsReactionButton> {
         ),
       ),
     );
+  }
+}
+
+class _ReactionGlyph extends StatelessWidget {
+  const _ReactionGlyph({
+    required this.type,
+    required this.color,
+    required this.size,
+  });
+
+  final DsReactionButtonType type;
+  final Color color;
+  final double size;
+
+  @override
+  Widget build(BuildContext context) {
+    switch (type) {
+      case DsReactionButtonType.match:
+        return Icon(
+          Icons.favorite_rounded,
+          size: size,
+          color: color,
+        );
+      case DsReactionButtonType.pass:
+        return SizedBox(
+          width: size,
+          height: size,
+          child: CustomPaint(
+            painter: _PassGlyphPainter(color: color),
+          ),
+        );
+    }
+  }
+}
+
+class _PassGlyphPainter extends CustomPainter {
+  const _PassGlyphPainter({required this.color});
+
+  final Color color;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = color
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = size.width * 0.26
+      ..strokeCap = StrokeCap.round;
+
+    final inset = size.width * 0.18;
+    canvas.drawLine(
+      Offset(inset, inset),
+      Offset(size.width - inset, size.height - inset),
+      paint,
+    );
+    canvas.drawLine(
+      Offset(size.width - inset, inset),
+      Offset(inset, size.height - inset),
+      paint,
+    );
+  }
+
+  @override
+  bool shouldRepaint(covariant _PassGlyphPainter oldDelegate) {
+    return oldDelegate.color != color;
   }
 }

@@ -1,6 +1,6 @@
 import 'package:chat2date/components/design_system/buttons/index.dart';
 import 'package:chat2date/components/design_system/controls/index.dart';
-import 'package:chat2date/components/design_system/feedback/ds_toast.dart';
+import 'package:chat2date/components/design_system/feedback/index.dart';
 import 'package:chat2date/components/design_system/inputs/index.dart';
 import 'package:chat2date/components/design_system/navigation/index.dart';
 import 'package:chat2date/components/design_system/organisms/index.dart';
@@ -24,6 +24,7 @@ class _UiShowcaseScreenState extends State<UiShowcaseScreen> {
   int _switcherIndex = 0;
   DsUserSelectorValue _userSelectorValue = DsUserSelectorValue.single;
   double _sliderValue = 50;
+  double _progressRingValue = 0.5;
   final _searchTypingController = TextEditingController(text: 'Text');
   final _searchFilledController = TextEditingController(text: 'Text');
   final _textController = TextEditingController();
@@ -80,11 +81,45 @@ class _UiShowcaseScreenState extends State<UiShowcaseScreen> {
           const _ShowcaseSectionTitle('Toasts'),
           const _ShowcaseCard(child: _ToastShowcase()),
           const SizedBox(height: 24),
+          const _ShowcaseSectionTitle('Status Modal'),
+          _ShowcaseCard(
+            child: _StatusModalShowcase(
+              onShowSuccess: () => DsStatusModal.show(
+                context,
+                type: DsStatusModalType.success,
+                title: 'บันทึกเสร็จสิ้น',
+                message:
+                    'วันและเวลาออกเดตของคุณคือ 15 มกราคม 2026\nเวลา 12.00 น. ที่อควาเรียมบางแสน',
+                trailingMessage:
+                    'เราจะแจ้งเตือนคุณอีกครั้งล่วงหน้าก่อนวันเดต 1 วัน',
+              ),
+              onShowWarning: () => DsStatusModal.show(
+                context,
+                type: DsStatusModalType.warning,
+                title: 'ติดคูลดาวน์การหาสถานที่เดต 7 วัน',
+                message: 'สามารถกดที่',
+                trailingMessage: 'เพื่อดูข้อมูลเพิ่มเติมได้',
+                bodyMode: DsStatusModalBodyMode.inlineIcon,
+              ),
+            ),
+          ),
+          const SizedBox(height: 24),
+          const _ShowcaseSectionTitle('Action Modal'),
+          const _ShowcaseCard(child: _ActionModalShowcase()),
+          const SizedBox(height: 24),
           const _ShowcaseSectionTitle('Slider'),
           _ShowcaseCard(
             child: _SliderShowcase(
               value: _sliderValue,
               onChanged: (value) => setState(() => _sliderValue = value),
+            ),
+          ),
+          const SizedBox(height: 24),
+          const _ShowcaseSectionTitle('Progress Ring'),
+          _ShowcaseCard(
+            child: _ProgressRingShowcase(
+              value: _progressRingValue,
+              onChanged: (value) => setState(() => _progressRingValue = value),
             ),
           ),
           const SizedBox(height: 24),
@@ -658,6 +693,371 @@ class _SwitcherShowcase extends StatelessWidget {
       items: const ['Section 1', 'Section 2'],
       selectedIndex: selectedIndex,
       onChanged: onChanged,
+    );
+  }
+}
+
+class _ProgressRingShowcase extends StatelessWidget {
+  const _ProgressRingShowcase({
+    required this.value,
+    required this.onChanged,
+  });
+
+  final double value;
+  final ValueChanged<double> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Wrap(
+          spacing: 16,
+          runSpacing: 16,
+          children: const [
+            DsProgressRing(value: 0),
+            DsProgressRing(value: 0.25),
+            DsProgressRing(value: 0.5),
+            DsProgressRing(value: 0.75),
+            DsProgressRing(value: 1),
+          ],
+        ),
+        const SizedBox(height: 20),
+        Center(
+          child: DsProgressRing(value: value),
+        ),
+        const SizedBox(height: 12),
+        Slider(
+          min: 0,
+          max: 1,
+          value: value,
+          onChanged: onChanged,
+          activeColor: AppColors.brandPrimary,
+          inactiveColor: AppColors.divider,
+        ),
+      ],
+    );
+  }
+}
+
+class _StatusModalShowcase extends StatelessWidget {
+  const _StatusModalShowcase({
+    required this.onShowSuccess,
+    required this.onShowWarning,
+  });
+
+  final VoidCallback onShowSuccess;
+  final VoidCallback onShowWarning;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Wrap(
+          spacing: 16,
+          runSpacing: 16,
+          children: [
+            DsStatusModal(
+              type: DsStatusModalType.success,
+              title: 'บันทึกเสร็จสิ้น',
+              message:
+                  'วันและเวลาออกเดตของคุณคือ 15 มกราคม 2026\nเวลา 12.00 น. ที่อควาเรียมบางแสน',
+              trailingMessage:
+                  'เราจะแจ้งเตือนคุณอีกครั้งล่วงหน้าก่อนวันเดต 1 วัน',
+            ),
+            DsStatusModal(
+              type: DsStatusModalType.warning,
+              title: 'ติดคูลดาวน์การหาสถานที่เดต 7 วัน',
+              message: 'สามารถกดที่',
+              trailingMessage: 'เพื่อดูข้อมูลเพิ่มเติมได้',
+              bodyMode: DsStatusModalBodyMode.inlineIcon,
+            ),
+            DsStatusModal(
+              type: DsStatusModalType.ban,
+              title: 'คุณถูกแบน',
+              message:
+                  'เนื่องจากคุณโดนรายงาน และตรวจสอบแล้วว่าผิดจริง\nทำให้คะแนนความประพฤติต่ำกว่าเกณฑ์ที่กำหนด',
+              trailingMessage:
+                  'คุณจะไม่สามารถใช้บัญชีนี้ได้อีกต่อไปและไม่สามารถสร้างบัญชีใหม่ของคุณได้อีก',
+            ),
+            DsStatusModal(
+              type: DsStatusModalType.congrats,
+              title: 'ยินดีด้วย',
+              message: 'คุณทั้งคู่มีความเห็นตรงกัน\nหวังว่าการเดินทางครั้งนี้',
+              trailingMessage:
+                  'จะเป็นก้าวแรกของความสัมพันธ์ที่ดีขึ้นไปอีก',
+            ),
+          ],
+        ),
+        const SizedBox(height: 16),
+        Wrap(
+          spacing: 12,
+          runSpacing: 12,
+          children: [
+            DsButton(
+              label: 'Show Success',
+              variant: DsButtonVariant.primary,
+              onPressed: onShowSuccess,
+            ),
+            DsButton(
+              label: 'Show Warning',
+              variant: DsButtonVariant.outlinePrimary,
+              onPressed: onShowWarning,
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+}
+
+class _ActionModalShowcase extends StatefulWidget {
+  const _ActionModalShowcase();
+
+  @override
+  State<_ActionModalShowcase> createState() => _ActionModalShowcaseState();
+}
+
+class _ActionModalShowcaseState extends State<_ActionModalShowcase> {
+  final _rateController = TextEditingController();
+  final _deleteController = TextEditingController();
+  int? _choiceAnswer;
+  int _rating = 0;
+
+  @override
+  void dispose() {
+    _rateController.dispose();
+    _deleteController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        DsActionModal(
+          title: 'Unlock Your Date',
+          description: 'เตรียมตัวไปสร้างเดตสุดพิเศษ\nกับคู่ของคุณกัน',
+          minHeight: 283,
+          decoration: DsActionModalDecoration.unlock,
+          topVisual: SizedBox(
+            width: 75,
+            height: 92,
+            child: Center(
+              child: SvgPicture.asset(
+                AppAssets.headerSecondaryChat3CenterAction,
+                width: 74,
+                height: 74,
+                fit: BoxFit.contain,
+              ),
+            ),
+          ),
+          actions: DsButton(
+            label: 'ไปเดตกันเลย',
+            variant: DsButtonVariant.primary,
+            width: 231,
+            onPressed: () {},
+          ),
+        ),
+        const SizedBox(height: 16),
+        DsActionModal(
+          title: 'Unlock Your Calendar',
+          description: 'ไปนัดหมายวันเวลาเดตสุดพิเศษ\nพร้อมกับคู่ของคุณกัน',
+          minHeight: 283,
+          decoration: DsActionModalDecoration.unlock,
+          topVisual: SizedBox(
+            width: 74,
+            height: 82.22,
+            child: Center(
+              child: SvgPicture.asset(
+                AppAssets.headerSecondaryChat4LeftAction,
+                width: 74,
+                height: 74,
+                fit: BoxFit.contain,
+              ),
+            ),
+          ),
+          actions: DsButton(
+            label: 'ไปกันเลย',
+            variant: DsButtonVariant.primary,
+            width: 231,
+            onPressed: () {},
+          ),
+        ),
+        const SizedBox(height: 16),
+        DsActionModal(
+          title: 'ขอบคุณสำหรับการรายงาน',
+          description: 'ระบบได้รับข้อมูลของคุณเรียบร้อยแล้ว',
+          minHeight: 190,
+          actions: DsButton(
+            label: 'ปิด',
+            variant: DsButtonVariant.primary,
+            width: 231,
+            onPressed: () {},
+          ),
+        ),
+        const SizedBox(height: 16),
+        DsChoiceModal(
+          title: 'ยืนยันที่จะลบวันเดตหรือไม่',
+          description:
+              'การลบวันเดต สถานที่เดตวันนั้นจะหายไปด้วย\nคุณจะต้อง สุ่มเดตใหม่ หากต้องการเดตอีกครั้ง',
+          negativeLabel: 'ยกเลิก',
+          positiveLabel: 'ยืนยัน',
+          onNegativePressed: () => setState(() => _choiceAnswer = 0),
+          onPositivePressed: () => setState(() => _choiceAnswer = 1),
+        ),
+        const SizedBox(height: 16),
+        DsChoiceModal(
+          title: 'ยืนยันที่จะลบวันเดตหรือไม่',
+          description:
+              'การลบวันเดต สถานที่เดตวันนั้นจะหายไปด้วย\nคุณจะต้อง สุ่มเดตใหม่ หากต้องการเดตอีกครั้ง',
+          negativeLabel: 'ยกเลิก',
+          positiveLabel: 'ยืนยัน',
+          negativeEnabled: _choiceAnswer != 1,
+          positiveEnabled: _choiceAnswer != 0,
+          onNegativePressed: () => setState(() => _choiceAnswer = 0),
+          onPositivePressed: () => setState(() => _choiceAnswer = 1),
+        ),
+        const SizedBox(height: 16),
+        DsChoiceModal(
+          title: 'มีฝ่ายหนึ่งรู้สึกไม่พอใจกับการเดินทางครั้งนี้',
+          description:
+              'คุณต้องการเปิดโอกาสพูดคุยเพื่อทำความเข้าใจและ ไปต่อกับคู่ของคุณหรือไม่?',
+          negativeLabel: 'ไม่ต้องการ',
+          positiveLabel: 'ต้องการ',
+          minHeight: 240,
+          topVisual: SizedBox(
+            width: 77,
+            height: 78,
+            child: SvgPicture.asset(
+              AppAssets.unmatchWarningIcon,
+              fit: BoxFit.contain,
+            ),
+          ),
+        ),
+        const SizedBox(height: 16),
+        DsChoiceModal(
+          title: 'เสียใจที่การเดินทางครั้งนี้ไม่เป็นไปตามที่หวัง',
+          description: 'ต้องการ ยกเลิกการจับคู่ (Unmatch)\nกับคู่ของคุณหรือไม่?',
+          negativeLabel: 'ไม่ต้องการ',
+          positiveLabel: 'ต้องการ',
+          minHeight: 240,
+          topVisual: SizedBox(
+            width: 77.27,
+            height: 78,
+            child: SvgPicture.asset(
+              AppAssets.unmatchBrokenHeartIcon,
+              fit: BoxFit.contain,
+            ),
+          ),
+        ),
+        const SizedBox(height: 16),
+        DsAvatarDecisionModal(
+          title: 'ประเมินคู่เดตของคุณ',
+          name: 'Name',
+          description: 'คุณพึงพอใจกับคู่เดตของคุณหรือไม่',
+          warningLines: const [
+            'การเลือกจะมีผลต่อความสัมพันธ์คู่ของคุณ',
+            'พึงพอใจทั้งคู่ ถือว่าทั้งคู่ประสบความสำเร็จ',
+            'ไม่พึงพอใจทั้งคู่ จะมีให้เลือกว่าจะ unmatch หรือไม่',
+            'ไม่พอใจฝ่ายใดฝ่ายหนึ่ง จะมีให้เลือกไปต่อหรือพอแค่นี้',
+            'หากฝ่ายใดฝ่ายหนึ่งเลือก unmatch หรือ พอแค่นี้ จะจบทันที',
+          ],
+          negativeLabel: 'ไม่พอใจ',
+          positiveLabel: 'พอใจ',
+          avatarImage: const AssetImage(AppAssets.placeholderFemale),
+        ),
+        const SizedBox(height: 16),
+        DsRateAppModal(
+          rating: _rating,
+          controller: _rateController,
+          onRatingChanged: (value) => setState(() => _rating = value),
+        ),
+        const SizedBox(height: 16),
+        DsGuideBookModal(
+          pages: [
+            DsGuideBookPageData(
+              image: _GuideBookImage(
+                icon: 'assets/icons/ui/icon_chat2date_full.svg',
+                caption: 'หน้าแชท',
+              ),
+              title: 'ยินดีต้อนรับเข้าสู่หน้าแชท',
+              description:
+                  'ระบบความสัมพันธ์จะคำนวณจากการพูดคุย\nสม่ำเสมอ เพื่อปลดล็อกสิ่งใหม่ๆ ไปพร้อมกัน',
+            ),
+            DsGuideBookPageData(
+              image: _GuideBookImage(
+                icon: AppAssets.spinwheelIcon,
+                caption: 'วงล้อสุ่มเดต',
+              ),
+              title: 'สุ่มเดตได้ภายในหน้าแชท',
+              description:
+                  'กดวงล้อเพื่อสุ่มสถานที่เดตใหม่ และชวนคู่ของคุณออกไปเปิดประสบการณ์ร่วมกัน',
+            ),
+            DsGuideBookPageData(
+              image: _GuideBookImage(
+                icon: AppAssets.calendarIcon,
+                caption: 'ปฏิทินเดต',
+              ),
+              title: 'จัดการวันเดตได้ทันที',
+              description:
+                  'เลือกวัน เวลา และดูข้อมูลเดตได้ในปฏิทิน เมื่อครบหน้าสุดท้ายปุ่มจะเปลี่ยนเป็นปิด',
+            ),
+          ],
+        ),
+        const SizedBox(height: 16),
+        DsDeleteAccountModal(
+          controller: _deleteController,
+        ),
+      ],
+    );
+  }
+}
+
+class _GuideBookImage extends StatelessWidget {
+  const _GuideBookImage({
+    required this.icon,
+    required this.caption,
+  });
+
+  final String icon;
+  final String caption;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      color: AppColors.neutral100,
+      alignment: Alignment.center,
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          if (icon.endsWith('.svg'))
+            SvgPicture.asset(
+              icon,
+              width: 64,
+              height: 64,
+              fit: BoxFit.contain,
+            )
+          else
+            Image.asset(
+              icon,
+              width: 64,
+              height: 64,
+              fit: BoxFit.contain,
+            ),
+          const SizedBox(height: 8),
+          Text(
+            caption,
+            style: const TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+              color: AppColors.textPrimary,
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

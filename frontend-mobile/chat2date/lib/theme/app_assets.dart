@@ -20,9 +20,29 @@ abstract final class AppAssets {
       'assets/images/placeholders/image_majiko.jpg';
 
   static const String iconDir = 'assets/icons/ui';
+  static const String modalIconDir = 'assets/icons/modals';
   static const String chevronDown = '$iconDir/ic-chevron-down-6x19.svg';
   static const String closeIcon = '$iconDir/icon_close.svg';
-  static const String doneIcon = '$iconDir/icon_done.svg';
+  static const String doneIcon = '$modalIconDir/icon_done.svg';
+  static const String infoIcon = '$iconDir/icon_info.svg';
+  static const String successRingIcon = '$iconDir/icon_success_ring.svg';
+  static const String warningIcon = '$modalIconDir/icon_warning.svg';
+  static const String banningIcon = '$modalIconDir/icon_banning.svg';
+  static const String goodEndingIcon = '$modalIconDir/icon_good-ending.svg';
+  static const String unlockIcon = '$modalIconDir/icon_unlock.svg';
+  static const String calendarIcon = '$modalIconDir/icon_calendar.svg';
+  static const String spinwheelIcon = '$modalIconDir/icon_spinwheel.svg';
+  static const String spinwheelCooldownIcon = '$modalIconDir/icon_spinwheel_7.svg';
+  static const String heartStatusIcon = '$modalIconDir/icon_heart_status.svg';
+  static const String heartActiveIcon = '$iconDir/icon_heart_active.svg';
+  static const String heartIcon = '$iconDir/icon_heart.svg';
+  static const String reportIcon = '$modalIconDir/icon_report.svg';
+  static const String starRatingIcon = '$modalIconDir/icon_star-rating.svg';
+  static const String trashIcon = '$iconDir/ic-trash-20x26.svg';
+  static const String unmatchWarningIcon =
+      '$modalIconDir/icon_unmatch_warning.svg';
+  static const String unmatchBrokenHeartIcon =
+      '$modalIconDir/icon_unmatch_broken_heart.svg';
 
   static const String buttonIconDir = 'assets/icons/buttons';
   static const String headerIconDir = 'assets/icons/headers';

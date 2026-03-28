@@ -1,3 +1,4 @@
+export 'ds_progress_ring.dart';
 export 'ds_reaction_button.dart';
 export 'ds_segmented_switcher.dart';
 export 'ds_slider.dart';

@@ -81,11 +81,15 @@ flutter:
     - assets/icons/buttons/
     - assets/icons/headers/
     - assets/icons/inputs/
+    - assets/icons/modals/
     - assets/icons/navigation/
     - assets/icons/selectors/
     - assets/icons/toasts/
     - assets/branding/
     - assets/images/
+    - assets/images/placeholders/
+    - assets/images/illustrations/
+    - assets/images/references/figma/
     - .env
 
   fonts:
