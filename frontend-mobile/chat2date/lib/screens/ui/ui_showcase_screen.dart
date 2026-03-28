@@ -178,6 +178,9 @@ class _UiShowcaseScreenState extends State<UiShowcaseScreen> {
           const _ShowcaseSectionTitle('Chat Card'),
           const _ShowcaseCard(child: _ChatCardShowcase()),
           const SizedBox(height: 24),
+          const _ShowcaseSectionTitle('Chat'),
+          const _ShowcaseCard(child: _ChatThreadShowcase()),
+          const SizedBox(height: 24),
           const _ShowcaseSectionTitle('Bottom Navbar'),
           _ShowcaseCard(
             child: _BottomNavShowcase(
@@ -1243,6 +1246,151 @@ class _ChatCardShowcase extends StatelessWidget {
           unreadCount: 14,
         ),
       ],
+    );
+  }
+}
+
+class _ChatThreadShowcase extends StatelessWidget {
+  const _ChatThreadShowcase();
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: DsChatThread(
+        now: DateTime(2026, 3, 22, 15, 0),
+        messages: [
+          DsChatMessage(
+            id: 'old-day',
+            text: 'text message',
+            sentAt: DateTime(2025, 9, 22, 22, 0),
+            isSender: true,
+            groupPosition: DsChatBubbleGroupPosition.single,
+          ),
+          DsChatMessage(
+            id: 'send-time',
+            text: 'text message',
+            sentAt: DateTime(2026, 3, 22, 13, 55),
+            isSender: true,
+            groupPosition: DsChatBubbleGroupPosition.single,
+          ),
+          DsChatMessage(
+            id: 'send-1',
+            text: 'text message',
+            sentAt: DateTime(2026, 3, 22, 14, 5),
+            isSender: true,
+            groupPosition: DsChatBubbleGroupPosition.single,
+          ),
+          DsChatMessage(
+            id: 'send-2-a',
+            text: 'text message',
+            sentAt: DateTime(2026, 3, 22, 14, 10),
+            isSender: true,
+            groupPosition: DsChatBubbleGroupPosition.first,
+          ),
+          DsChatMessage(
+            id: 'send-2-b',
+            text: 'text message',
+            sentAt: DateTime(2026, 3, 22, 14, 11),
+            isSender: true,
+            groupPosition: DsChatBubbleGroupPosition.last,
+          ),
+          DsChatMessage(
+            id: 'send-3-a',
+            text: 'text message',
+            sentAt: DateTime(2026, 3, 22, 14, 15),
+            isSender: true,
+            groupPosition: DsChatBubbleGroupPosition.first,
+          ),
+          DsChatMessage(
+            id: 'send-3-b',
+            text: 'text message',
+            sentAt: DateTime(2026, 3, 22, 14, 16),
+            isSender: true,
+            groupPosition: DsChatBubbleGroupPosition.middle,
+          ),
+          DsChatMessage(
+            id: 'send-3-c',
+            text: 'text message',
+            sentAt: DateTime(2026, 3, 22, 14, 17),
+            isSender: true,
+            groupPosition: DsChatBubbleGroupPosition.last,
+          ),
+          DsChatMessage(
+            id: 'receive-1',
+            text: 'text message',
+            sentAt: DateTime(2026, 3, 22, 14, 30),
+            isSender: false,
+            groupPosition: DsChatBubbleGroupPosition.single,
+            avatar: _DemoChatAvatar(),
+          ),
+          DsChatMessage(
+            id: 'receive-2-a',
+            text: 'text message',
+            sentAt: DateTime(2026, 3, 22, 14, 34),
+            isSender: false,
+            groupPosition: DsChatBubbleGroupPosition.first,
+            avatar: _DemoChatAvatar(),
+          ),
+          DsChatMessage(
+            id: 'receive-2-b',
+            text: 'text message',
+            sentAt: DateTime(2026, 3, 22, 14, 35),
+            isSender: false,
+            groupPosition: DsChatBubbleGroupPosition.last,
+          ),
+          DsChatMessage(
+            id: 'receive-3-a',
+            text: 'text message',
+            sentAt: DateTime(2026, 3, 22, 14, 40),
+            isSender: false,
+            groupPosition: DsChatBubbleGroupPosition.first,
+            avatar: _DemoChatAvatar(),
+          ),
+          DsChatMessage(
+            id: 'receive-3-b',
+            text: 'text message',
+            sentAt: DateTime(2026, 3, 22, 14, 41),
+            isSender: false,
+            groupPosition: DsChatBubbleGroupPosition.middle,
+          ),
+          DsChatMessage(
+            id: 'receive-3-c',
+            text: 'text message',
+            sentAt: DateTime(2026, 3, 22, 14, 42),
+            isSender: false,
+            groupPosition: DsChatBubbleGroupPosition.last,
+            avatar: _DemoChatAvatar(),
+          ),
+          DsChatMessage(
+            id: 'send-latest-seen',
+            text: 'text message',
+            sentAt: DateTime(2026, 3, 22, 14, 50),
+            isSender: true,
+            groupPosition: DsChatBubbleGroupPosition.single,
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _DemoChatAvatar extends StatelessWidget {
+  const _DemoChatAvatar();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: 50,
+      height: 50,
+      decoration: const BoxDecoration(
+        shape: BoxShape.circle,
+        color: AppColors.surface,
+      ),
+      padding: const EdgeInsets.all(8),
+      child: SvgPicture.asset(
+        AppAssets.headerSecondaryAvatar,
+        fit: BoxFit.contain,
+      ),
     );
   }
 }

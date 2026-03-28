@@ -25,6 +25,7 @@ abstract final class AppAssets {
   static const String closeIcon = '$iconDir/icon_close.svg';
   static const String doneIcon = '$modalIconDir/icon_done.svg';
   static const String infoIcon = '$iconDir/icon_info.svg';
+  static const String seenIcon = '$iconDir/icon_seen.svg';
   static const String successRingIcon = '$iconDir/icon_success_ring.svg';
   static const String warningIcon = '$modalIconDir/icon_warning.svg';
   static const String banningIcon = '$modalIconDir/icon_banning.svg';
