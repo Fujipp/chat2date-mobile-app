@@ -14,6 +14,9 @@ class DsAppSecondaryHeader extends StatelessWidget {
     this.title = 'Text',
     this.name = 'Name',
     this.avatarImage,
+    this.leading,
+    this.center,
+    this.trailing,
     this.cooldownText = '7',
     this.onBackTap,
     this.onPrimaryActionTap,
@@ -25,6 +28,9 @@ class DsAppSecondaryHeader extends StatelessWidget {
   final String title;
   final String name;
   final ImageProvider<Object>? avatarImage;
+  final Widget? leading;
+  final Widget? center;
+  final Widget? trailing;
   final String cooldownText;
   final VoidCallback? onBackTap;
   final VoidCallback? onPrimaryActionTap;
@@ -47,33 +53,31 @@ class DsAppSecondaryHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final double leadingWidth =
+        variant == DsAppSecondaryHeaderVariant.base ? 79 : 90;
+    final double trailingWidth =
+        variant == DsAppSecondaryHeaderVariant.base ? 0 : 90;
+
     return SizedBox(
       height: 85,
       width: double.infinity,
       child: Row(
         children: [
           SizedBox(
-            width: variant == DsAppSecondaryHeaderVariant.base ? 79 : 90,
+            width: leadingWidth,
             child: Align(
               alignment: Alignment.centerLeft,
-              child: _TapTarget(
-                onTap: onBackTap,
-                child: SvgPicture.asset(
-                  AppAssets.headerSecondaryBack,
-                  width: 40,
-                  height: 40,
-                ),
-              ),
+              child: leading ?? _buildBackButton(),
             ),
           ),
           if (_showsCenter)
             Expanded(child: Center(child: _buildCenterContent())),
-          if (_showsRightSide)
+          if (trailingWidth > 0)
             SizedBox(
-              width: 90,
+              width: trailingWidth,
               child: Align(
                 alignment: Alignment.centerRight,
-                child: _buildActions(),
+                child: trailing ?? _buildActions(),
               ),
             ),
         ],
@@ -82,6 +86,10 @@ class DsAppSecondaryHeader extends StatelessWidget {
   }
 
   Widget _buildCenterContent() {
+    if (center != null) {
+      return center!;
+    }
+
     final bool isBaseText = variant == DsAppSecondaryHeaderVariant.baseText;
 
     return Padding(
@@ -104,6 +112,17 @@ class DsAppSecondaryHeader extends StatelessWidget {
                   ),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildBackButton() {
+    return _TapTarget(
+      onTap: onBackTap,
+      child: SvgPicture.asset(
+        AppAssets.headerSecondaryBack,
+        width: 40,
+        height: 40,
       ),
     );
   }
@@ -133,6 +152,12 @@ class DsAppSecondaryHeader extends StatelessWidget {
   }
 
   Widget _buildActions() {
+    if (!_showsRightSide) {
+      return const SizedBox.shrink();
+    }
+
+    final int cooldownValue = int.tryParse(cooldownText)?.clamp(1, 9) ?? 7;
+
     switch (variant) {
       case DsAppSecondaryHeaderVariant.chat1:
         return _TapTarget(
@@ -153,20 +178,12 @@ class DsAppSecondaryHeader extends StatelessWidget {
           ),
         );
       case DsAppSecondaryHeaderVariant.chat3:
-        return _TapTarget(
-          onTap: onPrimaryActionTap,
-          child: SvgPicture.asset(
-            AppAssets.headerSecondaryChat3Actions,
-            width: 94.75,
-            height: 33,
-          ),
-        );
-      case DsAppSecondaryHeaderVariant.chat4:
         return Row(
           mainAxisSize: MainAxisSize.min,
           children: [
             _TapTarget(
               onTap: onPrimaryActionTap,
+              padding: EdgeInsets.zero,
               child: SvgPicture.asset(
                 AppAssets.headerSecondaryChat4LeftAction,
                 width: 19,
@@ -176,6 +193,42 @@ class DsAppSecondaryHeader extends StatelessWidget {
             const SizedBox(width: 10),
             _TapTarget(
               onTap: onSecondaryActionTap,
+              padding: EdgeInsets.zero,
+              child: SvgPicture.asset(
+                AppAssets.headerSecondaryChat3CenterAction,
+                width: 25,
+                height: 31,
+              ),
+            ),
+            const SizedBox(width: 10),
+            _TapTarget(
+              onTap: onTertiaryActionTap,
+              padding: EdgeInsets.zero,
+              child: SvgPicture.asset(
+                AppAssets.headerSecondaryChat4RightAction,
+                width: 25,
+                height: 27,
+              ),
+            ),
+          ],
+        );
+      case DsAppSecondaryHeaderVariant.chat4:
+        return Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            _TapTarget(
+              onTap: onPrimaryActionTap,
+              padding: EdgeInsets.zero,
+              child: SvgPicture.asset(
+                AppAssets.headerSecondaryChat4LeftAction,
+                width: 19,
+                height: 21.11,
+              ),
+            ),
+            const SizedBox(width: 10),
+            _TapTarget(
+              onTap: onSecondaryActionTap,
+              padding: EdgeInsets.zero,
               child: SizedBox(
                 width: 25,
                 height: 31,
@@ -197,12 +250,21 @@ class DsAppSecondaryHeader extends StatelessWidget {
                       ),
                     ),
                     Positioned(
-                      top: 8,
-                      child: Text(
-                        cooldownText,
-                        textAlign: TextAlign.center,
-                        style: AppBodyTextStyles.overline.copyWith(
-                          color: AppColors.textBlack,
+                      top: 6,
+                      child: Container(
+                        width: 18,
+                        height: 18,
+                        decoration: BoxDecoration(
+                          color: AppColors.divider,
+                          shape: BoxShape.circle,
+                        ),
+                        alignment: Alignment.center,
+                        child: Text(
+                          '$cooldownValue',
+                          textAlign: TextAlign.center,
+                          style: AppBodyTextStyles.overline.copyWith(
+                            color: AppColors.textBlack,
+                          ),
                         ),
                       ),
                     ),
@@ -213,6 +275,7 @@ class DsAppSecondaryHeader extends StatelessWidget {
             const SizedBox(width: 10),
             _TapTarget(
               onTap: onTertiaryActionTap,
+              padding: EdgeInsets.zero,
               child: SvgPicture.asset(
                 AppAssets.headerSecondaryChat4RightAction,
                 width: 25,
@@ -228,18 +291,49 @@ class DsAppSecondaryHeader extends StatelessWidget {
   }
 }
 
-class _TapTarget extends StatelessWidget {
-  const _TapTarget({required this.child, this.onTap});
+class _TapTarget extends StatefulWidget {
+  const _TapTarget({
+    required this.child,
+    this.onTap,
+    this.padding = const EdgeInsets.all(4),
+  });
 
   final Widget child;
   final VoidCallback? onTap;
+  final EdgeInsets padding;
+
+  @override
+  State<_TapTarget> createState() => _TapTargetState();
+}
+
+class _TapTargetState extends State<_TapTarget> {
+  bool _pressed = false;
 
   @override
   Widget build(BuildContext context) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(12),
-      child: Padding(padding: const EdgeInsets.all(4), child: child),
+    return MouseRegion(
+      cursor: widget.onTap != null
+          ? SystemMouseCursors.click
+          : SystemMouseCursors.basic,
+      child: GestureDetector(
+        onTap: widget.onTap,
+        onTapDown: widget.onTap != null
+            ? (_) => setState(() => _pressed = true)
+            : null,
+        onTapUp: widget.onTap != null
+            ? (_) => setState(() => _pressed = false)
+            : null,
+        onTapCancel: widget.onTap != null
+            ? () => setState(() => _pressed = false)
+            : null,
+        behavior: HitTestBehavior.opaque,
+        child: AnimatedSlide(
+          offset: _pressed ? const Offset(0, -0.08) : Offset.zero,
+          duration: const Duration(milliseconds: 140),
+          curve: Curves.easeOutCubic,
+          child: Padding(padding: widget.padding, child: widget.child),
+        ),
+      ),
     );
   }
 }

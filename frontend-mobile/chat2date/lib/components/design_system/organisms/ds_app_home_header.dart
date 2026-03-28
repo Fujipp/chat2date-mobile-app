@@ -23,48 +23,55 @@ class DsAppHomeHeader extends StatelessWidget {
     return SizedBox(
       height: 60,
       width: double.infinity,
-      child: Padding(
-        padding: padding,
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          crossAxisAlignment: CrossAxisAlignment.center,
-          children: [
-            InkWell(
-              onTap: onBrandTap,
-              borderRadius: BorderRadius.circular(12),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  SvgPicture.asset(
-                    AppAssets.headerHomeBrandmark,
-                    width: 24.11,
-                    height: 24.11,
-                  ),
-                  const SizedBox(width: 2.9),
-                  Text(
-                    title,
-                    textAlign: TextAlign.center,
-                    style: AppBodyTextStyles.captionBold.copyWith(
-                      fontWeight: FontWeight.w700,
-                      color: AppColors.surface,
+      child: DecoratedBox(
+        decoration: const BoxDecoration(color: AppColors.background),
+        child: Padding(
+          padding: padding,
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              InkWell(
+                onTap: onBrandTap,
+                borderRadius: BorderRadius.circular(12),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    SvgPicture.asset(
+                      AppAssets.headerHomeBrandmark,
+                      width: 24.11,
+                      height: 24.11,
+                      fit: BoxFit.contain,
+                      theme: const SvgTheme(currentColor: AppColors.surface),
                     ),
-                  ),
-                ],
-              ),
-            ),
-            InkWell(
-              onTap: onActionTap,
-              borderRadius: BorderRadius.circular(10),
-              child: Padding(
-                padding: const EdgeInsets.all(4),
-                child: SvgPicture.asset(
-                  AppAssets.headerHomeControls,
-                  width: 16,
-                  height: 16,
+                    const SizedBox(width: 2.9),
+                    Text(
+                      title,
+                      textAlign: TextAlign.center,
+                      style: AppBodyTextStyles.captionBold.copyWith(
+                        fontWeight: FontWeight.w700,
+                        color: AppColors.surface,
+                      ),
+                    ),
+                  ],
                 ),
               ),
-            ),
-          ],
+              InkWell(
+                onTap: onActionTap,
+                borderRadius: BorderRadius.circular(10),
+                child: Padding(
+                  padding: const EdgeInsets.all(4),
+                  child: SvgPicture.asset(
+                    AppAssets.headerHomeControls,
+                    width: 16,
+                    height: 16,
+                    fit: BoxFit.contain,
+                    theme: const SvgTheme(currentColor: AppColors.surface),
+                  ),
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );

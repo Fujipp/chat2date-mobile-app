@@ -79,6 +79,8 @@ abstract final class AppAssets {
       '$headerIconDir/icon_header_secondary_chat2_actions.svg';
   static const String headerSecondaryChat3Actions =
       '$headerIconDir/icon_header_secondary_chat3_actions.svg';
+  static const String headerSecondaryChat3CenterAction =
+      '$headerIconDir/icon_header_secondary_chat3_center_action.svg';
   static const String headerSecondaryChat4LeftAction =
       '$headerIconDir/icon_header_secondary_chat4_left_action.svg';
   static const String headerSecondaryChat4CenterAction =

@@ -93,7 +93,7 @@ class _CustomBottomNavBarState extends State<CustomBottomNavBar> {
       child: Container(
         height: 80,
         color: AppColors.surface,
-        padding: const EdgeInsets.symmetric(horizontal: 26, vertical: 10),
+        padding: const EdgeInsets.symmetric(vertical: 10),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: List.generate(_items.length, (index) {
@@ -133,43 +133,75 @@ class _BottomNavButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final Widget iconWidget = label == 'Setting'
+        ? _buildSettingIcon()
+        : SvgPicture.asset(iconPath, fit: BoxFit.contain);
+
     final Widget labelWidget = Text(
       label,
       textAlign: TextAlign.center,
+      maxLines: 1,
+      softWrap: false,
       style: AppBodyTextStyles.captionBold.copyWith(
         color: isSelected ? Colors.white : AppColors.textOnDark,
+        height: 1,
       ),
     );
 
     return Expanded(
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(12),
-        child: SizedBox(
-          height: 45,
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.end,
-            children: [
-              SizedBox(
-                width: 30,
-                height: 30,
-                child: SvgPicture.asset(iconPath),
-              ),
-              const SizedBox(height: 1),
-              if (isSelected)
-                ShaderMask(
-                  blendMode: BlendMode.srcIn,
-                  shaderCallback: (bounds) => _activeGradient.createShader(
-                    Rect.fromLTWH(0, 0, bounds.width, bounds.height),
-                  ),
-                  child: labelWidget,
-                )
-              else
-                labelWidget,
-            ],
+      child: Align(
+        alignment: Alignment.center,
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(12),
+          child: SizedBox(
+            width: 56,
+            height: 45,
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                SizedBox(
+                  width: 30,
+                  height: 30,
+                  child: iconWidget,
+                ),
+                const SizedBox(height: 0),
+                if (isSelected)
+                  ShaderMask(
+                    blendMode: BlendMode.srcIn,
+                    shaderCallback: (bounds) => _activeGradient.createShader(
+                      Rect.fromLTWH(0, 0, bounds.width, bounds.height),
+                    ),
+                    child: labelWidget,
+                  )
+                else
+                  labelWidget,
+              ],
+            ),
           ),
         ),
       ),
+    );
+  }
+
+  Widget _buildSettingIcon() {
+    final Widget icon = const Icon(
+      Icons.settings_rounded,
+      size: 28,
+      color: Colors.white,
+    );
+
+    if (!isSelected) {
+      return icon;
+    }
+
+    return ShaderMask(
+      blendMode: BlendMode.srcIn,
+      shaderCallback: (bounds) => _activeGradient.createShader(
+        Rect.fromLTWH(0, 0, bounds.width, bounds.height),
+      ),
+      child: icon,
     );
   }
 }

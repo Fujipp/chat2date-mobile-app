@@ -2,6 +2,8 @@ import 'package:chat2date/components/design_system/buttons/index.dart';
 import 'package:chat2date/components/design_system/controls/index.dart';
 import 'package:chat2date/components/design_system/feedback/ds_toast.dart';
 import 'package:chat2date/components/design_system/inputs/index.dart';
+import 'package:chat2date/components/design_system/navigation/index.dart';
+import 'package:chat2date/components/design_system/organisms/index.dart';
 import 'package:chat2date/theme/app_assets.dart';
 import 'package:chat2date/theme/app_colors.dart';
 import 'package:flutter/material.dart';
@@ -16,6 +18,9 @@ class UiShowcaseScreen extends StatefulWidget {
 }
 
 class _UiShowcaseScreenState extends State<UiShowcaseScreen> {
+  bool _homeHeaderTapped = false;
+  String? _secondaryHeaderEvent;
+  int _bottomNavIndex = 0;
   int _switcherIndex = 0;
   DsUserSelectorValue _userSelectorValue = DsUserSelectorValue.single;
   double _sliderValue = 50;
@@ -97,6 +102,36 @@ class _UiShowcaseScreenState extends State<UiShowcaseScreen> {
               value: _userSelectorValue,
               onChanged: (value) =>
                   setState(() => _userSelectorValue = value),
+            ),
+          ),
+          const SizedBox(height: 24),
+          const _ShowcaseSectionTitle('Navbar'),
+          _NavbarShowcase(
+            actionTapped: _homeHeaderTapped,
+            onActionTap: () =>
+                setState(() => _homeHeaderTapped = !_homeHeaderTapped),
+          ),
+          const SizedBox(height: 24),
+          const _ShowcaseSectionTitle('Secondary Header'),
+          _SecondaryHeaderShowcase(
+            lastEvent: _secondaryHeaderEvent,
+            onBackTap: () => setState(() => _secondaryHeaderEvent = 'Back tapped'),
+            onPrimaryActionTap: () => setState(
+              () => _secondaryHeaderEvent = 'Primary action tapped',
+            ),
+            onSecondaryActionTap: () => setState(
+              () => _secondaryHeaderEvent = 'Secondary action tapped',
+            ),
+            onTertiaryActionTap: () => setState(
+              () => _secondaryHeaderEvent = 'Tertiary action tapped',
+            ),
+          ),
+          const SizedBox(height: 24),
+          const _ShowcaseSectionTitle('Bottom Navbar'),
+          _ShowcaseCard(
+            child: _BottomNavShowcase(
+              selectedIndex: _bottomNavIndex,
+              onTap: (index) => setState(() => _bottomNavIndex = index),
             ),
           ),
           const SizedBox(height: 24),
@@ -652,6 +687,38 @@ class _IconSwitcherShowcase extends StatelessWidget {
   }
 }
 
+class _NavbarShowcase extends StatelessWidget {
+  const _NavbarShowcase({
+    required this.actionTapped,
+    required this.onActionTap,
+  });
+
+  final bool actionTapped;
+  final VoidCallback onActionTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        SizedBox(
+          width: 390,
+          child: DsAppHomeHeader(
+            onActionTap: onActionTap,
+          ),
+        ),
+        if (actionTapped) ...[
+          const SizedBox(height: 8),
+          Text(
+            'Right action tapped',
+            style: Theme.of(context).textTheme.bodySmall,
+          ),
+        ],
+      ],
+    );
+  }
+}
+
 class _ReactionButtonsShowcase extends StatelessWidget {
   const _ReactionButtonsShowcase();
 
@@ -668,6 +735,106 @@ class _ReactionButtonsShowcase extends StatelessWidget {
           type: DsReactionButtonType.pass,
         ),
       ],
+    );
+  }
+}
+
+class _SecondaryHeaderShowcase extends StatelessWidget {
+  const _SecondaryHeaderShowcase({
+    required this.lastEvent,
+    required this.onBackTap,
+    required this.onPrimaryActionTap,
+    required this.onSecondaryActionTap,
+    required this.onTertiaryActionTap,
+  });
+
+  final String? lastEvent;
+  final VoidCallback onBackTap;
+  final VoidCallback onPrimaryActionTap;
+  final VoidCallback onSecondaryActionTap;
+  final VoidCallback onTertiaryActionTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        SizedBox(
+          width: 390,
+          child: DsAppSecondaryHeader(
+            variant: DsAppSecondaryHeaderVariant.base,
+            onBackTap: onBackTap,
+          ),
+        ),
+        const SizedBox(height: 12),
+        SizedBox(
+          width: 390,
+          child: DsAppSecondaryHeader(
+            variant: DsAppSecondaryHeaderVariant.baseText,
+            title: 'Text',
+            onBackTap: onBackTap,
+          ),
+        ),
+        const SizedBox(height: 12),
+        SizedBox(
+          width: 390,
+          child: DsAppSecondaryHeader(
+            variant: DsAppSecondaryHeaderVariant.chat3,
+            name: 'Name',
+            onBackTap: onBackTap,
+            onPrimaryActionTap: onPrimaryActionTap,
+            onSecondaryActionTap: onSecondaryActionTap,
+            onTertiaryActionTap: onTertiaryActionTap,
+          ),
+        ),
+        const SizedBox(height: 12),
+        SizedBox(
+          width: 390,
+          child: DsAppSecondaryHeader(
+            variant: DsAppSecondaryHeaderVariant.chat4,
+            name: 'Name',
+            cooldownText: '7',
+            onBackTap: onBackTap,
+            onPrimaryActionTap: onPrimaryActionTap,
+            onSecondaryActionTap: onSecondaryActionTap,
+            onTertiaryActionTap: onTertiaryActionTap,
+          ),
+        ),
+        if (lastEvent != null) ...[
+          const SizedBox(height: 8),
+          Text(
+            lastEvent!,
+            style: Theme.of(context).textTheme.bodySmall,
+          ),
+        ],
+      ],
+    );
+  }
+}
+
+class _BottomNavShowcase extends StatelessWidget {
+  const _BottomNavShowcase({
+    required this.selectedIndex,
+    required this.onTap,
+  });
+
+  final int selectedIndex;
+  final ValueChanged<int> onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(0),
+        child: SizedBox(
+          width: 400,
+          child: CustomBottomNavBar(
+            selectedIndex: selectedIndex,
+            delayedIndices: const {},
+            onTap: onTap,
+          ),
+        ),
+      ),
     );
   }
 }
