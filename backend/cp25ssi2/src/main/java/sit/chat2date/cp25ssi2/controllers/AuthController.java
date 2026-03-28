@@ -118,7 +118,7 @@ public class AuthController {
             if (request.getRefreshToken() != null) {
                 System.out.println(request.getRefreshToken());
 
-                    tokenBlacklistService.blacklistRefreshToken(request.getRefreshToken());
+                tokenBlacklistService.blacklistRefreshToken(request.getRefreshToken());
 
             }
 

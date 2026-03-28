@@ -70,7 +70,7 @@ public class AccessChecker {
         String path = request.getRequestURI();
         String method = request.getMethod();
 
-        // ตรวจสอบ /api/v1/users
+        //users
         if (method.matches("GET|PUT|DELETE") && path.startsWith("/api/v1/users")) {
             java.util.regex.Matcher m = java.util.regex.Pattern.compile("/api/v1/users/([^/]+)").matcher(path);
             if (m.find()) {
@@ -87,7 +87,7 @@ public class AccessChecker {
             }
         }
 
-        // ตรวจสอบ /api/v1/discovery
+        //discovery
         if (method.matches("GET|POST") && path.startsWith("/api/v1/discovery")) {
             String requestParamId = request.getParameter("userId");
 
@@ -104,7 +104,7 @@ public class AccessChecker {
             }
         }
 
-        return true; // ผ่านทุก check
+        return true;
     }
 
     private void sendErrorResponse(HttpServletResponse response, String message, HttpServletRequest request, HttpStatus status) throws IOException {
