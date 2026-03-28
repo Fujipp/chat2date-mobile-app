@@ -63,7 +63,7 @@ router.beforeEach(async (to, from, next) => {
   }
 
   // Protected route — check auth
-  if (!authStore.isAuthenticated) {
+  if (!authStore.isAuthenticated || authStore.isTokenExpired) {
     // Try to refresh token if available
     if (authStore.refreshToken) {
       try {
