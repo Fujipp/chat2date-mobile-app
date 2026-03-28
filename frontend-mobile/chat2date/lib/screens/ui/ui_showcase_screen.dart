@@ -143,6 +143,9 @@ class _UiShowcaseScreenState extends State<UiShowcaseScreen> {
           const _ShowcaseSectionTitle('Spin Wheel'),
           const _ShowcaseCard(child: _SpinWheelShowcase()),
           const SizedBox(height: 24),
+          const _ShowcaseSectionTitle('Calendar'),
+          const _ShowcaseCard(child: _CalendarShowcase()),
+          const SizedBox(height: 24),
           const _ShowcaseSectionTitle('Switcher'),
           _ShowcaseCard(
             child: _SwitcherShowcase(
@@ -1273,6 +1276,38 @@ class _NavbarShowcase extends StatelessWidget {
             style: Theme.of(context).textTheme.bodySmall,
           ),
         ],
+      ],
+    );
+  }
+}
+
+class _CalendarShowcase extends StatelessWidget {
+  const _CalendarShowcase();
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.center,
+      children: const [
+        DsCalendarScheduler(
+          placeName: 'อควาเรียมบางแสน',
+          previewState: DsCalendarSchedulerPreviewState.defaultState,
+        ),
+        SizedBox(height: 20),
+        DsCalendarScheduler(
+          placeName: 'อควาเรียมบางแสน',
+          previewState: DsCalendarSchedulerPreviewState.choose,
+        ),
+        SizedBox(height: 20),
+        DsCalendarScheduler(
+          placeName: 'อควาเรียมบางแสน',
+          previewState: DsCalendarSchedulerPreviewState.preEdit,
+        ),
+        SizedBox(height: 20),
+        DsCalendarScheduler(
+          placeName: 'อควาเรียมบางแสน',
+          previewState: DsCalendarSchedulerPreviewState.edit,
+        ),
       ],
     );
   }
