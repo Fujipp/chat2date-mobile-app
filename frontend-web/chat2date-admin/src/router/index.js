@@ -49,7 +49,7 @@ const router = createRouter({
 })
 
 // Auth guard
-router.beforeEach((to, from, next) => {
+router.beforeEach(async (to, from, next) => {
   document.title = to.meta.title || 'Chat2Date Admin'
 
   const authStore = useAuthStore()
@@ -64,6 +64,18 @@ router.beforeEach((to, from, next) => {
 
   // Protected route — check auth
   if (!authStore.isAuthenticated) {
+    // Try to refresh token if available
+    if (authStore.refreshToken) {
+      try {
+        const success = await authStore.refreshAccessToken()
+        if (success) {
+          return next() // Token refreshed, continue to route
+        }
+      } catch (error) {
+        console.error('Token refresh failed:', error)
+      }
+    }
+    // Token refresh failed or no refresh token, redirect to login
     return next({ name: 'login' })
   }
 

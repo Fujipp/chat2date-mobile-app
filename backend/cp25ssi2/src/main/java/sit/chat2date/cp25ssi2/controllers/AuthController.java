@@ -92,7 +92,7 @@ public class AuthController {
         }
 
         String jwtToken = jwtTokenUtil.generateToken(identifier);
-        String jwtRefreshToken = jwtTokenUtil.generateRefreshToken(jwtToken);
+        String jwtRefreshToken = jwtTokenUtil.generateRefreshToken(identifier);
 
         Map<String, Object> response = new HashMap<>();
         response.put("token", jwtToken);
