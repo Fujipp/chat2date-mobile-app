@@ -1,5 +1,6 @@
 import 'package:chat2date/theme/app_assets.dart';
 import 'package:chat2date/theme/app_colors.dart';
+import 'package:chat2date/theme/tokens/colors/button_colors.dart';
 import 'package:chat2date/theme/tokens/typography/body_text_styles.dart';
 import 'package:chat2date/theme/tokens/typography/display_text_styles.dart';
 import 'package:flutter/material.dart';
@@ -31,7 +32,8 @@ class EditInputField extends StatefulWidget {
     this.placeholder = 'เพิ่มเบอร์ที่นี่',
     this.initialValue,
     this.prefixText,
-    this.keyboardType = TextInputType.phone,
+    this.keyboardType = TextInputType.text,
+    this.inputFormatters,
     this.onSaved,
     this.onCancelled,
   });
@@ -41,6 +43,7 @@ class EditInputField extends StatefulWidget {
   final String? initialValue;
   final String? prefixText;
   final TextInputType keyboardType;
+  final List<TextInputFormatter>? inputFormatters;
   final ValueChanged<String>? onSaved;
   final VoidCallback? onCancelled;
 
@@ -165,10 +168,14 @@ class _EditInputFieldState extends State<EditInputField> {
                                 controller: _controller,
                                 focusNode: _focusNode,
                                 keyboardType: widget.keyboardType,
+                                textInputAction: TextInputAction.done,
+                                onTapOutside: (_) => _focusNode.unfocus(),
+                                onSubmitted: (_) => _focusNode.unfocus(),
                                 inputFormatters:
-                                    widget.keyboardType == TextInputType.phone
-                                    ? [PhoneNumberFormatter()]
-                                    : [],
+                                    widget.inputFormatters ??
+                                    (widget.keyboardType == TextInputType.phone
+                                        ? [PhoneNumberFormatter()]
+                                        : null),
                                 style: const TextStyle(
                                   color: AppColors.textPrimary,
                                 ).merge(AppBodyTextStyles.body),
@@ -218,9 +225,13 @@ class _EditInputFieldState extends State<EditInputField> {
                           child: Padding(
                             padding: EdgeInsets.only(left: 8),
                             child: SvgPicture.asset(
-                              AppAssets.v4InputRemoveIcon,
+                              AppAssets.inputRemoveIcon,
                               width: 14,
                               height: 2,
+                              colorFilter: const ColorFilter.mode(
+                                AppColors.error,
+                                BlendMode.srcIn,
+                              ),
                             ),
                           ),
                         ),
@@ -230,9 +241,13 @@ class _EditInputFieldState extends State<EditInputField> {
                           child: Padding(
                             padding: EdgeInsets.only(left: 8),
                             child: SvgPicture.asset(
-                              AppAssets.v4InputAddIcon,
+                              AppAssets.inputAddIcon,
                               width: 14,
                               height: 14,
+                              colorFilter: const ColorFilter.mode(
+                                AppColors.brandPrimary,
+                                BlendMode.srcIn,
+                              ),
                             ),
                           ),
                         ),
@@ -246,14 +261,14 @@ class _EditInputFieldState extends State<EditInputField> {
             if (_state == _EditState.editing) ...[
               const SizedBox(width: 8),
               _IconButton(
-                color: AppColors.brandSecondary,
-                assetPath: AppAssets.v4InputAcceptIcon,
+                color: ButtonColors.accept,
+                assetPath: AppAssets.inputAcceptIcon,
                 onTap: _confirmEdit,
               ),
               const SizedBox(width: 8),
               _IconButton(
-                color: AppColors.error,
-                assetPath: AppAssets.v4InputDeniedIcon,
+                color: ButtonColors.denied,
+                assetPath: AppAssets.inputDeniedIcon,
                 onTap: _cancelEdit,
               ),
             ],
@@ -289,7 +304,13 @@ class _IconButton extends StatelessWidget {
           ),
         ),
         child: Center(
-          child: SvgPicture.asset(assetPath, width: 16, height: 16),
+          child: SvgPicture.asset(
+            assetPath,
+            width: 16,
+            height: 16,
+            fit: BoxFit.contain,
+            theme: const SvgTheme(currentColor: AppColors.textOnDark),
+          ),
         ),
       ),
     );

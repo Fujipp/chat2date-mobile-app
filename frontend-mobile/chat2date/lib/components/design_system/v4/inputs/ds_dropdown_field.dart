@@ -1,4 +1,5 @@
 import 'package:chat2date/theme/app_assets.dart';
+import 'package:chat2date/theme/app_colors.dart';
 import 'package:flutter/material.dart';
 import 'ds_text_field_helper.dart';
 import 'ds_text_field_props.dart';
@@ -42,6 +43,8 @@ class DsDropdownField<T> extends StatefulWidget {
 
 class _DsDropdownFieldState<T> extends State<DsDropdownField<T>> {
   final FocusNode _focusNode = FocusNode();
+  final GlobalKey _fieldKey = GlobalKey();
+  bool _isOpen = false;
 
   @override
   void initState() {
@@ -60,18 +63,95 @@ class _DsDropdownFieldState<T> extends State<DsDropdownField<T>> {
     if (mounted) setState(() {});
   }
 
+  Future<void> _openMenu() async {
+    if (!widget.enabled || widget.items.isEmpty) return;
+
+    final context = _fieldKey.currentContext;
+    if (context == null) return;
+
+    final renderBox = context.findRenderObject() as RenderBox?;
+    final overlayBox =
+        Overlay.of(context).context.findRenderObject() as RenderBox?;
+    if (renderBox == null || overlayBox == null) return;
+
+    final boxOffset = renderBox.localToGlobal(Offset.zero, ancestor: overlayBox);
+    final boxSize = renderBox.size;
+    final menuItemWidth = boxSize.width - 32;
+    final selectedValue = await showMenu<T>(
+      context: context,
+      position: RelativeRect.fromLTRB(
+        boxOffset.dx,
+        boxOffset.dy + boxSize.height + 8,
+        overlayBox.size.width - boxOffset.dx - boxSize.width,
+        0,
+      ),
+      color: AppColors.background,
+      elevation: 0,
+      shape: RoundedRectangleBorder(
+        side: const BorderSide(color: AppColors.inputBorder),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      items: widget.items
+          .map(
+            (item) => PopupMenuItem<T>(
+              value: item.value,
+              height: 56,
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: Align(
+                alignment: Alignment.centerLeft,
+                child: SizedBox(
+                  width: menuItemWidth,
+                  child: Text(
+                    item.label,
+                    style: (item.value == widget.value
+                            ? DsTextFieldHelper.labelStyle()
+                            : DsTextFieldHelper.bodyStyle(
+                                state: DsInputVisualState.filled,
+                              ))
+                        .copyWith(
+                          color: item.value == widget.value
+                              ? AppColors.textPrimary
+                              : AppColors.textSecondary,
+                        ),
+                    overflow: TextOverflow.ellipsis,
+                    maxLines: 1,
+                  ),
+                ),
+              ),
+            ),
+          )
+          .toList(),
+      );
+
+    if (!mounted) return;
+    setState(() => _isOpen = false);
+    _focusNode.unfocus();
+
+    if (selectedValue != null) {
+      widget.onChanged?.call(selectedValue);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final hasValue = widget.value != null;
     final effectiveState = DsTextFieldHelper.normalizeState(
       enabled: widget.enabled,
-      hasFocus: _focusNode.hasFocus,
+      hasFocus: _focusNode.hasFocus || _isOpen,
       hasError: widget.state == DsInputVisualState.error,
       hasValue: hasValue,
       explicitState: widget.state,
     );
 
-    final iconTurns = effectiveState == DsInputVisualState.typing ? 0.5 : 0.0;
+    final selectedItem = widget.items.cast<DsDropdownItem<T>?>().firstWhere(
+      (item) => item?.value == widget.value,
+      orElse: () => null,
+    );
+    final displayText = selectedItem?.label ?? widget.hintText;
+    final textStyle = selectedItem == null
+        ? DsTextFieldHelper.hintStyle(state: effectiveState)
+        : DsTextFieldHelper.bodyStyle(state: effectiveState);
+
     final iconColor = switch (effectiveState) {
       DsInputVisualState.error => DsTextFieldHelper.borderColorFor(
         effectiveState,
@@ -90,12 +170,12 @@ class _DsDropdownFieldState<T> extends State<DsDropdownField<T>> {
       ),
     };
     final dropdownIcon = Padding(
-      padding: const EdgeInsets.only(right: 16),
+      padding: const EdgeInsets.only(left: 12),
       child: DsTextFieldHelper.buildSvgIcon(
-        AppAssets.v4InputDropdownIcon,
+        AppAssets.inputDropdownIcon,
         size: 12,
         color: iconColor,
-        turns: iconTurns,
+        turns: _isOpen ? 0.5 : 0,
       ),
     );
 
@@ -111,68 +191,47 @@ class _DsDropdownFieldState<T> extends State<DsDropdownField<T>> {
                   ? const [
                       TextSpan(
                         text: '*',
-                        style: TextStyle(color: Color(0xFFFF6B6B)),
+                        style: TextStyle(color: AppColors.error),
                       ),
                     ]
                   : null,
             ),
           ),
         if ((widget.label ?? '').isNotEmpty) const SizedBox(height: 8),
-        DropdownButtonHideUnderline(
-          child: DropdownButtonFormField<T>(
-            initialValue: widget.value,
-            focusNode: _focusNode,
-            onChanged: widget.enabled ? widget.onChanged : null,
-            icon: dropdownIcon,
-            isExpanded: true,
-            decoration: InputDecoration(
-              isDense: true,
-              filled: true,
-              fillColor: DsTextFieldHelper.fillColorForVisualState(
-                effectiveState,
-              ),
-              contentPadding: const EdgeInsets.symmetric(
-                horizontal: 16,
-                vertical: 12,
-              ),
-              enabledBorder: DsTextFieldHelper.borderForVisualState(
-                effectiveState,
-              ),
-              focusedBorder: DsTextFieldHelper.borderForVisualState(
-                effectiveState == DsInputVisualState.empty
-                    ? DsInputVisualState.typing
-                    : effectiveState,
-              ),
-              disabledBorder: DsTextFieldHelper.borderForVisualState(
-                DsInputVisualState.inactive,
-              ),
-              errorBorder: DsTextFieldHelper.borderForVisualState(
-                DsInputVisualState.error,
-              ),
-              focusedErrorBorder: DsTextFieldHelper.borderForVisualState(
-                DsInputVisualState.error,
+        GestureDetector(
+          key: _fieldKey,
+          onTap: () {
+            setState(() => _isOpen = true);
+            _focusNode.requestFocus();
+            _openMenu();
+          },
+          child: Container(
+            height: 48,
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            decoration: BoxDecoration(
+              color: DsTextFieldHelper.fillColorForVisualState(effectiveState),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.fromBorderSide(
+                (DsTextFieldHelper.borderForVisualState(
+                  effectiveState == DsInputVisualState.empty && _isOpen
+                      ? DsInputVisualState.typing
+                      : effectiveState,
+                ) as OutlineInputBorder)
+                    .borderSide,
               ),
             ),
-            hint: Text(
-              widget.hintText,
-              style: DsTextFieldHelper.hintStyle(state: effectiveState),
-            ),
-            style: DsTextFieldHelper.bodyStyle(state: effectiveState),
-            items: widget.items
-                .map(
-                  (item) => DropdownMenuItem<T>(
-                    value: item.value,
-                    child: Text(
-                      item.label,
-                      style: DsTextFieldHelper.bodyStyle(
-                        state: widget.enabled
-                            ? DsInputVisualState.filled
-                            : DsInputVisualState.inactive,
-                      ),
-                    ),
+            child: Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    displayText,
+                    style: textStyle,
+                    overflow: TextOverflow.ellipsis,
                   ),
-                )
-                .toList(),
+                ),
+                dropdownIcon,
+              ],
+            ),
           ),
         ),
         if ((widget.showSupportText || widget.supportText != null) &&

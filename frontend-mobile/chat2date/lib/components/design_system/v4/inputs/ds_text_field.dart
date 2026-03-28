@@ -215,6 +215,8 @@ class _DsTextFieldState extends State<DsTextField> {
       maxLines: widget.maxLines,
       minLines: widget.minLines,
       textInputAction: widget.textInputAction,
+      onTapOutside: (_) => FocusScope.of(context).unfocus(),
+      onSubmitted: (_) => FocusScope.of(context).unfocus(),
       decoration: decoration,
     );
 

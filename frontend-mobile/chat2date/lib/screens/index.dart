@@ -22,3 +22,4 @@ export 'settings/settings_screen.dart';
 export 'settings/widgets/account_screen.dart';
 export 'settings/widgets/about_screen.dart';
 export 'settings/widgets/contact_screen.dart';
+export 'ui/ui_showcase_screen.dart';

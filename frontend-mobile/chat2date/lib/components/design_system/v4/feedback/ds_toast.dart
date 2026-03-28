@@ -134,7 +134,7 @@ class Toast extends StatelessWidget {
                 width: 12,
                 height: 12,
                 child: SvgPicture.asset(
-                  AppAssets.v4ToastCloseIcon,
+                  AppAssets.toastCloseIcon,
                   colorFilter: const ColorFilter.mode(
                     AppColors.textOnDark,
                     BlendMode.srcIn,
@@ -178,25 +178,25 @@ class _ToastStatusIcon extends StatelessWidget {
   String get _badgeAsset {
     switch (type) {
       case ToastType.info:
-        return AppAssets.v4ToastInfoBadge;
+        return AppAssets.toastInfoBadge;
       case ToastType.success:
-        return AppAssets.v4ToastSuccessBadge;
+        return AppAssets.toastSuccessBadge;
       case ToastType.warning:
-        return AppAssets.v4ToastWarningBadge;
+        return AppAssets.toastWarningBadge;
       case ToastType.error:
-        return AppAssets.v4ToastErrorBadge;
+        return AppAssets.toastErrorBadge;
     }
   }
 
   String get _glyphAsset {
     switch (type) {
       case ToastType.info:
-        return AppAssets.v4ToastInfoGlyph;
+        return AppAssets.toastInfoGlyph;
       case ToastType.success:
-        return AppAssets.v4ToastSuccessGlyph;
+        return AppAssets.toastSuccessGlyph;
       case ToastType.warning:
       case ToastType.error:
-        return AppAssets.v4ToastWarningErrorGlyph;
+        return AppAssets.toastWarningErrorGlyph;
     }
   }
 

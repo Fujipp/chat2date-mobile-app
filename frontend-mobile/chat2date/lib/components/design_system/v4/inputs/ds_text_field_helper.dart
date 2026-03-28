@@ -106,8 +106,6 @@ class DsTextFieldHelper {
   static TextStyle supportStyle(DsInputVisualState state) {
     return AppBodyTextStyles.helper.copyWith(
       color: supportColorFor(state),
-      fontSize: 10,
-      height: 14 / 10,
       letterSpacing: 0.15,
     );
   }
@@ -137,9 +135,8 @@ class DsTextFieldHelper {
       assetPath,
       width: size,
       height: size,
-      colorFilter: color == null
-          ? null
-          : ColorFilter.mode(color, BlendMode.srcIn),
+      fit: BoxFit.contain,
+      theme: color == null ? null : SvgTheme(currentColor: color),
     );
 
     if (turns == 0) return icon;

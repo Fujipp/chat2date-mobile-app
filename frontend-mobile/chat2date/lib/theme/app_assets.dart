@@ -24,50 +24,93 @@ abstract final class AppAssets {
   static const String closeIcon = '$iconDir/icon_close.svg';
   static const String doneIcon = '$iconDir/icon_done.svg';
 
-  static const String v4IconDir = 'assets/icons/v4';
-  static const String v4ButtonIconDir = '$v4IconDir/buttons';
-  static const String v4ToastIconDir = '$v4IconDir/toasts';
-  static const String v4InputIconDir = '$v4IconDir/inputs';
-  static const String v4ButtonReloadIcon =
-      '$v4ButtonIconDir/icon_button_reload.svg';
-  static const String v4ButtonSettingsIcon =
-      '$v4ButtonIconDir/icon_button_settings.svg';
-  static const String v4RefreshIcon = v4ButtonReloadIcon;
-  static const String v4SettingsIcon = v4ButtonSettingsIcon;
-  static const String v4ChevronDownSmall =
-      '$v4InputIconDir/icon_chevron_down_small.svg';
-  static const String v4InputAddIcon = '$v4InputIconDir/icon_input_add.svg';
-  static const String v4InputRemoveIcon =
-      '$v4InputIconDir/icon_input_remove.svg';
-  static const String v4InputAcceptIcon =
-      '$v4InputIconDir/icon_input_accept.svg';
-  static const String v4InputDeniedIcon =
-      '$v4InputIconDir/icon_input_denied.svg';
-  static const String v4InputDropdownIcon =
-      '$v4InputIconDir/icon_input_dropdown.svg';
-  static const String v4InputSelectMarkerIcon =
-      '$v4InputIconDir/icon_input_select_marker.svg';
-  static const String v4ToastInfoBadge =
-      '$v4ToastIconDir/icon_toast_info_badge.svg';
-  static const String v4ToastSuccessBadge =
-      '$v4ToastIconDir/icon_toast_success_badge.svg';
-  static const String v4ToastWarningBadge =
-      '$v4ToastIconDir/icon_toast_warning_badge.svg';
-  static const String v4ToastErrorBadge =
-      '$v4ToastIconDir/icon_toast_error_badge.svg';
-  static const String v4ToastInfoGlyph =
-      '$v4ToastIconDir/icon_toast_info_glyph.svg';
-  static const String v4ToastSuccessGlyph =
-      '$v4ToastIconDir/icon_toast_success_glyph.svg';
-  static const String v4ToastWarningErrorGlyph =
-      '$v4ToastIconDir/icon_toast_warning_error_glyph.svg';
-  static const String v4ToastCloseIcon = '$v4ToastIconDir/icon_toast_close.svg';
-  static const String v4SelectorUserSingleInactive =
-      '$v4IconDir/selectors/icon_user_single_inactive.svg';
-  static const String v4SelectorUserSingleActive =
-      '$v4IconDir/selectors/icon_user_single_active.svg';
-  static const String v4SelectorUserGroupInactive =
-      '$v4IconDir/selectors/icon_user_group_inactive.svg';
-  static const String v4SelectorUserGroupActive =
-      '$v4IconDir/selectors/icon_user_group_active.svg';
+  static const String buttonIconDir = 'assets/icons/buttons';
+  static const String headerIconDir = 'assets/icons/headers';
+  static const String navigationIconDir = 'assets/icons/navigation';
+  static const String toastIconDir = 'assets/icons/toasts';
+  static const String inputIconDir = 'assets/icons/inputs';
+  static const String selectorIconDir = 'assets/icons/selectors';
+
+  static const String buttonReloadIcon =
+      '$buttonIconDir/icon_button_reload.svg';
+  static const String buttonSettingsIcon =
+      '$buttonIconDir/icon_button_settings.svg';
+  static const String refreshIcon = buttonReloadIcon;
+  static const String settingsIcon = buttonSettingsIcon;
+
+  static const String chevronDownSmall =
+      '$inputIconDir/icon_chevron_down_small.svg';
+  static const String inputAddIcon = '$inputIconDir/icon_input_add.svg';
+  static const String inputRemoveIcon = '$inputIconDir/icon_input_remove.svg';
+  static const String inputAcceptIcon = '$inputIconDir/icon_input_accept.svg';
+  static const String inputDeniedIcon = '$inputIconDir/icon_input_denied.svg';
+  static const String inputDropdownIcon =
+      '$inputIconDir/icon_input_dropdown.svg';
+  static const String inputSelectMarkerIcon =
+      '$inputIconDir/icon_input_select_marker.svg';
+
+  static const String toastInfoBadge =
+      '$toastIconDir/icon_toast_info_badge.svg';
+  static const String toastSuccessBadge =
+      '$toastIconDir/icon_toast_success_badge.svg';
+  static const String toastWarningBadge =
+      '$toastIconDir/icon_toast_warning_badge.svg';
+  static const String toastErrorBadge =
+      '$toastIconDir/icon_toast_error_badge.svg';
+  static const String toastInfoGlyph =
+      '$toastIconDir/icon_toast_info_glyph.svg';
+  static const String toastSuccessGlyph =
+      '$toastIconDir/icon_toast_success_glyph.svg';
+  static const String toastWarningErrorGlyph =
+      '$toastIconDir/icon_toast_warning_error_glyph.svg';
+  static const String toastCloseIcon = '$toastIconDir/icon_toast_close.svg';
+
+  static const String headerHomeBrandmark =
+      '$headerIconDir/icon_header_home_brandmark.svg';
+  static const String headerHomeControls =
+      '$headerIconDir/icon_header_home_controls.svg';
+  static const String headerSecondaryBack =
+      '$headerIconDir/icon_header_secondary_back.svg';
+  static const String headerSecondaryAvatar =
+      '$headerIconDir/icon_header_secondary_avatar.svg';
+  static const String headerSecondaryChat1Actions =
+      '$headerIconDir/icon_header_secondary_chat1_actions.svg';
+  static const String headerSecondaryChat2Actions =
+      '$headerIconDir/icon_header_secondary_chat2_actions.svg';
+  static const String headerSecondaryChat3Actions =
+      '$headerIconDir/icon_header_secondary_chat3_actions.svg';
+  static const String headerSecondaryChat4LeftAction =
+      '$headerIconDir/icon_header_secondary_chat4_left_action.svg';
+  static const String headerSecondaryChat4CenterAction =
+      '$headerIconDir/icon_header_secondary_chat4_center_action.svg';
+  static const String headerSecondaryChat4CenterBadge =
+      '$headerIconDir/icon_header_secondary_chat4_center_badge.svg';
+  static const String headerSecondaryChat4RightAction =
+      '$headerIconDir/icon_header_secondary_chat4_right_action.svg';
+
+  static const String navHomeActive =
+      '$navigationIconDir/icon_nav_home_active.svg';
+  static const String navHomeInactive =
+      '$navigationIconDir/icon_nav_home_inactive.svg';
+  static const String navChatActive =
+      '$navigationIconDir/icon_nav_chat_active.svg';
+  static const String navChatInactive =
+      '$navigationIconDir/icon_nav_chat_inactive.svg';
+  static const String navProfileActive =
+      '$navigationIconDir/icon_nav_profile_active.svg';
+  static const String navProfileInactive =
+      '$navigationIconDir/icon_nav_profile_inactive.svg';
+  static const String navSettingActive =
+      '$navigationIconDir/icon_nav_setting_active.svg';
+  static const String navSettingInactive =
+      '$navigationIconDir/icon_nav_setting_inactive.svg';
+
+  static const String selectorUserSingleInactive =
+      '$selectorIconDir/icon_user_single_inactive.svg';
+  static const String selectorUserSingleActive =
+      '$selectorIconDir/icon_user_single_active.svg';
+  static const String selectorUserGroupInactive =
+      '$selectorIconDir/icon_user_group_inactive.svg';
+  static const String selectorUserGroupActive =
+      '$selectorIconDir/icon_user_group_active.svg';
 }

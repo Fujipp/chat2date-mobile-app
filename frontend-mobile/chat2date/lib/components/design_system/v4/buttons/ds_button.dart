@@ -15,7 +15,7 @@ enum DsButtonVariant {
 
 enum DsButtonSize { xs, sm, md, lg }
 
-enum DsButtonVisualState { base, hover, pressed, disabled }
+enum DsButtonVisualState { base, hover, pressed, active, disabled }
 
 class DsButton extends StatefulWidget {
   final String label;
@@ -31,6 +31,7 @@ class DsButton extends StatefulWidget {
   final String? trailingSvgAsset;
   final double? iconSize;
   final EdgeInsets? padding;
+  final double? width;
   final DsButtonVisualState? visualOverride;
 
   const DsButton({
@@ -48,6 +49,7 @@ class DsButton extends StatefulWidget {
     this.trailingSvgAsset,
     this.iconSize,
     this.padding,
+    this.width,
     this.visualOverride,
   });
 
@@ -76,36 +78,32 @@ class _DsButtonState extends State<DsButton> {
     }
   }
 
-  (double width, double height, double fontSize, EdgeInsets padding)
+  (double height, double fontSize, EdgeInsets padding)
   _metrics() {
     switch (widget.size) {
       case DsButtonSize.xs:
         return (
-          39,
           32,
           12,
-          const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+          const EdgeInsets.symmetric(horizontal: 8),
         );
       case DsButtonSize.sm:
         return (
-          100,
           40,
           14,
-          const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          const EdgeInsets.symmetric(horizontal: 16),
         );
       case DsButtonSize.md:
         return (
-          231,
           40,
           14,
-          const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          const EdgeInsets.symmetric(horizontal: 16),
         );
       case DsButtonSize.lg:
         return (
-          310,
           40,
           14,
-          const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          const EdgeInsets.symmetric(horizontal: 16),
         );
     }
   }
@@ -149,6 +147,7 @@ class _DsButtonState extends State<DsButton> {
         isPressed = false;
         isDisabled = false;
       case DsButtonVisualState.pressed:
+      case DsButtonVisualState.active:
         isHovered = false;
         isPressed = true;
         isDisabled = false;
@@ -173,13 +172,15 @@ class _DsButtonState extends State<DsButton> {
     final background = _scheme.resolveBg(states);
     final foreground = _scheme.resolveFg(states);
     final borderColor = _scheme.resolveBorder(states);
-    final resolvedPadding = widget.padding ?? metrics.$4;
+    final resolvedPadding = widget.padding ?? metrics.$3;
 
     Widget? buildIcon(String asset) {
       return SvgPicture.asset(
         asset,
         width: _resolvedIconSize,
         height: _resolvedIconSize,
+        fit: BoxFit.contain,
+        theme: SvgTheme(currentColor: foreground),
         colorFilter: ColorFilter.mode(foreground, BlendMode.srcIn),
       );
     }
@@ -200,7 +201,7 @@ class _DsButtonState extends State<DsButton> {
 
     final textStyle = AppBodyTextStyles.button.copyWith(
       color: foreground,
-      fontSize: metrics.$3,
+      fontSize: metrics.$2,
       fontWeight: widget.fontWeight,
       fontFamily: widget.fontFamily,
     );
@@ -217,6 +218,10 @@ class _DsButtonState extends State<DsButton> {
           child: Text(
             widget.label,
             style: textStyle,
+            textHeightBehavior: const TextHeightBehavior(
+              applyHeightToFirstAscent: false,
+              applyHeightToLastDescent: false,
+            ),
             overflow: TextOverflow.ellipsis,
             maxLines: 1,
             softWrap: false,
@@ -232,8 +237,8 @@ class _DsButtonState extends State<DsButton> {
     final button = AnimatedContainer(
       duration: const Duration(milliseconds: 120),
       curve: Curves.easeOut,
-      width: metrics.$1,
-      height: metrics.$2,
+      width: widget.width,
+      height: metrics.$1,
       padding: resolvedPadding,
       decoration: BoxDecoration(
         color: background,

@@ -84,9 +84,10 @@ class MyApp extends ConsumerWidget {
           title: 'Component Test',
           theme: buildLightTheme(),
           navigatorKey: navigatorKey,
-          initialRoute: '/home',
+          initialRoute: '/ui',
           routes: {
             '/test': (context) => const ComponentTestScreen(),
+            '/ui': (context) => const UiShowcaseScreen(),
 
             '/profileSetup': (context) => const ProfileSetupScreen(),
             '/lifestylesSelection': (context) => LifestylesSelectionScreen(),

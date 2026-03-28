@@ -8,7 +8,7 @@ class DsSegmentedSwitcher extends StatelessWidget {
     required this.items,
     required this.selectedIndex,
     required this.onChanged,
-    this.width = 332,
+    this.width = double.infinity,
   }) : assert(
          items.length == 2,
          'DsSegmentedSwitcher supports exactly 2 items',

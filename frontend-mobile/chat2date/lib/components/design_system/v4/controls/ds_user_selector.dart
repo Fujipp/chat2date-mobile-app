@@ -35,15 +35,15 @@ class DsUserSelector extends StatelessWidget {
         children: [
           _SelectorIconButton(
             assetPath: value == DsUserSelectorValue.single
-                ? AppAssets.v4SelectorUserSingleActive
-                : AppAssets.v4SelectorUserSingleInactive,
+                ? AppAssets.selectorUserSingleActive
+                : AppAssets.selectorUserSingleInactive,
             semanticLabel: 'Single user',
             onTap: () => onChanged(DsUserSelectorValue.single),
           ),
           _SelectorIconButton(
             assetPath: value == DsUserSelectorValue.group
-                ? AppAssets.v4SelectorUserGroupActive
-                : AppAssets.v4SelectorUserGroupInactive,
+                ? AppAssets.selectorUserGroupActive
+                : AppAssets.selectorUserGroupInactive,
             semanticLabel: 'Group users',
             onTap: () => onChanged(DsUserSelectorValue.group),
           ),

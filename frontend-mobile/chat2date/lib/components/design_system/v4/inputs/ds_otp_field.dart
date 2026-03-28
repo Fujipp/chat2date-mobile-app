@@ -23,11 +23,7 @@ class DsOtpField extends StatefulWidget {
   final String? supportText;
   final bool autoFocus;
   final bool obscure;
-
-  /// ยิงทุกครั้งที่มีการเปลี่ยนค่า (รวมกรณีวาง paste)
   final ValueChanged<String>? onChanged;
-
-  /// ยิงเมื่อกรอกครบทุกช่อง
   final ValueChanged<String>? onCompleted;
 
   @override
@@ -35,257 +31,299 @@ class DsOtpField extends StatefulWidget {
 }
 
 class _DsOtpFieldState extends State<DsOtpField> {
-  late final List<TextEditingController> _ctls;
-  late final List<FocusNode> _nodes;
+  static const _frameWidth = 295.0;
+  static const _fieldWidth = 290.0;
+  static const _fieldHeight = 48.0;
+  static const _fieldRadius = 8.23;
+  static const _boxWidth = 39.11;
+  static const _boxHeight = 40.49;
+  static const _boxRadius = 13.72;
+  static const _boxSpacing = 9.61;
+
+  final TextEditingController _controller = TextEditingController();
+  final FocusNode _focusNode = FocusNode();
+  int? _selectedIndex;
+  bool _replaceMode = false;
 
   @override
   void initState() {
     super.initState();
-    _ctls = List.generate(widget.length, (_) => TextEditingController());
-    _nodes = List.generate(widget.length, (_) => FocusNode());
-    if (widget.autoFocus && _nodes.isNotEmpty) {
+
+    if (widget.autoFocus) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
-        _nodes.first.requestFocus();
+        if (mounted) _focusNode.requestFocus();
       });
     }
   }
 
   @override
   void dispose() {
-    for (final c in _ctls) {
-      c.dispose();
-    }
-    for (final n in _nodes) {
-      n.dispose();
-    }
+    _controller.dispose();
+    _focusNode.dispose();
     super.dispose();
   }
 
-  String get _value => _ctls.map((c) => c.text).join();
-
-  void _notify() {
-    final v = _value;
-    widget.onChanged?.call(v);
-    if (v.length == widget.length && _ctls.every((c) => c.text.isNotEmpty)) {
-      widget.onCompleted?.call(v);
+  void _notify(String value) {
+    widget.onChanged?.call(value);
+    if (value.length == widget.length) {
+      widget.onCompleted?.call(value);
     }
   }
 
-  void _handlePaste(String pasted, int startIndex) {
-    final digits = pasted.replaceAll(RegExp(r'[^0-9]'), '');
-    if (digits.isEmpty) return;
-    final chars = digits.split('');
-    int i = startIndex;
-    for (final ch in chars) {
-      if (i >= widget.length) break;
-      _ctls[i].text = ch;
-      i++;
-    }
-    if (i <= widget.length - 1) {
-      _nodes[i].requestFocus();
+  void _focusAt(int index) {
+    final text = _controller.text;
+    final safeIndex = index.clamp(0, widget.length - 1);
+    final target = safeIndex.clamp(0, text.length);
+
+    TextSelection selection;
+    if (safeIndex < text.length) {
+      selection = TextSelection(baseOffset: safeIndex, extentOffset: safeIndex + 1);
+      _replaceMode = true;
     } else {
-      _nodes.last.unfocus();
+      selection = TextSelection.collapsed(offset: target);
+      _replaceMode = false;
     }
+
+    _selectedIndex = safeIndex;
+    _focusNode.requestFocus();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      _controller.selection = selection;
+    });
     setState(() {});
-    _notify();
+  }
+
+  KeyEventResult _handleKeyEvent(FocusNode node, KeyEvent event) {
+    if (event is! KeyDownEvent ||
+        event.logicalKey != LogicalKeyboardKey.backspace) {
+      return KeyEventResult.ignored;
+    }
+
+    final text = _controller.text;
+    if (text.isEmpty) {
+      return KeyEventResult.handled;
+    }
+
+    final selection = _controller.selection;
+    final hasRange = selection.start >= 0 &&
+        selection.end >= 0 &&
+        selection.start != selection.end;
+
+    if (hasRange) {
+      final start = selection.start.clamp(0, text.length);
+      final end = selection.end.clamp(0, text.length);
+      final updated = text.replaceRange(start, end, '');
+      _controller.value = TextEditingValue(
+        text: updated,
+        selection: TextSelection.collapsed(offset: start),
+      );
+      _selectedIndex = start > 0 ? start - 1 : 0;
+      _replaceMode = false;
+    } else {
+      final cursor = selection.baseOffset < 0 ? text.length : selection.baseOffset;
+      final removeIndex = cursor > 0 ? cursor - 1 : text.length - 1;
+      final updated = text.replaceRange(removeIndex, removeIndex + 1, '');
+      _controller.value = TextEditingValue(
+        text: updated,
+        selection: TextSelection.collapsed(offset: removeIndex),
+      );
+      _selectedIndex = removeIndex > 0 ? removeIndex - 1 : 0;
+      _replaceMode = false;
+    }
+
+    setState(() {});
+    _notify(_controller.text);
+    return KeyEventResult.handled;
+  }
+
+  int get _activeIndex {
+    if (!_focusNode.hasFocus) return -1;
+    if (_selectedIndex != null) {
+      return _selectedIndex!.clamp(0, widget.length - 1);
+    }
+    final base = _controller.selection.baseOffset;
+    if (base < 0) return 0;
+    if (base >= widget.length) return widget.length - 1;
+    return base;
   }
 
   @override
   Widget build(BuildContext context) {
-    const boxWidth = 39.0;
-    const boxHeight = 40.0;
+    final value = _controller.text;
+    final chars = value.split('');
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        RichText(
-          text: TextSpan(
-            text: widget.label,
-            style: AppDisplayTextStyles.subtitleBold.copyWith(
-              color: AppColors.textBlack,
+    return SizedBox(
+      width: _frameWidth,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          RichText(
+            text: TextSpan(
+              text: widget.label,
+              style: AppDisplayTextStyles.subtitleBold.copyWith(
+                color: AppColors.textBlack,
+              ),
+              children: widget.required
+                  ? const [
+                      TextSpan(
+                        text: '*',
+                        style: TextStyle(color: AppColors.error),
+                      ),
+                    ]
+                  : null,
             ),
-            children: widget.required
-                ? const [
-                    TextSpan(
-                      text: '*',
-                      style: TextStyle(color: AppColors.error),
-                    ),
-                  ]
-                : null,
           ),
-        ),
-        const SizedBox(height: 8),
-
-        Row(
-          mainAxisAlignment: MainAxisAlignment.start,
-          children: List.generate(widget.length, (index) {
-            return Padding(
-              padding: EdgeInsets.only(
-                right: index == widget.length - 1 ? 0 : 10,
-              ),
-              child: SizedBox(
-                width: boxWidth,
-                height: boxHeight,
-                child: _OtpBox(
-                  controller: _ctls[index],
-                  focusNode: _nodes[index],
-                  obscure: widget.obscure,
-                  onChanged: (val) {
-                    if (val.length > 1) {
-                      _handlePaste(val, index);
-                      return;
-                    }
-                    if (val.isNotEmpty && index < widget.length - 1) {
-                      _nodes[index + 1].requestFocus();
-                    }
-                    if (_ctls.every((c) => c.text.isNotEmpty)) {
-                      _nodes.last.unfocus();
-                    }
-                    _notify();
-                  },
-                  onBackspaceOnEmpty: () {
-                    if (index > 0) {
-                      _ctls[index - 1].clear();
-                      _nodes[index - 1].requestFocus();
-                      setState(() {});
-                      _notify();
-                    }
-                  },
-                  onPasteIntent: (clip) => _handlePaste(clip, index),
-                ),
-              ),
-            );
-          }),
-        ),
-
-        if (widget.supportText != null) ...[
           const SizedBox(height: 8),
-          Text(
-            widget.supportText!,
-            style: AppBodyTextStyles.helper.copyWith(
-              color: AppColors.textSupport,
+          SizedBox(
+            width: _fieldWidth,
+            height: _fieldHeight,
+            child: Focus(
+              onKeyEvent: _handleKeyEvent,
+              child: Stack(
+                alignment: Alignment.center,
+                children: [
+                  Positioned.fill(
+                    child: TextField(
+                      controller: _controller,
+                      focusNode: _focusNode,
+                      autofocus: widget.autoFocus,
+                      keyboardType: TextInputType.number,
+                      textInputAction: TextInputAction.done,
+                      obscureText: false,
+                      enableSuggestions: false,
+                      autocorrect: false,
+                      showCursor: false,
+                      style: const TextStyle(
+                        color: Colors.transparent,
+                        fontSize: 1,
+                        height: 1,
+                      ),
+                      cursorColor: Colors.transparent,
+                      decoration: InputDecoration(
+                        isDense: true,
+                        filled: true,
+                        fillColor: Colors.transparent,
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(_fieldRadius),
+                          borderSide: const BorderSide(color: AppColors.background),
+                        ),
+                        enabledBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(_fieldRadius),
+                          borderSide: const BorderSide(color: AppColors.background),
+                        ),
+                        focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(_fieldRadius),
+                          borderSide: const BorderSide(color: AppColors.background),
+                        ),
+                        contentPadding: EdgeInsets.zero,
+                      ),
+                      inputFormatters: [
+                        FilteringTextInputFormatter.digitsOnly,
+                        LengthLimitingTextInputFormatter(widget.length),
+                      ],
+                      onChanged: (text) {
+                        final replaceIndex = _replaceMode ? _selectedIndex : null;
+
+                        if (replaceIndex != null && replaceIndex + 1 < text.length) {
+                          final nextIndex = replaceIndex + 1;
+                          _selectedIndex = nextIndex;
+                          _replaceMode = true;
+                          WidgetsBinding.instance.addPostFrameCallback((_) {
+                            if (!mounted) return;
+                            _controller.selection = TextSelection(
+                              baseOffset: nextIndex,
+                              extentOffset: nextIndex + 1,
+                            );
+                          });
+                        } else {
+                          _selectedIndex = null;
+                          _replaceMode = false;
+                        }
+
+                        setState(() {});
+                        _notify(text);
+                      },
+                      onTapOutside: (_) => _focusNode.unfocus(),
+                      onSubmitted: (_) => _focusNode.unfocus(),
+                    ),
+                  ),
+                  GestureDetector(
+                    behavior: HitTestBehavior.opaque,
+                    onTap: () => _focusAt(chars.length),
+                    child: IgnorePointer(
+                      ignoring: true,
+                      child: Container(
+                        width: _fieldWidth,
+                        height: _fieldHeight,
+                        padding: const EdgeInsets.symmetric(vertical: 8.23),
+                        decoration: ShapeDecoration(
+                          shape: RoundedRectangleBorder(
+                            side: const BorderSide(color: AppColors.background),
+                            borderRadius: BorderRadius.circular(_fieldRadius),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: List.generate(widget.length, (index) {
+                      final char = index < chars.length ? chars[index] : '';
+                      final isActive = _activeIndex == index;
+
+                      return Padding(
+                        padding: EdgeInsets.only(
+                          right: index == widget.length - 1 ? 0 : _boxSpacing,
+                        ),
+                        child: GestureDetector(
+                          onTap: () => _focusAt(index),
+                          child: Container(
+                            width: _boxWidth,
+                            height: _boxHeight,
+                            alignment: Alignment.center,
+                            decoration: ShapeDecoration(
+                              color: AppColors.inputBg,
+                              shape: RoundedRectangleBorder(
+                                side: BorderSide(
+                                  width: 1.37,
+                                  color: isActive
+                                      ? AppColors.inputBorderFocus
+                                      : AppColors.inputBorder,
+                                ),
+                                borderRadius: BorderRadius.circular(_boxRadius),
+                              ),
+                            ),
+                            child: Text(
+                              widget.obscure && char.isNotEmpty ? '*' : char,
+                              style: AppBodyTextStyles.bodyBold.copyWith(
+                                color: AppColors.textPrimary,
+                                fontSize: 22,
+                                height: 1,
+                              ),
+                            ),
+                          ),
+                        ),
+                      );
+                    }),
+                  ),
+                ],
+              ),
             ),
           ),
+          if (widget.supportText != null) ...[
+            const SizedBox(height: 8),
+            SizedBox(
+              width: _frameWidth,
+              child: Text(
+                widget.supportText!,
+                style: AppBodyTextStyles.helper.copyWith(
+                  color: AppColors.textSupport,
+                ),
+              ),
+            ),
+          ],
         ],
-      ],
-    );
-  }
-}
-
-class _OtpBox extends StatelessWidget {
-  const _OtpBox({
-    required this.controller,
-    required this.focusNode,
-    required this.onChanged,
-    required this.onBackspaceOnEmpty,
-    required this.onPasteIntent,
-    this.obscure = false,
-  });
-
-  final TextEditingController controller;
-  final FocusNode focusNode;
-  final bool obscure;
-  final ValueChanged<String> onChanged;
-  final VoidCallback onBackspaceOnEmpty;
-  final ValueChanged<String> onPasteIntent;
-
-  @override
-  Widget build(BuildContext context) {
-    // ใช้ Shortcuts/Actions จับ Cmd/Ctrl+V
-    return Shortcuts(
-      shortcuts: const {
-        SingleActivator(LogicalKeyboardKey.keyV, meta: true): PasteTextIntent(),
-        SingleActivator(LogicalKeyboardKey.keyV, control: true):
-            PasteTextIntent(),
-      },
-      child: Actions(
-        actions: {
-          PasteTextIntent: CallbackAction<PasteTextIntent>(
-            onInvoke: (intent) async {
-              final data = await Clipboard.getData(Clipboard.kTextPlain);
-              if (data?.text case final text?) {
-                onPasteIntent(text);
-              }
-              return null;
-            },
-          ),
-        },
-        child: LayoutBuilder(
-          builder: (context, constraints) {
-            // คำนวณฟอนต์ให้ “พอดีช่อง” โดยดูด้านสั้นสุดของกล่อง
-            final shortest = constraints.biggest.shortestSide;
-            // ค่า 0.58 กำลังดีสำหรับตัวเลข/น้ำหนัก bold ในช่องมีขอบ/ระยะหายใจ
-            final fontSize = shortest * 0.58;
-
-            return TextField(
-              controller: controller,
-              focusNode: focusNode,
-              textAlign: TextAlign.center,
-              textAlignVertical: TextAlignVertical.center, // กลางแกน Y
-              style: TextStyle(
-                fontSize: fontSize,
-                fontWeight: FontWeight.w700,
-                height: 1.0, // line-height กระชับ ไม่ดันออกนอก
-              ),
-
-              // === คีย์บอร์ดตัวเลขล้วน + ปิดลูกเล่นที่ไม่จำเป็น ===
-              keyboardType: TextInputType.number,
-              textInputAction: TextInputAction.next,
-              maxLength: 1,
-              showCursor: true,
-              obscureText: obscure,
-              enableSuggestions: false,
-              autocorrect: false,
-              smartDashesType: SmartDashesType.disabled,
-              smartQuotesType: SmartQuotesType.disabled,
-              autofillHints: const [AutofillHints.oneTimeCode],
-
-              // formatter: เฉพาะตัวเลข + จำกัด 1 ตัว + จับ backspace ตอนว่าง
-              inputFormatters: [
-                FilteringTextInputFormatter.digitsOnly,
-                LengthLimitingTextInputFormatter(1),
-              ],
-              // ใช้ RawKey handler แทน formatter สำหรับ backspace-ตอนว่าง
-              onChanged: onChanged,
-
-              decoration: InputDecoration(
-                isDense: true,
-                counterText: '',
-                filled: true,
-                fillColor: AppColors.inputBg,
-                contentPadding:
-                    EdgeInsets.zero, // ไม่มี padding เพื่อให้พอดีช่องจริง
-                enabledBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(14),
-                  borderSide: const BorderSide(color: AppColors.inputBorder),
-                ),
-                focusedBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(14),
-                  borderSide: BorderSide(
-                    color: AppColors.brandPrimary,
-                    width: 1.5,
-                  ),
-                ),
-              ),
-
-              // เลือกทั้งหมดเมื่อแตะ เพื่อพิมพ์ทับง่าย
-              onTap: () {
-                controller.selection = TextSelection(
-                  baseOffset: 0,
-                  extentOffset: controller.text.length,
-                );
-              },
-              onEditingComplete: () {}, // กันปิดคีย์บอร์ดเวลา “Done”
-              onSubmitted: (_) {},
-            );
-          },
-        ),
       ),
     );
   }
-}
-
-/// Intent สำหรับจับ Paste (ใช้กับ Shortcuts/Actions)
-class PasteTextIntent extends Intent {
-  const PasteTextIntent();
 }
