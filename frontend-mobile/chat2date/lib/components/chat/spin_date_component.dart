@@ -4,7 +4,7 @@ import 'dart:ui' as ui;
 
 import 'package:chat2date/components/chat/content_switcher.dart';
 import 'package:chat2date/components/toasts/toast.dart';
-import 'package:chat2date/theme/app_colors.dart';
+import 'package:chat2date/core/theme/app_colors.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 

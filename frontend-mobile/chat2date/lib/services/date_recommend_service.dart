@@ -1,5 +1,5 @@
 import 'dart:convert';
-import 'package:chat2date/config/backend_base.dart';
+import 'package:chat2date/core/config/backend_base.dart';
 import 'package:chat2date/models/dto/date_recommend_dto.dart';
 import 'package:chat2date/stores/user_store.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart'; // ✅ ต้องเป็นตัวนี้

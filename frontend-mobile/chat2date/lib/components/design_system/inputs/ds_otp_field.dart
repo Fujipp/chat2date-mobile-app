@@ -1,6 +1,6 @@
-import 'package:chat2date/theme/app_colors.dart';
-import 'package:chat2date/theme/tokens/typography/body_text_styles.dart';
-import 'package:chat2date/theme/tokens/typography/display_text_styles.dart';
+import 'package:chat2date/core/theme/app_colors.dart';
+import 'package:chat2date/core/theme/tokens/typography/body_text_styles.dart';
+import 'package:chat2date/core/theme/tokens/typography/display_text_styles.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 

@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:chat2date/theme/app_colors.dart';
+import 'package:chat2date/core/theme/app_colors.dart';
 
 const _cellW = 42.0;
 const _cellH = 34.0;

@@ -1,4 +1,4 @@
-import 'package:chat2date/utils/backend_datetime_parser.dart';
+import 'package:chat2date/core/utils/backend_datetime_parser.dart';
 
 /// Model สำหรับข้อมูลห้องแชท
 /// ใช้กับ GET /api/v1/chats/rooms

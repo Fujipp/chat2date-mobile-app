@@ -1,5 +1,5 @@
 import 'package:chat2date/components/toasts/toast.dart';
-import 'package:chat2date/config/backend_base.dart';
+import 'package:chat2date/core/config/backend_base.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:http/http.dart' as http;
@@ -123,7 +123,7 @@ class RestoreAccountDialog {
                           onPressed: () {
                             Navigator.of(dialogContext).pop();
                             Navigator.of(context).pushNamedAndRemoveUntil(
-                              '/home',
+                              '/login',
                               (route) => false,
                             );
                           },

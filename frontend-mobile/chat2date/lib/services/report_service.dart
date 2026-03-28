@@ -1,7 +1,7 @@
 import 'dart:convert';
 import 'dart:io';
 
-import 'package:chat2date/config/backend_base.dart';
+import 'package:chat2date/core/config/backend_base.dart';
 import 'package:chat2date/models/report_request.dart';
 import 'package:chat2date/models/report_response.dart';
 import 'package:chat2date/stores/user_store.dart';

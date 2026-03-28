@@ -1,6 +1,6 @@
 import 'dart:async';
 import 'package:chat2date/models/chat_message.dart';
-import 'package:chat2date/theme/app_colors.dart';
+import 'package:chat2date/core/theme/app_colors.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 

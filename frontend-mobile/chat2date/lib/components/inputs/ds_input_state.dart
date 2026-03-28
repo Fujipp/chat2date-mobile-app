@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../../theme/app_colors.dart';
+import 'package:chat2date/core/theme/app_colors.dart';
 import 'ds_text_field/ds_text_field_props.dart';
 
 class DsInputState {

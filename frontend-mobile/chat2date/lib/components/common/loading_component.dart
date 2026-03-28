@@ -1,4 +1,4 @@
-import 'package:chat2date/theme/app_colors.dart';
+import 'package:chat2date/core/theme/app_colors.dart';
 import 'package:flutter/material.dart';
 import 'package:percent_indicator/percent_indicator.dart';
 

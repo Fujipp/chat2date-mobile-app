@@ -1,4 +1,4 @@
-import 'package:chat2date/theme/app_colors.dart';
+import 'package:chat2date/core/theme/app_colors.dart';
 import 'package:flutter/material.dart';
 import 'ds_text_field_helper.dart';
 import 'ds_text_field_props.dart';
@@ -32,6 +32,7 @@ class DsTextField extends StatefulWidget {
     this.maxLines = 1,
     this.minLines,
     this.textInputAction,
+    this.textColor,
   });
 
   final String? label;
@@ -60,6 +61,7 @@ class DsTextField extends StatefulWidget {
   final int? maxLines;
   final int? minLines;
   final TextInputAction? textInputAction;
+  final Color? textColor;
 
   @override
   State<DsTextField> createState() => _DsTextFieldState();
@@ -130,6 +132,7 @@ class _DsTextFieldState extends State<DsTextField> {
     final inputStyle = DsTextFieldHelper.bodyStyle(
       state: effectiveState,
       fontSize: widget.inputFontSize,
+      colorOverride: widget.textColor,
     );
     final hintStyle = DsTextFieldHelper.hintStyle(
       state: effectiveState,

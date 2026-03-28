@@ -3,7 +3,7 @@ import 'package:chat2date/models/dto/preference_dto.dart';
 import 'package:chat2date/services/user_service.dart';
 import 'package:chat2date/stores/user_store.dart';
 import 'package:http/http.dart' as http;
-import 'package:chat2date/config/backend_base.dart'; // << เพิ่มบรรทัดนี้
+import 'package:chat2date/core/config/backend_base.dart'; // << เพิ่มบรรทัดนี้
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 final preferenceServiceProvider = Provider(

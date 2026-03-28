@@ -2,7 +2,7 @@ import 'package:chat2date/components/chat/input_chat_component.dart';
 import 'package:chat2date/components/status_bar/score_row.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
-import 'package:chat2date/theme/app_colors.dart';
+import 'package:chat2date/core/theme/app_colors.dart';
 import 'package:chat2date/components/buttons/ds_button.dart';
 
 class FeatureGuideModal extends StatefulWidget {

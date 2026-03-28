@@ -3,9 +3,9 @@ import 'dart:math';
 
 import 'package:chat2date/components/design_system/buttons/index.dart';
 import 'package:chat2date/components/design_system/controls/index.dart';
-import 'package:chat2date/theme/app_assets.dart';
-import 'package:chat2date/theme/app_colors.dart';
-import 'package:chat2date/theme/tokens/typography/body_text_styles.dart';
+import 'package:chat2date/core/theme/app_assets.dart';
+import 'package:chat2date/core/theme/app_colors.dart';
+import 'package:chat2date/core/theme/tokens/typography/body_text_styles.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 

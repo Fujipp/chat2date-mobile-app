@@ -2,7 +2,7 @@ import 'dart:ui';
 import 'package:chat2date/components/buttons/ds_button.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
-import 'package:chat2date/theme/app_colors.dart';
+import 'package:chat2date/core/theme/app_colors.dart';
 
 class RelationshipMissionModal extends StatelessWidget {
   final int streakDays;

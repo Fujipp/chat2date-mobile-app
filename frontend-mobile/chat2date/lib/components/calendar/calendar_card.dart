@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:chat2date/components/buttons/ds_button.dart';
 import 'package:chat2date/components/common/modal_component.dart';
-import 'package:chat2date/theme/app_colors.dart';
+import 'package:chat2date/core/theme/app_colors.dart';
 import 'calendar_utils.dart';
 import 'calendar_day_cell.dart';
 

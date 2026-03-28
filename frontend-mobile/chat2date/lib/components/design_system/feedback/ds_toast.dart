@@ -1,8 +1,8 @@
 import 'dart:async';
 
-import 'package:chat2date/theme/app_assets.dart';
-import 'package:chat2date/theme/app_colors.dart';
-import 'package:chat2date/theme/tokens/typography/body_text_styles.dart';
+import 'package:chat2date/core/theme/app_assets.dart';
+import 'package:chat2date/core/theme/app_colors.dart';
+import 'package:chat2date/core/theme/tokens/typography/body_text_styles.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 
@@ -33,6 +33,18 @@ class Toast extends StatelessWidget {
   final bool showCountdown;
   final double width;
 
+  static OverlayEntry? _currentEntry;
+  static Timer? _currentTimer;
+
+  static void dismissCurrent() {
+    _currentTimer?.cancel();
+    _currentTimer = null;
+    if (_currentEntry?.mounted ?? false) {
+      _currentEntry!.remove();
+    }
+    _currentEntry = null;
+  }
+
   static void show(
     BuildContext context, {
     required ToastType type,
@@ -42,17 +54,20 @@ class Toast extends StatelessWidget {
     bool showCountdown = false,
     bool autoDismiss = true,
   }) {
+    dismissCurrent();
+
     final overlay = Overlay.maybeOf(context);
     if (overlay == null) return;
 
     late final OverlayEntry entry;
-    Timer? dismissTimer;
 
     void removeEntry() {
-      dismissTimer?.cancel();
+      _currentTimer?.cancel();
+      _currentTimer = null;
       if (entry.mounted) {
         entry.remove();
       }
+      if (_currentEntry == entry) _currentEntry = null;
     }
 
     entry = OverlayEntry(
@@ -81,10 +96,11 @@ class Toast extends StatelessWidget {
       ),
     );
 
+    _currentEntry = entry;
     overlay.insert(entry);
 
     if (autoDismiss) {
-      dismissTimer = Timer(Duration(seconds: durationSeconds), removeEntry);
+      _currentTimer = Timer(Duration(seconds: durationSeconds), removeEntry);
     }
   }
 

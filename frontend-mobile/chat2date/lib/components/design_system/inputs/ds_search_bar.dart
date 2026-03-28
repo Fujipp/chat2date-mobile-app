@@ -1,4 +1,4 @@
-import 'package:chat2date/theme/app_colors.dart';
+import 'package:chat2date/core/theme/app_colors.dart';
 import 'package:flutter/material.dart';
 import 'ds_text_field_helper.dart';
 import 'ds_text_field_props.dart';

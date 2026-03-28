@@ -1,6 +1,6 @@
 import 'dart:convert';
 
-import 'package:chat2date/config/backend_base.dart';
+import 'package:chat2date/core/config/backend_base.dart';
 import 'package:chat2date/models/chat_access_status.dart';
 import 'package:chat2date/models/chat_message.dart';
 import 'package:chat2date/models/chat_room.dart';
