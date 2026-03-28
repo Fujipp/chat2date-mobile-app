@@ -14,6 +14,10 @@ abstract final class AppAssets {
       'assets/images/illustrations/question.svg';
   static const String botChatIllustration =
       'assets/images/illustrations/bot_chat.png';
+  static const String spinWheelBaseIllustration =
+      'assets/images/illustrations/illustration_spin_wheel_base.svg';
+  static const String spinWheelArrowIllustration =
+      'assets/images/illustrations/illustration_spin_wheel_arrow.svg';
 
   static const String placeholderFemale =
       'assets/images/placeholders/female.jpg';

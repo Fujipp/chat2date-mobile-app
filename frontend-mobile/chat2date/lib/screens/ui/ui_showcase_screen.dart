@@ -140,6 +140,9 @@ class _UiShowcaseScreenState extends State<UiShowcaseScreen> {
             ),
           ),
           const SizedBox(height: 24),
+          const _ShowcaseSectionTitle('Spin Wheel'),
+          const _ShowcaseCard(child: _SpinWheelShowcase()),
+          const SizedBox(height: 24),
           const _ShowcaseSectionTitle('Switcher'),
           _ShowcaseCard(
             child: _SwitcherShowcase(
@@ -1155,6 +1158,62 @@ class _GuideBookImage extends StatelessWidget {
               fontWeight: FontWeight.w600,
               color: AppColors.textPrimary,
             ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _SpinWheelShowcase extends StatelessWidget {
+  const _SpinWheelShowcase();
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: DsSpinWheelCard(
+        userALabel: 'User A',
+        userBLabel: 'User B',
+        items: const [
+          DsSpinWheelItem(
+            label: 'A',
+            imageProvider: AssetImage(AppAssets.placeholderFemale),
+          ),
+          DsSpinWheelItem(
+            label: 'B',
+            imageProvider: AssetImage(AppAssets.placeholderMale),
+          ),
+          DsSpinWheelItem(
+            label: 'C',
+            imageProvider: AssetImage(AppAssets.placeholderMajiko),
+          ),
+          DsSpinWheelItem(
+            label: 'D',
+            imageProvider: AssetImage(AppAssets.placeholderFemale),
+          ),
+          DsSpinWheelItem(
+            label: 'E',
+            imageProvider: AssetImage(AppAssets.placeholderMale),
+          ),
+          DsSpinWheelItem(
+            label: 'F',
+            imageProvider: AssetImage(AppAssets.placeholderMajiko),
+          ),
+          DsSpinWheelItem(
+            label: 'G',
+            imageProvider: AssetImage(AppAssets.placeholderFemale),
+          ),
+          DsSpinWheelItem(
+            label: 'H',
+            imageProvider: AssetImage(AppAssets.placeholderMale),
+          ),
+          DsSpinWheelItem(
+            label: 'I',
+            imageProvider: AssetImage(AppAssets.placeholderMajiko),
+          ),
+          DsSpinWheelItem(
+            label: 'J',
+            imageProvider: AssetImage(AppAssets.placeholderFemale),
           ),
         ],
       ),
