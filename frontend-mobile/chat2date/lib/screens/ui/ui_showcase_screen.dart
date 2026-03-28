@@ -22,6 +22,8 @@ class _UiShowcaseScreenState extends State<UiShowcaseScreen> {
   String? _secondaryHeaderEvent;
   int _bottomNavIndex = 0;
   int _switcherIndex = 0;
+  int _levelBarLevel = 1;
+  double _levelBarProgress = 0.35;
   DsUserSelectorValue _userSelectorValue = DsUserSelectorValue.single;
   double _sliderValue = 50;
   double _progressRingValue = 0.5;
@@ -120,6 +122,17 @@ class _UiShowcaseScreenState extends State<UiShowcaseScreen> {
             child: _ProgressRingShowcase(
               value: _progressRingValue,
               onChanged: (value) => setState(() => _progressRingValue = value),
+            ),
+          ),
+          const SizedBox(height: 24),
+          const _ShowcaseSectionTitle('Level Bar'),
+          _ShowcaseCard(
+            child: _LevelBarShowcase(
+              level: _levelBarLevel,
+              progress: _levelBarProgress,
+              onLevelChanged: (value) => setState(() => _levelBarLevel = value),
+              onProgressChanged: (value) =>
+                  setState(() => _levelBarProgress = value),
             ),
           ),
           const SizedBox(height: 24),
@@ -1010,6 +1023,72 @@ class _ActionModalShowcaseState extends State<_ActionModalShowcase> {
         const SizedBox(height: 16),
         DsDeleteAccountModal(
           controller: _deleteController,
+        ),
+      ],
+    );
+  }
+}
+
+class _LevelBarShowcase extends StatelessWidget {
+  const _LevelBarShowcase({
+    required this.level,
+    required this.progress,
+    required this.onLevelChanged,
+    required this.onProgressChanged,
+  });
+
+  final int level;
+  final double progress;
+  final ValueChanged<int> onLevelChanged;
+  final ValueChanged<double> onProgressChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const DsLevelProgressBar(level: 0, progress: 0),
+        const SizedBox(height: 12),
+        const DsLevelProgressBar(level: 0, progress: 0.35),
+        const SizedBox(height: 12),
+        const DsLevelProgressBar(level: 1, progress: 0.50),
+        const SizedBox(height: 12),
+        const DsLevelProgressBar(level: 2, progress: 0.74),
+        const SizedBox(height: 12),
+        const DsLevelProgressBar(level: 3, progress: 1),
+        const SizedBox(height: 16),
+        DsLevelProgressBar(
+          level: level,
+          progress: progress,
+        ),
+        const SizedBox(height: 12),
+        Row(
+          children: [
+            const Text(
+              'Level',
+              style: TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+                color: AppColors.textPrimary,
+              ),
+            ),
+            const SizedBox(width: 12),
+            for (final item in [0, 1, 2, 3]) ...[
+              ChoiceChip(
+                label: Text('$item'),
+                selected: level == item,
+                onSelected: (_) => onLevelChanged(item),
+              ),
+              if (item != 3) const SizedBox(width: 8),
+            ],
+          ],
+        ),
+        const SizedBox(height: 8),
+        Slider(
+          value: progress,
+          min: 0,
+          max: 1,
+          onChanged: level == 3 ? null : onProgressChanged,
         ),
       ],
     );

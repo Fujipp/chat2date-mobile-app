@@ -36,6 +36,8 @@ abstract final class AppAssets {
   static const String heartStatusIcon = '$modalIconDir/icon_heart_status.svg';
   static const String heartActiveIcon = '$iconDir/icon_heart_active.svg';
   static const String heartIcon = '$iconDir/icon_heart.svg';
+  static const String statusHeartIcon = '$iconDir/HEART_STATUS_BAR.svg';
+  static const String statusInfoIcon = '$iconDir/INFO_STATUS_BAR.svg';
   static const String reportIcon = '$modalIconDir/icon_report.svg';
   static const String starRatingIcon = '$modalIconDir/icon_star-rating.svg';
   static const String trashIcon = '$iconDir/ic-trash-20x26.svg';

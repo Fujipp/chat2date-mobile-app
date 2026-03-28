@@ -70,17 +70,22 @@ class _DsSliderThumbShape extends SliderComponentShape {
     required Size sizeWithOverflow,
   }) {
     final canvas = context.canvas;
-    final thumbRect = Rect.fromCircle(center: center, radius: _radius);
+    final activeT = Curves.easeOut.transform(activationAnimation.value);
 
-    canvas.drawShadow(
-      Path()..addOval(thumbRect),
-      Colors.black.withValues(alpha: 0.15),
-      6,
-      true,
-    );
-
-    final outerPaint = Paint()..color = AppColors.background;
-    final innerPaint = Paint()..color = AppColors.brandPrimary;
+    final outerPaint = Paint()
+      ..color = Color.lerp(
+            AppColors.background,
+            AppColors.brandPrimary,
+            activeT,
+          ) ??
+          AppColors.background;
+    final innerPaint = Paint()
+      ..color = Color.lerp(
+            AppColors.brandPrimary,
+            AppColors.background,
+            activeT,
+          ) ??
+          AppColors.brandPrimary;
 
     canvas.drawCircle(center, _radius, outerPaint);
     canvas.drawCircle(center, _innerRadius, innerPaint);
