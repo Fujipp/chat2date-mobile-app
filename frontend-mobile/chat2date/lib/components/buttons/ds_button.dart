@@ -1,1 +1,1 @@
-export '../design_system/v4/buttons/ds_button.dart';
+export '../design_system/buttons/ds_button.dart';

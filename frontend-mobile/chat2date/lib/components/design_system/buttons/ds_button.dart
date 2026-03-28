@@ -234,21 +234,26 @@ class _DsButtonState extends State<DsButton> {
       ],
     );
 
-    final button = AnimatedContainer(
+    final button = AnimatedScale(
       duration: const Duration(milliseconds: 120),
       curve: Curves.easeOut,
-      width: widget.width,
-      height: metrics.$1,
-      padding: resolvedPadding,
-      decoration: BoxDecoration(
-        color: background,
-        borderRadius: BorderRadius.circular(widget.radius),
-        border: borderColor == Colors.transparent
-            ? null
-            : Border.all(color: borderColor),
+      scale: isPressed && !isDisabled ? 0.98 : 1,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 120),
+        curve: Curves.easeOut,
+        width: widget.width,
+        height: metrics.$1,
+        padding: resolvedPadding,
+        decoration: BoxDecoration(
+          color: background,
+          borderRadius: BorderRadius.circular(widget.radius),
+          border: borderColor == Colors.transparent
+              ? null
+              : Border.all(color: borderColor),
+        ),
+        alignment: Alignment.center,
+        child: child,
       ),
-      alignment: Alignment.center,
-      child: child,
     );
 
     return MouseRegion(

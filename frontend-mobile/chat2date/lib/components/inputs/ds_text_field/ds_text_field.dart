@@ -1,1 +1,1 @@
-export '../../design_system/v4/inputs/ds_text_field.dart';
+export '../../design_system/inputs/ds_text_field.dart';

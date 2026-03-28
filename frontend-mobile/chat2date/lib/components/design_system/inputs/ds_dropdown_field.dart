@@ -153,27 +153,17 @@ class _DsDropdownFieldState<T> extends State<DsDropdownField<T>> {
         : DsTextFieldHelper.bodyStyle(state: effectiveState);
 
     final iconColor = switch (effectiveState) {
-      DsInputVisualState.error => DsTextFieldHelper.borderColorFor(
-        effectiveState,
-      ),
-      DsInputVisualState.inactive => DsTextFieldHelper.borderColorFor(
-        effectiveState,
-      ),
-      DsInputVisualState.empty => DsTextFieldHelper.borderColorFor(
-        DsInputVisualState.typing,
-      ),
-      DsInputVisualState.typing => DsTextFieldHelper.borderColorFor(
-        effectiveState,
-      ),
-      DsInputVisualState.filled => DsTextFieldHelper.borderColorFor(
-        DsInputVisualState.typing,
-      ),
+      DsInputVisualState.error => AppColors.error,
+      DsInputVisualState.inactive => AppColors.textDisabled,
+      DsInputVisualState.empty => AppColors.textSupport,
+      DsInputVisualState.typing => AppColors.textPrimary,
+      DsInputVisualState.filled => AppColors.textPrimary,
     };
     final dropdownIcon = Padding(
       padding: const EdgeInsets.only(left: 12),
       child: DsTextFieldHelper.buildSvgIcon(
         AppAssets.inputDropdownIcon,
-        size: 12,
+        size: 14,
         color: iconColor,
         turns: _isOpen ? 0.5 : 0,
       ),

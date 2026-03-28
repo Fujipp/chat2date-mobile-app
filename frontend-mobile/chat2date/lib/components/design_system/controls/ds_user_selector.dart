@@ -31,20 +31,23 @@ class DsUserSelector extends StatelessWidget {
         border: Border.all(color: AppColors.surface),
       ),
       child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        mainAxisAlignment: MainAxisAlignment.center,
         children: [
           _SelectorIconButton(
             assetPath: value == DsUserSelectorValue.single
                 ? AppAssets.selectorUserSingleActive
                 : AppAssets.selectorUserSingleInactive,
             semanticLabel: 'Single user',
+            width: 18.53,
             onTap: () => onChanged(DsUserSelectorValue.single),
           ),
+          const SizedBox(width: 35),
           _SelectorIconButton(
             assetPath: value == DsUserSelectorValue.group
                 ? AppAssets.selectorUserGroupActive
                 : AppAssets.selectorUserGroupInactive,
             semanticLabel: 'Group users',
+            width: 25.07,
             onTap: () => onChanged(DsUserSelectorValue.group),
           ),
         ],
@@ -58,11 +61,13 @@ class _SelectorIconButton extends StatelessWidget {
     required this.assetPath,
     required this.semanticLabel,
     required this.onTap,
+    required this.width,
   });
 
   final String assetPath;
   final String semanticLabel;
   final VoidCallback onTap;
+  final double width;
 
   @override
   Widget build(BuildContext context) {
@@ -70,10 +75,21 @@ class _SelectorIconButton extends StatelessWidget {
       onTap: onTap,
       behavior: HitTestBehavior.opaque,
       child: SizedBox(
-        width: 26,
+        width: width,
         height: 20,
         child: Center(
-          child: SvgPicture.asset(assetPath, semanticsLabel: semanticLabel),
+          child: SvgPicture.asset(
+            assetPath,
+            width: width,
+            height: 20,
+            fit: BoxFit.contain,
+            theme: SvgTheme(
+              currentColor: assetPath.endsWith('_active.svg')
+                  ? AppColors.brandPrimary
+                  : AppColors.surface,
+            ),
+            semanticsLabel: semanticLabel,
+          ),
         ),
       ),
     );

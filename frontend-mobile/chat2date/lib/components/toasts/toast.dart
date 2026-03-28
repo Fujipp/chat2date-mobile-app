@@ -1,1 +1,1 @@
-export '../design_system/v4/feedback/ds_toast.dart';
+export '../design_system/feedback/ds_toast.dart';

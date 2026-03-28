@@ -95,6 +95,15 @@ flutter:
         - asset: assets/fonts/Inter/Inter-Italic-VariableFont_opsz,wght.ttf
           style: italic
 
+    - family: IBMPlexSansThai
+      fonts:
+        - asset: assets/fonts/IBMPlexSansThai/IBMPlexSansThai-Regular.ttf
+          weight: 400
+        - asset: assets/fonts/IBMPlexSansThai/IBMPlexSansThai-SemiBold.ttf
+          weight: 600
+        - asset: assets/fonts/IBMPlexSansThai/IBMPlexSansThai-Bold.ttf
+          weight: 700
+
     - family: Itim
       fonts:
         - asset: assets/fonts/Itim/Itim-Regular.ttf

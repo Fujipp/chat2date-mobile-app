@@ -29,6 +29,7 @@ class EditInputField extends StatefulWidget {
   const EditInputField({
     super.key,
     required this.label,
+    this.required = false,
     this.placeholder = 'เพิ่มเบอร์ที่นี่',
     this.initialValue,
     this.prefixText,
@@ -39,6 +40,7 @@ class EditInputField extends StatefulWidget {
   });
 
   final String label;
+  final bool required;
   final String placeholder;
   final String? initialValue;
   final String? prefixText;
@@ -129,10 +131,20 @@ class _EditInputFieldState extends State<EditInputField> {
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          widget.label,
-          style: AppDisplayTextStyles.subtitleBold.copyWith(
-            color: AppColors.textBlack,
+        RichText(
+          text: TextSpan(
+            text: widget.label,
+            style: AppDisplayTextStyles.subtitleBold.copyWith(
+              color: AppColors.textBlack,
+            ),
+            children: widget.required
+                ? const [
+                    TextSpan(
+                      text: '*',
+                      style: TextStyle(color: AppColors.error),
+                    ),
+                  ]
+                : null,
           ),
         ),
         const SizedBox(height: 8),

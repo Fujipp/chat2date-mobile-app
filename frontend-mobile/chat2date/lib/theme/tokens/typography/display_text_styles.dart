@@ -81,5 +81,5 @@ abstract final class AppDisplayTextStyles {
 
 abstract final class AppTypographyFamilies {
   static const String primary = 'Inter';
-  static const List<String> fallbacks = ['Inter'];
+  static const List<String> fallbacks = ['IBMPlexSansThai', 'Inter'];
 }

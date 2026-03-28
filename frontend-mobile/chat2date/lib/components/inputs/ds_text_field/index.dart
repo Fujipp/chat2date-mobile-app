@@ -1,1 +1,1 @@
-export '../../design_system/v4/inputs/index.dart';
+export '../../design_system/inputs/index.dart';

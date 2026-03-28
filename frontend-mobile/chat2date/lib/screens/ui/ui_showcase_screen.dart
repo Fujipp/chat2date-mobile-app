@@ -1,5 +1,7 @@
-import 'package:chat2date/components/design_system/v4/buttons/index.dart';
-import 'package:chat2date/components/design_system/v4/inputs/index.dart';
+import 'package:chat2date/components/design_system/buttons/index.dart';
+import 'package:chat2date/components/design_system/controls/index.dart';
+import 'package:chat2date/components/design_system/feedback/ds_toast.dart';
+import 'package:chat2date/components/design_system/inputs/index.dart';
 import 'package:chat2date/theme/app_assets.dart';
 import 'package:chat2date/theme/app_colors.dart';
 import 'package:flutter/material.dart';
@@ -14,6 +16,11 @@ class UiShowcaseScreen extends StatefulWidget {
 }
 
 class _UiShowcaseScreenState extends State<UiShowcaseScreen> {
+  int _switcherIndex = 0;
+  DsUserSelectorValue _userSelectorValue = DsUserSelectorValue.single;
+  double _sliderValue = 50;
+  final _searchTypingController = TextEditingController(text: 'Text');
+  final _searchFilledController = TextEditingController(text: 'Text');
   final _textController = TextEditingController();
   final _disabledController = TextEditingController(text: '88-888-8888');
   final _selectController = TextEditingController();
@@ -22,6 +29,8 @@ class _UiShowcaseScreenState extends State<UiShowcaseScreen> {
 
   @override
   void dispose() {
+    _searchTypingController.dispose();
+    _searchFilledController.dispose();
     _textController.dispose();
     _disabledController.dispose();
     _selectController.dispose();
@@ -52,6 +61,8 @@ class _UiShowcaseScreenState extends State<UiShowcaseScreen> {
               disabledController: _disabledController,
               selectController: _selectController,
               areaController: _areaController,
+              searchTypingController: _searchTypingController,
+              searchFilledController: _searchFilledController,
               dropdownValue: _dropdownValue,
               onDropdownChanged: (value) =>
                   setState(() => _dropdownValue = value),
@@ -60,6 +71,37 @@ class _UiShowcaseScreenState extends State<UiShowcaseScreen> {
               ),
             ),
           ),
+          const SizedBox(height: 24),
+          const _ShowcaseSectionTitle('Toasts'),
+          const _ShowcaseCard(child: _ToastShowcase()),
+          const SizedBox(height: 24),
+          const _ShowcaseSectionTitle('Slider'),
+          _ShowcaseCard(
+            child: _SliderShowcase(
+              value: _sliderValue,
+              onChanged: (value) => setState(() => _sliderValue = value),
+            ),
+          ),
+          const SizedBox(height: 24),
+          const _ShowcaseSectionTitle('Switcher'),
+          _ShowcaseCard(
+            child: _SwitcherShowcase(
+              selectedIndex: _switcherIndex,
+              onChanged: (index) => setState(() => _switcherIndex = index),
+            ),
+          ),
+          const SizedBox(height: 24),
+          const _ShowcaseSectionTitle('Switcher Icon'),
+          _ShowcaseCard(
+            child: _IconSwitcherShowcase(
+              value: _userSelectorValue,
+              onChanged: (value) =>
+                  setState(() => _userSelectorValue = value),
+            ),
+          ),
+          const SizedBox(height: 24),
+          const _ShowcaseSectionTitle('Reaction Buttons'),
+          const _ShowcaseCard(child: _ReactionButtonsShowcase()),
         ],
       ),
     );
@@ -332,6 +374,8 @@ class _ButtonsShowcase extends StatelessWidget {
 
 class _InputsShowcase extends StatelessWidget {
   const _InputsShowcase({
+    required this.searchTypingController,
+    required this.searchFilledController,
     required this.textController,
     required this.disabledController,
     required this.selectController,
@@ -341,6 +385,8 @@ class _InputsShowcase extends StatelessWidget {
     required this.onSelectTap,
   });
 
+  final TextEditingController searchTypingController;
+  final TextEditingController searchFilledController;
   final TextEditingController textController;
   final TextEditingController disabledController;
   final TextEditingController selectController;
@@ -354,6 +400,24 @@ class _InputsShowcase extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
+        const _ButtonGroup(
+          title: 'Search Bar / Empty',
+          child: DsSearchBar(),
+        ),
+        _ButtonGroup(
+          title: 'Search Bar / Typing',
+          child: DsSearchBar(
+            controller: searchTypingController,
+            state: DsInputVisualState.typing,
+          ),
+        ),
+        _ButtonGroup(
+          title: 'Search Bar / Filled',
+          child: DsSearchBar(
+            controller: searchFilledController,
+            state: DsInputVisualState.filled,
+          ),
+        ),
         _ButtonGroup(
           title: 'Input 1',
           child: DsTextField(
@@ -402,13 +466,15 @@ class _InputsShowcase extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: const [
               EditInputField(
-                label: 'Text*',
+                label: 'Text',
+                required: true,
                 placeholder: 'Text',
                 keyboardType: TextInputType.text,
               ),
               SizedBox(height: 12),
               EditInputField(
-                label: 'Text*',
+                label: 'Text',
+                required: true,
                 placeholder: '88-8888-8888',
                 prefixText: '+66',
                 keyboardType: TextInputType.phone,
@@ -477,6 +543,131 @@ class _ButtonGroup extends StatelessWidget {
           child,
         ],
       ),
+    );
+  }
+}
+
+class _ToastShowcase extends StatelessWidget {
+  const _ToastShowcase();
+
+  @override
+  Widget build(BuildContext context) {
+    return const Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Toast(
+          type: ToastType.info,
+          title: 'Title',
+          message: 'Description. Lorem ipsum dolor sit amet.',
+          onClose: _noop,
+        ),
+        SizedBox(height: 16),
+        Toast(
+          type: ToastType.success,
+          title: 'Title',
+          message: 'Description. Lorem ipsum dolor sit amet.',
+          onClose: _noop,
+        ),
+        SizedBox(height: 16),
+        Toast(
+          type: ToastType.warning,
+          title: 'Title',
+          message: 'Description. Lorem ipsum dolor sit amet.',
+          onClose: _noop,
+        ),
+        SizedBox(height: 16),
+        Toast(
+          type: ToastType.error,
+          title: 'Title',
+          message: 'Description. Lorem ipsum dolor sit amet.',
+          onClose: _noop,
+        ),
+      ],
+    );
+  }
+
+  static void _noop() {}
+}
+
+class _SliderShowcase extends StatelessWidget {
+  const _SliderShowcase({
+    required this.value,
+    required this.onChanged,
+  });
+
+  final double value;
+  final ValueChanged<double> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    return DsSlider(
+      value: value,
+      onChanged: onChanged,
+    );
+  }
+}
+
+class _SwitcherShowcase extends StatelessWidget {
+  const _SwitcherShowcase({
+    required this.selectedIndex,
+    required this.onChanged,
+  });
+
+  final int selectedIndex;
+  final ValueChanged<int> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    return DsSegmentedSwitcher(
+      width: 332,
+      items: const ['Section 1', 'Section 2'],
+      selectedIndex: selectedIndex,
+      onChanged: onChanged,
+    );
+  }
+}
+
+class _IconSwitcherShowcase extends StatelessWidget {
+  const _IconSwitcherShowcase({
+    required this.value,
+    required this.onChanged,
+  });
+
+  final DsUserSelectorValue value;
+  final ValueChanged<DsUserSelectorValue> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    return Align(
+      alignment: Alignment.centerLeft,
+      child: SizedBox(
+        width: 120,
+        height: 45,
+        child: DsUserSelector(
+          value: value,
+          onChanged: onChanged,
+        ),
+      ),
+    );
+  }
+}
+
+class _ReactionButtonsShowcase extends StatelessWidget {
+  const _ReactionButtonsShowcase();
+
+  @override
+  Widget build(BuildContext context) {
+    return const Wrap(
+      spacing: 16,
+      runSpacing: 16,
+      children: [
+        DsReactionButton(
+          type: DsReactionButtonType.match,
+        ),
+        DsReactionButton(
+          type: DsReactionButtonType.pass,
+        ),
+      ],
     );
   }
 }

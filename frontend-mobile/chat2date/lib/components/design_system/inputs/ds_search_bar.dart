@@ -13,6 +13,7 @@ class DsSearchBar extends StatefulWidget {
     this.state,
     this.width = 311,
     this.enabled = true,
+    this.autofocus = false,
   });
 
   final TextEditingController? controller;
@@ -22,6 +23,7 @@ class DsSearchBar extends StatefulWidget {
   final DsInputVisualState? state;
   final double width;
   final bool enabled;
+  final bool autofocus;
 
   @override
   State<DsSearchBar> createState() => _DsSearchBarState();
@@ -89,7 +91,9 @@ class _DsSearchBarState extends State<DsSearchBar> {
         enabled: widget.enabled,
         onChanged: widget.onChanged,
         style: DsTextFieldHelper.bodyStyle(state: effectiveState),
-        cursorColor: AppColors.brandPrimary,
+        cursorColor: AppColors.textPrimary,
+        autofocus: widget.autofocus,
+        onTapOutside: (_) => FocusScope.of(context).unfocus(),
         decoration: InputDecoration(
           isDense: true,
           filled: true,
@@ -99,8 +103,8 @@ class _DsSearchBarState extends State<DsSearchBar> {
           prefixIcon: const Padding(
             padding: EdgeInsetsDirectional.only(start: 16, end: 16),
             child: Icon(
-              Icons.search_rounded,
-              size: 20,
+              Icons.search,
+              size: 16,
               color: AppColors.textBlack,
             ),
           ),

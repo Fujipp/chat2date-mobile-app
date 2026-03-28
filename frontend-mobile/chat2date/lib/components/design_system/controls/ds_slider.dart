@@ -47,6 +47,7 @@ class _DsSliderThumbShape extends SliderComponentShape {
   const _DsSliderThumbShape();
 
   static const double _radius = 10;
+  static const double _innerRadius = 4.5;
 
   @override
   Size getPreferredSize(bool isEnabled, bool isDiscrete) {
@@ -69,18 +70,19 @@ class _DsSliderThumbShape extends SliderComponentShape {
     required Size sizeWithOverflow,
   }) {
     final canvas = context.canvas;
+    final thumbRect = Rect.fromCircle(center: center, radius: _radius);
 
     canvas.drawShadow(
-      Path()..addOval(Rect.fromCircle(center: center, radius: _radius)),
+      Path()..addOval(thumbRect),
       Colors.black.withValues(alpha: 0.15),
       6,
       true,
     );
 
-    final outerPaint = Paint()..color = Colors.white;
+    final outerPaint = Paint()..color = AppColors.background;
     final innerPaint = Paint()..color = AppColors.brandPrimary;
 
     canvas.drawCircle(center, _radius, outerPaint);
-    canvas.drawCircle(center, 5, innerPaint);
+    canvas.drawCircle(center, _innerRadius, innerPaint);
   }
 }

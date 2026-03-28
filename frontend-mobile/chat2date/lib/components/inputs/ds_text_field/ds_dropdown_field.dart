@@ -1,1 +1,1 @@
-export '../../design_system/v4/inputs/ds_dropdown_field.dart';
+export '../../design_system/inputs/ds_dropdown_field.dart';

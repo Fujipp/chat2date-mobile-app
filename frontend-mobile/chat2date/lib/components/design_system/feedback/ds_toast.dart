@@ -15,12 +15,13 @@ class Toast extends StatelessWidget {
   const Toast({
     super.key,
     required this.type,
-    required this.title,
-    required this.message,
+    this.title = '',
+    this.message = '',
     this.onClose,
     this.durationSeconds = 10,
     this.autoDismiss = true,
     this.showCountdown = false,
+    this.width = 342,
   });
 
   final ToastType type;
@@ -30,6 +31,7 @@ class Toast extends StatelessWidget {
   final int durationSeconds;
   final bool autoDismiss;
   final bool showCountdown;
+  final double width;
 
   static void show(
     BuildContext context, {
@@ -92,6 +94,7 @@ class Toast extends StatelessWidget {
     final hasMessage = message.trim().isNotEmpty;
 
     return Container(
+      width: width,
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: AppColors.surface,
@@ -110,7 +113,7 @@ class Toast extends StatelessWidget {
                 if (hasTitle)
                   Text(
                     title,
-                    style: AppBodyTextStyles.captionBold.copyWith(
+                    style: AppBodyTextStyles.toastBold.copyWith(
                       color: AppColors.textOnDark,
                     ),
                   ),
