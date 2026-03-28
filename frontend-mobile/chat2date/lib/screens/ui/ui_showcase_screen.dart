@@ -181,6 +181,9 @@ class _UiShowcaseScreenState extends State<UiShowcaseScreen> {
           const _ShowcaseSectionTitle('Chat'),
           const _ShowcaseCard(child: _ChatThreadShowcase()),
           const SizedBox(height: 24),
+          const _ShowcaseSectionTitle('Chat Bot'),
+          const _ShowcaseCard(child: _BotChatShowcase()),
+          const SizedBox(height: 24),
           const _ShowcaseSectionTitle('Bottom Navbar'),
           _ShowcaseCard(
             child: _BottomNavShowcase(
@@ -1370,6 +1373,55 @@ class _ChatThreadShowcase extends StatelessWidget {
           ),
         ],
       ),
+    );
+  }
+}
+
+class _BotChatShowcase extends StatelessWidget {
+  const _BotChatShowcase();
+
+  @override
+  Widget build(BuildContext context) {
+    final createdAt = DateTime(2026, 3, 27, 15, 43, 31);
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        DsBotChat(
+          type: DsBotChatType.minigame,
+          createdAt: createdAt,
+          now: createdAt.add(const Duration(hours: 2, minutes: 13, seconds: 8)),
+          onActionPressed: () {},
+        ),
+        const SizedBox(height: 20),
+        DsBotChat(
+          type: DsBotChatType.minigameFail,
+          createdAt: createdAt,
+          now: createdAt.add(const Duration(hours: 24, minutes: 1)),
+        ),
+        const SizedBox(height: 20),
+        DsBotChat(
+          type: DsBotChatType.ask,
+          answeredCount: 0,
+          totalCount: 2,
+          onDeclinePressed: () {},
+          onAcceptPressed: () {},
+        ),
+        const SizedBox(height: 20),
+        DsBotChat(
+          type: DsBotChatType.askAnswer,
+          answeredCount: 1,
+          totalCount: 2,
+        ),
+        const SizedBox(height: 20),
+        const DsBotChat(
+          type: DsBotChatType.askSuccess,
+        ),
+        const SizedBox(height: 20),
+        const DsBotChat(
+          type: DsBotChatType.askFail,
+        ),
+      ],
     );
   }
 }

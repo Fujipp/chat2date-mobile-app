@@ -12,6 +12,8 @@ abstract final class AppAssets {
       'assets/images/illustrations/loading.svg';
   static const String questionIllustration =
       'assets/images/illustrations/question.svg';
+  static const String botChatIllustration =
+      'assets/images/illustrations/bot_chat.png';
 
   static const String placeholderFemale =
       'assets/images/placeholders/female.jpg';
