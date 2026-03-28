@@ -175,6 +175,9 @@ class _UiShowcaseScreenState extends State<UiShowcaseScreen> {
             ),
           ),
           const SizedBox(height: 24),
+          const _ShowcaseSectionTitle('Chat Card'),
+          const _ShowcaseCard(child: _ChatCardShowcase()),
+          const SizedBox(height: 24),
           const _ShowcaseSectionTitle('Bottom Navbar'),
           _ShowcaseCard(
             child: _BottomNavShowcase(
@@ -1212,6 +1215,32 @@ class _ReactionButtonsShowcase extends StatelessWidget {
         ),
         DsReactionButton(
           type: DsReactionButtonType.pass,
+        ),
+      ],
+    );
+  }
+}
+
+class _ChatCardShowcase extends StatelessWidget {
+  const _ChatCardShowcase();
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: const [
+        DsChatCard(
+          title: 'Title',
+          subtitle: 'ข้อความล่าสุด',
+          avatarImage: AssetImage(AppAssets.placeholderFemale),
+        ),
+        SizedBox(height: 16),
+        DsChatCard(
+          title: 'Title',
+          subtitle: 'ข้อความล่าสุด',
+          variant: DsChatCardVariant.highlighted,
+          avatarImage: AssetImage(AppAssets.placeholderMale),
+          unreadCount: 14,
         ),
       ],
     );
