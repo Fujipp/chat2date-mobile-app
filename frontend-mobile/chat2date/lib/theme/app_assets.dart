@@ -26,6 +26,7 @@ abstract final class AppAssets {
       'assets/images/placeholders/image_majiko.jpg';
 
   static const String iconDir = 'assets/icons/ui';
+  static const String gpsIconDir = 'assets/icons/gps';
   static const String modalIconDir = 'assets/icons/modals';
   static const String chevronDown = '$iconDir/ic-chevron-down-6x19.svg';
   static const String closeIcon = '$iconDir/icon_close.svg';
@@ -46,6 +47,7 @@ abstract final class AppAssets {
   static const String heartIcon = '$iconDir/icon_heart.svg';
   static const String statusHeartIcon = '$iconDir/HEART_STATUS_BAR.svg';
   static const String statusInfoIcon = '$iconDir/INFO_STATUS_BAR.svg';
+  static const String gpsMapIcon = '$gpsIconDir/icon_gps_map.svg';
   static const String reportIcon = '$modalIconDir/icon_report.svg';
   static const String starRatingIcon = '$modalIconDir/icon_star-rating.svg';
   static const String trashIcon = '$iconDir/ic-trash-20x26.svg';

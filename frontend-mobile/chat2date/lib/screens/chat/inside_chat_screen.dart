@@ -12,7 +12,7 @@ import 'package:chat2date/components/layout/header.dart';
 import 'package:chat2date/components/modal/feature_guide_modal.dart';
 import 'package:chat2date/components/modal/relationship_mission_modal.dart';
 import 'package:chat2date/components/page/unlock_date_modal.dart';
-import 'package:chat2date/components/status_bar/gps_alert.dart';
+import 'package:chat2date/components/design_system/organisms/ds_gps_alert.dart';
 import 'package:chat2date/components/status_bar/score_row.dart';
 import 'package:chat2date/components/toasts/toast.dart';
 import 'package:chat2date/models/appointment.dart';

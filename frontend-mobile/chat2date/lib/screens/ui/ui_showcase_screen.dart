@@ -146,6 +146,9 @@ class _UiShowcaseScreenState extends State<UiShowcaseScreen> {
           const _ShowcaseSectionTitle('Calendar'),
           const _ShowcaseCard(child: _CalendarShowcase()),
           const SizedBox(height: 24),
+          const _ShowcaseSectionTitle('GPS Alert'),
+          const _ShowcaseCard(child: _GpsAlertShowcase()),
+          const SizedBox(height: 24),
           const _ShowcaseSectionTitle('Switcher'),
           _ShowcaseCard(
             child: _SwitcherShowcase(
@@ -1566,6 +1569,26 @@ class _ChatMessageInputShowcase extends StatelessWidget {
     );
   }
 }
+
+class _GpsAlertShowcase extends StatelessWidget {
+  const _GpsAlertShowcase();
+
+  @override
+  Widget build(BuildContext context) {
+    return const GpsMapAlert(
+      onLocate: _noopAction,
+      onShareLocation: _noopAction,
+      onSosTriggered: _noopSosAction,
+      emergencyNumbers: ['1669', '191'],
+      destinationPlaceId: null,
+      googleApiKey: '',
+    );
+  }
+}
+
+void _noopAction() {}
+
+Future<void> _noopSosAction(String _) async {}
 
 class _DemoChatAvatar extends StatelessWidget {
   const _DemoChatAvatar();

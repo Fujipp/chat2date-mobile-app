@@ -1,6 +1,7 @@
 import 'dart:convert';
 
 import 'package:chat2date/components/toasts/toast.dart';
+import 'package:chat2date/theme/app_assets.dart';
 import 'package:chat2date/theme/app_colors.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/svg.dart';
@@ -8,6 +9,9 @@ import 'package:geolocator/geolocator.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:http/http.dart' as http;
 import 'package:url_launcher/url_launcher.dart';
+
+const MarkerId _destinationMarkerId = MarkerId('destination');
+const PolylineId _routePolylineId = PolylineId('route');
 
 // ===================== Full Screen Map Page =====================
 class FullScreenMapPage extends StatefulWidget {
@@ -29,11 +33,14 @@ class _FullScreenMapPageState extends State<FullScreenMapPage> {
   final Set<Marker> _markers = {};
   Set<Polyline> _polylines = {};
 
-  Future<void> _drawRoute() async {
+  Future<void> _drawRoute([LatLng? currentLocation]) async {
     if (widget.destinationPlaceId == null) return;
 
-    final pos = await Geolocator.getCurrentPosition();
-    final origin = '${pos.latitude},${pos.longitude}';
+    final pos = currentLocation == null
+        ? await Geolocator.getCurrentPosition()
+        : null;
+    final originLatLng = currentLocation ?? LatLng(pos!.latitude, pos.longitude);
+    final origin = '${originLatLng.latitude},${originLatLng.longitude}';
     final dest = 'place_id:${widget.destinationPlaceId}';
 
     final url = Uri.parse(
@@ -58,15 +65,17 @@ class _FullScreenMapPageState extends State<FullScreenMapPage> {
       setState(() {
         _polylines = {
           Polyline(
-            polylineId: const PolylineId('route'),
+            polylineId: _routePolylineId,
             points: points,
-            color: Colors.blue,
+            color: AppColors.brandPrimary,
             width: 4,
           ),
         };
-        _markers.add(
+        _markers
+          ..removeWhere((marker) => marker.markerId == _destinationMarkerId)
+          ..add(
           Marker(
-            markerId: const MarkerId('destination'),
+            markerId: _destinationMarkerId,
             position: destLatLng,
             infoWindow: InfoWindow(
               title: data['routes'][0]['legs'][0]['end_address'],
@@ -79,19 +88,19 @@ class _FullScreenMapPageState extends State<FullScreenMapPage> {
         CameraUpdate.newLatLngBounds(
           LatLngBounds(
             southwest: LatLng(
-              pos.latitude < destLatLng.latitude
-                  ? pos.latitude
+              originLatLng.latitude < destLatLng.latitude
+                  ? originLatLng.latitude
                   : destLatLng.latitude,
-              pos.longitude < destLatLng.longitude
-                  ? pos.longitude
+              originLatLng.longitude < destLatLng.longitude
+                  ? originLatLng.longitude
                   : destLatLng.longitude,
             ),
             northeast: LatLng(
-              pos.latitude > destLatLng.latitude
-                  ? pos.latitude
+              originLatLng.latitude > destLatLng.latitude
+                  ? originLatLng.latitude
                   : destLatLng.latitude,
-              pos.longitude > destLatLng.longitude
-                  ? pos.longitude
+              originLatLng.longitude > destLatLng.longitude
+                  ? originLatLng.longitude
                   : destLatLng.longitude,
             ),
           ),
@@ -142,15 +151,16 @@ class _FullScreenMapPageState extends State<FullScreenMapPage> {
               _mapController = controller;
 
               final pos = await Geolocator.getCurrentPosition();
+              final currentLocation = LatLng(pos.latitude, pos.longitude);
               controller.animateCamera(
                 CameraUpdate.newLatLngZoom(
-                  LatLng(pos.latitude, pos.longitude),
+                  currentLocation,
                   15,
                 ),
               );
 
               if (widget.destinationPlaceId != null) {
-                _drawRoute();
+                _drawRoute(currentLocation);
               }
             },
             myLocationEnabled: true,
@@ -251,7 +261,8 @@ class GpsMapAlert extends StatefulWidget {
   State<GpsMapAlert> createState() => _GpsMapAlertState();
 }
 
-class _GpsMapAlertState extends State<GpsMapAlert> with WidgetsBindingObserver {
+class _GpsMapAlertState extends State<GpsMapAlert>
+    with WidgetsBindingObserver {
   @override
   void initState() {
     super.initState();
@@ -283,7 +294,6 @@ class _GpsMapAlertState extends State<GpsMapAlert> with WidgetsBindingObserver {
       if (isKeyboardUp && _isExpanded) {
         setState(() {
           _isKeyboardVisible = isKeyboardUp;
-          _showMapContent = false;
           _isExpanded = false;
         });
       } else if (isKeyboardUp != _isKeyboardVisible) {
@@ -314,7 +324,6 @@ class _GpsMapAlertState extends State<GpsMapAlert> with WidgetsBindingObserver {
   }
 
   bool _isExpanded = false;
-  bool _showMapContent = false;
   bool _hasSosTriggered = false;
   bool _isKeyboardVisible = false;
 
@@ -322,11 +331,15 @@ class _GpsMapAlertState extends State<GpsMapAlert> with WidgetsBindingObserver {
   GoogleMapController? _mapController;
   final Set<Marker> _markers = {};
   Set<Polyline> _polylines = {};
-  Future<void> _drawRoute() async {
+
+  Future<void> _drawRoute([LatLng? currentLocation]) async {
     if (widget.destinationPlaceId == null) return;
 
-    final pos = await Geolocator.getCurrentPosition();
-    final origin = '${pos.latitude},${pos.longitude}';
+    final pos = currentLocation == null
+        ? await Geolocator.getCurrentPosition()
+        : null;
+    final originLatLng = currentLocation ?? LatLng(pos!.latitude, pos.longitude);
+    final origin = '${originLatLng.latitude},${originLatLng.longitude}';
     final dest = 'place_id:${widget.destinationPlaceId}';
 
     final url = Uri.parse(
@@ -351,15 +364,17 @@ class _GpsMapAlertState extends State<GpsMapAlert> with WidgetsBindingObserver {
       setState(() {
         _polylines = {
           Polyline(
-            polylineId: const PolylineId('route'),
+            polylineId: _routePolylineId,
             points: points,
-            color: Colors.blue,
+            color: AppColors.brandPrimary,
             width: 4,
           ),
         };
-        _markers.add(
+        _markers
+          ..removeWhere((marker) => marker.markerId == _destinationMarkerId)
+          ..add(
           Marker(
-            markerId: const MarkerId('destination'),
+            markerId: _destinationMarkerId,
             position: destLatLng,
             infoWindow: InfoWindow(
               title: data['routes'][0]['legs'][0]['end_address'],
@@ -372,19 +387,19 @@ class _GpsMapAlertState extends State<GpsMapAlert> with WidgetsBindingObserver {
         CameraUpdate.newLatLngBounds(
           LatLngBounds(
             southwest: LatLng(
-              pos.latitude < destLatLng.latitude
-                  ? pos.latitude
+              originLatLng.latitude < destLatLng.latitude
+                  ? originLatLng.latitude
                   : destLatLng.latitude,
-              pos.longitude < destLatLng.longitude
-                  ? pos.longitude
+              originLatLng.longitude < destLatLng.longitude
+                  ? originLatLng.longitude
                   : destLatLng.longitude,
             ),
             northeast: LatLng(
-              pos.latitude > destLatLng.latitude
-                  ? pos.latitude
+              originLatLng.latitude > destLatLng.latitude
+                  ? originLatLng.latitude
                   : destLatLng.latitude,
-              pos.longitude > destLatLng.longitude
-                  ? pos.longitude
+              originLatLng.longitude > destLatLng.longitude
+                  ? originLatLng.longitude
                   : destLatLng.longitude,
             ),
           ),
@@ -451,37 +466,42 @@ class _GpsMapAlertState extends State<GpsMapAlert> with WidgetsBindingObserver {
       FocusScope.of(context).unfocus(); // สั่งเก็บคีย์บอร์ด
     }
 
-    if (!_isExpanded) {
-      final delayMs = isKeyboardCurrentlyUp ? 300 : 0;
-
-      Future.delayed(Duration(milliseconds: delayMs), () {
-        if (!mounted) return;
-        setState(() {
-          _isExpanded = true;
-        });
-
-        Future.delayed(const Duration(milliseconds: 100), () {
-          if (mounted) setState(() => _showMapContent = true);
-        });
-      });
-    } else {
+    final delayMs = isKeyboardCurrentlyUp && !_isExpanded ? 280 : 0;
+    Future.delayed(Duration(milliseconds: delayMs), () {
+      if (!mounted) return;
       setState(() {
-        _showMapContent = false; // ซ่อน map ก่อนทันที
+        _isExpanded = !_isExpanded;
       });
-      Future.delayed(const Duration(milliseconds: 50), () {
-        if (mounted) setState(() => _isExpanded = false);
-      });
-    }
+    });
   }
 
   void _handleMapPressed() {
     widget.onLocate();
     Navigator.of(context).push(
-      MaterialPageRoute(
-        builder: (_) => FullScreenMapPage(
+      PageRouteBuilder<void>(
+        transitionDuration: const Duration(milliseconds: 340),
+        reverseTransitionDuration: const Duration(milliseconds: 240),
+        pageBuilder: (_, __, ___) => FullScreenMapPage(
           destinationPlaceId: widget.destinationPlaceId,
           googleApiKey: widget.googleApiKey,
         ),
+        transitionsBuilder: (_, animation, __, child) {
+          final curve = CurvedAnimation(
+            parent: animation,
+            curve: Curves.easeOutCubic,
+            reverseCurve: Curves.easeInCubic,
+          );
+          return FadeTransition(
+            opacity: curve,
+            child: SlideTransition(
+              position: Tween<Offset>(
+                begin: const Offset(0, 0.03),
+                end: Offset.zero,
+              ).animate(curve),
+              child: child,
+            ),
+          );
+        },
       ),
     );
   }
@@ -555,48 +575,15 @@ class _GpsMapAlertState extends State<GpsMapAlert> with WidgetsBindingObserver {
         ),
         const SizedBox(width: 40),
         _AlertActionButton(
-          icon: const Icon(Icons.map_rounded, size: 28),
+          icon: SvgPicture.asset(
+            AppAssets.gpsMapIcon,
+            width: 25,
+            height: 21,
+          ),
           iconColor: AppColors.brandSecondary,
           onTap: _handleMapPressed,
         ),
       ],
-    );
-  }
-
-  Widget _buildMapFocusPulse() {
-    return IgnorePointer(
-      child: Center(
-        child: Stack(
-          alignment: Alignment.center,
-          children: [
-            Container(
-              width: 72,
-              height: 72,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: AppColors.brandPrimary.withValues(alpha: 0.14),
-              ),
-            ),
-            Container(
-              width: 44,
-              height: 44,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: AppColors.brandPrimary.withValues(alpha: 0.20),
-              ),
-            ),
-            Container(
-              width: 16,
-              height: 16,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: AppColors.brandPrimary,
-                border: Border.all(color: AppColors.background, width: 2),
-              ),
-            ),
-          ],
-        ),
-      ),
     );
   }
 
@@ -622,6 +609,8 @@ class _GpsMapAlertState extends State<GpsMapAlert> with WidgetsBindingObserver {
     final borderColor = _isExpanded
         ? AppColors.textBlack.withValues(alpha: 0.1)
         : AppColors.inputBorder;
+    final expandedMapHeight = (MediaQuery.sizeOf(context).height * 0.46)
+        .clamp(260.0, 420.0);
 
     return ClipRRect(
       borderRadius: BorderRadius.circular(16),
@@ -677,41 +666,56 @@ class _GpsMapAlertState extends State<GpsMapAlert> with WidgetsBindingObserver {
                   ),
                 ),
               ),
-              if (_isExpanded && _showMapContent)
-                SizedBox(
-                  height: 223,
+              ClipRect(
+                child: AnimatedContainer(
+                  duration: _isKeyboardVisible
+                      ? Duration.zero
+                      : const Duration(milliseconds: 360),
+                  curve: Curves.easeOutCubic,
+                  height: _isExpanded ? expandedMapHeight : 0,
                   width: double.infinity,
-                  child: Stack(
-                    fit: StackFit.expand,
-                    children: [
-                      GoogleMap(
-                        initialCameraPosition: const CameraPosition(
-                          target: LatLng(0, 0),
-                          zoom: 2,
+                  child: AnimatedOpacity(
+                    duration: _isKeyboardVisible
+                        ? Duration.zero
+                        : const Duration(milliseconds: 220),
+                    curve: Curves.easeOut,
+                    opacity: _isExpanded ? 1 : 0,
+                    child: Stack(
+                      fit: StackFit.expand,
+                      children: [
+                        GoogleMap(
+                          initialCameraPosition: const CameraPosition(
+                            target: LatLng(0, 0),
+                            zoom: 2,
+                          ),
+                          onMapCreated: (controller) async {
+                            _mapController = controller;
+                            final pos = await Geolocator.getCurrentPosition();
+                            final currentLocation = LatLng(
+                              pos.latitude,
+                              pos.longitude,
+                            );
+                            controller.animateCamera(
+                              CameraUpdate.newLatLngZoom(
+                                currentLocation,
+                                15,
+                              ),
+                            );
+                            if (widget.destinationPlaceId != null) {
+                              _drawRoute(currentLocation);
+                            }
+                          },
+                          myLocationEnabled: true,
+                          myLocationButtonEnabled: false,
+                          zoomControlsEnabled: false,
+                          markers: _markers,
+                          polylines: _polylines,
                         ),
-                        onMapCreated: (controller) async {
-                          _mapController = controller;
-                          final pos = await Geolocator.getCurrentPosition();
-                          controller.animateCamera(
-                            CameraUpdate.newLatLngZoom(
-                              LatLng(pos.latitude, pos.longitude),
-                              15,
-                            ),
-                          );
-                          if (widget.destinationPlaceId != null) {
-                            _drawRoute();
-                          }
-                        },
-                        myLocationEnabled: true,
-                        myLocationButtonEnabled: false,
-                        zoomControlsEnabled: false,
-                        markers: _markers,
-                        polylines: _polylines,
-                      ),
-                      _buildMapFocusPulse(),
-                    ],
+                      ],
+                    ),
                   ),
                 ),
+              ),
               if (_isExpanded && _emergencyStep > 0) _buildInstructionText(),
               Padding(
                 padding: EdgeInsets.fromLTRB(
