@@ -1,3 +1,4 @@
+export 'ds_chat_message_input.dart';
 export 'ds_dropdown_field.dart';
 export 'ds_edit_input.dart';
 export 'ds_otp_field.dart';

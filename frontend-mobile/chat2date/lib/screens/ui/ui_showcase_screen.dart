@@ -33,6 +33,8 @@ class _UiShowcaseScreenState extends State<UiShowcaseScreen> {
   final _disabledController = TextEditingController(text: '88-888-8888');
   final _selectController = TextEditingController();
   final _areaController = TextEditingController();
+  final _chatInputFilledController = TextEditingController(text: 'อยากไปเที่ยวจังเลย');
+  final _chatInputTypingController = TextEditingController(text: 'อยากไปเที่ยวจังเลย');
   String? _dropdownValue;
 
   @override
@@ -43,6 +45,8 @@ class _UiShowcaseScreenState extends State<UiShowcaseScreen> {
     _disabledController.dispose();
     _selectController.dispose();
     _areaController.dispose();
+    _chatInputFilledController.dispose();
+    _chatInputTypingController.dispose();
     super.dispose();
   }
 
@@ -183,6 +187,14 @@ class _UiShowcaseScreenState extends State<UiShowcaseScreen> {
           const SizedBox(height: 24),
           const _ShowcaseSectionTitle('Chat Bot'),
           const _ShowcaseCard(child: _BotChatShowcase()),
+          const SizedBox(height: 24),
+          const _ShowcaseSectionTitle('Chat Input'),
+          _ShowcaseCard(
+            child: _ChatMessageInputShowcase(
+              filledController: _chatInputFilledController,
+              typingController: _chatInputTypingController,
+            ),
+          ),
           const SizedBox(height: 24),
           const _ShowcaseSectionTitle('Bottom Navbar'),
           _ShowcaseCard(
@@ -1420,6 +1432,41 @@ class _BotChatShowcase extends StatelessWidget {
         const SizedBox(height: 20),
         const DsBotChat(
           type: DsBotChatType.askFail,
+        ),
+      ],
+    );
+  }
+}
+
+class _ChatMessageInputShowcase extends StatelessWidget {
+  const _ChatMessageInputShowcase({
+    required this.filledController,
+    required this.typingController,
+  });
+
+  final TextEditingController filledController;
+  final TextEditingController typingController;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const DsChatMessageInput(
+          enabled: false,
+        ),
+        const SizedBox(height: 20),
+        const DsChatMessageInput(),
+        const SizedBox(height: 20),
+        DsChatMessageInput(
+          controller: filledController,
+          onSend: () {},
+        ),
+        const SizedBox(height: 20),
+        DsChatMessageInput(
+          controller: typingController,
+          autofocus: true,
+          onSend: () {},
         ),
       ],
     );
