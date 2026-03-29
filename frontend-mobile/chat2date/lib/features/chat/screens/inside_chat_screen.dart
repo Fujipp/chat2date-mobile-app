@@ -5,16 +5,18 @@ import 'package:chat2date/components/buttons/ds_button.dart';
 import 'package:chat2date/components/calendar/calendar_modal.dart';
 import 'package:chat2date/components/chat/bot_message_component.dart';
 import 'package:chat2date/components/chat/chat_text_component.dart';
-import 'package:chat2date/components/chat/input_chat_component.dart';
 import 'package:chat2date/components/chat/spin_date_component.dart';
 import 'package:chat2date/components/common/modal_component.dart';
 import 'package:chat2date/components/layout/header.dart';
 import 'package:chat2date/components/modal/feature_guide_modal.dart';
 import 'package:chat2date/components/modal/relationship_mission_modal.dart';
 import 'package:chat2date/components/page/unlock_date_modal.dart';
+import 'package:chat2date/components/design_system/controls/ds_level_progress_bar.dart';
+import 'package:chat2date/components/design_system/inputs/ds_chat_message_input.dart';
+import 'package:chat2date/components/design_system/organisms/ds_app_secondary_header.dart';
 import 'package:chat2date/components/design_system/organisms/ds_gps_alert.dart';
-import 'package:chat2date/components/status_bar/score_row.dart';
 import 'package:chat2date/components/toasts/toast.dart';
+import 'package:chat2date/core/theme/app_assets.dart';
 import 'package:chat2date/models/appointment.dart';
 import 'package:chat2date/models/chat_access_status.dart';
 import 'package:chat2date/models/chat_message.dart';
@@ -36,6 +38,7 @@ import 'package:chat2date/stores/game_store.dart';
 import 'package:chat2date/stores/user_store.dart';
 import 'package:chat2date/core/theme/app_colors.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/flutter_svg.dart';
@@ -125,6 +128,8 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
   // === Chat User Data (ดึงจากข้อมูลจริง) ===
   String _chatUserName = 'Name';
   String? _chatUserAvatar;
+  List<String> _chatUserImages = [];
+  int? _chatUserAge;
   String? _chatUserId; // เพิ่ม userId สำหรับ Report
 
   // === Spinwheel Cooldown Logic ===
@@ -138,6 +143,7 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
 
   // index ของข้อความที่ถูกกดเพื่อดูเวลาส่ง (-1 = ไม่มี)
   int _selectedMessageIndex = -1;
+  int _pressedMessageIndex = -1;
 
   //Game
   GameSocketService? _gameSocketService;
@@ -227,6 +233,9 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
     _chatUserId = widget.targetUserId;
     _chatUserName = widget.userName ?? 'Name';
     _chatUserAvatar = widget.avatarUrl;
+    if (widget.avatarUrl != null && widget.avatarUrl!.isNotEmpty) {
+      _chatUserImages = [widget.avatarUrl!];
+    }
     _scrollController.addListener(_handleScroll);
     _initUpdateRelationshipBar(false);
     _initializeChat();
@@ -552,6 +561,7 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
   Future<void> _initializeChat() async {
     await _enterRoomOnce();
     await _loadChatRoomMessages();
+    await _loadChatUserMeta();
     await _fetchInitialAppointment();
     await _initConfirmStatus();
     await _checkSpinWheelCondition();
@@ -575,6 +585,34 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
       });
     }
   }
+
+  Future<void> _loadChatUserMeta() async {
+    final targetUserId = _chatUserId;
+    if (targetUserId == null || targetUserId.isEmpty) return;
+
+    try {
+      final user = await ref.read(userServiceProvider).fetchUserById(targetUserId);
+      if (!mounted || user == null) return;
+
+      setState(() {
+        _chatUserAge = _calculateAge(user.birthday);
+      });
+    } catch (_) {}
+  }
+
+  int? _calculateAge(DateTime? birthday) {
+    if (birthday == null) return null;
+    final now = DateTime.now();
+    int age = now.year - birthday.year;
+    final hadBirthdayThisYear =
+        now.month > birthday.month ||
+        (now.month == birthday.month && now.day >= birthday.day);
+    if (!hadBirthdayThisYear) age -= 1;
+    return age >= 0 ? age : null;
+  }
+
+  String get _chatDisplayName =>
+      _chatUserAge == null ? _chatUserName : '$_chatUserName (${_chatUserAge!})';
 
   Future<void> _initConfirmStatus() async {
     try {
@@ -637,6 +675,9 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
         }
         if (widget.avatarUrl == null && roomData.partnerImages.isNotEmpty) {
           _chatUserAvatar = roomData.partnerImages.first;
+        }
+        if (roomData.partnerImages.isNotEmpty) {
+          _chatUserImages = roomData.partnerImages;
         }
       });
       WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -1183,6 +1224,437 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
       ),
       clipBehavior: Clip.antiAlias,
       child: image,
+    );
+  }
+
+  Future<void> _copyMessageText(String text) async {
+    final trimmed = text.trim();
+    if (trimmed.isEmpty) return;
+
+    await Clipboard.setData(ClipboardData(text: trimmed));
+  }
+
+  Future<void> _showMessageContextMenu({
+    required String text,
+    required BuildContext bubbleContext,
+    required int messageIndex,
+  }) async {
+    final overlay = Overlay.of(context).context.findRenderObject() as RenderBox?;
+    final bubbleRenderBox = bubbleContext.findRenderObject() as RenderBox?;
+    if (overlay == null || bubbleRenderBox == null) return;
+
+    final bubbleTopLeft = bubbleRenderBox.localToGlobal(
+      Offset.zero,
+      ancestor: overlay,
+    );
+    final bubbleRect = bubbleTopLeft & bubbleRenderBox.size;
+    final anchorPoint = Offset(
+      bubbleRect.center.dx,
+      bubbleRect.top - 8,
+    );
+
+    if (mounted) {
+      setState(() {
+        _pressedMessageIndex = messageIndex;
+      });
+    }
+
+    final selected = await showMenu<String>(
+      context: context,
+      position: RelativeRect.fromRect(
+        Rect.fromCenter(
+          center: anchorPoint,
+          width: 1,
+          height: 1,
+        ),
+        Offset.zero & overlay.size,
+      ),
+      color: const Color(0xFF2C2C2E),
+      elevation: 6,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12),
+      ),
+      items: const [
+        PopupMenuItem<String>(
+          value: 'copy',
+          height: 32,
+          padding: EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+          child: Text(
+            'คัดลอก',
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              color: Colors.white,
+              fontSize: 13,
+              fontFamily: 'Inter',
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+        ),
+      ],
+    );
+
+    if (mounted) {
+      setState(() {
+        _pressedMessageIndex = -1;
+      });
+    }
+
+    if (selected == 'copy') {
+      await _copyMessageText(text);
+    }
+  }
+
+  Widget _buildPressableMessageBubble({
+    required int messageIndex,
+    required bool isOwn,
+    required Map<String, double> radius,
+    required String text,
+  }) {
+    final isPressed = _pressedMessageIndex == messageIndex;
+    return ChatTextComponent(
+      text: text,
+      isChatRight: isOwn,
+      topLeftRadius: radius['tl'],
+      topRightRadius: radius['tr'],
+      bottomLeftRadius: radius['bl'],
+      bottomRightRadius: radius['br'],
+      bubbleOverlayColor: isPressed
+          ? Colors.black.withValues(alpha: 0.14)
+          : null,
+    );
+  }
+
+  DsAppSecondaryHeaderVariant _mapDsHeaderVariant() {
+    switch (_headerVariant) {
+      case ChatHeaderVariant.chat1:
+        return DsAppSecondaryHeaderVariant.chat1;
+      case ChatHeaderVariant.chat2:
+        return DsAppSecondaryHeaderVariant.chat3;
+      case ChatHeaderVariant.chat3:
+        return DsAppSecondaryHeaderVariant.chat4;
+      case ChatHeaderVariant.chat4:
+        return DsAppSecondaryHeaderVariant.chat4;
+    }
+  }
+
+  ImageProvider<Object>? _chatUserAvatarProvider() {
+    final avatar = _chatUserAvatar;
+    if (avatar == null || avatar.isEmpty) return null;
+    if (_isSvgImage(avatar)) return null;
+    return avatar.startsWith('http')
+        ? NetworkImage(avatar)
+        : AssetImage(avatar) as ImageProvider<Object>;
+  }
+
+  List<String> get _effectiveChatUserImages {
+    final images = <String>[
+      ..._chatUserImages.where((image) => image.isNotEmpty),
+    ];
+    final avatar = _chatUserAvatar;
+    if (avatar != null && avatar.isNotEmpty && !images.contains(avatar)) {
+      images.insert(0, avatar);
+    }
+    return images;
+  }
+
+  Future<void> _showChatUserGallery({int initialIndex = 0}) async {
+    final images = _effectiveChatUserImages;
+    if (images.isEmpty) return;
+
+    await showGeneralDialog(
+      context: context,
+      barrierDismissible: true,
+      barrierLabel: 'gallery',
+      barrierColor: Colors.black.withValues(alpha: 0.82),
+      pageBuilder: (context, _, __) {
+        return _ChatUserGalleryDialog(
+          images: images,
+          initialIndex: initialIndex.clamp(0, images.length - 1),
+          userName: _chatDisplayName,
+        );
+      },
+      transitionBuilder: (context, animation, secondaryAnimation, child) {
+        return FadeTransition(
+          opacity: CurvedAnimation(parent: animation, curve: Curves.easeOut),
+          child: child,
+        );
+      },
+    );
+  }
+
+  Widget _buildChatHeaderCenter() {
+    return GestureDetector(
+      onTap: _effectiveChatUserImages.isEmpty ? null : _showChatUserGallery,
+      behavior: HitTestBehavior.opaque,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            width: 50,
+            height: 50,
+            clipBehavior: Clip.antiAlias,
+            decoration: const BoxDecoration(
+              shape: BoxShape.circle,
+              color: AppColors.background,
+            ),
+            child: _chatUserAvatarProvider() != null
+                ? DecoratedBox(
+                    decoration: BoxDecoration(
+                      image: DecorationImage(
+                        image: _chatUserAvatarProvider()!,
+                        fit: BoxFit.cover,
+                      ),
+                    ),
+                  )
+                : SvgPicture.asset(
+                    AppAssets.headerSecondaryAvatar,
+                    width: 50,
+                    height: 50,
+                    fit: BoxFit.cover,
+                  ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            _chatDisplayName,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            textAlign: TextAlign.center,
+            style: const TextStyle(
+              fontSize: 14,
+              fontFamily: 'Inter',
+              fontWeight: FontWeight.w400,
+              height: 20 / 14,
+              color: AppColors.textBlack,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildHeaderActionButton({
+    required Widget child,
+    VoidCallback? onTap,
+  }) {
+    return _ChatHeaderTapTarget(
+      onTap: onTap,
+      child: child,
+    );
+  }
+
+  Widget _buildCalendarActionIcon() {
+    return SizedBox(
+      width: 19,
+      height: 21.11,
+      child: Stack(
+        clipBehavior: Clip.none,
+        alignment: Alignment.center,
+        children: [
+          SvgPicture.asset(
+            AppAssets.headerSecondaryChat4LeftAction,
+            width: 19,
+            height: 21.11,
+          ),
+          if (_calendarHasUnreadUpdate)
+            Positioned(
+              top: -3,
+              right: -3,
+              child: Container(
+                width: 8,
+                height: 8,
+                decoration: const BoxDecoration(
+                  color: AppColors.brandPrimary,
+                  shape: BoxShape.circle,
+                ),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildChatHeaderTrailing() {
+    switch (_headerVariant) {
+      case ChatHeaderVariant.chat1:
+        return _buildHeaderActionButton(
+          onTap: _isChatDisabled
+              ? null
+              : () {
+                  Navigator.pushReplacementNamed(
+                    context,
+                    '/report',
+                    arguments: {
+                      'roomId': widget.roomId,
+                      'targetUserId': _chatUserId,
+                      'userName': _chatUserName,
+                      'avatarUrl': _chatUserAvatar,
+                    },
+                  );
+                },
+          child: SvgPicture.asset(
+            AppAssets.headerSecondaryChat1Actions,
+            width: 25,
+            height: 27,
+          ),
+        );
+      case ChatHeaderVariant.chat2:
+        return Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            if (_shouldShowCalendarIcon) ...[
+              _buildHeaderActionButton(
+                onTap: _handleCalendarTap,
+                child: _buildCalendarActionIcon(),
+              ),
+              const SizedBox(width: 10),
+            ],
+            _buildHeaderActionButton(
+              onTap: _handleSpinwheelTap,
+              child: SvgPicture.asset(
+                AppAssets.headerSecondaryChat3CenterAction,
+                width: 25,
+                height: 31,
+              ),
+            ),
+            const SizedBox(width: 10),
+            _buildHeaderActionButton(
+              onTap: _isChatDisabled
+                  ? null
+                  : () {
+                      Navigator.pushReplacementNamed(
+                        context,
+                        '/report',
+                        arguments: {
+                          'roomId': widget.roomId,
+                          'targetUserId': _chatUserId,
+                          'userName': _chatUserName,
+                          'avatarUrl': _chatUserAvatar,
+                        },
+                      );
+                    },
+              child: SvgPicture.asset(
+                AppAssets.headerSecondaryChat4RightAction,
+                width: 25,
+                height: 27,
+              ),
+            ),
+          ],
+        );
+      case ChatHeaderVariant.chat3:
+      case ChatHeaderVariant.chat4:
+        final cooldownValue = _cooldownDays.clamp(1, 9);
+        return Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            if (_shouldShowCalendarIcon) ...[
+              _buildHeaderActionButton(
+                onTap: _handleCalendarTap,
+                child: _buildCalendarActionIcon(),
+              ),
+              const SizedBox(width: 10),
+            ],
+            _buildHeaderActionButton(
+              onTap: _headerVariant == ChatHeaderVariant.chat3
+                  ? _handleSpinwheelTap
+                  : null,
+              child: SizedBox(
+                width: 25,
+                height: 31,
+                child: Stack(
+                  clipBehavior: Clip.none,
+                  alignment: Alignment.center,
+                  children: [
+                    SvgPicture.asset(
+                      AppAssets.headerSecondaryChat4CenterAction,
+                      width: 25,
+                      height: 25,
+                    ),
+                    Positioned(
+                      top: -2,
+                      child: SvgPicture.asset(
+                        AppAssets.headerSecondaryChat4CenterBadge,
+                        width: 7,
+                        height: 10,
+                      ),
+                    ),
+                    Positioned(
+                      top: 6,
+                      child: Container(
+                        width: 18,
+                        height: 18,
+                        decoration: const BoxDecoration(
+                          color: AppColors.divider,
+                          shape: BoxShape.circle,
+                        ),
+                        alignment: Alignment.center,
+                        child: Text(
+                          '$cooldownValue',
+                          textAlign: TextAlign.center,
+                          style: const TextStyle(
+                            fontSize: 11,
+                            fontFamily: 'Inter',
+                            fontWeight: FontWeight.w400,
+                            height: 14 / 11,
+                            color: AppColors.textBlack,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(width: 10),
+            _buildHeaderActionButton(
+              onTap: _isChatDisabled
+                  ? null
+                  : () {
+                      Navigator.pushReplacementNamed(
+                        context,
+                        '/report',
+                        arguments: {
+                          'roomId': widget.roomId,
+                          'targetUserId': _chatUserId,
+                          'userName': _chatUserName,
+                          'avatarUrl': _chatUserAvatar,
+                        },
+                      );
+                    },
+              child: SvgPicture.asset(
+                AppAssets.headerSecondaryChat4RightAction,
+                width: 25,
+                height: 27,
+              ),
+            ),
+          ],
+        );
+    }
+  }
+
+  Widget _buildRelationshipBar() {
+    return DsLevelProgressBar(
+      level: _heartCount,
+      progress: _currentPercent,
+      width: 322,
+      barWidth: 255,
+      barThickness: 10,
+      heartWidth: 25,
+      heartHeight: 22,
+      trailingIconSize: 20,
+      onInfoTap: () {
+        showModalBottomSheet(
+          context: context,
+          isScrollControlled: true,
+          backgroundColor: Colors.transparent,
+          builder: (context) => RelationshipMissionModal(
+            heart: _heartCount,
+            currentScore: (_currentPercent * 100).round(),
+            isFirstMessageBonus: _isFirstMessageBonus,
+            streakDays: _steakDays,
+            dailyMessages: _dailyMessagesCount,
+          ),
+        );
+      },
     );
   }
 
@@ -2412,21 +2884,26 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
       return Column(
         crossAxisAlignment: CrossAxisAlignment.end,
         children: [
-          GestureDetector(
-            onTap: () {
-              setState(() {
-                _selectedMessageIndex = _selectedMessageIndex == index
-                    ? -1
-                    : index;
-              });
-            },
-            child: ChatTextComponent(
-              text: message.text,
-              isChatRight: true,
-              topLeftRadius: radius['tl'],
-              topRightRadius: radius['tr'],
-              bottomLeftRadius: radius['bl'],
-              bottomRightRadius: radius['br'],
+          Builder(
+            builder: (bubbleContext) => GestureDetector(
+              onTap: () {
+                setState(() {
+                  _selectedMessageIndex = _selectedMessageIndex == index
+                      ? -1
+                      : index;
+                });
+              },
+              onLongPressStart: (_) => _showMessageContextMenu(
+                text: message.text,
+                bubbleContext: bubbleContext,
+                messageIndex: index,
+              ),
+              child: _buildPressableMessageBubble(
+                messageIndex: index,
+                isOwn: true,
+                radius: radius,
+                text: message.text,
+              ),
             ),
           ),
           // แสดงเวลาส่งจริงเมื่อกดที่ข้อความ
@@ -2465,21 +2942,26 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
                 const SizedBox(width: 58),
               // Message bubble
               Flexible(
-                child: GestureDetector(
-                  onTap: () {
-                    setState(() {
-                      _selectedMessageIndex = _selectedMessageIndex == index
-                          ? -1
-                          : index;
-                    });
-                  },
-                  child: ChatTextComponent(
-                    text: message.text,
-                    isChatRight: false,
-                    topLeftRadius: radius['tl'],
-                    topRightRadius: radius['tr'],
-                    bottomLeftRadius: radius['bl'],
-                    bottomRightRadius: radius['br'],
+                child: Builder(
+                  builder: (bubbleContext) => GestureDetector(
+                    onTap: () {
+                      setState(() {
+                        _selectedMessageIndex = _selectedMessageIndex == index
+                            ? -1
+                            : index;
+                      });
+                    },
+                    onLongPressStart: (_) => _showMessageContextMenu(
+                      text: message.text,
+                      bubbleContext: bubbleContext,
+                      messageIndex: index,
+                    ),
+                    child: _buildPressableMessageBubble(
+                      messageIndex: index,
+                      isOwn: false,
+                      radius: radius,
+                      text: message.text,
+                    ),
                   ),
                 ),
               ),
@@ -2552,7 +3034,7 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
         return true;
       },
       child: Scaffold(
-        backgroundColor: Colors.white,
+        backgroundColor: AppColors.background,
 
         body: SafeArea(
           child: Stack(
@@ -2560,35 +3042,15 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
             children: [
               Column(
                 children: [
-                  const SizedBox(height: 8),
-                  // ใช้ Header.fromVariant เพื่อรองรับ 4 variants
-                  Header.fromVariant(
-                    variant: _headerVariant,
-                    name: _chatUserName,
-                    avatarUrl: _chatUserAvatar,
-                    cooldownDays: _cooldownDays,
-                    showCalendar: _shouldShowCalendarIcon,
-                    showFlag: !_isChatDisabled,
-                    calendarHasUnreadUpdate: _calendarHasUnreadUpdate,
-                    showBorder: false,
-                    onBack: () async {
+                  DsAppSecondaryHeader(
+                    variant: _mapDsHeaderVariant(),
+                    center: _buildChatHeaderCenter(),
+                    trailing: _buildChatHeaderTrailing(),
+                    showBottomBorder: false,
+                    onBackTap: () async {
                       await _exitRoomOnce();
                       if (!mounted) return;
                       Navigator.maybePop(context);
-                    },
-                    onCalendar: _handleCalendarTap,
-                    onSpinwheel: _handleSpinwheelTap,
-                    onFlag: () {
-                      Navigator.pushReplacementNamed(
-                        context,
-                        '/report',
-                        arguments: {
-                          'roomId': widget.roomId,
-                          'targetUserId': _chatUserId,
-                          'userName': _chatUserName,
-                          'avatarUrl': _chatUserAvatar,
-                        },
-                      );
                     },
                   ),
 
@@ -2596,44 +3058,11 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
                   Expanded(
                     child: Column(
                       children: [
-                        const SizedBox(height: 12),
+                        const SizedBox(height: 6),
 
                         Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 20),
-                          child: LayoutBuilder(
-                            builder: (context, constraints) {
-                              final double barWidth =
-                                  (constraints.maxWidth - 25 - 20).clamp(
-                                    140,
-                                    260,
-                                  );
-                              return ScoreRow(
-                                basePercent: _currentPercent,
-                                number: _heartCount,
-                                barWidth: barWidth,
-                                barHeight: 8,
-                                rightIconSize: 18,
-                                onRightIconTap: () => {
-                                  showModalBottomSheet(
-                                    context: context,
-                                    isScrollControlled: true,
-                                    backgroundColor: Colors
-                                        .transparent, // เพื่อให้เห็นเงาโค้งของ Container ข้างใน
-                                    builder: (context) => RelationshipMissionModal(
-                                      heart: _heartCount,
-                                      currentScore: (_currentPercent * 100)
-                                          .round(),
-                                      isFirstMessageBonus: _isFirstMessageBonus,
-                                      streakDays:
-                                          _steakDays, // ใช้ตัวแปรใน State ของคุณ
-                                      dailyMessages:
-                                          _dailyMessagesCount, // ใช้ตัวแปรใน State ของคุณ
-                                    ),
-                                  ),
-                                },
-                              );
-                            },
-                          ),
+                          padding: const EdgeInsets.symmetric(horizontal: 19),
+                          child: _buildRelationshipBar(),
                         ),
                         const SizedBox(height: 12),
                         if (_existingAppointment != null &&
@@ -2888,24 +3317,23 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
                             ),
                           )
                         else
-                          InputChatComponent(
-                            svgPathLast: 'assets/icons/ui/icon_send.svg',
-                            sendIconColor: null,
-                            sendIconBackgroundColor: null,
-                            isSendEnabled:
-                                _hasText &&
-                                !_isSending &&
-                                (widget.roomId?.isNotEmpty ?? false),
+                          Padding(
+                            padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+                            child: DsChatMessageInput(
+                              width: double.infinity,
+                              enabled: !_isSending && (widget.roomId?.isNotEmpty ?? false),
+                              hintText: 'เขียนข้อความ',
+                              disabledText: 'ไม่สามารถส่งข้อความได้เนื่องจากมีการรายงาน',
                             controller: _messageController,
-                            onChanged: (value) => setState(
-                              () => _hasText = value.trim().isNotEmpty,
+                              onChanged: (value) => setState(
+                                () => _hasText = value.trim().isNotEmpty,
+                              ),
+                              onSend: _hasText &&
+                                      !_isSending &&
+                                      (widget.roomId?.isNotEmpty ?? false)
+                                  ? () => _sendMessage()
+                                  : null,
                             ),
-                            onSend:
-                                _hasText &&
-                                    !_isSending &&
-                                    (widget.roomId?.isNotEmpty ?? false)
-                                ? () => _sendMessage()
-                                : null,
                           ),
                       ],
                     ),
@@ -3153,6 +3581,230 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
               ],
             ],
           ),
+        ),
+      ),
+    );
+  }
+}
+
+class _ChatHeaderTapTarget extends StatefulWidget {
+  const _ChatHeaderTapTarget({
+    required this.child,
+    this.onTap,
+  });
+
+  final Widget child;
+  final VoidCallback? onTap;
+
+  @override
+  State<_ChatHeaderTapTarget> createState() => _ChatHeaderTapTargetState();
+}
+
+class _ChatHeaderTapTargetState extends State<_ChatHeaderTapTarget> {
+  bool _pressed = false;
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: widget.onTap,
+      onTapDown: widget.onTap != null
+          ? (_) => setState(() => _pressed = true)
+          : null,
+      onTapUp: widget.onTap != null
+          ? (_) => setState(() => _pressed = false)
+          : null,
+      onTapCancel: widget.onTap != null
+          ? () => setState(() => _pressed = false)
+          : null,
+      behavior: HitTestBehavior.opaque,
+      child: AnimatedScale(
+        duration: const Duration(milliseconds: 140),
+        curve: Curves.easeOutCubic,
+        scale: _pressed ? 1.04 : 1,
+        child: AnimatedSlide(
+          duration: const Duration(milliseconds: 140),
+          curve: Curves.easeOutCubic,
+          offset: _pressed ? const Offset(0, -0.06) : Offset.zero,
+          child: Padding(
+            padding: const EdgeInsets.all(4),
+            child: widget.child,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _ChatUserGalleryDialog extends StatefulWidget {
+  const _ChatUserGalleryDialog({
+    required this.images,
+    required this.initialIndex,
+    required this.userName,
+  });
+
+  final List<String> images;
+  final int initialIndex;
+  final String userName;
+
+  @override
+  State<_ChatUserGalleryDialog> createState() => _ChatUserGalleryDialogState();
+}
+
+class _ChatUserGalleryDialogState extends State<_ChatUserGalleryDialog> {
+  late final PageController _pageController;
+  late int _currentIndex;
+
+  @override
+  void initState() {
+    super.initState();
+    _currentIndex = widget.initialIndex;
+    _pageController = PageController(initialPage: widget.initialIndex);
+  }
+
+  @override
+  void dispose() {
+    _pageController.dispose();
+    super.dispose();
+  }
+
+  bool _isSvg(String path) {
+    final uri = Uri.tryParse(path);
+    final normalizedPath = (uri?.path ?? path).toLowerCase();
+    return normalizedPath.endsWith('.svg');
+  }
+
+  Widget _buildImage(String path) {
+    if (_isSvg(path)) {
+      return path.startsWith('http')
+          ? SvgPicture.network(path, fit: BoxFit.contain)
+          : SvgPicture.asset(path, fit: BoxFit.contain);
+    }
+
+    return path.startsWith('http')
+        ? Image.network(path, fit: BoxFit.contain)
+        : Image.asset(path, fit: BoxFit.contain);
+  }
+
+  void _goTo(int index) {
+    if (index < 0 || index >= widget.images.length) return;
+    setState(() => _currentIndex = index);
+    _pageController.animateToPage(
+      index,
+      duration: const Duration(milliseconds: 220),
+      curve: Curves.easeOutCubic,
+    );
+  }
+
+  void _goNext() => _goTo((_currentIndex + 1) % widget.images.length);
+
+  void _goPrevious() =>
+      _goTo((_currentIndex - 1 + widget.images.length) % widget.images.length);
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: Colors.transparent,
+      child: SafeArea(
+        child: Stack(
+          children: [
+            Positioned.fill(
+              child: GestureDetector(
+                onTap: () => Navigator.of(context).pop(),
+                child: const ColoredBox(color: Colors.transparent),
+              ),
+            ),
+            Positioned.fill(
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(24, 60, 24, 40),
+                child: Column(
+                  children: [
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            widget.userName,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 20,
+                              fontFamily: 'Inter',
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ),
+                        IconButton(
+                          onPressed: () => Navigator.of(context).pop(),
+                          icon: const Icon(Icons.close_rounded, color: Colors.white),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 12),
+                    Expanded(
+                      child: Stack(
+                        children: [
+                          PageView.builder(
+                            controller: _pageController,
+                            itemCount: widget.images.length,
+                            onPageChanged: (index) {
+                              setState(() => _currentIndex = index);
+                            },
+                            itemBuilder: (context, index) {
+                              return Center(
+                                child: ClipRRect(
+                                  borderRadius: BorderRadius.circular(28),
+                                  child: ColoredBox(
+                                    color: Colors.white.withValues(alpha: 0.06),
+                                    child: InteractiveViewer(
+                                      minScale: 1,
+                                      maxScale: 3,
+                                      child: SizedBox.expand(
+                                        child: _buildImage(widget.images[index]),
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              );
+                            },
+                          ),
+                          Positioned(
+                            left: 0,
+                            top: 0,
+                            bottom: 0,
+                            width: 96,
+                            child: GestureDetector(
+                              behavior: HitTestBehavior.translucent,
+                              onTap: _goPrevious,
+                            ),
+                          ),
+                          Positioned(
+                            right: 0,
+                            top: 0,
+                            bottom: 0,
+                            width: 96,
+                            child: GestureDetector(
+                              behavior: HitTestBehavior.translucent,
+                              onTap: _goNext,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    Text(
+                      '${_currentIndex + 1}/${widget.images.length}',
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 14,
+                        fontFamily: 'Inter',
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
         ),
       ),
     );

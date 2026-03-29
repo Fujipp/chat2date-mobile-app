@@ -20,6 +20,21 @@ class UserService {
   final Ref ref;
   UserService(this.ref);
 
+  Future<User?> fetchUserById(String id) async {
+    final client = ref.read(authenticatedClientProvider);
+
+    final response = await client.get(
+      Uri.parse('${ApiBase.baseUrl}/users/$id'),
+    );
+
+    if (response.statusCode != 200) {
+      throw Exception('Fetch user failed: ${response.body}');
+    }
+
+    final data = jsonDecode(response.body);
+    return User.fromJson(data);
+  }
+
   Future<User?> getUser(String id) async {
     final client = ref.read(authenticatedClientProvider);
 

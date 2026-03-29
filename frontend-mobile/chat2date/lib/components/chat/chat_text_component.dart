@@ -12,6 +12,7 @@ class ChatTextComponent extends StatelessWidget {
 
   //สี content
   final Color? color;
+  final Color? bubbleOverlayColor;
 
   //ความมนของมุม - burger style support
   final double? topLeftRadius;
@@ -62,6 +63,7 @@ class ChatTextComponent extends StatelessWidget {
 
     //สี content
     this.color = AppColors.surfaceMuted,
+    this.bubbleOverlayColor,
 
     //path รูป
     this.svgPath,
@@ -150,6 +152,17 @@ class ChatTextComponent extends StatelessWidget {
               bottomRight: Radius.circular(bottomRightRadius!),
             ),
           ),
+          foregroundDecoration: bubbleOverlayColor == null
+              ? null
+              : BoxDecoration(
+                  color: bubbleOverlayColor,
+                  borderRadius: BorderRadius.only(
+                    topLeft: Radius.circular(topLeftRadius!),
+                    topRight: Radius.circular(topRightRadius!),
+                    bottomLeft: Radius.circular(bottomLeftRadius!),
+                    bottomRight: Radius.circular(bottomRightRadius!),
+                  ),
+                ),
           child: Column(
             spacing: 10,
             mainAxisAlignment: MainAxisAlignment.start,
