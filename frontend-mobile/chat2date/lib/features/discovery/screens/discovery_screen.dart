@@ -723,9 +723,9 @@ class _DiscoveryScreenState extends ConsumerState<DiscoveryScreen>
     final currentCandidate = discoveryState.currentCandidate;
 
     // ✅ แสดง Loading ถ้ายังไม่เคยโหลด หรือกำลัง initialize
-    if (discoveryState.isLoading ||
-        discoveryState.isInitializing ||
-        !discoveryState.hasLoadedOnce) {
+    if (discoveryState.isInitializing ||
+        !discoveryState.hasLoadedOnce ||
+        (discoveryState.isLoading && currentCandidate == null)) {
       return _buildHomeLoadingState(canOpenFilter: true);
     }
 

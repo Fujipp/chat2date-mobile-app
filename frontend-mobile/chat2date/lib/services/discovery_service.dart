@@ -135,11 +135,15 @@ class DiscoveryNotifier extends StateNotifier<DiscoveryState> {
   final DiscoveryService _service;
   final String userId;
   static const Duration _minimumLoadingDuration = Duration(milliseconds: 3200);
+  static const int _prefetchThreshold = 4;
 
   // ✅ เพิ่ม flag เพื่อป้องกันการเรียก API ซ้ำซ้อน
   bool _isLoadingInProgress = false;
+  bool _isPrefetchInProgress = false;
   int? _pendingMinDistance;
   int? _pendingMaxDistance;
+  int _lastMinDistance = 1;
+  int _lastMaxDistance = 160;
 
   DiscoveryNotifier(this._service, this.userId) : super(DiscoveryState());
 
@@ -165,6 +169,8 @@ class DiscoveryNotifier extends StateNotifier<DiscoveryState> {
     _isLoadingInProgress = true;
     _pendingMinDistance = minDistance;
     _pendingMaxDistance = maxDistance;
+    _lastMinDistance = minDistance;
+    _lastMaxDistance = maxDistance;
     state = state.copyWith(isLoading: true, error: null);
     final stopwatch = Stopwatch()..start();
 
@@ -204,6 +210,7 @@ class DiscoveryNotifier extends StateNotifier<DiscoveryState> {
           hasLoadedOnce: true,
           isInitializing: false,
         );
+        _prefetchCandidatesIfNeeded();
       }
     } catch (e) {
       print('❌ Error in loadCandidates: $e');
@@ -240,8 +247,43 @@ class DiscoveryNotifier extends StateNotifier<DiscoveryState> {
       print(
         '📍 Current index: ${state.currentIndex}/${state.candidates.length - 1}',
       );
+      _prefetchCandidatesIfNeeded();
     } else {
       state = state.copyWith(currentIndex: 0, candidates: []);
+    }
+  }
+
+  Future<void> _prefetchCandidatesIfNeeded() async {
+    if (!mounted || _isPrefetchInProgress || _isLoadingInProgress) return;
+
+    final remaining = state.candidates.length - state.currentIndex - 1;
+    if (remaining > _prefetchThreshold) return;
+
+    _isPrefetchInProgress = true;
+
+    try {
+      final nextBatch = await _service.getCandidates(
+        userId: userId,
+        minDistance: _lastMinDistance,
+        maxDistance: _lastMaxDistance,
+      );
+
+      if (!mounted || nextBatch.isEmpty) return;
+
+      final existingIds = state.candidates.map((e) => e.userId).toSet();
+      final uniqueNewCandidates = nextBatch
+          .where((candidate) => !existingIds.contains(candidate.userId))
+          .toList();
+
+      if (uniqueNewCandidates.isEmpty) return;
+
+      state = state.copyWith(
+        candidates: [...state.candidates, ...uniqueNewCandidates],
+      );
+    } catch (_) {
+      // ignore prefetch failures to avoid interrupting current swipe flow
+    } finally {
+      _isPrefetchInProgress = false;
     }
   }
 

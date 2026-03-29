@@ -292,6 +292,7 @@ class _MatchRippleHeart extends StatelessWidget {
 }
 
 class _MatchUserCircle extends StatelessWidget {
+  static const double _circleSize = 182;
   final String name;
   final String? imageUrl;
 
@@ -309,27 +310,21 @@ class _MatchUserCircle extends StatelessWidget {
         children: [
           SizedBox(
             width: 100,
-            height: 182,
+            height: _circleSize,
             child: OverflowBox(
-              minWidth: 182,
-              maxWidth: 182,
-              minHeight: 182,
-              maxHeight: 182,
+              minWidth: _circleSize,
+              maxWidth: _circleSize,
+              minHeight: _circleSize,
+              maxHeight: _circleSize,
               alignment: Alignment.topCenter,
-              child: Container(
-                width: 182,
-                height: 182,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  border: Border.all(
-                    color: AppColors.surface,
-                    width: 26,
-                  ),
-                ),
-                child: ClipOval(
+              child: ClipOval(
+                child: SizedBox.square(
+                  dimension: _circleSize,
                   child: imageUrl != null && imageUrl!.isNotEmpty
                       ? Image.network(
                           imageUrl!,
+                          width: _circleSize,
+                          height: _circleSize,
                           fit: BoxFit.cover,
                           errorBuilder: (_, __, ___) => _buildIconFallback(),
                         )
@@ -358,19 +353,20 @@ class _MatchUserCircle extends StatelessWidget {
   }
 
   Widget _buildIconFallback() {
-    return Container(
-      decoration: const BoxDecoration(
-        color: AppColors.background,
-        shape: BoxShape.circle,
-      ),
-      child: ColorFiltered(
-        colorFilter: const ColorFilter.mode(
-          AppColors.surface,
-          BlendMode.srcIn,
-        ),
-        child: SvgPicture.asset(
-          AppAssets.headerSecondaryAvatar,
-          fit: BoxFit.contain,
+    return ColoredBox(
+      color: AppColors.background,
+      child: Center(
+        child: ColorFiltered(
+          colorFilter: const ColorFilter.mode(
+            AppColors.surface,
+            BlendMode.srcIn,
+          ),
+          child: SvgPicture.asset(
+            AppAssets.headerSecondaryAvatar,
+            width: _circleSize,
+            height: _circleSize,
+            fit: BoxFit.cover,
+          ),
         ),
       ),
     );

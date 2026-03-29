@@ -2,7 +2,8 @@ import 'dart:async';
 
 import 'package:chat2date/components/design_system/index.dart';
 import 'package:chat2date/core/theme/app_colors.dart';
-import 'package:chat2date/core/theme/tokens/colors/app_gradients.dart';
+import 'package:chat2date/core/theme/tokens/colors/data_colors.dart';
+import 'package:chat2date/core/theme/tokens/colors/main_colors.dart';
 import 'package:chat2date/core/theme/tokens/colors/input_colors.dart';
 import 'package:chat2date/core/theme/tokens/colors/text_colors.dart';
 import 'package:chat2date/features/discovery/screens/main_tabs.dart';
@@ -712,7 +713,7 @@ class _ChatSwitcherItem extends StatelessWidget {
   }
 }
 
-class _ChatListCard extends StatelessWidget {
+class _ChatListCard extends StatefulWidget {
   const _ChatListCard({
     required this.title,
     required this.subtitle,
@@ -732,66 +733,107 @@ class _ChatListCard extends StatelessWidget {
   final int? unreadCount;
 
   @override
-  Widget build(BuildContext context) {
-    final bool showUnread = unreadCount != null && unreadCount! > 0;
+  State<_ChatListCard> createState() => _ChatListCardState();
+}
 
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(16),
-      child: Container(
-        height: 72,
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: highlighted ? null : AppColors.background,
-          gradient: highlighted ? AppGradients.themeApp2 : null,
-          borderRadius: BorderRadius.circular(16),
-        ),
-        child: Row(
-          children: [
-            _ChatAvatar(
-              avatarPath: avatarPath,
-              isSvgAvatar: isSvgAvatar,
-            ),
-            const SizedBox(width: 16),
-            Expanded(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    title,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                      color: TextColors.secondary,
-                      fontSize: 14,
-                      fontWeight: FontWeight.w700,
-                      height: 1,
+class _ChatListCardState extends State<_ChatListCard> {
+  bool _isPressed = false;
+  static const LinearGradient _highlightGradient = LinearGradient(
+    begin: Alignment.centerLeft,
+    end: Alignment.centerRight,
+    colors: [
+      MainColors.primary,
+      DataColors.pastel5,
+    ],
+  );
+
+  @override
+  Widget build(BuildContext context) {
+    final bool showUnread = widget.unreadCount != null && widget.unreadCount! > 0;
+    final borderColor = _isPressed
+        ? AppColors.surface.withValues(alpha: 0.16)
+        : Colors.transparent;
+
+    return AnimatedScale(
+      duration: const Duration(milliseconds: 120),
+      curve: Curves.easeOutCubic,
+      scale: _isPressed ? 0.985 : 1,
+      child: InkWell(
+        onTap: widget.onTap,
+        onHighlightChanged: (value) {
+          if (_isPressed == value) return;
+          setState(() => _isPressed = value);
+        },
+        borderRadius: BorderRadius.circular(16),
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 120),
+          curve: Curves.easeOutCubic,
+          height: 80,
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: widget.highlighted ? null : AppColors.background,
+            gradient: widget.highlighted ? _highlightGradient : null,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: borderColor, width: 1),
+            boxShadow: _isPressed
+                ? const [
+                    BoxShadow(
+                      color: Color(0x14000000),
+                      blurRadius: 10,
+                      offset: Offset(0, 4),
                     ),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    subtitle,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                      color: highlighted
-                          ? AppColors.textOnDark
-                          : TextColors.supportText,
-                      fontSize: 12,
-                      fontWeight: highlighted ? FontWeight.w700 : FontWeight.w400,
-                      height: 16 / 12,
-                      letterSpacing: 0.12,
-                    ),
-                  ),
-                ],
+                  ]
+                : null,
+          ),
+          child: Row(
+            children: [
+              _ChatAvatar(
+                avatarPath: widget.avatarPath,
+                isSvgAvatar: widget.isSvgAvatar,
               ),
-            ),
-            if (showUnread)
-              _UnreadBadge(count: unreadCount!)
-            else
-              const SizedBox(width: 33),
-          ],
+              const SizedBox(width: 18),
+              Expanded(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      widget.title,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        color: TextColors.secondary,
+                        fontSize: 14,
+                        fontWeight: FontWeight.w700,
+                        height: 1,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      widget.subtitle,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        color: widget.highlighted
+                            ? AppColors.textOnDark
+                            : TextColors.supportText,
+                        fontSize: 12,
+                        fontWeight: widget.highlighted
+                            ? FontWeight.w700
+                            : FontWeight.w400,
+                        height: 16 / 12,
+                        letterSpacing: 0.12,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              if (showUnread)
+                _UnreadBadge(count: widget.unreadCount!)
+              else
+                const SizedBox(width: 33),
+            ],
+          ),
         ),
       ),
     );
@@ -806,59 +848,93 @@ class _ChatAvatar extends StatelessWidget {
 
   final String? avatarPath;
   final bool isSvgAvatar;
+  static const double _size = 60;
 
   @override
   Widget build(BuildContext context) {
-    final decoration = BoxDecoration(
-      shape: BoxShape.circle,
-      color: AppColors.surface,
-      border: Border.all(
-        color: Colors.white,
-        width: 2,
-      ),
-    );
-
-    Widget child;
-    if (avatarPath != null && avatarPath!.isNotEmpty) {
-      if (isSvgAvatar) {
-        child = ClipOval(
-          child: avatarPath!.startsWith('http')
-              ? SvgPicture.network(avatarPath!, fit: BoxFit.cover)
-              : SvgPicture.asset(avatarPath!, fit: BoxFit.cover),
-        );
-      } else {
-        child = ClipOval(
-          child: avatarPath!.startsWith('http')
-              ? Image.network(
-                  avatarPath!,
-                  fit: BoxFit.cover,
-                  errorBuilder: (_, __, ___) => _fallback(),
-                )
-              : Image.asset(
-                  avatarPath!,
-                  fit: BoxFit.cover,
-                  errorBuilder: (_, __, ___) => _fallback(),
-                ),
-        );
-      }
-    } else {
-      child = _fallback();
+    if (avatarPath != null && avatarPath!.isNotEmpty && !isSvgAvatar) {
+      return Container(
+        width: _size,
+        height: _size,
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          color: AppColors.surface,
+          border: Border.all(
+            color: Colors.white,
+            width: 2,
+          ),
+          image: DecorationImage(
+            image: avatarPath!.startsWith('http')
+                ? NetworkImage(avatarPath!)
+                : AssetImage(avatarPath!) as ImageProvider,
+            fit: BoxFit.cover,
+          ),
+        ),
+      );
     }
 
-    return Container(
-      width: 50,
-      height: 50,
-      decoration: decoration,
-      clipBehavior: Clip.antiAlias,
-      child: child,
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        border: Border.all(
+          color: Colors.white,
+          width: 2,
+        ),
+      ),
+      child: ClipOval(
+        child: SizedBox.square(
+          dimension: _size,
+          child: _buildAvatarContent(),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildAvatarContent() {
+    if (avatarPath == null || avatarPath!.isEmpty) {
+      return ColoredBox(
+        color: AppColors.surface,
+        child: _fallback(),
+      );
+    }
+
+    if (isSvgAvatar) {
+      final svg = avatarPath!.startsWith('http')
+          ? SvgPicture.network(
+              avatarPath!,
+              width: _size,
+              height: _size,
+              fit: BoxFit.cover,
+            )
+          : SvgPicture.asset(
+              avatarPath!,
+              width: _size,
+              height: _size,
+              fit: BoxFit.cover,
+            );
+
+      return ColoredBox(
+        color: AppColors.surface,
+        child: SizedBox.square(
+          dimension: _size,
+          child: svg,
+        ),
+      );
+    }
+
+    return ColoredBox(
+      color: AppColors.surface,
+      child: _fallback(),
     );
   }
 
   Widget _fallback() {
-    return const Icon(
-      Icons.person,
-      size: 34,
-      color: AppColors.textOnDark,
+    return const Center(
+      child: Icon(
+        Icons.person,
+        size: 34,
+        color: AppColors.textOnDark,
+      ),
     );
   }
 }
