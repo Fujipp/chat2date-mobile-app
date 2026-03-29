@@ -4,9 +4,9 @@ import 'dart:io';
 import 'package:chat2date/config/backend_base.dart';
 import 'package:chat2date/models/report_request.dart';
 import 'package:chat2date/models/report_response.dart';
-import 'package:chat2date/stores/user_store.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:http/http.dart' as http;
+import 'package:chat2date/services/authenticated_client.dart';
 import 'package:http_parser/http_parser.dart';
 
 /// Provider for ReportService
@@ -26,15 +26,11 @@ class ReportService {
     ReportRequest request, {
     List<File>? evidenceFiles,
   }) async {
-    final userState = ref.read(userStoreProvider);
-    final accessToken = "${userState['accessToken']}";
+    final client = ref.read(authenticatedClientProvider);
 
     // สร้าง multipart request
     final uri = Uri.parse('${ApiBase.baseUrl}/report');
     final multipartRequest = http.MultipartRequest('POST', uri);
-
-    // เพิ่ม headers
-    multipartRequest.headers['Authorization'] = 'Bearer $accessToken';
 
     // เพิ่ม data part (JSON)
     multipartRequest.files.add(
@@ -62,7 +58,7 @@ class ReportService {
     }
 
     // ส่ง request
-    final streamedResponse = await multipartRequest.send();
+    final streamedResponse = await client.send(multipartRequest);
     final response = await http.Response.fromStream(streamedResponse);
 
     if (response.statusCode == 201) {

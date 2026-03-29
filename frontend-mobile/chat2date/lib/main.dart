@@ -84,7 +84,7 @@ class MyApp extends ConsumerWidget {
           title: 'Component Test',
           theme: buildLightTheme(),
           navigatorKey: navigatorKey,
-          initialRoute: '/home',
+          initialRoute: '/auth',
           routes: {
             '/test': (context) => const ComponentTestScreen(),
 

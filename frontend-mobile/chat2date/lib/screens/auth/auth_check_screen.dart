@@ -28,6 +28,9 @@ Future<Map<String, dynamic>> tryRefresh(WidgetRef ref) async {
       final newAccessToken = data["accessToken"];
 
       await storage.write(key: "access_token", value: newAccessToken);
+      if (data["refreshToken"] != null) {
+        await storage.write(key: "refreshToken", value: data["refreshToken"]);
+      }
       ref.read(userStoreProvider.notifier).setAccessToken(newAccessToken);
 
       return {'success': true, 'accessToken': newAccessToken};

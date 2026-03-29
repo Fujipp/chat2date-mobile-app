@@ -11,8 +11,6 @@ import sit.chat2date.cp25ssi2.dto.*;
 import sit.chat2date.cp25ssi2.services.DiscoveryService; // <<== ใช้ services
 
 import java.util.List;
-// (ไม่ต้อง import jakarta.Validation หรือ jakarta.validation แบบทั่วไป)
-
 @RestController
 @RequestMapping("/discovery")
 @Validated

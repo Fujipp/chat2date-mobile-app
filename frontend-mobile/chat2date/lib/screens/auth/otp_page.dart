@@ -1,5 +1,4 @@
 import 'dart:async';
-
 import 'package:chat2date/components/buttons/index.dart'; // DsButton / enums
 import 'package:chat2date/components/toasts/toast.dart';
 import 'package:chat2date/controllers/auth_controller.dart';
@@ -10,6 +9,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
 class OtpPage extends ConsumerStatefulWidget {
   const OtpPage({super.key});
@@ -18,6 +18,7 @@ class OtpPage extends ConsumerStatefulWidget {
 }
 
 class _OtpPageState extends ConsumerState<OtpPage> {
+  final _storage = const FlutterSecureStorage();
   final int _length = 6;
   late final List<TextEditingController> _ctls;
   late final List<FocusNode> _nodes;
@@ -137,6 +138,13 @@ class _OtpPageState extends ConsumerState<OtpPage> {
       if (data['statusCode'] == 200) {
         final user = User.fromJson(data['body']['user']);
         final accessToken = data['body']['accessToken'];
+        await _storage.write(key: 'access_token', value: data['accessToken']);
+        if (data['body']['refreshToken'] != null) {
+          await _storage.write(
+            key: 'refreshToken',
+            value: data['body']['refreshToken'],
+          );
+        }
         ref.read(userStoreProvider.notifier).setUser(user, accessToken);
         ref.watch(userStoreProvider);
         final authController = ref.read(authControllerProvider);

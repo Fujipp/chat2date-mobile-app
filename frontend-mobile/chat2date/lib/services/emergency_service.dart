@@ -2,8 +2,8 @@ import 'dart:convert';
 
 import 'package:chat2date/config/backend_base.dart';
 import 'package:chat2date/stores/user_store.dart';
+import 'package:chat2date/services/authenticated_client.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:http/http.dart' as http;
 
 final emergencyCallServiceProvider = Provider<EmergencyCallService>((ref) {
   return EmergencyCallService(ref);
@@ -14,18 +14,13 @@ class EmergencyCallService {
   EmergencyCallService(this.ref);
 
   Future<List<String>> getEmergencyCalls() async {
-    final userState = ref.read(userStoreProvider);
-    final accessToken = "${userState['accessToken']}";
-
+    final client = ref.read(authenticatedClientProvider);
     final url = Uri.parse('${ApiBase.baseUrl}/users/emergency-calls');
 
     try {
-      final response = await http.get(
+      final response = await client.get(
         url,
-        headers: {
-          'Authorization': 'Bearer $accessToken',
-          'Content-Type': 'application/json',
-        },
+        headers: {'Content-Type': 'application/json'},
       );
 
       if (response.statusCode == 200) {
@@ -63,18 +58,13 @@ class EmergencyCallService {
   }
 
   Future<bool> updateEmergencyCalls(List<String> phoneNumbers) async {
-    final userState = ref.read(userStoreProvider);
-    final accessToken = "${userState['accessToken']}";
-
+    final client = ref.read(authenticatedClientProvider);
     final url = Uri.parse('${ApiBase.baseUrl}/users/emergency-calls');
 
     try {
-      final response = await http.put(
+      final response = await client.put(
         url,
-        headers: {
-          'Authorization': 'Bearer $accessToken',
-          'Content-Type': 'application/json',
-        },
+        headers: {'Content-Type': 'application/json'},
         body: json.encode({'phoneNumbers': phoneNumbers}),
       );
 
