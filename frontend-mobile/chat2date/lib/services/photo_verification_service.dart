@@ -5,6 +5,7 @@ import 'package:chat2date/config/backend_base.dart';
 import 'package:chat2date/stores/user_store.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:http/http.dart' as http;
+import 'package:chat2date/services/authenticated_client.dart';
 
 final photoVerificationServiceProvider = Provider(
   (ref) => PhotoVerificationService(ref),
@@ -19,17 +20,10 @@ class PhotoVerificationService {
     required List<File> profileImages,
     required String idCardBase64,
   }) async {
-    final userState = ref.read(userStoreProvider);
-    final accessToken = userState['accessToken'] as String?;
-
-    if (accessToken == null) {
-      throw Exception("User not logged in");
-    }
+    final client = ref.read(authenticatedClientProvider);
 
     final uri = Uri.parse('${ApiBase.baseUrl}/identity/verify-face');
     final request = http.MultipartRequest('POST', uri);
-
-    request.headers['Authorization'] = 'Bearer $accessToken';
 
     for (var file in profileImages) {
       request.files.add(
@@ -40,7 +34,7 @@ class PhotoVerificationService {
     request.fields['id_card_base64'] = idCardBase64;
     request.fields['userId'] = userId;
 
-    final streamedResponse = await request.send();
+    final streamedResponse = await client.send(request);
     final response = await http.Response.fromStream(streamedResponse);
 
     if (response.statusCode != 200) {
@@ -54,12 +48,7 @@ class PhotoVerificationService {
     required String userId,
     required List<String> imageUrls,
   }) async {
-    final userState = ref.read(userStoreProvider);
-    final accessToken = userState['accessToken'] as String?;
-
-    if (accessToken == null) {
-      throw Exception("User not logged in");
-    }
+    final client = ref.read(authenticatedClientProvider);
 
     final uri = Uri.parse('${ApiBase.baseUrl}/users/$userId/photo').replace(
       queryParameters: {
@@ -67,9 +56,9 @@ class PhotoVerificationService {
       },
     );
 
-    final response = await http.delete(
+    final response = await client.delete(
       uri,
-      headers: {"Authorization": "Bearer $accessToken"},
+      headers: {'Content-Type': 'application/json'},
     );
 
     if (response.statusCode != 204) {

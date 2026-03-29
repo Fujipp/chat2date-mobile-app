@@ -2,9 +2,9 @@ import 'dart:convert';
 import 'package:chat2date/models/dto/preference_dto.dart';
 import 'package:chat2date/services/user_service.dart';
 import 'package:chat2date/stores/user_store.dart';
-import 'package:http/http.dart' as http;
-import 'package:chat2date/config/backend_base.dart'; // << เพิ่มบรรทัดนี้
+import 'package:chat2date/config/backend_base.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:chat2date/services/authenticated_client.dart';
 
 final preferenceServiceProvider = Provider(
   (ref) => PreferenceService(ref),
@@ -18,8 +18,8 @@ class PreferenceService{
 
   Future<PreferenceDto> getPreference() async {
     final uri = Uri.parse('$_base/preferences');
-    final res = await http
-        .get(uri);
+    final client = ref.read(authenticatedClientProvider);
+    final res = await client.get(uri);
     if (res.statusCode != 200) throw 'HTTP ${res.statusCode}: ${res.body}';
 
     final jsonBody = jsonDecode(res.body);
