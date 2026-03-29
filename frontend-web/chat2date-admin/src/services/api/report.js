@@ -1,4 +1,5 @@
-import { ADMIN_API_URL, getHeaders, handleResponse } from './shared'
+import { apiClient } from '../apiClient'
+import { ADMIN_API_URL, handleResponse } from './shared'
 
 export const reportApi = {
   getAll: async ({ page = 0, size = 20, status = '', sortBy = 'createdAt', sortDirection = 'DESC' }) => {
@@ -9,25 +10,25 @@ export const reportApi = {
       sortDirection,
     })
     if (status) params.append('status', status)
-    const response = await fetch(`${ADMIN_API_URL}/reports?${params}`, {
+
+    const res = await apiClient(`${ADMIN_API_URL}/reports?${params}`, {
       method: 'GET',
-      headers: getHeaders(),
     })
-    return handleResponse(response)
+    return handleResponse(res)
   },
+
   getById: async (reportId) => {
-    const response = await fetch(`${ADMIN_API_URL}/reports/${reportId}`, {
+    const res = await apiClient(`${ADMIN_API_URL}/reports/${reportId}`, {
       method: 'GET',
-      headers: getHeaders(),
     })
-    return handleResponse(response)
+    return handleResponse(res)
   },
+
   updateStatus: async (reportId, status) => {
-    const response = await fetch(`${ADMIN_API_URL}/reports/${reportId}/status`, {
+    const res = await apiClient(`${ADMIN_API_URL}/reports/${reportId}/status`, {
       method: 'PUT',
-      headers: getHeaders(),
       body: JSON.stringify({ status }),
     })
-    return handleResponse(response)
+    return handleResponse(res)
   },
 }

@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 
 import 'package:chat2date/components/toasts/toast.dart';
@@ -29,33 +30,106 @@ class _FullScreenMapPageState extends State<FullScreenMapPage> {
   final Set<Marker> _markers = {};
   Set<Polyline> _polylines = {};
 
+  StreamSubscription<Position>? _positionStream;
+  LatLng? _currentPosition;
+
+  // ✅ เพิ่ม: เก็บ route points ไว้เช็ค deviation
+  List<LatLng> _currentRoutePoints = [];
+  DateTime _lastRerouteTime = DateTime(2000);
+
+  double _lastCameraLat = 0;
+  double _lastCameraLng = 0;
+
+  bool _isLoadingRoute = false;
+
+  // ✅ เช็คว่าออกนอกเส้นทางไหม (threshold 30 เมตร)
+  bool _isOffRoute(LatLng current) {
+    if (_currentRoutePoints.isEmpty) return false;
+    double minDistance = double.infinity;
+    for (final point in _currentRoutePoints) {
+      final d = Geolocator.distanceBetween(
+        current.latitude,
+        current.longitude,
+        point.latitude,
+        point.longitude,
+      );
+      if (d < minDistance) minDistance = d;
+    }
+    return minDistance > 30;
+  }
+
+  @override
+  void dispose() {
+    _positionStream?.cancel();
+    _mapController?.dispose();
+    super.dispose();
+  }
+
+  void _startPositionStream() {
+    _positionStream?.cancel();
+    _positionStream =
+        Geolocator.getPositionStream(
+          locationSettings: const LocationSettings(
+            accuracy: LocationAccuracy.high,
+            distanceFilter: 10,
+          ),
+        ).listen((pos) {
+          final newLatLng = LatLng(pos.latitude, pos.longitude);
+          if (mounted) setState(() => _currentPosition = newLatLng);
+
+          final latDiff = (_lastCameraLat - pos.latitude).abs();
+          final lngDiff = (_lastCameraLng - pos.longitude).abs();
+          if (latDiff > 0.0001 || lngDiff > 0.0001) {
+            _lastCameraLat = pos.latitude;
+            _lastCameraLng = pos.longitude;
+            _mapController?.animateCamera(CameraUpdate.newLatLng(newLatLng));
+          }
+
+          // ✅ reroute เฉพาะเมื่อออกนอกเส้นทาง + cooldown 3 วิ
+          if (widget.destinationPlaceId != null && _isOffRoute(newLatLng)) {
+            final now = DateTime.now();
+            if (now.difference(_lastRerouteTime).inSeconds >= 3) {
+              _lastRerouteTime = now;
+              _drawRoute();
+            }
+          }
+        });
+  }
+
   Future<void> _drawRoute() async {
-    if (widget.destinationPlaceId == null) return;
+    final current = _currentPosition;
+    if (current == null || widget.destinationPlaceId == null) return;
 
-    final pos = await Geolocator.getCurrentPosition();
-    final origin = '${pos.latitude},${pos.longitude}';
-    final dest = 'place_id:${widget.destinationPlaceId}';
+    if (mounted) setState(() => _isLoadingRoute = true);
 
-    final url = Uri.parse(
-      'https://maps.googleapis.com/maps/api/directions/json'
-      '?origin=$origin'
-      '&destination=$dest'
-      '&key=${widget.googleApiKey}'
-      '&language=th',
-    );
+    try {
+      final origin = '${current.latitude},${current.longitude}';
+      final dest = 'place_id:${widget.destinationPlaceId}';
 
-    final res = await http.get(url);
-    final data = json.decode(res.body);
+      final url = Uri.parse(
+        'https://maps.googleapis.com/maps/api/directions/json'
+        '?origin=$origin'
+        '&destination=$dest'
+        '&key=${widget.googleApiKey}'
+        '&language=th',
+      );
 
-    if (data['status'] == 'OK' && data['routes'].isNotEmpty) {
+      final res = await http.get(url);
+      if (res.statusCode != 200) return;
+
+      final data = json.decode(res.body);
+      if (data['status'] != 'OK' || (data['routes'] as List).isEmpty) return;
+
       final points = _decodePolyline(
         data['routes'][0]['overview_polyline']['points'],
       );
-
       final endLocation = data['routes'][0]['legs'][0]['end_location'];
       final destLatLng = LatLng(endLocation['lat'], endLocation['lng']);
 
+      if (!mounted) return;
       setState(() {
+        // ✅ อัปเดต route points ที่ใช้เช็ค deviation
+        _currentRoutePoints = points;
         _polylines = {
           Polyline(
             polylineId: const PolylineId('route'),
@@ -64,40 +138,22 @@ class _FullScreenMapPageState extends State<FullScreenMapPage> {
             width: 4,
           ),
         };
-        _markers.add(
-          Marker(
-            markerId: const MarkerId('destination'),
-            position: destLatLng,
-            infoWindow: InfoWindow(
-              title: data['routes'][0]['legs'][0]['end_address'],
+        _markers
+          ..removeWhere((m) => m.markerId.value == 'destination')
+          ..add(
+            Marker(
+              markerId: const MarkerId('destination'),
+              position: destLatLng,
+              infoWindow: InfoWindow(
+                title: data['routes'][0]['legs'][0]['end_address'],
+              ),
             ),
-          ),
-        );
+          );
       });
-
-      _mapController?.animateCamera(
-        CameraUpdate.newLatLngBounds(
-          LatLngBounds(
-            southwest: LatLng(
-              pos.latitude < destLatLng.latitude
-                  ? pos.latitude
-                  : destLatLng.latitude,
-              pos.longitude < destLatLng.longitude
-                  ? pos.longitude
-                  : destLatLng.longitude,
-            ),
-            northeast: LatLng(
-              pos.latitude > destLatLng.latitude
-                  ? pos.latitude
-                  : destLatLng.latitude,
-              pos.longitude > destLatLng.longitude
-                  ? pos.longitude
-                  : destLatLng.longitude,
-            ),
-          ),
-          80,
-        ),
-      );
+    } catch (e) {
+      debugPrint('FullScreenMap route error: $e');
+    } finally {
+      if (mounted) setState(() => _isLoadingRoute = false);
     }
   }
 
@@ -142,16 +198,19 @@ class _FullScreenMapPageState extends State<FullScreenMapPage> {
               _mapController = controller;
 
               final pos = await Geolocator.getCurrentPosition();
+              _currentPosition = LatLng(pos.latitude, pos.longitude);
+              _lastCameraLat = pos.latitude;
+              _lastCameraLng = pos.longitude;
+
               controller.animateCamera(
-                CameraUpdate.newLatLngZoom(
-                  LatLng(pos.latitude, pos.longitude),
-                  15,
-                ),
+                CameraUpdate.newLatLngZoom(_currentPosition!, 15),
               );
 
               if (widget.destinationPlaceId != null) {
-                _drawRoute();
+                await _drawRoute();
               }
+
+              _startPositionStream();
             },
             myLocationEnabled: true,
             myLocationButtonEnabled: true,
@@ -159,7 +218,35 @@ class _FullScreenMapPageState extends State<FullScreenMapPage> {
             polylines: _polylines,
           ),
 
-          // Back button (top-left)
+          if (_isLoadingRoute)
+            const Positioned(
+              top: 60,
+              left: 0,
+              right: 0,
+              child: Center(
+                child: Card(
+                  child: Padding(
+                    padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        SizedBox(
+                          width: 14,
+                          height: 14,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        ),
+                        SizedBox(width: 8),
+                        Text(
+                          'กำลังคำนวณเส้นทาง...',
+                          style: TextStyle(fontSize: 13),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ),
+
           SafeArea(
             child: Padding(
               padding: const EdgeInsets.all(12.0),
@@ -256,6 +343,48 @@ class GpsMapAlert extends StatefulWidget {
 }
 
 class _GpsMapAlertState extends State<GpsMapAlert> with WidgetsBindingObserver {
+  // ─── map ─────────────────────────────────────────────────────
+  GoogleMapController? _mapController;
+  final Set<Marker> _markers = {};
+  Set<Polyline> _polylines = {};
+  LatLng? _currentPosition;
+
+  // ─── stream ──────────────────────────────────────────────────
+  StreamSubscription<Position>? _positionStream;
+
+  // ✅ เพิ่ม: เก็บ route points ไว้เช็ค deviation
+  List<LatLng> _currentRoutePoints = [];
+  DateTime _lastRerouteTime = DateTime(2000);
+
+  double _lastCameraLat = 0;
+  double _lastCameraLng = 0;
+
+  // ─── UI ──────────────────────────────────────────────────────
+  bool _isExpanded = true;
+  bool _showMapContent = true;
+  bool _hasSosTriggered = false;
+  bool _isKeyboardVisible = false;
+  bool _isLoadingRoute = false;
+
+  int _selectedButtonIndex = 0;
+  int _emergencyStep = 0;
+
+  // ✅ เช็คว่าออกนอกเส้นทางไหม (threshold 30 เมตร)
+  bool _isOffRoute(LatLng current) {
+    if (_currentRoutePoints.isEmpty) return false;
+    double minDistance = double.infinity;
+    for (final point in _currentRoutePoints) {
+      final d = Geolocator.distanceBetween(
+        current.latitude,
+        current.longitude,
+        point.latitude,
+        point.longitude,
+      );
+      if (d < minDistance) minDistance = d;
+    }
+    return minDistance > 30;
+  }
+
   @override
   void initState() {
     super.initState();
@@ -265,98 +394,84 @@ class _GpsMapAlertState extends State<GpsMapAlert> with WidgetsBindingObserver {
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
+    _positionStream?.cancel();
+    _mapController?.dispose();
     super.dispose();
   }
 
-  @override
-  void didChangeMetrics() {
-    super.didChangeMetrics();
-    final bottomInset = WidgetsBinding
-        .instance
-        .platformDispatcher
-        .views
-        .first
-        .viewInsets
-        .bottom;
+  // ─── stream ──────────────────────────────────────────────────
+  void _startPositionStream() {
+    _positionStream?.cancel();
+    _positionStream =
+        Geolocator.getPositionStream(
+          locationSettings: const LocationSettings(
+            accuracy: LocationAccuracy.high,
+            distanceFilter: 10,
+          ),
+        ).listen((pos) {
+          final newLatLng = LatLng(pos.latitude, pos.longitude);
+          if (mounted) setState(() => _currentPosition = newLatLng);
 
-    final isKeyboardUp = bottomInset > 0;
+          final latDiff = (_lastCameraLat - pos.latitude).abs();
+          final lngDiff = (_lastCameraLng - pos.longitude).abs();
+          if (latDiff > 0.0001 || lngDiff > 0.0001) {
+            _lastCameraLat = pos.latitude;
+            _lastCameraLng = pos.longitude;
+            _mapController?.animateCamera(CameraUpdate.newLatLng(newLatLng));
+          }
 
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!mounted) return;
-
-      if (isKeyboardUp && _isExpanded) {
-        setState(() {
-          _isKeyboardVisible = isKeyboardUp;
-          _showMapContent = false;
-          _isExpanded = false;
+          // ✅ reroute เฉพาะเมื่อออกนอกเส้นทาง + cooldown 3 วิ
+          if (widget.destinationPlaceId != null && _isOffRoute(newLatLng)) {
+            final now = DateTime.now();
+            if (now.difference(_lastRerouteTime).inSeconds >= 3) {
+              _lastRerouteTime = now;
+              _drawRoute();
+            }
+          }
         });
-      } else if (isKeyboardUp != _isKeyboardVisible) {
-        setState(() {
-          _isKeyboardVisible = isKeyboardUp;
-        });
-      }
-    });
   }
 
-  @override
-  void didChangeAppLifecycleState(AppLifecycleState state) {
-    super.didChangeAppLifecycleState(state);
-    if (state == AppLifecycleState.resumed && _hasSosTriggered) {
-      _hasSosTriggered = false;
-      Future.delayed(const Duration(milliseconds: 500), () {
-        if (mounted) {
-          Toast.show(
-            context,
-            type: ToastType.info,
-            title: 'บันทึกหลักฐานแล้ว',
-            message: 'ติดต่อแอดมินเพื่อขอพิกัดและเวลาได้เลย',
-            durationSeconds: 5,
-          );
-        }
-      });
-    }
+  void _stopPositionStream() {
+    _positionStream?.cancel();
+    _positionStream = null;
   }
 
-  bool _isExpanded = true;
-  bool _showMapContent = true;
-  bool _hasSosTriggered = false;
-  bool _isKeyboardVisible = false;
-
-  int _selectedButtonIndex = 0;
-  int _emergencyStep = 0;
-  GoogleMapController? _mapController;
-  final Set<Marker> _markers = {};
-  Set<Polyline> _polylines = {};
-  LatLng? _currentPosition;
-
+  // ─── route ───────────────────────────────────────────────────
   Future<void> _drawRoute() async {
-    if (widget.destinationPlaceId == null) return;
+    if (_isLoadingRoute) return;
+    final current = _currentPosition;
+    if (current == null || widget.destinationPlaceId == null) return;
 
-    final pos = await Geolocator.getCurrentPosition();
-    final origin = '${pos.latitude},${pos.longitude}';
-    final dest = 'place_id:${widget.destinationPlaceId}';
+    if (mounted) setState(() => _isLoadingRoute = true);
 
-    final url = Uri.parse(
-      'https://maps.googleapis.com/maps/api/directions/json'
-      '?origin=$origin'
-      '&destination=$dest'
-      '&key=${widget.googleApiKey}'
-      '&language=th',
-    );
+    try {
+      final origin = '${current.latitude},${current.longitude}';
+      final dest = 'place_id:${widget.destinationPlaceId}';
 
-    final res = await http.get(url);
-    final data = json.decode(res.body);
+      final url = Uri.parse(
+        'https://maps.googleapis.com/maps/api/directions/json'
+        '?origin=$origin'
+        '&destination=$dest'
+        '&key=${widget.googleApiKey}'
+        '&language=th',
+      );
 
-    if (data['status'] == 'OK' && data['routes'].isNotEmpty) {
+      final res = await http.get(url);
+      if (res.statusCode != 200) return;
+
+      final data = json.decode(res.body);
+      if (data['status'] != 'OK' || (data['routes'] as List).isEmpty) return;
+
       final points = _decodePolyline(
         data['routes'][0]['overview_polyline']['points'],
       );
-
       final endLocation = data['routes'][0]['legs'][0]['end_location'];
       final destLatLng = LatLng(endLocation['lat'], endLocation['lng']);
 
+      if (!mounted) return;
       setState(() {
-        _currentPosition = LatLng(pos.latitude, pos.longitude);
+        // ✅ อัปเดต route points ที่ใช้เช็ค deviation
+        _currentRoutePoints = points;
         _polylines = {
           Polyline(
             polylineId: const PolylineId('route'),
@@ -365,40 +480,22 @@ class _GpsMapAlertState extends State<GpsMapAlert> with WidgetsBindingObserver {
             width: 4,
           ),
         };
-        _markers.add(
-          Marker(
-            markerId: const MarkerId('destination'),
-            position: destLatLng,
-            infoWindow: InfoWindow(
-              title: data['routes'][0]['legs'][0]['end_address'],
+        _markers
+          ..removeWhere((m) => m.markerId.value == 'destination')
+          ..add(
+            Marker(
+              markerId: const MarkerId('destination'),
+              position: destLatLng,
+              infoWindow: InfoWindow(
+                title: data['routes'][0]['legs'][0]['end_address'],
+              ),
             ),
-          ),
-        );
+          );
       });
-
-      _mapController?.animateCamera(
-        CameraUpdate.newLatLngBounds(
-          LatLngBounds(
-            southwest: LatLng(
-              pos.latitude < destLatLng.latitude
-                  ? pos.latitude
-                  : destLatLng.latitude,
-              pos.longitude < destLatLng.longitude
-                  ? pos.longitude
-                  : destLatLng.longitude,
-            ),
-            northeast: LatLng(
-              pos.latitude > destLatLng.latitude
-                  ? pos.latitude
-                  : destLatLng.latitude,
-              pos.longitude > destLatLng.longitude
-                  ? pos.longitude
-                  : destLatLng.longitude,
-            ),
-          ),
-          80,
-        ),
-      );
+    } catch (e) {
+      debugPrint('GpsMapAlert route error: $e');
+    } finally {
+      if (mounted) setState(() => _isLoadingRoute = false);
     }
   }
 
@@ -429,6 +526,84 @@ class _GpsMapAlertState extends State<GpsMapAlert> with WidgetsBindingObserver {
     return points;
   }
 
+  // ─── lifecycle ───────────────────────────────────────────────
+  @override
+  void didChangeMetrics() {
+    super.didChangeMetrics();
+    final bottomInset = WidgetsBinding
+        .instance
+        .platformDispatcher
+        .views
+        .first
+        .viewInsets
+        .bottom;
+    final isKeyboardUp = bottomInset > 0;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      if (isKeyboardUp && _isExpanded) {
+        setState(() {
+          _isKeyboardVisible = isKeyboardUp;
+          _showMapContent = false;
+          _isExpanded = false;
+        });
+      } else if (isKeyboardUp != _isKeyboardVisible) {
+        setState(() => _isKeyboardVisible = isKeyboardUp);
+      }
+    });
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    super.didChangeAppLifecycleState(state);
+    if (state == AppLifecycleState.resumed && _hasSosTriggered) {
+      _hasSosTriggered = false;
+      Future.delayed(const Duration(milliseconds: 500), () {
+        if (mounted) {
+          Toast.show(
+            context,
+            type: ToastType.info,
+            title: 'บันทึกหลักฐานแล้ว',
+            message: 'ติดต่อแอดมินเพื่อขอพิกัดและเวลาได้เลย',
+            durationSeconds: 5,
+          );
+        }
+      });
+    }
+  }
+
+  // ─── expansion ───────────────────────────────────────────────
+  void _toggleExpansion() {
+    final bottomInset = WidgetsBinding
+        .instance
+        .platformDispatcher
+        .views
+        .first
+        .viewInsets
+        .bottom;
+    final isKeyboardCurrentlyUp = bottomInset > 0;
+    if (isKeyboardCurrentlyUp) FocusScope.of(context).unfocus();
+
+    if (!_isExpanded) {
+      final delayMs = isKeyboardCurrentlyUp ? 300 : 0;
+      Future.delayed(Duration(milliseconds: delayMs), () {
+        if (!mounted) return;
+        setState(() => _isExpanded = true);
+        Future.delayed(const Duration(milliseconds: 100), () {
+          if (mounted) setState(() => _showMapContent = true);
+        });
+      });
+    } else {
+      setState(() => _showMapContent = false);
+      Future.delayed(const Duration(milliseconds: 50), () {
+        if (mounted) {
+          setState(() => _isExpanded = false);
+          _stopPositionStream();
+        }
+      });
+    }
+  }
+
+  // ─── emergency ───────────────────────────────────────────────
   List<String> get _emergencyTexts {
     final int total = widget.emergencyNumbers.length;
     return [
@@ -445,45 +620,7 @@ class _GpsMapAlertState extends State<GpsMapAlert> with WidgetsBindingObserver {
     ];
   }
 
-  void _toggleExpansion() {
-    final bottomInset = WidgetsBinding
-        .instance
-        .platformDispatcher
-        .views
-        .first
-        .viewInsets
-        .bottom;
-    final isKeyboardCurrentlyUp = bottomInset > 0;
-
-    if (isKeyboardCurrentlyUp) {
-      FocusScope.of(context).unfocus(); // สั่งเก็บคีย์บอร์ด
-    }
-
-    if (!_isExpanded) {
-      final delayMs = isKeyboardCurrentlyUp ? 300 : 0;
-
-      Future.delayed(Duration(milliseconds: delayMs), () {
-        if (!mounted) return;
-        setState(() {
-          _isExpanded = true;
-        });
-
-        Future.delayed(const Duration(milliseconds: 100), () {
-          if (mounted) setState(() => _showMapContent = true);
-        });
-      });
-    } else {
-      setState(() {
-        _showMapContent = false; // ซ่อน map ก่อนทันที
-      });
-      Future.delayed(const Duration(milliseconds: 50), () {
-        if (mounted) setState(() => _isExpanded = false);
-      });
-    }
-  }
-
   void _onButtonTapped(int index) {
-    // ปุ่มแรก → เปิด full screen map
     if (index == 0) {
       Navigator.of(context).push(
         MaterialPageRoute(
@@ -495,21 +632,18 @@ class _GpsMapAlertState extends State<GpsMapAlert> with WidgetsBindingObserver {
       );
       return;
     }
-
     if (index == 1) {
       widget.onShareLocation();
       setState(() => _selectedButtonIndex = 1);
       return;
     }
-
     if (index == 2) {
       setState(() {
         _selectedButtonIndex = 2;
         _emergencyStep++;
       });
-
       if (_emergencyStep >= 3) {
-        _triggerEmergency(callIndex: _emergencyStep - 3); // 0, 1, 2
+        _triggerEmergency(callIndex: _emergencyStep - 3);
       }
     }
   }
@@ -521,7 +655,6 @@ class _GpsMapAlertState extends State<GpsMapAlert> with WidgetsBindingObserver {
     } else {
       number = '191';
     }
-
     launchUrl(Uri(scheme: 'tel', path: number));
     _hasSosTriggered = true;
     widget.onSosTriggered(number);
@@ -536,6 +669,7 @@ class _GpsMapAlertState extends State<GpsMapAlert> with WidgetsBindingObserver {
     return '';
   }
 
+  // ─── UI builders ─────────────────────────────────────────────
   Widget _buildActionButtons() {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceEvenly,
@@ -567,6 +701,52 @@ class _GpsMapAlertState extends State<GpsMapAlert> with WidgetsBindingObserver {
     );
   }
 
+  Widget _buildEmergencyText() {
+    if (_emergencyStep == 0) return const SizedBox.shrink();
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 4.0),
+      child: Text(
+        _getCurrentInstructionText(),
+        style: TextStyle(
+          color: (_selectedButtonIndex == 2 && _emergencyStep > 0)
+              ? AppColors.error
+              : Colors.grey[700],
+          fontSize: 12,
+          fontWeight: FontWeight.w600,
+        ),
+        textAlign: TextAlign.center,
+      ),
+    );
+  }
+
+  Widget _buildRouteLoadingIndicator() {
+    if (!_isLoadingRoute) return const SizedBox.shrink();
+    return Positioned(
+      top: 8,
+      left: 0,
+      right: 0,
+      child: Center(
+        child: Card(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: const [
+                SizedBox(
+                  width: 12,
+                  height: 12,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                ),
+                SizedBox(width: 6),
+                Text('กำลังคำนวณเส้นทาง...', style: TextStyle(fontSize: 12)),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Card(
@@ -576,21 +756,22 @@ class _GpsMapAlertState extends State<GpsMapAlert> with WidgetsBindingObserver {
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8.0)),
       child: AnimatedSize(
         duration: _isKeyboardVisible
-            ? const Duration(milliseconds: 0)
+            ? Duration.zero
             : (_isExpanded
-                  ? const Duration(milliseconds: 300) // ขยาย: ช้าปกติ
+                  ? const Duration(milliseconds: 300)
                   : const Duration(milliseconds: 50)),
         curve: Curves.easeInOut,
         alignment: Alignment.topCenter,
         child: Container(
           width: double.infinity,
           padding: _isExpanded
-              ? const EdgeInsets.all(0)
+              ? EdgeInsets.zero
               : const EdgeInsets.only(left: 16.0, right: 16.0, bottom: 16.0),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              // header
               GestureDetector(
                 onTap: _toggleExpansion,
                 child: Container(
@@ -624,54 +805,61 @@ class _GpsMapAlertState extends State<GpsMapAlert> with WidgetsBindingObserver {
                 ),
               ),
 
+              // collapsed
               if (!_isExpanded) ...[
                 Padding(
                   padding: const EdgeInsets.symmetric(vertical: 12.0),
                   child: _buildActionButtons(),
                 ),
-                if (_emergencyStep > 0)
-                  Padding(
-                    padding: const EdgeInsets.only(bottom: 4.0),
-                    child: Text(
-                      _getCurrentInstructionText(),
-                      style: TextStyle(
-                        color: (_selectedButtonIndex == 2 && _emergencyStep > 0)
-                            ? AppColors.error
-                            : Colors.grey[700],
-                        fontSize: 12,
-                        fontWeight: FontWeight.w600,
-                      ),
-                      textAlign: TextAlign.center,
-                    ),
-                  ),
+                _buildEmergencyText(),
               ],
 
+              // expanded
               if (_isExpanded && _showMapContent)
                 SizedBox(
                   height: 340.0,
                   child: Column(
                     children: [
                       Expanded(
-                        child: GoogleMap(
-                          initialCameraPosition: const CameraPosition(
-                            target: LatLng(0, 0),
-                            zoom: 2,
-                          ),
-                          onMapCreated: (controller) async {
-                            _mapController = controller;
-                            final pos = await Geolocator.getCurrentPosition();
-                            controller.animateCamera(
-                              CameraUpdate.newLatLngZoom(
-                                LatLng(pos.latitude, pos.longitude),
-                                15,
+                        child: Stack(
+                          children: [
+                            GoogleMap(
+                              initialCameraPosition: const CameraPosition(
+                                target: LatLng(0, 0),
+                                zoom: 2,
                               ),
-                            );
-                            if (widget.destinationPlaceId != null) _drawRoute();
-                          },
-                          myLocationEnabled: true,
-                          myLocationButtonEnabled: true,
-                          markers: _markers,
-                          polylines: _polylines,
+                              onMapCreated: (controller) async {
+                                _mapController = controller;
+
+                                final pos =
+                                    await Geolocator.getCurrentPosition();
+                                _currentPosition = LatLng(
+                                  pos.latitude,
+                                  pos.longitude,
+                                );
+                                _lastCameraLat = pos.latitude;
+                                _lastCameraLng = pos.longitude;
+
+                                controller.animateCamera(
+                                  CameraUpdate.newLatLngZoom(
+                                    _currentPosition!,
+                                    15,
+                                  ),
+                                );
+
+                                if (widget.destinationPlaceId != null) {
+                                  await _drawRoute();
+                                }
+
+                                _startPositionStream();
+                              },
+                              myLocationEnabled: true,
+                              myLocationButtonEnabled: true,
+                              markers: _markers,
+                              polylines: _polylines,
+                            ),
+                            _buildRouteLoadingIndicator(),
+                          ],
                         ),
                       ),
                       Padding(
@@ -681,27 +869,14 @@ class _GpsMapAlertState extends State<GpsMapAlert> with WidgetsBindingObserver {
                         ),
                         child: _buildActionButtons(),
                       ),
-                      if (_emergencyStep > 0)
-                        Padding(
-                          padding: const EdgeInsets.only(
-                            bottom: 12.0,
-                            left: 16.0,
-                            right: 16.0,
-                          ),
-                          child: Text(
-                            _getCurrentInstructionText(),
-                            style: TextStyle(
-                              color:
-                                  (_selectedButtonIndex == 2 &&
-                                      _emergencyStep > 0)
-                                  ? AppColors.error
-                                  : Colors.grey[700],
-                              fontSize: 12,
-                              fontWeight: FontWeight.w600,
-                            ),
-                            textAlign: TextAlign.center,
-                          ),
+                      Padding(
+                        padding: const EdgeInsets.only(
+                          bottom: 12.0,
+                          left: 16.0,
+                          right: 16.0,
                         ),
+                        child: _buildEmergencyText(),
+                      ),
                     ],
                   ),
                 ),
