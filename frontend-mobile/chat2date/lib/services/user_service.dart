@@ -36,7 +36,7 @@ class UserService {
     final currentUser = User.fromJson(data);
     final userStoreNotifier = ref.read(userStoreProvider.notifier);
     final userState = ref.read(userStoreProvider);
-    userStoreNotifier.setUser(currentUser, userState['accessToken'] as String?);
+    userStoreNotifier.setUser(currentUser, "${userState['accessToken']}");
 
     return User.fromJson(data);
   }
@@ -58,7 +58,7 @@ class UserService {
     final updatedUser = User.fromJson(data);
     final userStoreNotifier = ref.read(userStoreProvider.notifier);
     final userState = ref.read(userStoreProvider);
-    userStoreNotifier.setUser(updatedUser, userState['accessToken'] as String?);
+    userStoreNotifier.setUser(updatedUser, "${userState['accessToken']}");
     return updatedUser;
   }
 
