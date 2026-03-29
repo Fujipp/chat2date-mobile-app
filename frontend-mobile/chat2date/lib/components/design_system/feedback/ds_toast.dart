@@ -146,17 +146,23 @@ class Toast extends StatelessWidget {
           ),
           if (onClose != null) ...[
             const SizedBox(width: 16),
-            InkWell(
+            GestureDetector(
+              behavior: HitTestBehavior.opaque,
               onTap: onClose,
-              borderRadius: BorderRadius.circular(8),
               child: SizedBox(
-                width: 12,
-                height: 12,
-                child: SvgPicture.asset(
-                  AppAssets.toastCloseIcon,
-                  colorFilter: const ColorFilter.mode(
-                    AppColors.textOnDark,
-                    BlendMode.srcIn,
+                width: 24,
+                height: 24,
+                child: Center(
+                  child: SizedBox(
+                    width: 12,
+                    height: 12,
+                    child: SvgPicture.asset(
+                      AppAssets.toastCloseIcon,
+                      colorFilter: const ColorFilter.mode(
+                        AppColors.textOnDark,
+                        BlendMode.srcIn,
+                      ),
+                    ),
                   ),
                 ),
               ),

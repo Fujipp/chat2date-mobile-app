@@ -21,10 +21,40 @@ class KycResultFailScreen extends StatelessWidget {
           child: ConstrainedBox(
             constraints: const BoxConstraints(maxWidth: 420),
             child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 50),
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
+                  SizedBox(
+                    width: 364,
+                    child: Column(
+                      children: [
+                        Text(
+                          'ยืนยันตัวตนไม่สำเร็จ',
+                          textAlign: TextAlign.center,
+                          style:
+                              Theme.of(context).textTheme.headlineSmall?.copyWith(
+                                    color: AppColors.textPrimary,
+                                    fontWeight: FontWeight.w600,
+                                    fontSize: 28,
+                                    height: 32 / 28,
+                                  ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          'กรุณาตรวจสอบว่ารูปบัตรประชาชนและใบหน้าตรงกัน',
+                          textAlign: TextAlign.center,
+                          style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                                color: AppColors.textPrimary,
+                                fontWeight: FontWeight.w400,
+                                fontSize: 22,
+                                height: 28 / 22,
+                              ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 50),
                   SizedBox(
                     width: 211,
                     height: 213,
@@ -33,25 +63,7 @@ class KycResultFailScreen extends StatelessWidget {
                       fit: BoxFit.contain,
                     ),
                   ),
-                  const SizedBox(height: 32),
-                  Text(
-                    'ยืนยันตัวตนไม่สำเร็จ',
-                    textAlign: TextAlign.center,
-                    style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                          color: AppColors.textPrimary,
-                          fontWeight: FontWeight.w700,
-                        ),
-                  ),
-                  const SizedBox(height: 12),
-                  Text(
-                    'กรุณาตรวจสอบว่าบัตรประชาชนชัดเจน และใบหน้าของคุณตรงกับบัตร จากนั้นลองสแกนอีกครั้ง',
-                    textAlign: TextAlign.center,
-                    style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                          color: AppColors.textSecondary,
-                          height: 1.45,
-                        ),
-                  ),
-                  const SizedBox(height: 32),
+                  const SizedBox(height: 50),
                   DsButton(
                     width: 231,
                     label: 'ลองสแกนอีกครั้ง',

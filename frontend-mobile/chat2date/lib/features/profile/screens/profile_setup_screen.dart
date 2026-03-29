@@ -1,9 +1,8 @@
-import 'package:chat2date/components/buttons/ds_button.dart';
-import 'package:chat2date/components/inputs/ds_label.dart';
-import 'package:chat2date/components/inputs/ds_text_field/ds_text_field.dart';
-import 'package:chat2date/components/inputs/ds_text_field/tag_autocomplete.dart';
-import 'package:chat2date/components/layout/responsive_container.dart';
-import 'package:chat2date/components/toasts/toast.dart';
+import 'package:chat2date/components/design_system/index.dart';
+import 'package:chat2date/core/theme/app_colors.dart';
+import 'package:chat2date/core/theme/tokens/colors/app_gradients.dart';
+import 'package:chat2date/core/theme/tokens/colors/input_colors.dart';
+import 'package:chat2date/core/theme/tokens/colors/text_colors.dart';
 import 'package:chat2date/models/interest.dart';
 import 'package:chat2date/models/lifestyle.dart';
 import 'package:chat2date/models/tag.dart';
@@ -11,6 +10,7 @@ import 'package:chat2date/models/travelstyle.dart';
 import 'package:chat2date/models/user.dart';
 import 'package:chat2date/services/user_service.dart';
 import 'package:chat2date/stores/user_store.dart';
+import 'package:chat2date/features/profile/screens/selection_icon_mapper.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -23,9 +23,7 @@ class ProfileSetupScreen extends ConsumerStatefulWidget {
 
 class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
   final _nicknameCtrl = TextEditingController();
-  final _lifestyleCtrl = TextEditingController();
-  final _interestsCtrl = TextEditingController();
-  final _tagsCtrl = TextEditingController();
+
   List<Travelstyle> _travelStyles = [];
   List<Lifestyle> _lifeStyles = [];
   List<Interest> _interests = [];
@@ -34,386 +32,493 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
   List<int> _selectedLifestyles = [];
   List<int> _selectedInterests = [];
   List<int> _selectedTags = [];
-  List<int> _selectedTravelStyles = [];
-  List<int> get selectedTravelStyleIds =>
-      _selectedTravelStyles.map((i) => _travelStyles[i].id).toList();
+  final List<int> _selectedTravelStyles = [];
 
-  // // initial snapshot for change detection
-  // String? _initialNickname;
-  // List<int> _initialLifestyles = [];
-  // List<int> _initialInterests = [];
-  // List<int> _initialTags = [];
-  // List<int> _initialTravelStyles = [];
+  bool _saving = false;
 
-  // bool _canSubmit = false;
-
-  // void _updateCanSubmit() {
-  //   final changedNickname = (_nicknameCtrl.text != (_initialNickname ?? ''));
-  //   final changedLifestyle = !_listEquals(
-  //     _selectedLifestyles,
-  //     _initialLifestyles,
-  //   );
-  //   final changedInterests = !_listEquals(
-  //     _selectedInterests,
-  //     _initialInterests,
-  //   );
-  //   final changedTags = !_listEquals(_selectedTags, _initialTags);
-  //   final changedTravel = !_listEquals(
-  //     _selectedTravelStyles,
-  //     _initialTravelStyles,
-  //   );
-  //   setState(() {
-  //     _canSubmit =
-  //         changedNickname ||
-  //         changedLifestyle ||
-  //         changedInterests ||
-  //         changedTags ||
-  //         changedTravel;
-  //   });
-  // }
-
-  // bool _listEquals(List<int> a, List<int> b) {
-  //   if (a.length != b.length) return false;
-  //   for (int i = 0; i < a.length; i++) {
-  //     if (a[i] != b[i]) return false;
-  //   }
-  //   return true;
-  // }
-
-  // ข้อมูลสำหรับแสดงใน TextField
-  String _getSelectedText(List<int> selected, List<String> allItems) {
-    if (selected.isEmpty) return '';
-    return selected.map((i) => allItems[i]).join(', ');
-  }
+  bool get _canSubmit =>
+      _nicknameCtrl.text.trim().isNotEmpty &&
+      _selectedTravelStyles.length >= 2 &&
+      _selectedTravelStyles.length <= 3 &&
+      _selectedLifestyles.length >= 3 &&
+      _selectedLifestyles.length <= 5 &&
+      _selectedInterests.length >= 3 &&
+      _selectedInterests.length <= 5 &&
+      _selectedTags.length <= 5;
 
   @override
   void initState() {
     super.initState();
+    _nicknameCtrl.addListener(_refresh);
     _loadInitialData();
-    // _nicknameCtrl.addListener(_updateCanSubmit);
   }
-
-  void _loadInitialData() async {
-    final userStore = ref.read(userStoreProvider) as Map<String, dynamic>?;
-    final prefs = userStore?['preferences'];
-    setState(() {
-      _travelStyles = prefs['travelStyles'];
-      _lifeStyles = prefs['lifeStyles'];
-      _interests = prefs['interests'];
-      _tags = prefs['tags'];
-    });
-  }
-
-  //   // initialize initial selections from prefs if present (empty by default)
-  //   _initialLifestyles = List.from(_selectedLifestyles);
-  //   _initialInterests = List.from(_selectedInterests);
-  //   _initialTags = List.from(_selectedTags);
-  //   _initialTravelStyles = List.from(_selectedTravelStyles);
-  //   _updateCanSubmit();
-  // }
 
   @override
   void dispose() {
-    _nicknameCtrl.dispose();
-    _lifestyleCtrl.dispose();
-    _interestsCtrl.dispose();
-    _tagsCtrl.dispose();
+    _nicknameCtrl
+      ..removeListener(_refresh)
+      ..dispose();
     super.dispose();
+  }
+
+  void _refresh() {
+    if (mounted) setState(() {});
+  }
+
+  void _clearFocus() {
+    FocusManager.instance.primaryFocus?.unfocus();
+  }
+
+  Widget _buildSelectionSummaryField({
+    required String label,
+    required bool required,
+    required List<String> selectedLabels,
+    required VoidCallback onTap,
+  }) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        RichText(
+          text: TextSpan(
+            text: label,
+            style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                  color: AppColors.textBlack,
+                  fontWeight: FontWeight.w600,
+                  fontSize: 16,
+                  height: 22 / 16,
+                ),
+            children: required
+                ? const [
+                    TextSpan(
+                      text: '*',
+                      style: TextStyle(color: AppColors.error),
+                    ),
+                  ]
+                : null,
+          ),
+        ),
+        const SizedBox(height: 8),
+        GestureDetector(
+          onTap: onTap,
+          child: Container(
+            width: double.infinity,
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            decoration: BoxDecoration(
+              color: InputColors.background,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: InputColors.border, width: 1),
+            ),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(
+                  child: selectedLabels.isEmpty
+                      ? Text(
+                          'เลือก$label',
+                          style: const TextStyle(
+                            color: TextColors.supportText,
+                            fontSize: 14,
+                            height: 20 / 14,
+                          ),
+                        )
+                      : Wrap(
+                          spacing: 8,
+                          runSpacing: 8,
+                          children: selectedLabels.map((rawLabel) {
+                            final icon =
+                                mapSelectionIcon(rawLabel);
+                            final text = displaySelectionLabel(rawLabel);
+                            return Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 10,
+                                vertical: 6,
+                              ),
+                              decoration: BoxDecoration(
+                                color: InputColors.backgroundDisabled,
+                                borderRadius: BorderRadius.circular(999),
+                                border: Border.all(
+                                  color: InputColors.border,
+                                  width: 1,
+                                ),
+                              ),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Icon(
+                                    icon,
+                                    size: 14,
+                                    color: TextColors.supportText,
+                                  ),
+                                  const SizedBox(width: 6),
+                                  Text(
+                                    text,
+                                    style: const TextStyle(
+                                      color: TextColors.secondary,
+                                      fontSize: 13,
+                                      height: 18 / 13,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            );
+                          }).toList(),
+                        ),
+                ),
+                const SizedBox(width: 12),
+                const Padding(
+                  padding: EdgeInsets.only(top: 2),
+                  child: Icon(
+                    Icons.arrow_circle_right_rounded,
+                    size: 18,
+                    color: AppColors.brandPrimary,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  void _loadInitialData() {
+    final userStore = ref.read(userStoreProvider) as Map<String, dynamic>?;
+    final prefs = userStore?['preferences'];
+    if (prefs == null) return;
+
+    setState(() {
+      _travelStyles = List<Travelstyle>.from(prefs['travelStyles'] ?? []);
+      _lifeStyles = List<Lifestyle>.from(prefs['lifeStyles'] ?? []);
+      _interests = List<Interest>.from(prefs['interests'] ?? []);
+      _tags = List<Tag>.from(prefs['tags'] ?? []);
+    });
+  }
+
+  Future<void> _pickLifestyles() async {
+    _clearFocus();
+    final result = await Navigator.pushNamed(
+      context,
+      '/lifestylesSelection',
+      arguments: {
+        'items': _lifeStyles,
+        'selected': _selectedLifestyles,
+      },
+    );
+
+    if (result is List<int>) {
+      setState(() {
+        _selectedLifestyles = result;
+      });
+    }
+    if (mounted) WidgetsBinding.instance.addPostFrameCallback((_) => _clearFocus());
+  }
+
+  Future<void> _pickInterests() async {
+    _clearFocus();
+    final result = await Navigator.pushNamed(
+      context,
+      '/interestsSelection',
+      arguments: {
+        'items': _interests,
+        'selected': _selectedInterests,
+      },
+    );
+
+    if (result is List<int>) {
+      setState(() {
+        _selectedInterests = result;
+      });
+    }
+    if (mounted) WidgetsBinding.instance.addPostFrameCallback((_) => _clearFocus());
+  }
+
+  Future<void> _pickTags() async {
+    _clearFocus();
+    final result = await Navigator.pushNamed(
+      context,
+      '/tagsSelection',
+      arguments: {
+        'items': _tags,
+        'selected': _selectedTags,
+      },
+    );
+
+    if (result is List<int>) {
+      setState(() {
+        _selectedTags = result;
+      });
+    }
+    if (mounted) WidgetsBinding.instance.addPostFrameCallback((_) => _clearFocus());
+  }
+
+  Future<void> _submit() async {
+    if (_saving) return;
+
+    if (_nicknameCtrl.text.trim().isEmpty) {
+      Toast.show(
+        context,
+        type: ToastType.warning,
+        title: 'ชื่อเล่นหายไป',
+        message: 'กรุณากรอกชื่อเล่น',
+      );
+      return;
+    }
+
+    if (_selectedTravelStyles.length < 2 || _selectedTravelStyles.length > 3) {
+      Toast.show(
+        context,
+        type: ToastType.warning,
+        title: 'สไตล์การท่องเที่ยวไม่ถูกต้อง',
+        message: 'กรุณาเลือกสไตล์การท่องเที่ยว 2–3 ข้อ',
+      );
+      return;
+    }
+
+    if (_selectedLifestyles.length < 3 || _selectedLifestyles.length > 5) {
+      Toast.show(
+        context,
+        type: ToastType.warning,
+        title: 'ไลฟ์สไตล์ไม่ถูกต้อง',
+        message: 'กรุณาเลือกไลฟ์สไตล์ 3–5 ข้อ',
+      );
+      return;
+    }
+
+    if (_selectedInterests.length < 3 || _selectedInterests.length > 5) {
+      Toast.show(
+        context,
+        type: ToastType.warning,
+        title: 'สิ่งที่สนใจไม่ถูกต้อง',
+        message: 'กรุณาเลือกสิ่งที่สนใจ 3–5 ข้อ',
+      );
+      return;
+    }
+
+    if (_selectedTags.length > 5) {
+      Toast.show(
+        context,
+        type: ToastType.warning,
+        title: 'จำนวน Tag เกิน',
+        message: 'สามารถเลือก Tag สูงสุด 5 ข้อ',
+      );
+      return;
+    }
+
+    setState(() => _saving = true);
+
+    try {
+      final userStore = ref.read(userStoreProvider) as Map<String, dynamic>?;
+      final oldUser = userStore?['user'] as User?;
+
+      if (oldUser == null || oldUser.version == null) {
+        Toast.show(
+          context,
+          type: ToastType.error,
+          title: 'ข้อผิดพลาด',
+          message: 'ไม่พบข้อมูลผู้ใช้',
+        );
+        return;
+      }
+
+      final user = User(
+        userId: oldUser.userId,
+        nickname: _nicknameCtrl.text.trim(),
+        version: oldUser.version,
+      );
+
+      final preference = {
+        'interests': _selectedInterests.map((id) => id + 1).toList(),
+        'lifeStyles': _selectedLifestyles.map((id) => id + 1).toList(),
+        'tags': _selectedTags.map((id) => id + 1).toList(),
+        'travelStyles': _selectedTravelStyles.map((id) => id + 1).toList(),
+      };
+
+      final userService = ref.read(userServiceProvider);
+      await userService.updateUser(user);
+      await userService.addPreferenceUser(preference);
+
+      if (!mounted) return;
+      Navigator.pushReplacementNamed(context, '/matchPreference');
+    } catch (e) {
+      if (!mounted) return;
+      Toast.show(
+        context,
+        type: ToastType.error,
+        title: 'ข้อผิดพลาด',
+        message: 'เกิดข้อผิดพลาด: ${e.toString()}',
+      );
+    } finally {
+      if (mounted) setState(() => _saving = false);
+    }
+  }
+
+  Widget _buildTravelStyleGrid() {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        const spacing = 8.0;
+        final itemWidth = (constraints.maxWidth - spacing) / 2;
+
+        return Wrap(
+          spacing: spacing,
+          runSpacing: spacing,
+          children: List.generate(_travelStyles.length, (index) {
+            final item = _travelStyles[index];
+            final selected = _selectedTravelStyles.contains(index);
+
+            return GestureDetector(
+              onTap: () {
+                setState(() {
+                  if (selected) {
+                    _selectedTravelStyles.remove(index);
+                  } else {
+                    _selectedTravelStyles.add(index);
+                  }
+                });
+              },
+              child: Container(
+                width: itemWidth,
+                height: 32.6,
+                padding: const EdgeInsets.symmetric(horizontal: 12),
+                decoration: BoxDecoration(
+                  gradient: selected ? AppGradients.themeApp2 : null,
+                  color: selected ? null : InputColors.background,
+                  border: selected
+                      ? null
+                      : Border.all(color: InputColors.border, width: 1),
+                  borderRadius: BorderRadius.circular(30),
+                ),
+                child: Row(
+                  mainAxisAlignment: selected
+                      ? MainAxisAlignment.start
+                      : MainAxisAlignment.center,
+                  children: [
+                    if (selected) ...[
+                      const Icon(
+                        Icons.check,
+                        size: 14,
+                        color: TextColors.secondary,
+                      ),
+                      const SizedBox(width: 5),
+                    ],
+                    Flexible(
+                      child: Text(
+                        item.travelstyle,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w400,
+                          height: 20 / 14,
+                          color: TextColors.secondary,
+                        ).copyWith(
+                          color: selected
+                              ? TextColors.secondary
+                              : TextColors.supportText,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            );
+          }),
+        );
+      },
+    );
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: SingleChildScrollView(
-        child: ResponsiveContainer.form(
-          children: [
-            const SizedBox(height: 10),
-            DsTextField(
-              label: 'ชื่อเล่น',
-              required: true,
-              controller: _nicknameCtrl,
-              labelFontSize: 20,
-            ),
-
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                DsLabel(
-                  label: 'สไตล์การท่องเที่ยว',
-                  required: true,
-                  labelFontSize: 20,
-                ),
-                const SizedBox(height: 0),
-                TagSelection(
-                  items: _travelStyles.map((t) => t.travelstyle).toList(),
-                  initialSelected: _selectedTravelStyles,
-                  onChanged: (newSelected) {
-                    setState(() {
-                      _selectedTravelStyles = newSelected;
-                      // _updateCanSubmit();
-                    });
-                  },
-                ),
-              ],
-            ),
-
-            // 1. ไลฟ์สไตล์
-            DsTextField(
-              label: 'ไลฟ์สไตล์',
-              required: true,
-              controller: _lifestyleCtrl,
-              suffixIcon: Icons.arrow_circle_right_rounded,
-              readOnly: true,
-              onSuffixTap: () async {
-                final result = await Navigator.pushNamed(
-                  context,
-                  '/lifestylesSelection',
-                  arguments: {
-                    'items': _lifeStyles,
-                    'selected': _selectedLifestyles,
-                  },
-                );
-
-                if (result != null && result is List<int>) {
-                  setState(() {
-                    _selectedLifestyles = result;
-                    // อัพเดทข้อความใน TextField (ถ้าต้องการแสดง)
-                    _lifestyleCtrl.text = _getSelectedText(
-                      result,
-                      _lifeStyles.map((l) => l.lifestyle).toList(),
-                    );
-                    // _updateCanSubmit();
-                  });
-                  print('เลือกไลฟ์สไตล์: $_selectedLifestyles');
-                }
-              },
-              labelFontSize: 20,
-            ),
-
-            // 2. สิ่งที่สนใจ
-            DsTextField(
-              label: 'สิ่งที่สนใจ',
-              required: true,
-              controller: _interestsCtrl,
-              suffixIcon: Icons.arrow_circle_right_rounded,
-              readOnly: true,
-              onSuffixTap: () async {
-                final result = await Navigator.pushNamed(
-                  context,
-                  '/interestsSelection',
-                  arguments: {
-                    'items': _interests,
-                    'selected': _selectedInterests,
-                  },
-                );
-
-                if (result != null && result is List<int>) {
-                  setState(() {
-                    _selectedInterests = result;
-                    _interestsCtrl.text = _getSelectedText(
-                      result,
-                      _interests.map((l) => l.interest).toList(),
-                    );
-                    // _updateCanSubmit();
-                  });
-                  print('เลือกความสนใจ: $_selectedInterests');
-                }
-              },
-              labelFontSize: 20,
-            ),
-
-            // 3. Tags
-            GestureDetector(
-              behavior: HitTestBehavior.translucent,
-              onTap: () {
-                FocusScope.of(context).unfocus(); // จะทำให้ทุก FocusNode หาย
-              },
+      backgroundColor: AppColors.background,
+      body: GestureDetector(
+        behavior: HitTestBehavior.translucent,
+        onTap: _clearFocus,
+        child: SafeArea(
+          child: Center(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 375),
               child: Column(
                 children: [
-                  TagAutocomplete(
-                    allTags: _tags.map((t) => t.tag).toList(),
-                    selectedTags: _selectedTags
-                        .map((i) => _tags[i].tag)
-                        .toList(),
-                    onChanged: (newList) {
-                      setState(() {
-                        _selectedTags = newList
-                            .map((tag) => _tags.indexWhere((t) => t.tag == tag))
-                            .toList();
-                        // _updateCanSubmit();
-                      });
-                    },
+                  DsAppSecondaryHeader(
+                    variant: DsAppSecondaryHeaderVariant.baseText,
+                    title: 'ข้อมูลส่วนตัว',
+                    leading: const SizedBox(width: 40, height: 40),
+                  ),
+                  Expanded(
+                    child: SingleChildScrollView(
+                      padding: const EdgeInsets.fromLTRB(40, 10, 40, 24),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          DsTextField(
+                            label: 'ชื่อเล่น',
+                            required: true,
+                            controller: _nicknameCtrl,
+                            labelFontSize: 16,
+                            inputFontSize: 14,
+                            contentPadding: const EdgeInsets.symmetric(
+                              horizontal: 16,
+                              vertical: 12,
+                            ),
+                          ),
+                          const SizedBox(height: 20),
+                          _buildSelectionSummaryField(
+                            label: 'ไลฟ์สไตล์',
+                            required: true,
+                            selectedLabels: _selectedLifestyles
+                                .map((i) => _lifeStyles[i].lifestyle)
+                                .toList(),
+                            onTap: _pickLifestyles,
+                          ),
+                          const SizedBox(height: 20),
+                          _buildSelectionSummaryField(
+                            label: 'สิ่งที่สนใจ',
+                            required: true,
+                            selectedLabels: _selectedInterests
+                                .map((i) => _interests[i].interest)
+                                .toList(),
+                            onTap: _pickInterests,
+                          ),
+                          const SizedBox(height: 20),
+                          _buildSelectionSummaryField(
+                            label: 'Tags (ไม่บังคับ)',
+                            required: false,
+                            selectedLabels: _selectedTags
+                                .map((i) => _tags[i].tag)
+                                .toList(),
+                            onTap: _pickTags,
+                          ),
+                          const SizedBox(height: 20),
+                          Text(
+                            'สไตล์การท่องเที่ยว',
+                            style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                                  color: const Color(0xFF2F3036),
+                                  fontWeight: FontWeight.w600,
+                                  fontSize: 16,
+                                  height: 22 / 16,
+                                ),
+                          ),
+                          const SizedBox(height: 8),
+                          _buildTravelStyleGrid(),
+                          const SizedBox(height: 24),
+                          Center(
+                            child: DsButton(
+                              width: 231,
+                              label: 'ไปหน้าถัดไป',
+                              onPressed: (_canSubmit && !_saving) ? _submit : null,
+                              variant: DsButtonVariant.outlinePrimary,
+                              size: DsButtonSize.md,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
                   ),
                 ],
               ),
             ),
-
-            DsButton(
-              label: 'ไปหน้าถัดไป',
-              onPressed: () async {
-                // ตรวจสอบข้อมูลก่อนส่ง
-                if (_nicknameCtrl.text.isEmpty) {
-                  Toast.show(
-                    context,
-                    type: ToastType.warning,
-                    title: 'ชื่อเล่นหายไป',
-                    message: 'กรุณากรอกชื่อเล่น',
-                  );
-                  return;
-                }
-
-                if (_selectedTravelStyles.length < 2 ||
-                    _selectedTravelStyles.length > 3) {
-                  Toast.show(
-                    context,
-                    type: ToastType.warning,
-                    title: 'สไตล์การท่องเที่ยวไม่ถูกต้อง',
-                    message: 'กรุณาเลือกสไตล์การท่องเที่ยว 2–3 ข้อ',
-                  );
-                  return;
-                }
-
-                if (_selectedLifestyles.length < 3 ||
-                    _selectedLifestyles.length > 5) {
-                  Toast.show(
-                    context,
-                    type: ToastType.warning,
-                    title: 'ไลฟ์สไตล์ไม่ถูกต้อง',
-                    message: 'กรุณาเลือกไลฟ์สไตล์ 3–5 ข้อ',
-                  );
-                  return;
-                }
-
-                if (_selectedInterests.length < 3 ||
-                    _selectedInterests.length > 5) {
-                  Toast.show(
-                    context,
-                    type: ToastType.warning,
-                    title: 'สิ่งที่สนใจไม่ถูกต้อง',
-                    message: 'กรุณาเลือกสิ่งที่สนใจ 3–5 ข้อ',
-                  );
-                  return;
-                }
-
-                if (_selectedTags.length > 5) {
-                  Toast.show(
-                    context,
-                    type: ToastType.warning,
-                    title: 'จำนวน Tag เกิน',
-                    message: 'สามารถเลือก Tag สูงสุด 5 ข้อ',
-                  );
-                  return;
-                }
-
-                final incrementedInterests = _selectedInterests
-                    .map((id) => id + 1)
-                    .toList();
-                final incrementedLifestyles = _selectedLifestyles
-                    .map((id) => id + 1)
-                    .toList();
-                final incrementedTravelStyles = _selectedTravelStyles
-                    .map((id) => id + 1)
-                    .toList();
-                final incrementedTag = _selectedTags
-                    .map((id) => id + 1)
-                    .toList();
-
-                print('===== เริ่มบันทึกข้อมูล =====');
-
-                try {
-                  final userStore =
-                      ref.read(userStoreProvider) as Map<String, dynamic>?;
-
-                  if (userStore == null) {
-                    if (mounted) {
-                      Toast.show(
-                        context,
-                        type: ToastType.error,
-                        title: 'ข้อผิดพลาด',
-                        message: 'ไม่พบข้อมูลผู้ใช้',
-                      );
-                    }
-                    return;
-                  }
-
-                  final oldUser = userStore['user'] as User?;
-
-                  if (oldUser == null) {
-                    if (mounted) {
-                      Toast.show(
-                        context,
-                        type: ToastType.error,
-                        title: 'ข้อผิดพลาด',
-                        message: 'ไม่พบข้อมูลผู้ใช้',
-                      );
-                    }
-                    return;
-                  }
-
-                  if (oldUser.version == null) {
-                    if (mounted) {
-                      Toast.show(
-                        context,
-                        type: ToastType.error,
-                        title: 'ข้อผิดพลาด',
-                        message: 'ไม่พบข้อมูลผู้ใช้',
-                      );
-                    }
-                 return;
-                  }
-
-                  final user = User(
-                    userId: oldUser.userId,
-                    nickname: _nicknameCtrl.text,
-                    version: oldUser.version,
-                  );
-
-                  final preference = {
-                    "interests": incrementedInterests,
-                    "lifeStyles": incrementedLifestyles,
-                    "tags": incrementedTag,
-                    "travelStyles": incrementedTravelStyles,
-                  };
-
-                  final userService = ref.read(userServiceProvider);
-
-                  print('🔄 Calling updateUser...');
-                  final update = await userService.updateUser(user);
-                  print('✅ updateUser result: $update');
-
-                  print('🔄 Calling addPreferenceUser...');
-                  final addPreference = await userService.addPreferenceUser(
-                    preference,
-                  );
-                  print('✅ addPreferenceUser result: $addPreference');
-
-                  print('🎉 บันทึกสำเร็จ กำลัง Navigate...');
-
-                  // ✅ Navigate หลังจาก API สำเร็จ
-                  if (mounted) {
-                    Navigator.pushReplacementNamed(context, '/matchPreference');
-                    print('✅ Navigate สำเร็จ');
-                  }
-                } catch (e, stackTrace) {
-                  print('❌ ===== ERROR =====');
-                  print('Error: $e');
-                  print('StackTrace: $stackTrace');
-
-                  if (mounted) {
-                    Toast.show(
-                      context,
-                      type: ToastType.error,
-                      title: 'ข้อผิดพลาด',
-                      message: 'เกิดข้อผิดพลาด: ${e.toString()}',
-                    );
-                  }
-                  // ⚠️ ไม่ throw exception ออกไป
-                }
-              },
-              variant: DsButtonVariant.primary,
-              size: DsButtonSize.md,
-            ),
-          ],
+          ),
         ),
       ),
     );

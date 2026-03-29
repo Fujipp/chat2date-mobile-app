@@ -44,10 +44,24 @@ class _KycResultSuccessScreenState extends State<KycResultSuccessScreen> {
           child: ConstrainedBox(
             constraints: const BoxConstraints(maxWidth: 420),
             child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 50),
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
+                  SizedBox(
+                    width: 364,
+                    child: Text(
+                      'ยืนยันตัวตนสำเร็จ',
+                      textAlign: TextAlign.center,
+                      style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                            color: AppColors.textPrimary,
+                            fontWeight: FontWeight.w600,
+                            fontSize: 28,
+                            height: 32 / 28,
+                          ),
+                    ),
+                  ),
+                  const SizedBox(height: 50),
                   SizedBox(
                     width: 211,
                     height: 213,
@@ -55,32 +69,6 @@ class _KycResultSuccessScreenState extends State<KycResultSuccessScreen> {
                       'assets/icons/ui/icon_success_ring.svg',
                       fit: BoxFit.contain,
                     ),
-                  ),
-                  const SizedBox(height: 32),
-                  Text(
-                    'ยืนยันตัวตนสำเร็จ',
-                    textAlign: TextAlign.center,
-                    style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                          color: AppColors.textPrimary,
-                          fontWeight: FontWeight.w700,
-                        ),
-                  ),
-                  const SizedBox(height: 12),
-                  Text(
-                    'เริ่มต้นไปด้วยกัน ระบบจะพาคุณไปตั้งค่าโปรไฟล์ในอีกไม่กี่วินาที',
-                    textAlign: TextAlign.center,
-                    style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                          color: AppColors.textSecondary,
-                          height: 1.45,
-                        ),
-                  ),
-                  const SizedBox(height: 32),
-                  Text(
-                    'ระบบจะพาไปหน้าถัดไปอัตโนมัติภายใน 5 วินาที',
-                    textAlign: TextAlign.center,
-                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                          color: AppColors.textSecondary,
-                        ),
                   ),
                 ],
               ),

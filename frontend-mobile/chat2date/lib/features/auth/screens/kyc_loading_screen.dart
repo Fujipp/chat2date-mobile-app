@@ -54,38 +54,38 @@ class _KycLoadingScreenState extends State<KycLoadingScreen>
       backgroundColor: AppColors.background,
       body: SafeArea(
         child: Center(
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 24),
-            child: AnimatedBuilder(
-              animation: _anim,
-              builder: (_, __) {
-                final progress = _ctrl.isCompleted
-                    ? 1.0
-                    : _anim.value.clamp(0.0, 1.0);
-                return Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    DsProgressRing(value: progress),
-                    const SizedBox(height: 24),
-                    Text(
-                      'กำลังตรวจสอบข้อมูล',
-                      textAlign: TextAlign.center,
-                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                            color: AppColors.textPrimary,
-                            fontWeight: FontWeight.w600,
-                          ),
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      'กรุณารอสักครู่ ระบบกำลังยืนยันตัวตนของคุณ',
-                      textAlign: TextAlign.center,
-                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                            color: AppColors.textSecondary,
-                          ),
-                    ),
-                  ],
-                );
-              },
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 364),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 50),
+              child: AnimatedBuilder(
+                animation: _anim,
+                builder: (_, __) {
+                  final progress = _ctrl.isCompleted
+                      ? 1.0
+                      : _anim.value.clamp(0.0, 1.0);
+                  return Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      DsProgressRing(value: progress),
+                      const SizedBox(height: 50),
+                      SizedBox(
+                        width: 364,
+                        child: Text(
+                          'กรุณารอสักครู่',
+                          textAlign: TextAlign.center,
+                          style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                                color: AppColors.textPrimary,
+                                fontWeight: FontWeight.w400,
+                                fontSize: 22,
+                                height: 28 / 22,
+                              ),
+                        ),
+                      ),
+                    ],
+                  );
+                },
+              ),
             ),
           ),
         ),

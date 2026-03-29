@@ -1,11 +1,16 @@
+import 'package:chat2date/components/design_system/organisms/ds_app_secondary_header.dart';
 import 'package:chat2date/components/inputs/ds_text_field/ds_text_field.dart';
 import 'package:chat2date/components/layout/responsive_container.dart';
 import 'package:chat2date/core/theme/app_colors.dart';
+import 'package:chat2date/core/theme/tokens/colors/app_gradients.dart';
+import 'package:chat2date/core/theme/tokens/colors/input_colors.dart';
+import 'package:chat2date/core/theme/tokens/colors/text_colors.dart';
 import 'package:flutter/material.dart';
 import 'package:chat2date/models/interest.dart';
 import 'package:chat2date/models/lifestyle.dart';
 import 'package:chat2date/models/tag.dart';
 import 'package:chat2date/components/toasts/toast.dart';
+import 'package:chat2date/features/profile/screens/selection_icon_mapper.dart';
 
 // Category configuration
 class LifestyleCategory {
@@ -318,23 +323,47 @@ class _TagSelectionScreenState extends State<TagSelectionScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final selectedCount = _mapFilteredIndicesToOriginalIndices(_selected).length;
+
     return Scaffold(
-      body: Stack(
-        children: [
-          Column(
+      backgroundColor: Colors.white,
+      body: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 20),
+          child: Column(
             children: [
-              Container(
-                padding: const EdgeInsets.fromLTRB(20, 135, 20, 0),
-                child: DsTextField(
-                  controller: _searchController,
-                  supportText: widget.title,
-                  required: true,
-                  suffixIcon: Icons.search,
+              DsAppSecondaryHeader(
+                variant: DsAppSecondaryHeaderVariant.baseText,
+                title: 'Tag',
+                onBackTap: () => Navigator.pop(
+                  context,
+                  _mapFilteredIndicesToOriginalIndices(_selected),
+                ),
+              ),
+              DsTextField(
+                controller: _searchController,
+                hintText: 'ค้นหา Tag',
+                required: false,
+                suffixIcon: Icons.search,
+              ),
+              Padding(
+                padding: const EdgeInsets.fromLTRB(0, 8, 0, 0),
+                child: Row(
+                  children: [
+                    Text(
+                      'เลือกแล้ว $selectedCount/5 รายการ',
+                      style: const TextStyle(
+                        color: TextColors.supportText,
+                        fontSize: 13,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ],
                 ),
               ),
               if (_searchQuery.isNotEmpty)
                 Padding(
-                  padding: const EdgeInsets.fromLTRB(20, 10, 20, 0),
+                  padding: const EdgeInsets.fromLTRB(0, 10, 0, 0),
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
@@ -387,17 +416,29 @@ class _TagSelectionScreenState extends State<TagSelectionScreen> {
                       )
                     : Center(
                         child: SingleChildScrollView(
-                          padding: const EdgeInsets.symmetric(horizontal: 20),
+                          padding: const EdgeInsets.only(top: 8),
                           child: TagSelection(
                             items: _filteredItems,
                             initialSelected: _selected,
                             shape: TagShape.rectangle,
                             forceGridMode: false,
                             onChanged: (newSelected) {
+                              final mappedSelection =
+                                  _mapFilteredIndicesToOriginalIndices(
+                                newSelected,
+                              );
+                              if (mappedSelection.length > 5) {
+                                Toast.show(
+                                  context,
+                                  type: ToastType.warning,
+                                  title: 'จำนวน Tag เกิน',
+                                  message: 'สามารถเลือก Tag สูงสุด 5 ข้อ',
+                                );
+                                return;
+                              }
                               setState(() {
                                 _selected = newSelected;
                               });
-                              print('Selected in screen: $_selected');
                             },
                           ),
                         ),
@@ -405,36 +446,257 @@ class _TagSelectionScreenState extends State<TagSelectionScreen> {
               ),
             ],
           ),
-          Positioned(
-            top: 50,
-            left: 16,
-            child: InkWell(
-              onTap: () => Navigator.pop(
-                context,
-                _mapFilteredIndicesToOriginalIndices(_selected),
+        ),
+      ),
+    );
+  }
+}
+
+const int _minimumSelectionCount = 3;
+const int _maximumSelectionCount = 5;
+
+class _SelectionItemData {
+  final int index;
+  final String label;
+  final IconData fallbackIcon;
+
+  const _SelectionItemData({
+    required this.index,
+    required this.label,
+    required this.fallbackIcon,
+  });
+}
+
+enum _SelectionTileState { selected, enabled, disabled }
+
+class _SelectionTile extends StatelessWidget {
+  const _SelectionTile({
+    required this.label,
+    required this.state,
+    required this.onTap,
+    required this.span,
+    required this.width,
+    required this.fallbackIcon,
+  });
+
+  final String label;
+  final _SelectionTileState state;
+  final VoidCallback? onTap;
+  final int span;
+  final double width;
+  final IconData fallbackIcon;
+
+  @override
+  Widget build(BuildContext context) {
+    final bool selected = state == _SelectionTileState.selected;
+    final bool disabled = state == _SelectionTileState.disabled;
+    final IconData mappedIcon = mapSelectionIcon(
+      label,
+      fallback: fallbackIcon,
+    );
+    final Color foreground = selected
+        ? TextColors.secondary
+        : disabled
+            ? TextColors.disabled
+            : TextColors.supportText;
+
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(12),
+        child: Ink(
+          width: width,
+          height: 48,
+          padding: const EdgeInsets.symmetric(horizontal: 10),
+          decoration: BoxDecoration(
+            gradient: selected ? AppGradients.themeApp2 : null,
+            color: selected
+                ? null
+                : disabled
+                    ? InputColors.backgroundDisabled
+                    : InputColors.background,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: InputColors.border, width: 1),
+          ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(mappedIcon, size: 18, color: foreground),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  displaySelectionLabel(label),
+                  maxLines: span == 1 ? 1 : 2,
+                  overflow: TextOverflow.fade,
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    color: foreground,
+                    fontSize: 14,
+                    fontWeight: FontWeight.w500,
+                    height: 1.2,
+                  ),
+                ),
               ),
-              child: Container(
-                width: 40,
-                height: 40,
-                decoration: const BoxDecoration(
-                  color: AppColors.brandSecondary,
-                  shape: BoxShape.circle,
-                ),
-                child: const Icon(
-                  Icons.arrow_back,
-                  color: Colors.white,
-                  size: 20,
-                ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+int _tileSpanForLabel(String label) {
+  final int length = displaySelectionLabel(label).runes.length;
+  if (length >= 18) return 3;
+  if (length >= 10) return 2;
+  return 1;
+}
+
+Widget _buildSelectionGrid({
+  required List<_SelectionItemData> items,
+  required List<int> selected,
+  required void Function(int index) onToggle,
+}) {
+  final bool isAtMax = selected.length >= _maximumSelectionCount;
+
+  return LayoutBuilder(
+    builder: (context, constraints) {
+      const double spacing = 11;
+      const int columns = 3;
+      final double singleWidth =
+          (constraints.maxWidth - (spacing * (columns - 1))) / columns;
+
+      return Wrap(
+        spacing: spacing,
+        runSpacing: 15,
+        children: items.map((item) {
+          final bool isSelected = selected.contains(item.index);
+          final bool isDisabled = !isSelected && isAtMax;
+          final int span = _tileSpanForLabel(item.label);
+          final double width =
+              (singleWidth * span) + (spacing * (span - 1));
+
+          return _SelectionTile(
+            label: item.label,
+            span: span,
+            width: width,
+            fallbackIcon: item.fallbackIcon,
+            state: isSelected
+                ? _SelectionTileState.selected
+                : isDisabled
+                    ? _SelectionTileState.disabled
+                    : _SelectionTileState.enabled,
+            onTap: isDisabled ? null : () => onToggle(item.index),
+          );
+        }).toList(),
+      );
+    },
+  );
+}
+
+Widget _buildCategorySection({
+  required LifestyleCategory category,
+  required List<_SelectionItemData> items,
+  required List<int> selected,
+  required void Function(int index) onToggle,
+}) {
+  if (items.isEmpty) return const SizedBox.shrink();
+
+  return Padding(
+    padding: const EdgeInsets.only(bottom: 20),
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Icon(category.icon, size: 18, color: TextColors.secondary),
+            const SizedBox(width: 8),
+            Text(
+              displaySelectionLabel(category.title),
+              style: const TextStyle(
+                color: TextColors.secondary,
+                fontSize: 16,
+                fontWeight: FontWeight.w600,
               ),
             ),
+          ],
+        ),
+        const SizedBox(height: 12),
+        _buildSelectionGrid(
+          items: items,
+          selected: selected,
+          onToggle: onToggle,
+        ),
+      ],
+    ),
+  );
+}
+
+class _SelectionHelperText extends StatelessWidget {
+  const _SelectionHelperText({required this.selectedCount});
+
+  final int selectedCount;
+
+  @override
+  Widget build(BuildContext context) {
+    final bool valid = selectedCount >= _minimumSelectionCount;
+    final int remaining = _minimumSelectionCount - selectedCount;
+
+    return Row(
+      children: [
+        Text(
+          valid
+              ? 'เลือกแล้ว $selectedCount/$_maximumSelectionCount รายการ'
+              : 'เลือกเพิ่มอีก $remaining รายการ',
+          style: TextStyle(
+            color: valid ? TextColors.supportText : AppColors.brandSecondary,
+            fontSize: 13,
+            fontWeight: FontWeight.w500,
           ),
+        ),
+      ],
+    );
+  }
+}
+
+class _SelectionEmptyState extends StatelessWidget {
+  const _SelectionEmptyState({required this.query});
+
+  final String query;
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(Icons.search_off, size: 56, color: TextColors.disabled),
+          const SizedBox(height: 12),
+          Text(
+            'ไม่พบผลลัพธ์',
+            style: TextStyle(
+              color: TextColors.secondary,
+              fontSize: 16,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          if (query.isNotEmpty) ...[
+            const SizedBox(height: 4),
+            Text(
+              '"$query"',
+              style: TextStyle(
+                color: TextColors.supportText,
+                fontSize: 14,
+              ),
+            ),
+          ],
         ],
       ),
     );
   }
 }
 
-// New Lifestyle Selection Screen with Categories
 class LifestylesSelectionScreen extends StatefulWidget {
   const LifestylesSelectionScreen({super.key});
 
@@ -496,19 +758,59 @@ class _LifestylesSelectionScreenState extends State<LifestylesSelectionScreen> {
         .toList();
   }
 
+  List<_SelectionItemData> get _gridItems => _filteredItems
+      .asMap()
+      .entries
+      .map((entry) => _SelectionItemData(
+            index: _items.indexOf(entry.value),
+            label: entry.value.lifestyle,
+            fallbackIcon: Icons.auto_awesome_outlined,
+          ))
+      .toList();
+
+  List<Widget> _buildCategorySections() {
+    return lifestyleCategories.map((category) {
+      final items = _items
+          .asMap()
+          .entries
+          .where(
+            (entry) =>
+                entry.key >= category.startIndex && entry.key <= category.endIndex,
+          )
+          .where(
+            (entry) => _searchQuery.isEmpty
+                ? true
+                : entry.value.lifestyle.toLowerCase().contains(
+                      _searchQuery.toLowerCase(),
+                    ),
+          )
+          .map(
+            (entry) => _SelectionItemData(
+              index: entry.key,
+              label: entry.value.lifestyle,
+              fallbackIcon: category.icon,
+            ),
+          )
+          .toList();
+
+      return _buildCategorySection(
+        category: category,
+        items: items,
+        selected: _selected,
+        onToggle: _toggleSelection,
+      );
+    }).whereType<Widget>().toList();
+  }
+
   void _toggleSelection(int index) {
     setState(() {
       if (_selected.contains(index)) {
-        // อนุญาตให้ยกเลิกการเลือกได้เสมอ
         _selected.remove(index);
       } else {
-        // 1. ตรวจสอบจำนวนสูงสุด (5) ก่อนเพิ่มรายการใหม่
-        if (_selected.length < 5) {
+        if (_selected.length < _maximumSelectionCount) {
           _selected.add(index);
-          // 2. จัดการความขัดแย้งทันที
           _handleExclusivity(index);
         } else {
-          // TODO: แสดง SnackBar/Dialog แจ้งเตือน: "เลือกได้สูงสุด 5 รายการ"
           Toast.show(
             context,
             type: ToastType.warning,
@@ -520,6 +822,23 @@ class _LifestylesSelectionScreenState extends State<LifestylesSelectionScreen> {
     });
   }
 
+  bool _canConfirmSelection() => _selected.length >= _minimumSelectionCount;
+
+  Future<bool> _handleBack() async {
+    if (_canConfirmSelection()) {
+      Navigator.pop(context, _selected);
+      return true;
+    }
+
+    Toast.show(
+      context,
+      type: ToastType.warning,
+      title: 'เลือกไม่ครบ',
+      message: 'กรุณาเลือกอย่างน้อย 3 รายการ',
+    );
+    return false;
+  }
+
   @override
   void dispose() {
     _searchController.removeListener(_onSearchChanged);
@@ -527,341 +846,49 @@ class _LifestylesSelectionScreenState extends State<LifestylesSelectionScreen> {
     super.dispose();
   }
 
-  Widget _buildCategorySection(LifestyleCategory category) {
-    final categoryItems = _items
-        .asMap()
-        .entries
-        .where(
-          (entry) =>
-              entry.key >= category.startIndex &&
-              entry.key <= category.endIndex,
-        )
-        .toList();
-
-    // Filter items if search is active
-    final filteredCategoryItems = _searchQuery.isEmpty
-        ? categoryItems
-        : categoryItems
-              .where(
-                (entry) => entry.value.lifestyle.toLowerCase().contains(
-                  _searchQuery.toLowerCase(),
-                ),
-              )
-              .toList();
-
-    if (filteredCategoryItems.isEmpty) return const SizedBox.shrink();
-
-    return Container(
-      margin: const EdgeInsets.only(bottom: 24),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Category Header
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                colors: [
-                  category.color.withOpacity(0.1),
-                  category.color.withOpacity(0.05),
-                ],
-                begin: Alignment.centerLeft,
-                end: Alignment.centerRight,
-              ),
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(
-                color: category.color.withOpacity(0.3),
-                width: 1,
-              ),
-            ),
-            child: Row(
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(8),
-                  decoration: BoxDecoration(
-                    color: category.color.withOpacity(0.2),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: Icon(category.icon, color: category.color, size: 20),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Text(
-                    category.title,
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                      color: category.color,
-                    ),
-                  ),
-                ),
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 8,
-                    vertical: 4,
-                  ),
-                  decoration: BoxDecoration(
-                    color: category.color.withOpacity(0.2),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Text(
-                    '${filteredCategoryItems.length}',
-                    style: TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.bold,
-                      color: category.color,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 12),
-          // Category Items
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: filteredCategoryItems.map((entry) {
-              final index = entry.key;
-              final item = entry.value;
-              final isSelected = _selected.contains(index);
-
-              return InkWell(
-                onTap: () => _toggleSelection(index),
-                borderRadius: BorderRadius.circular(20),
-                child: AnimatedContainer(
-                  duration: const Duration(milliseconds: 200),
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 16,
-                    vertical: 10,
-                  ),
-                  decoration: BoxDecoration(
-                    color: isSelected ? category.color : Colors.grey[100],
-                    borderRadius: BorderRadius.circular(20),
-                    border: Border.all(
-                      color: isSelected ? category.color : Colors.grey[300]!,
-                      width: 1.5,
-                    ),
-                    boxShadow: isSelected
-                        ? [
-                            BoxShadow(
-                              color: category.color.withOpacity(0.3),
-                              blurRadius: 8,
-                              offset: const Offset(0, 2),
-                            ),
-                          ]
-                        : null,
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      if (isSelected)
-                        const Padding(
-                          padding: EdgeInsets.only(right: 6),
-                          child: Icon(
-                            Icons.check_circle,
-                            size: 16,
-                            color: Colors.white,
-                          ),
-                        ),
-                      Text(
-                        item.lifestyle,
-                        style: TextStyle(
-                          fontSize: 14,
-                          fontWeight: isSelected
-                              ? FontWeight.w600
-                              : FontWeight.normal,
-                          color: isSelected ? Colors.white : Colors.black87,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              );
-            }).toList(),
-          ),
-        ],
-      ),
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Colors.white,
-      body: Stack(
-        children: [
-          Column(
-            children: [
-              SizedBox(height: 30),
-              // Search Bar
-              Container(
-                padding: const EdgeInsets.fromLTRB(20, 16, 20, 8),
-                child: DsTextField(
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, result) {
+        if (didPop) return;
+        _handleBack();
+      },
+      child: Scaffold(
+        backgroundColor: Colors.white,
+        body: SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20),
+            child: Column(
+              children: [
+                DsAppSecondaryHeader(
+                  variant: DsAppSecondaryHeaderVariant.baseText,
+                  title: 'ไลฟ์สไตล์',
+                  onBackTap: _handleBack,
+                ),
+                DsTextField(
                   controller: _searchController,
-                  supportText: 'ค้นหาไลฟ์สไตล์',
+                  hintText: 'ค้นหาไลฟ์สไตล์',
                   required: false,
                   suffixIcon: Icons.search,
                 ),
-              ),
-              // Search Results Info
-              if (_searchQuery.isNotEmpty)
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(20, 0, 20, 8),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text(
-                        'พบ ${_filteredItems.length} รายการ',
-                        style: TextStyle(fontSize: 14, color: Colors.grey[600]),
-                      ),
-                      TextButton(
-                        onPressed: () {
-                          setState(() {
-                            _searchController.clear();
-                            _searchQuery = '';
-                          });
-                        },
-                        child: const Text('ล้าง'),
-                      ),
-                    ],
-                  ),
-                ),
-              // Categories List
-              Expanded(
-                child: _filteredItems.isEmpty
-                    ? Center(
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Icon(
-                              Icons.search_off,
-                              size: 64,
-                              color: Colors.grey[400],
-                            ),
-                            const SizedBox(height: 16),
-                            Text(
-                              'ไม่พบผลลัพธ์',
-                              style: TextStyle(
-                                fontSize: 16,
-                                color: Colors.grey[600],
-                              ),
-                            ),
-                            const SizedBox(height: 8),
-                            Text(
-                              '"$_searchQuery"',
-                              style: TextStyle(
-                                fontSize: 14,
-                                color: Colors.grey[500],
-                                fontStyle: FontStyle.italic,
-                              ),
-                            ),
-                          ],
-                        ),
-                      )
-                    : ListView(
-                        padding: const EdgeInsets.all(20),
-                        children: lifestyleCategories
-                            .map((category) => _buildCategorySection(category))
-                            .toList(),
-                      ),
-              ),
-            ],
-          ),
-          Positioned(
-            bottom: 20,
-            right: 20,
-            // ใช้ Builder เพื่อให้สามารถเข้าถึง context ใหม่สำหรับการแสดง SnackBar
-            child: Builder(
-              builder: (context) {
-                final int selectedCount = _selected.length;
-                // กฎ: ต้องเลือก 3, 4, หรือ 5 รายการ
-                final bool isValid = selectedCount >= 3 && selectedCount <= 5;
-                // กำหนดสี: สีหลักถ้าถูกต้อง / สีแดงถ้าไม่ถูกต้อง
-                final Color buttonColor = isValid
-                    ? AppColors.brandSecondary
-                    : Colors.red.shade700;
-
-                String buttonText;
-                if (selectedCount < 3) {
-                  // แสดงจำนวนที่ต้องเลือกเพิ่ม
-                  buttonText = 'เลือกเพิ่มอีก ${3 - selectedCount} รายการ';
-                } else if (selectedCount > 5) {
-                  // แสดงการแจ้งเตือนเมื่อเกิน
-                  buttonText = 'เลือกเกิน 5 รายการ! กรุณาลบออก';
-                } else {
-                  // แสดงสถานะที่เลือกสำเร็จ
-                  buttonText = 'เลือกแล้ว $selectedCount รายการ • ยืนยัน';
-                }
-
-                return InkWell(
-                  onTap: isValid
-                      ? () =>
-                            Navigator.pop(
-                              context,
-                              _selected,
-                            ) // อนุญาตให้ยืนยันเมื่อถูกต้อง
-                      : () {
-                          // ป้องกันการยืนยันเมื่อเลือกไม่ครบ 3 หรือเกิน 5
-                          Toast.show(
-                            context,
-                            type: selectedCount < 3
-                                ? ToastType.warning
-                                : ToastType.error,
-                            title: selectedCount < 3
-                                ? 'ข้อมูลไม่ครบ'
-                                : 'จำนวนเกิน',
-                            message: selectedCount < 3
-                                ? 'กรุณาเลือกอย่างน้อย 3 รายการ'
-                                : 'คุณเลือกเกิน 5 รายการ กรุณาลบออกก่อนยืนยัน',
-                          );
-                        },
-                  borderRadius: BorderRadius.circular(30),
-                  child: AnimatedContainer(
-                    duration: const Duration(milliseconds: 200),
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 20,
-                      vertical: 12,
-                    ),
-                    decoration: BoxDecoration(
-                      // ใช้สีที่คำนวณไว้
-                      color: buttonColor,
-                      borderRadius: BorderRadius.circular(30),
-                      boxShadow: [
-                        BoxShadow(
-                          color: buttonColor.withOpacity(0.4),
-                          blurRadius: 12,
-                          offset: const Offset(0, 4),
-                        ),
-                      ],
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(
-                          // เปลี่ยน Icon ตามสถานะ (ถูกต้อง/แจ้งเตือน)
-                          isValid ? Icons.check_circle : Icons.warning_rounded,
-                          color: Colors.white,
-                          size: 20,
-                        ),
-                        const SizedBox(width: 8),
-                        Text(
-                          // ใช้ข้อความที่คำนวณไว้
-                          buttonText,
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontWeight: FontWeight.bold,
-                            fontSize: 14,
+                const SizedBox(height: 8),
+                _SelectionHelperText(selectedCount: _selected.length),
+                const SizedBox(height: 16),
+                Expanded(
+                  child: _gridItems.isEmpty
+                      ? _SelectionEmptyState(query: _searchQuery)
+                      : SingleChildScrollView(
+                          child: Column(
+                            children: _buildCategorySections(),
                           ),
                         ),
-                      ],
-                    ),
-                  ),
-                );
-              },
+                ),
+                const SizedBox(height: 20),
+              ],
             ),
           ),
-        ],
+        ),
       ),
     );
   }
@@ -930,27 +957,84 @@ class _InterestsSelectionScreenWidgetState
         .toList();
   }
 
+  List<_SelectionItemData> get _gridItems => _filteredItems
+      .asMap()
+      .entries
+      .map((entry) => _SelectionItemData(
+            index: widget.items.indexOf(entry.value),
+            label: entry.value.interest,
+            fallbackIcon: Icons.interests_outlined,
+          ))
+      .toList();
+
+  List<Widget> _buildCategorySections() {
+    return interestCategories.map((category) {
+      final items = widget.items
+          .asMap()
+          .entries
+          .where(
+            (entry) =>
+                entry.key >= category.startIndex && entry.key <= category.endIndex,
+          )
+          .where(
+            (entry) => _searchQuery.isEmpty
+                ? true
+                : entry.value.interest.toLowerCase().contains(
+                      _searchQuery.toLowerCase(),
+                    ),
+          )
+          .map(
+            (entry) => _SelectionItemData(
+              index: entry.key,
+              label: entry.value.interest,
+              fallbackIcon: category.icon,
+            ),
+          )
+          .toList();
+
+      return _buildCategorySection(
+        category: category,
+        items: items,
+        selected: _selected,
+        onToggle: _toggleSelection,
+      );
+    }).whereType<Widget>().toList();
+  }
+
   void _toggleSelection(int index) {
     setState(() {
       if (_selected.contains(index)) {
-        // อนุญาตให้ยกเลิกการเลือกได้เสมอ
         _selected.remove(index);
       } else {
-        // 1. ตรวจสอบจำนวนสูงสุด (5) ก่อนเพิ่มรายการใหม่
-        if (_selected.length < 5) {
+        if (_selected.length < _maximumSelectionCount) {
           _selected.add(index);
-          // * ถ้าไม่มีความขัดแย้งใน Interest ก็ไม่ต้องเรียก _handleExclusivity()
         } else {
-          // TODO: แสดง SnackBar/Dialog แจ้งเตือน: "เลือกได้สูงสุด 5 รายการ"
           Toast.show(
             context,
             type: ToastType.warning,
             title: 'จำนวนเกิน',
-            message: 'คุณเลือกได้สูงสุดเพียง 5 รายการเท่านั้น',
+            message: 'เลือกได้สูงสุด 5 รายการ',
           );
         }
       }
     });
+  }
+
+  bool _canConfirmSelection() => _selected.length >= _minimumSelectionCount;
+
+  Future<bool> _handleBack() async {
+    if (_canConfirmSelection()) {
+      Navigator.pop(context, _selected);
+      return true;
+    }
+
+    Toast.show(
+      context,
+      type: ToastType.warning,
+      title: 'เลือกไม่ครบ',
+      message: 'กรุณาเลือกอย่างน้อย 3 รายการ',
+    );
+    return false;
   }
 
   @override
@@ -960,344 +1044,49 @@ class _InterestsSelectionScreenWidgetState
     super.dispose();
   }
 
-  Widget _buildCategorySection(LifestyleCategory category) {
-    final categoryItems = widget.items
-        .asMap()
-        .entries
-        .where(
-          (entry) =>
-              entry.key >= category.startIndex &&
-              entry.key <= category.endIndex,
-        )
-        .toList();
-
-    final filteredCategoryItems = _searchQuery.isEmpty
-        ? categoryItems
-        : categoryItems
-              .where(
-                (entry) => entry.value.interest.toLowerCase().contains(
-                  _searchQuery.toLowerCase(),
-                ),
-              )
-              .toList();
-
-    if (filteredCategoryItems.isEmpty) return const SizedBox.shrink();
-
-    return Container(
-      margin: const EdgeInsets.only(bottom: 24),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                colors: [
-                  category.color.withOpacity(0.1),
-                  category.color.withOpacity(0.05),
-                ],
-                begin: Alignment.centerLeft,
-                end: Alignment.centerRight,
-              ),
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(
-                color: category.color.withOpacity(0.3),
-                width: 1,
-              ),
-            ),
-            child: Row(
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(8),
-                  decoration: BoxDecoration(
-                    color: category.color.withOpacity(0.2),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: Icon(category.icon, color: category.color, size: 20),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Text(
-                    category.title,
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                      color: category.color,
-                    ),
-                  ),
-                ),
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 8,
-                    vertical: 4,
-                  ),
-                  decoration: BoxDecoration(
-                    color: category.color.withOpacity(0.2),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Text(
-                    '${filteredCategoryItems.length}',
-                    style: TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.bold,
-                      color: category.color,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 12),
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: filteredCategoryItems.map((entry) {
-              final index = entry.key;
-              final item = entry.value;
-              final isSelected = _selected.contains(index);
-
-              return InkWell(
-                onTap: () => _toggleSelection(index),
-                borderRadius: BorderRadius.circular(20),
-                child: AnimatedContainer(
-                  duration: const Duration(milliseconds: 200),
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 16,
-                    vertical: 10,
-                  ),
-                  decoration: BoxDecoration(
-                    color: isSelected ? category.color : Colors.grey[100],
-                    borderRadius: BorderRadius.circular(20),
-                    border: Border.all(
-                      color: isSelected ? category.color : Colors.grey[300]!,
-                      width: 1.5,
-                    ),
-                    boxShadow: isSelected
-                        ? [
-                            BoxShadow(
-                              color: category.color.withOpacity(0.3),
-                              blurRadius: 8,
-                              offset: const Offset(0, 2),
-                            ),
-                          ]
-                        : null,
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      if (isSelected)
-                        const Padding(
-                          padding: EdgeInsets.only(right: 6),
-                          child: Icon(
-                            Icons.check_circle,
-                            size: 16,
-                            color: Colors.white,
-                          ),
-                        ),
-                      Text(
-                        item.interest,
-                        style: TextStyle(
-                          fontSize: 14,
-                          fontWeight: isSelected
-                              ? FontWeight.w600
-                              : FontWeight.normal,
-                          color: isSelected ? Colors.white : Colors.black87,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              );
-            }).toList(),
-          ),
-        ],
-      ),
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Colors.white,
-      body: Stack(
-        children: [
-          Column(
-            children: [
-              SizedBox(height: 30),
-              Container(
-                padding: const EdgeInsets.fromLTRB(20, 16, 20, 8),
-                child: DsTextField(
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, result) {
+        if (didPop) return;
+        _handleBack();
+      },
+      child: Scaffold(
+        backgroundColor: Colors.white,
+        body: SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20),
+            child: Column(
+              children: [
+                DsAppSecondaryHeader(
+                  variant: DsAppSecondaryHeaderVariant.baseText,
+                  title: 'สิ่งที่สนใจ',
+                  onBackTap: _handleBack,
+                ),
+                DsTextField(
                   controller: _searchController,
-                  supportText: 'ค้นหาสิ่งที่สนใจ',
+                  hintText: 'ค้นหาสิ่งที่สนใจ',
                   required: false,
                   suffixIcon: Icons.search,
                 ),
-              ),
-              if (_searchQuery.isNotEmpty)
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(20, 0, 20, 8),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text(
-                        'พบ ${_filteredItems.length} รายการ',
-                        style: TextStyle(fontSize: 14, color: Colors.grey[600]),
-                      ),
-                      TextButton(
-                        onPressed: () {
-                          setState(() {
-                            _searchController.clear();
-                            _searchQuery = '';
-                          });
-                        },
-                        child: const Text('ล้าง'),
-                      ),
-                    ],
-                  ),
-                ),
-              Expanded(
-                child: _filteredItems.isEmpty
-                    ? Center(
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Icon(
-                              Icons.search_off,
-                              size: 64,
-                              color: Colors.grey[400],
-                            ),
-                            const SizedBox(height: 16),
-                            Text(
-                              'ไม่พบผลลัพธ์',
-                              style: TextStyle(
-                                fontSize: 16,
-                                color: Colors.grey[600],
-                              ),
-                            ),
-                            const SizedBox(height: 8),
-                            Text(
-                              '"$_searchQuery"',
-                              style: TextStyle(
-                                fontSize: 14,
-                                color: Colors.grey[500],
-                                fontStyle: FontStyle.italic,
-                              ),
-                            ),
-                          ],
-                        ),
-                      )
-                    : ListView(
-                        padding: const EdgeInsets.all(20),
-                        children: interestCategories
-                            .map((category) => _buildCategorySection(category))
-                            .toList(),
-                      ),
-              ),
-            ],
-          ),
-          Positioned(
-            bottom: 20,
-            right: 20,
-            // ใช้ Builder เพื่อให้สามารถเข้าถึง context ใหม่สำหรับการแสดง SnackBar
-            child: Builder(
-              builder: (context) {
-                final int selectedCount = _selected.length;
-                // กฎ: ต้องเลือก 3, 4, หรือ 5 รายการ
-                final bool isValid = selectedCount >= 3 && selectedCount <= 5;
-                // กำหนดสี: สีหลักถ้าถูกต้อง / สีแดงถ้าไม่ถูกต้อง
-                final Color buttonColor = isValid
-                    ? AppColors.brandSecondary
-                    : Colors.red.shade700;
-
-                String buttonText;
-                if (selectedCount < 3) {
-                  // แสดงจำนวนที่ต้องเลือกเพิ่ม
-                  buttonText = 'เลือกเพิ่มอีก ${3 - selectedCount} รายการ';
-                } else if (selectedCount > 5) {
-                  // แสดงการแจ้งเตือนเมื่อเกิน
-                  buttonText = 'เลือกเกิน 5 รายการ! กรุณาลบออก';
-                } else {
-                  // แสดงสถานะที่เลือกสำเร็จ
-                  buttonText = 'เลือกแล้ว $selectedCount รายการ • ยืนยัน';
-                }
-
-                return InkWell(
-                  onTap: isValid
-                      ? () =>
-                            Navigator.pop(
-                              context,
-                              _selected,
-                            ) // อนุญาตให้ยืนยันเมื่อถูกต้อง
-                      : () {
-                          // ป้องกันการยืนยันเมื่อเลือกไม่ครบ 3 หรือเกิน 5
-                          if (selectedCount > 5) {
-                            Toast.show(
-                              context,
-                              type: ToastType.warning,
-                              title: 'จำนวนเกิน',
-                              message:
-                                  'คุณเลือกได้สูงสุดเพียง 5 รายการเท่านั้น',
-                            );
-                            return;
-                          }
-
-                          // เช็คว่าเลือกไม่ถึงขั้นต่ำ
-                          if (selectedCount < 3) {
-                            Toast.show(
-                              context,
-                              type: ToastType.warning,
-                              title: 'เลือกไม่ครบ',
-                              message: 'กรุณาเลือกอย่างน้อย 3 รายการ',
-                            );
-                            return;
-                          }
-                        },
-                  borderRadius: BorderRadius.circular(30),
-                  child: AnimatedContainer(
-                    duration: const Duration(milliseconds: 200),
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 20,
-                      vertical: 12,
-                    ),
-                    decoration: BoxDecoration(
-                      // ใช้สีที่คำนวณไว้
-                      color: buttonColor,
-                      borderRadius: BorderRadius.circular(30),
-                      boxShadow: [
-                        BoxShadow(
-                          color: buttonColor.withOpacity(0.4),
-                          blurRadius: 12,
-                          offset: const Offset(0, 4),
-                        ),
-                      ],
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(
-                          // เปลี่ยน Icon ตามสถานะ (ถูกต้อง/แจ้งเตือน)
-                          isValid ? Icons.check_circle : Icons.warning_rounded,
-                          color: Colors.white,
-                          size: 20,
-                        ),
-                        const SizedBox(width: 8),
-                        Text(
-                          // ใช้ข้อความที่คำนวณไว้
-                          buttonText,
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontWeight: FontWeight.bold,
-                            fontSize: 14,
+                const SizedBox(height: 8),
+                _SelectionHelperText(selectedCount: _selected.length),
+                const SizedBox(height: 16),
+                Expanded(
+                  child: _gridItems.isEmpty
+                      ? _SelectionEmptyState(query: _searchQuery)
+                      : SingleChildScrollView(
+                          child: Column(
+                            children: _buildCategorySections(),
                           ),
                         ),
-                      ],
-                    ),
-                  ),
-                );
-              },
+                ),
+                const SizedBox(height: 20),
+              ],
             ),
           ),
-        ],
+        ),
       ),
     );
   }
@@ -1308,11 +1097,21 @@ class TagsSelectionScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final List<Tag> items =
-        ModalRoute.of(context)!.settings.arguments as List<Tag>;
+    final args = ModalRoute.of(context)!.settings.arguments;
+    late final List<Tag> items;
+    List<int>? initialSelected;
+
+    if (args is Map<String, dynamic>) {
+      items = (args['items'] as List<Tag>? ?? const <Tag>[]);
+      initialSelected = (args['selected'] as List?)?.cast<int>();
+    } else {
+      items = args as List<Tag>;
+    }
+
     return TagSelectionScreen(
       title: 'Tags',
       items: items.map((l) => l.tag).toList(),
+      initialSelected: initialSelected,
       onSelectionChanged: (selected) {
         Navigator.pop(context, selected);
       },
