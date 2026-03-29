@@ -22,6 +22,11 @@ class DsAppSecondaryHeader extends StatelessWidget {
     this.onPrimaryActionTap,
     this.onSecondaryActionTap,
     this.onTertiaryActionTap,
+    this.backgroundColor = Colors.white,
+    this.showBottomBorder = false,
+    this.bottomBorderColor = const Color(0x260F172A),
+    this.bottomBorderWidth = 1,
+    this.bottomBorderSpacing = 8,
   });
 
   final DsAppSecondaryHeaderVariant variant;
@@ -36,6 +41,11 @@ class DsAppSecondaryHeader extends StatelessWidget {
   final VoidCallback? onPrimaryActionTap;
   final VoidCallback? onSecondaryActionTap;
   final VoidCallback? onTertiaryActionTap;
+  final Color backgroundColor;
+  final bool showBottomBorder;
+  final Color bottomBorderColor;
+  final double bottomBorderWidth;
+  final double bottomBorderSpacing;
 
   bool get _showsCenter => variant != DsAppSecondaryHeaderVariant.base;
 
@@ -57,31 +67,59 @@ class DsAppSecondaryHeader extends StatelessWidget {
         variant == DsAppSecondaryHeaderVariant.base ? 79 : 90;
     final double trailingWidth =
         variant == DsAppSecondaryHeaderVariant.base ? 0 : 90;
+    final double screenWidth = MediaQuery.sizeOf(context).width;
 
-    return SizedBox(
-      height: 85,
-      width: double.infinity,
-      child: Row(
-        children: [
-          SizedBox(
-            width: leadingWidth,
-            child: Align(
-              alignment: Alignment.centerLeft,
-              child: leading ?? _buildBackButton(),
-            ),
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Container(
+          height: 85,
+          width: double.infinity,
+          color: backgroundColor,
+          child: Row(
+            children: [
+              SizedBox(
+                width: leadingWidth,
+                child: Align(
+                  alignment: Alignment.centerLeft,
+                  child: leading ?? _buildBackButton(),
+                ),
+              ),
+              if (_showsCenter)
+                Expanded(child: Center(child: _buildCenterContent())),
+              if (trailingWidth > 0)
+                SizedBox(
+                  width: trailingWidth,
+                  child: Align(
+                    alignment: Alignment.centerRight,
+                    child: trailing ?? _buildActions(),
+                  ),
+                ),
+            ],
           ),
-          if (_showsCenter)
-            Expanded(child: Center(child: _buildCenterContent())),
-          if (trailingWidth > 0)
-            SizedBox(
-              width: trailingWidth,
-              child: Align(
-                alignment: Alignment.centerRight,
-                child: trailing ?? _buildActions(),
+        ),
+        if (showBottomBorder) ...[
+          SizedBox(
+            height: bottomBorderWidth,
+            child: OverflowBox(
+              minWidth: screenWidth,
+              maxWidth: screenWidth,
+              minHeight: bottomBorderWidth,
+              maxHeight: bottomBorderWidth,
+              alignment: Alignment.topCenter,
+              child: SizedBox(
+                width: screenWidth,
+                height: bottomBorderWidth,
+                child: ColoredBox(
+                  color: bottomBorderColor,
+                  child: const SizedBox.expand(),
+                ),
               ),
             ),
+          ),
+          SizedBox(height: bottomBorderSpacing),
         ],
-      ),
+      ],
     );
   }
 

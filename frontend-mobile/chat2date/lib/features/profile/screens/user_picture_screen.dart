@@ -1,14 +1,16 @@
 import 'dart:io';
 
-import 'package:chat2date/components/buttons/ds_button.dart';
+import 'package:chat2date/components/design_system/buttons/ds_button.dart';
+import 'package:chat2date/components/design_system/feedback/ds_action_modal.dart';
+import 'package:chat2date/components/design_system/feedback/ds_toast.dart';
+import 'package:chat2date/components/design_system/organisms/ds_app_secondary_header.dart';
 import 'package:chat2date/components/common/image_upload_grid.dart';
-import 'package:chat2date/components/inputs/ds_label.dart';
-import 'package:chat2date/components/layout/responsive_container.dart';
-import 'package:chat2date/components/toasts/toast.dart';
+import 'package:chat2date/core/theme/app_colors.dart';
+import 'package:chat2date/core/theme/tokens/colors/text_colors.dart';
+import 'package:chat2date/core/theme/tokens/typography/display_text_styles.dart';
 import 'package:chat2date/models/user.dart';
 import 'package:chat2date/services/photo_verification_service.dart';
 import 'package:chat2date/stores/user_store.dart';
-import 'package:chat2date/core/theme/app_colors.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -22,158 +24,56 @@ class UserPictureScreen extends ConsumerStatefulWidget {
 class _UserPictureScreenState extends ConsumerState<UserPictureScreen> {
   List<File> _selectedImages = [];
   bool _isLoading = false;
-  Key _imageGridKey = UniqueKey(); // ✅ เพิ่ม key สำหรับ force rebuild
+  Key _imageGridKey = UniqueKey();
 
   @override
   void initState() {
     super.initState();
     _selectedImages = [];
     _imageGridKey = UniqueKey();
-    debugPrint('🎨 UserPictureScreen initialized - images cleared');
   }
 
-  // ✅ เพิ่ม method สำหรับ reset ทุกอย่าง
-  void _resetState() {
-    setState(() {
-      _selectedImages = [];
-      _imageGridKey = UniqueKey(); // สร้าง key ใหม่เพื่อ rebuild widget
-    });
-  }
-
-  // แสดง Dialog แจ้งเตือนเมื่อใบหน้าไม่ตรงกับบัตร
   void _showFaceVerificationDialog() {
-    showDialog(
-      context: context,
+    DsActionModal.show(
+      context,
       barrierDismissible: false,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
+      child: DsActionModal(
+        title: 'ไม่พบใบหน้าที่ชัดเจน',
+        description:
+            'เราตรวจไม่พบใบหน้าที่ชัดเจนในรูปภาพของคุณ หรือใบหน้าไม่ตรงกับรูปบัตรประชาชน',
+        minHeight: 360,
+        topVisual: Container(
+          width: 64,
+          height: 64,
+          decoration: BoxDecoration(
+            color: AppColors.warning.withValues(alpha: 0.1),
+            shape: BoxShape.circle,
           ),
-          contentPadding: const EdgeInsets.all(24),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              // ไอคอนเตือน
-              Container(
-                width: 64,
-                height: 64,
-                decoration: BoxDecoration(
-                  color: AppColors.warning.withOpacity(0.1),
-                  shape: BoxShape.circle,
-                ),
-                child: Icon(
-                  Icons.warning_amber_rounded,
-                  size: 36,
-                  color: AppColors.warning,
-                ),
-              ),
-              const SizedBox(height: 20),
-
-              // หัวข้อ
-              const Text(
-                'ไม่พบใบหน้าที่ชัดเจน',
-                style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-                textAlign: TextAlign.center,
-              ),
-              const SizedBox(height: 12),
-
-              // รายละเอียด
-              Text(
-                'เราตรวจไม่พบใบหน้าที่ชัดเจนในรูปภาพของคุณ หรือใบหน้าไม่ตรงกับรูปบัตรประชาชน',
-                style: TextStyle(
-                  fontSize: 14,
-                  color: Colors.grey[600],
-                  height: 1.5,
-                ),
-                textAlign: TextAlign.center,
-              ),
-              const SizedBox(height: 20),
-
-              // คำแนะนำ
-              Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: Colors.blue.withOpacity(0.05),
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: Colors.blue.withOpacity(0.2)),
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        Icon(
-                          Icons.lightbulb_outline,
-                          size: 20,
-                          color: Colors.blue[700],
-                        ),
-                        const SizedBox(width: 8),
-                        Text(
-                          'คำแนะนำ',
-                          style: TextStyle(
-                            fontWeight: FontWeight.bold,
-                            color: Colors.blue[700],
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 12),
-                    _buildTip('ถ่ายรูปในที่ที่มีแสงสว่างเพียงพอ'),
-                    _buildTip('ใบหน้าหันตรงกล้องและเห็นชัดเจน'),
-                    _buildTip('อัปโหลดรูปที่เห็นหน้าตรงอย่างน้อย 1 รูป'),
-                    _buildTip('หลีกเลี่ยงแว่นตาหรือหมวกที่บังหน้า'),
-                  ],
-                ),
-              ),
-            ],
+          child: Icon(
+            Icons.warning_amber_rounded,
+            size: 36,
+            color: AppColors.warning,
           ),
-          actions: [
-            // ปุ่มลองใหม่
-            SizedBox(
-              width: double.infinity,
-              child: DsButton(
-                label: 'เลือกรูปใหม่',
-                onPressed: () {
-                  Navigator.of(context).pop();
-                },
-                variant: DsButtonVariant.primary,
-                size: DsButtonSize.md,
-              ),
-            ),
+        ),
+        content: DsModalInfoBox(
+          heading: 'คำแนะนำ',
+          headingColor: Colors.blue[700]!,
+          lines: const [
+            'ถ่ายรูปในที่ที่มีแสงสว่างเพียงพอ',
+            'ใบหน้าหันตรงกล้องและเห็นชัดเจน',
+            'อัปโหลดรูปที่เห็นหน้าตรงอย่างน้อย 1 รูป',
+            'หลีกเลี่ยงแว่นตาหรือหมวกที่บังหน้า',
           ],
-        );
-      },
-    );
-  }
-
-  Widget _buildTip(String text) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 6),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Container(
-            margin: const EdgeInsets.only(top: 6),
-            width: 4,
-            height: 4,
-            decoration: BoxDecoration(
-              color: Colors.blue[700],
-              shape: BoxShape.circle,
-            ),
+        ),
+        actions: SizedBox(
+          width: double.infinity,
+          child: DsButton(
+            label: 'เลือกรูปใหม่',
+            onPressed: () => Navigator.of(context).pop(),
+            variant: DsButtonVariant.primary,
+            size: DsButtonSize.md,
           ),
-          const SizedBox(width: 8),
-          Expanded(
-            child: Text(
-              text,
-              style: TextStyle(
-                fontSize: 13,
-                color: Colors.grey[700],
-                height: 1.4,
-              ),
-            ),
-          ),
-        ],
+        ),
       ),
     );
   }
@@ -183,7 +83,6 @@ class _UserPictureScreenState extends ConsumerState<UserPictureScreen> {
     final user = userState['user'] as User?;
     final cardFaceBytes = userState['cardFaceBytes'] as String?;
 
-    // Validation
     if (_selectedImages.isEmpty) {
       Toast.show(
         context,
@@ -242,42 +141,99 @@ class _UserPictureScreenState extends ConsumerState<UserPictureScreen> {
     }
   }
 
+  Widget _buildBody(double availableHeight) {
+    final bool canSubmit = _selectedImages.isNotEmpty && !_isLoading;
+    final int selectedCount = _selectedImages.length;
+    final bool isCompact = availableHeight < 700;
+    final double topPadding = isCompact ? 12 : 20;
+    final double gridBottomSpacing = isCompact ? 24 : 36;
+    final double buttonTopSpacing = isCompact ? 18 : 24;
+
+    return Padding(
+      padding: EdgeInsets.fromLTRB(25, topPadding, 25, isCompact ? 24 : 32),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Column(
+            children: [
+              ImageUploadGrid(
+                key: _imageGridKey,
+                maxImages: 6,
+                itemWidth: 119,
+                itemHeight: 120,
+                spacing: 72,
+                runSpacing: isCompact ? 28 : 44,
+                addTileColor: AppColors.divider,
+                addIconColor: AppColors.surface,
+                tileRadius: 10,
+                allowEditing: !_isLoading,
+                onImagesChanged: (images) {
+                  setState(() {
+                    _selectedImages = images
+                        .map((xFile) => File(xFile.path))
+                        .toList();
+                  });
+                },
+              ),
+              const SizedBox(height: 12),
+              Text(
+                'เลือกแล้ว $selectedCount/6 รูป',
+                style: const TextStyle(
+                  color: TextColors.supportText,
+                  fontSize: 13,
+                  fontWeight: FontWeight.w500,
+                  height: 18 / 13,
+                ),
+              ),
+              SizedBox(height: gridBottomSpacing),
+              SizedBox(
+                width: 310,
+                child: Text(
+                  'เลือกได้สูงสุด 6 รูป และอย่างน้อย 1 รูปต้องเห็นหน้าชัดเจนเพื่อให้ระบบตรวจสอบได้',
+                  textAlign: TextAlign.center,
+                  style: AppDisplayTextStyles.subtitle.copyWith(
+                    color: TextColors.supportText,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          Padding(
+            padding: EdgeInsets.only(top: buttonTopSpacing),
+            child: DsButton(
+              label: _isLoading ? 'กำลังตรวจสอบ...' : 'ยืนยัน',
+              onPressed: canSubmit ? _handleSubmit : null,
+              variant: DsButtonVariant.outlinePrimary,
+              size: DsButtonSize.md,
+              width: 231,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: ResponsiveContainer.form(
-        gap: 20,
-        children: [
-          const SizedBox(height: 30),
-          Center(child: DsLabel(label: 'เพิ่มรูปภาพของคุณ', labelFontSize: 32)),
-
-          ImageUploadGrid(
-            key: _imageGridKey, // ✅ ใช้ key เพื่อ force rebuild
-            onImagesChanged: (images) {
-              setState(() {
-                _selectedImages = images
-                    .map((xFile) => File(xFile.path))
-                    .toList();
-              });
-              print('จำนวนรูปที่เลือก: ${images.length}');
-            },
-          ),
-
-          Center(
-            child: Text(
-              'เราจะทำการตรวจสอบรูปใบหน้าของคุณ กรุณาอัปโหลดรูปใบหน้าของคุณอย่างน้อย 1 รูป',
-              style: TextStyle(color: AppColors.error, fontSize: 12),
-              textAlign: TextAlign.center,
+      backgroundColor: AppColors.background,
+      body: SafeArea(
+        child: Column(
+          children: [
+            DsAppSecondaryHeader(
+              variant: DsAppSecondaryHeaderVariant.baseText,
+              title: 'เพิ่มรูปภาพของคุณ',
+              onBackTap: _isLoading ? null : () => Navigator.maybePop(context),
+              showBottomBorder: true,
             ),
-          ),
-
-          DsButton(
-            label: _isLoading ? 'กำลังตรวจสอบ...' : 'พร้อมแล้ว',
-            onPressed: _isLoading ? null : _handleSubmit,
-            variant: DsButtonVariant.primary,
-            size: DsButtonSize.md,
-          ),
-        ],
+            Expanded(
+              child: LayoutBuilder(
+                builder: (context, constraints) =>
+                    _buildBody(constraints.maxHeight),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

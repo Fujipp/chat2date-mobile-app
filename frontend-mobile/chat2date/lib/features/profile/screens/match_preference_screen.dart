@@ -1,13 +1,9 @@
-import 'package:chat2date/components/buttons/ds_button.dart';
-import 'package:chat2date/components/card/preference_card.dart';
-import 'package:chat2date/components/common/custom_range_slider.dart';
-import 'package:chat2date/components/inputs/ds_label.dart';
-import 'package:chat2date/components/layout/responsive_container.dart';
-import 'package:chat2date/components/toasts/toast.dart';
+import 'package:chat2date/components/design_system/index.dart';
+import 'package:chat2date/core/theme/app_colors.dart';
+import 'package:chat2date/core/theme/tokens/colors/app_gradients.dart';
+import 'package:chat2date/core/theme/tokens/colors/text_colors.dart';
 import 'package:chat2date/services/user_service.dart';
 import 'package:chat2date/stores/user_store.dart';
-import 'package:chat2date/core/theme/app_colors.dart';
-import 'package:dropdown_button2/dropdown_button2.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -20,6 +16,8 @@ class MatchPreferenceScreen extends ConsumerStatefulWidget {
 }
 
 class _MatchPreferenceScreenState extends ConsumerState<MatchPreferenceScreen> {
+  final ScrollController _scrollController = ScrollController();
+
   RangeValues _selectedRange = const RangeValues(18, 100);
   bool _isGenderAgeSpecific = false;
 
@@ -35,24 +33,132 @@ class _MatchPreferenceScreenState extends ConsumerState<MatchPreferenceScreen> {
     final userStore = ref.read(userStoreProvider) as Map<String, dynamic>?;
     final profile = userStore?['profile'] as Map<String, dynamic>?;
 
+    _selectedGenderPreference = profile?['interestedGender'] ?? 'BOTH';
+    _selectedRange = const RangeValues(18, 100);
+    _travelStylePreference = profile?['interestedTravelStyle'];
+    _lifeStylePreference = profile?['interestedLifeStyle'];
+    _interestPreference = profile?['interestedInterest'];
+
+    _isGenderAgeSpecific =
+        _interestPreference == 'UNNECESSARY' &&
+        _lifeStylePreference == 'UNNECESSARY' &&
+        _travelStylePreference == 'UNNECESSARY';
+  }
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  bool get _canSubmit =>
+      _selectedGenderPreference != null &&
+      _travelStylePreference != null &&
+      _lifeStylePreference != null &&
+      _interestPreference != null;
+
+  void _toggleGenderAgeSpecific() {
     setState(() {
-      _selectedGenderPreference = profile?['interestedGender'] ?? 'BOTH';
-      _selectedRange = RangeValues(
-        (profile?['interestedAgeMin'] as num?)?.toDouble() ?? 18,
-        (profile?['interestedAgeMax'] as num?)?.toDouble() ?? 100,
-      );
-
-      _travelStylePreference = profile?['interestedTravelStyle'] ?? null;
-      _lifeStylePreference = profile?['interestedLifeStyle'] ?? null;
-      _interestPreference = profile?['interestedInterest'] ?? null;
-
-      _isGenderAgeSpecific =
-          (_interestPreference == "UNNECESSARY" &&
-              _lifeStylePreference == "UNNECESSARY" &&
-              _travelStylePreference == "UNNECESSARY")
-          ? true
-          : false;
+      _isGenderAgeSpecific = !_isGenderAgeSpecific;
+      if (_isGenderAgeSpecific) {
+        _travelStylePreference = 'UNNECESSARY';
+        _lifeStylePreference = 'UNNECESSARY';
+        _interestPreference = 'UNNECESSARY';
+      } else {
+        _travelStylePreference = null;
+        _lifeStylePreference = null;
+        _interestPreference = null;
+      }
     });
+  }
+
+  void _handleScopeChange(String scope, String value) {
+    setState(() {
+      if (scope == 'travel') {
+        _travelStylePreference = value;
+      } else if (scope == 'lifestyle') {
+        _lifeStylePreference = value;
+      } else if (scope == 'interest') {
+        _interestPreference = value;
+      }
+
+      if (value != 'UNNECESSARY') {
+        _isGenderAgeSpecific = false;
+      }
+    });
+  }
+
+  Future<void> _submit(bool onUpdate) async {
+    if (_selectedGenderPreference == null) {
+      Toast.show(
+        context,
+        type: ToastType.warning,
+        title: 'ข้อมูลไม่ครบ',
+        message: 'กรุณาเลือกเพศที่สนใจ',
+      );
+      return;
+    }
+    if (_travelStylePreference == null) {
+      Toast.show(
+        context,
+        type: ToastType.warning,
+        title: 'ข้อมูลไม่ครบ',
+        message: 'กรุณาเลือกสไตล์การท่องเที่ยว',
+      );
+      return;
+    }
+    if (_lifeStylePreference == null) {
+      Toast.show(
+        context,
+        type: ToastType.warning,
+        title: 'ข้อมูลไม่ครบ',
+        message: 'กรุณาเลือกไลฟ์สไตล์',
+      );
+      return;
+    }
+    if (_interestPreference == null) {
+      Toast.show(
+        context,
+        type: ToastType.warning,
+        title: 'ข้อมูลไม่ครบ',
+        message: 'กรุณาเลือกสิ่งที่สนใจ',
+      );
+      return;
+    }
+
+    final Map<String, Object> preferenceMatch;
+    if (!onUpdate) {
+      preferenceMatch = {
+        'interestedGender': _selectedGenderPreference!,
+        'interestedAgeMax': _selectedRange.end,
+        'interestedAgeMin': _selectedRange.start,
+        'interestedTravelStyle': _travelStylePreference!,
+        'interestedLifeStyle': _lifeStylePreference!,
+        'interestedInterest': _interestPreference!,
+        'interestedDistanceMin': 0,
+        'interestedDistanceMax': 0,
+      };
+    } else {
+      preferenceMatch = {
+        'interestedGender': _selectedGenderPreference!,
+        'interestedAgeMax': _selectedRange.end,
+        'interestedAgeMin': _selectedRange.start,
+        'interestedTravelStyle': _travelStylePreference!,
+        'interestedLifeStyle': _lifeStylePreference!,
+        'interestedInterest': _interestPreference!,
+      };
+    }
+
+    await ref.read(userServiceProvider).addPreferenceMatchUser(preferenceMatch);
+
+    if (!mounted) return;
+    if (!onUpdate) {
+      Navigator.pushNamed(context, '/userPicture');
+    } else {
+      await ref.read(userServiceProvider).getProfile();
+      if (!mounted) return;
+      Navigator.pushNamed(context, '/settings');
+    }
   }
 
   @override
@@ -64,374 +170,420 @@ class _MatchPreferenceScreenState extends ConsumerState<MatchPreferenceScreen> {
     }
 
     return Scaffold(
-      body: Stack(
-        children: [
-          SingleChildScrollView(
-            child: ResponsiveContainer.form(
-              gap: 20,
+      backgroundColor: AppColors.background,
+      body: SafeArea(
+        child: Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 375),
+            child: Column(
               children: [
-                SizedBox(height: onUpdate ? 10 : 30),
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.center,
-                  children: [
-                    SizedBox(width: onUpdate ? 52 : 0),
-                    Expanded(
-                      child: Center(
-                        child: Text(
-                          'ประเภทคู่เดตที่สนใจ',
-                          textAlign: TextAlign.center,
-                          style: TextStyle(
-                            fontSize: 32,
-                            color: Color(0xFF0F172A),
-                          ),
+                DsAppSecondaryHeader(
+                  variant: DsAppSecondaryHeaderVariant.baseText,
+                  title: 'ประเภทคู่เดตที่สนใจ',
+                  center: const Text(
+                    'ประเภทคู่เดตที่สนใจ',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      color: TextColors.secondary,
+                      fontSize: 18,
+                      fontWeight: FontWeight.w400,
+                      height: 24 / 18,
+                    ),
+                  ),
+                  onBackTap: () => Navigator.pop(context),
+                  showBottomBorder: true,
+                ),
+                Expanded(
+                  child: ScrollbarTheme(
+                    data: ScrollbarThemeData(
+                      thumbColor: WidgetStateProperty.all(
+                        const Color(0xFF5CE1E6).withValues(alpha: 0.7),
+                      ),
+                      trackColor: WidgetStateProperty.all(Colors.grey.shade300),
+                      trackBorderColor: WidgetStateProperty.all(
+                        Colors.grey.shade400,
+                      ),
+                    ),
+                    child: Scrollbar(
+                      controller: _scrollController,
+                      thumbVisibility: true,
+                      thickness: 4,
+                      radius: const Radius.circular(8),
+                      interactive: true,
+                      child: SingleChildScrollView(
+                        controller: _scrollController,
+                        padding: const EdgeInsets.fromLTRB(25, 10, 25, 32),
+                        child: Column(
+                          children: [
+                            const SizedBox(height: 20),
+                            _buildGenderDropdown(),
+                            const SizedBox(height: 20),
+                            _MatchPreferenceRangeField(
+                              values: _selectedRange,
+                              onChanged: (values) {
+                                setState(() => _selectedRange = values);
+                              },
+                            ),
+                            const SizedBox(height: 20),
+                            _ScopePreferenceCard(
+                              title: 'สไตล์การท่องเที่ยว',
+                              value: _travelStylePreference,
+                              onChanged: (value) =>
+                                  _handleScopeChange('travel', value),
+                            ),
+                            const SizedBox(height: 12),
+                            _ScopePreferenceCard(
+                              title: 'ไลฟ์สไตล์',
+                              value: _lifeStylePreference,
+                              onChanged: (value) =>
+                                  _handleScopeChange('lifestyle', value),
+                            ),
+                            const SizedBox(height: 12),
+                            _ScopePreferenceCard(
+                              title: 'ความสนใจ',
+                              value: _interestPreference,
+                              onChanged: (value) =>
+                                  _handleScopeChange('interest', value),
+                            ),
+                            const SizedBox(height: 18),
+                            _GenderAgeSpecificToggle(
+                              value: _isGenderAgeSpecific,
+                              onTap: _toggleGenderAgeSpecific,
+                            ),
+                            const SizedBox(height: 28),
+                            DsButton(
+                              width: 231,
+                              label: onUpdate ? 'บันทึก' : 'ไปหน้าถัดไป',
+                              onPressed: _canSubmit
+                                  ? () => _submit(onUpdate)
+                                  : null,
+                              variant: DsButtonVariant.outlinePrimary,
+                              size: DsButtonSize.md,
+                            ),
+                          ],
                         ),
                       ),
                     ),
-                    SizedBox(width: onUpdate ? 52 : 0),
-                  ],
-                ),
-
-                const SizedBox(height: 10),
-
-                DropdownButtonFormField2<String>(
-                  value: _selectedGenderPreference,
-                  decoration: InputDecoration(
-                    label: RichText(
-                      text: TextSpan(
-                        children: [
-                          const TextSpan(
-                            text: 'เพศที่สนใจ',
-                            style: TextStyle(
-                              fontSize: 20,
-                              color: AppColors.textMuted,
-                            ),
-                          ),
-                          TextSpan(
-                            text: ' *',
-                            style: TextStyle(fontSize: 20, color: Colors.red),
-                          ),
-                        ],
-                      ),
-                    ),
-                    enabledBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(16),
-                      borderSide: BorderSide(
-                        color: AppColors.inputBorderHover,
-                        width: 1.5,
-                      ),
-                    ),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(16),
-                      borderSide: BorderSide.none,
-                    ),
-                    contentPadding: const EdgeInsets.symmetric(
-                      horizontal: 12,
-                      vertical: 12,
-                    ),
                   ),
-
-                  isExpanded: true,
-
-                  buttonStyleData: const ButtonStyleData(
-                    padding: EdgeInsets.symmetric(horizontal: 12),
-                  ),
-
-                  dropdownStyleData: const DropdownStyleData(
-                    offset: Offset(0, 0),
-                    direction: DropdownDirection.textDirection,
-                  ),
-
-                  items: const [
-                    DropdownMenuItem(value: 'MALE', child: Text('ผู้ชาย')),
-                    DropdownMenuItem(value: 'FEMALE', child: Text('ผู้หญิง')),
-                    DropdownMenuItem(value: 'BOTH', child: Text('ได้ทั้งคู่')),
-                  ],
-
-                  onChanged: (value) {
-                    setState(() {
-                      _selectedGenderPreference = value;
-                    });
-                  },
-                ),
-
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    DsLabel(
-                      label: 'ช่วงอายุที่สนใจ',
-                      required: true,
-                      labelFontSize: 20,
-                    ),
-                    const SizedBox(height: 10),
-
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Text(
-                          '${_selectedRange.start.round()} ปี',
-                          style: const TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-                        Text(
-                          '${_selectedRange.end.round()} ปี',
-                          style: const TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-                      ],
-                    ),
-
-                    const SizedBox(height: 10),
-
-                    CustomRangeSlider(
-                      values: _selectedRange,
-                      min: 18,
-                      max: 100,
-                      onChanged: (RangeValues values) {
-                        setState(() {
-                          _selectedRange = values;
-                        });
-                      },
-                    ),
-                  ],
-                ),
-
-                const SizedBox(height: 0),
-                PreferenceCard(
-                  title: 'สไตล์การท่องเที่ยว',
-                  backgroundColor: AppColors.lightBrandSecondary,
-                  selectedValue: _isGenderAgeSpecific
-                      ? 'UNNECESSARY'
-                      : _travelStylePreference,
-                  onChanged: _isGenderAgeSpecific
-                      ? null
-                      : (val) {
-                          setState(() {
-                            _travelStylePreference = val;
-                          });
-                        },
-                  isDisabled: _isGenderAgeSpecific,
-                ),
-                PreferenceCard(
-                  title: 'ไลฟ์สไตล์',
-                  backgroundColor: AppColors.brandPrimary200,
-                  selectedValue: _isGenderAgeSpecific
-                      ? 'UNNECESSARY'
-                      : _lifeStylePreference,
-                  onChanged: _isGenderAgeSpecific
-                      ? null
-                      : (val) {
-                          setState(() {
-                            _lifeStylePreference = val;
-                          });
-                        },
-                  isDisabled: _isGenderAgeSpecific,
-                ),
-                PreferenceCard(
-                  title: 'สิ่งที่สนใจ',
-                  backgroundColor: AppColors.surfaceLight,
-                  selectedValue: _isGenderAgeSpecific
-                      ? 'UNNECESSARY'
-                      : _interestPreference,
-                  onChanged: _isGenderAgeSpecific
-                      ? null
-                      : (val) {
-                          setState(() {
-                            _interestPreference = val;
-                          });
-                        },
-                  isDisabled: _isGenderAgeSpecific,
-                ),
-
-                InkWell(
-                  onTap: () {
-                    setState(() {
-                      _isGenderAgeSpecific = !_isGenderAgeSpecific;
-                      if (_isGenderAgeSpecific) {
-                        _travelStylePreference = 'UNNECESSARY';
-                        _lifeStylePreference = 'UNNECESSARY';
-                        _interestPreference = 'UNNECESSARY';
-                      } else {
-                        _travelStylePreference = null;
-                        _lifeStylePreference = null;
-                        _interestPreference = null;
-                      }
-                    });
-                  },
-
-                  splashColor: Colors.transparent,
-                  highlightColor: Colors.transparent,
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(
-                      vertical: 5,
-                      horizontal: 2,
-                    ),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.start,
-                      crossAxisAlignment: CrossAxisAlignment.center,
-                      children: [
-                        Container(
-                          width: 30,
-                          height: 30,
-                          decoration: BoxDecoration(
-                            color: _isGenderAgeSpecific
-                                ? const Color(0xFF78CEFF)
-                                : Colors.white,
-
-                            border: Border.all(
-                              width: 1,
-                              color: _isGenderAgeSpecific
-                                  ? const Color(0xFF78CEFF)
-                                  : const Color(0xFFD1D5DB),
-                            ),
-
-                            borderRadius: BorderRadius.circular(2),
-                          ),
-
-                          child: _isGenderAgeSpecific
-                              ? const Icon(
-                                  Icons.check,
-                                  color: Colors.white,
-                                  size: 18.0,
-                                )
-                              : null,
-                        ),
-
-                        const SizedBox(width: 12),
-
-                        const Flexible(
-                          child: Text(
-                            'สนใจเฉพาะเพศและช่วงอายุ',
-                            style: TextStyle(
-                              color: Color(0xFF0F172A),
-                              fontSize: 16,
-                              fontFamily: 'Inter',
-                              fontWeight: FontWeight.w400,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-
-                DsButton(
-                  label: onUpdate ? 'บันทึก' : 'ถัดไป',
-                  onPressed: () async {
-                    if (_selectedGenderPreference == null) {
-                      Toast.show(
-                        context,
-                        type: ToastType.warning,
-                        title: 'ข้อมูลไม่ครบ',
-                        message: 'กรุณาเลือกเพศที่สนใจ',
-                      );
-                      return;
-                    }
-
-                    if (_travelStylePreference == null) {
-                      Toast.show(
-                        context,
-                        type: ToastType.warning,
-                        title: 'ข้อมูลไม่ครบ',
-                        message: 'กรุณาเลือกสไตล์การท่องเที่ยว',
-                      );
-                      return;
-                    }
-
-                    if (_lifeStylePreference == null) {
-                      Toast.show(
-                        context,
-                        type: ToastType.warning,
-                        title: 'ข้อมูลไม่ครบ',
-                        message: 'กรุณาเลือกไลฟ์สไตล์',
-                      );
-                      return;
-                    }
-
-                    if (_interestPreference == null) {
-                      Toast.show(
-                        context,
-                        type: ToastType.warning,
-                        title: 'ข้อมูลไม่ครบ',
-                        message: 'กรุณาเลือกสิ่งที่สนใจ',
-                      );
-                      return;
-                    }
-                    try {
-                      final userStore =
-                          ref.read(userStoreProvider) as Map<String, dynamic>?;
-
-                      final Map<String, Object> preferenceMatch;
-
-                      if (!onUpdate) {
-                        preferenceMatch = {
-                          "interestedGender": _selectedGenderPreference!,
-                          "interestedAgeMax": _selectedRange.end,
-                          "interestedAgeMin": _selectedRange.start,
-                          "interestedTravelStyle": _travelStylePreference!,
-                          "interestedLifeStyle": _lifeStylePreference!,
-                          "interestedInterest": _interestPreference!,
-                          "interestedDistanceMin": 0,
-                          "interestedDistanceMax": 0,
-                        };
-                      } else {
-                        preferenceMatch = {
-                          "interestedGender": _selectedGenderPreference!,
-                          "interestedAgeMax": _selectedRange.end,
-                          "interestedAgeMin": _selectedRange.start,
-                          "interestedTravelStyle": _travelStylePreference!,
-                          "interestedLifeStyle": _lifeStylePreference!,
-                          "interestedInterest": _interestPreference!,
-                        };
-                      }
-
-                      final updatedUser = await ref
-                          .read(userServiceProvider)
-                          .addPreferenceMatchUser(preferenceMatch);
-                      if (!onUpdate) {
-                        Navigator.pushNamed(context, '/userPicture');
-                      } else {
-                        await ref.read(userServiceProvider).getProfile();
-                        Navigator.pushNamed(context, '/settings');
-                      }
-                    } catch (e) {
-                      throw Exception(e);
-                    }
-                  },
-                  variant: DsButtonVariant.primary,
-                  size: DsButtonSize.md,
                 ),
               ],
             ),
           ),
+        ),
+      ),
+    );
+  }
 
-          // ปุ่มย้อนกลับอยู่ซ้ายบน
-          if (onUpdate)
-            Positioned(
-              top: 50,
-              left: 16,
-              child: InkWell(
-                onTap: () => Navigator.pop(context),
-                child: Container(
-                  width: 40,
-                  height: 40,
-                  decoration: const BoxDecoration(
-                    color: AppColors.brandSecondary,
-                    shape: BoxShape.circle,
-                  ),
-                  child: const Icon(
-                    Icons.arrow_back,
-                    color: Colors.white,
-                    size: 20,
-                  ),
-                ),
+  Widget _buildGenderDropdown() {
+    return DsDropdownField<String>(
+      label: 'เพศที่สนใจ',
+      required: true,
+      value: _selectedGenderPreference,
+      hintText: 'กรุณาเลือกเพศ',
+      items: const [
+        DsDropdownItem(value: 'MALE', label: 'ผู้ชาย'),
+        DsDropdownItem(value: 'FEMALE', label: 'ผู้หญิง'),
+        DsDropdownItem(value: 'BOTH', label: 'ได้ทั้งคู่'),
+      ],
+      onChanged: (value) {
+        setState(() => _selectedGenderPreference = value);
+      },
+    );
+  }
+}
+
+class _MatchPreferenceRangeField extends StatelessWidget {
+  const _MatchPreferenceRangeField({
+    required this.values,
+    required this.onChanged,
+  });
+
+  final RangeValues values;
+  final ValueChanged<RangeValues> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          'ช่วงอายุที่สนใจ',
+          style: TextStyle(
+            fontSize: 16,
+            fontWeight: FontWeight.w600,
+            color: TextColors.secondary,
+            height: 22 / 16,
+          ),
+        ),
+        const SizedBox(height: 8),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text(
+              values.start.round().toString(),
+              style: const TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.w400,
+                color: TextColors.secondary,
+                height: 22 / 16,
               ),
             ),
+            Text(
+              values.end.round().toString(),
+              style: const TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.w400,
+                color: TextColors.secondary,
+                height: 22 / 16,
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 8),
+        SliderTheme(
+          data: SliderTheme.of(context).copyWith(
+            trackHeight: 8,
+            activeTrackColor: const Color(0xFF2D2D2D),
+            inactiveTrackColor: const Color(0xFFE0E0E0),
+            rangeTrackShape: const RoundedRectRangeSliderTrackShape(),
+            overlayShape: SliderComponentShape.noOverlay,
+            rangeThumbShape: const _ScopeRangeThumbShape(),
+          ),
+          child: RangeSlider(
+            values: values,
+            min: 18,
+            max: 100,
+            divisions: 82,
+            onChanged: onChanged,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _ScopePreferenceCard extends StatelessWidget {
+  const _ScopePreferenceCard({
+    required this.title,
+    required this.value,
+    required this.onChanged,
+  });
+
+  final String title;
+  final String? value;
+  final ValueChanged<String>? onChanged;
+
+  static const _options = <_ScopeOption>[
+    _ScopeOption(label: 'เหมือนกัน', value: 'SAME'),
+    _ScopeOption(label: 'คล้ายกัน', value: 'NEARLY'),
+    _ScopeOption(label: 'ไม่จำเป็น', value: 'UNNECESSARY'),
+    _ScopeOption(label: 'ไม่เกี่ยวข้องกัน', value: 'UNRELATED'),
+  ];
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 18),
+      decoration: BoxDecoration(
+        gradient: AppGradients.themeApp2,
+        borderRadius: BorderRadius.circular(25),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text.rich(
+            TextSpan(
+              text: title,
+              style: const TextStyle(
+                color: TextColors.secondary,
+                fontSize: 16,
+                fontWeight: FontWeight.w600,
+                height: 22 / 16,
+              ),
+              children: const [
+                TextSpan(
+                  text: '*',
+                  style: TextStyle(color: AppColors.error),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 10),
+          GridView.builder(
+            shrinkWrap: true,
+            itemCount: _options.length,
+            physics: const NeverScrollableScrollPhysics(),
+            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: 2,
+              mainAxisSpacing: 6,
+              crossAxisSpacing: 6,
+              mainAxisExtent: 22,
+            ),
+            itemBuilder: (context, index) {
+              final option = _options[index];
+              return _ScopeOptionTile(
+                label: option.label,
+                selected: value == option.value,
+                onTap: onChanged == null ? null : () => onChanged!(option.value),
+              );
+            },
+          ),
         ],
       ),
     );
+  }
+}
+
+class _ScopeOption {
+  const _ScopeOption({required this.label, required this.value});
+
+  final String label;
+  final String value;
+}
+
+class _ScopeOptionTile extends StatelessWidget {
+  const _ScopeOptionTile({
+    required this.label,
+    required this.selected,
+    required this.onTap,
+  });
+
+  final String label;
+  final bool selected;
+  final VoidCallback? onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: onTap,
+      splashColor: Colors.transparent,
+      highlightColor: Colors.transparent,
+      child: Row(
+        children: [
+          Container(
+            width: 20,
+            height: 20,
+            decoration: BoxDecoration(
+              color: selected ? const Color(0xFF2D2D2D) : Colors.white,
+              shape: BoxShape.circle,
+              border: Border.all(
+                color: selected ? const Color(0xFF2D2D2D) : const Color(0xFFD8DEE6),
+              ),
+            ),
+            child: selected
+                ? Center(
+                    child: Container(
+                      width: 7,
+                      height: 7,
+                      decoration: const BoxDecoration(
+                        color: Colors.white,
+                        shape: BoxShape.circle,
+                      ),
+                    ),
+                  )
+                : null,
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Text(
+              label,
+              style: TextStyle(
+                color: onTap == null ? TextColors.disabled : TextColors.secondary,
+                fontSize: 14,
+                fontWeight: FontWeight.w400,
+                height: 20 / 14,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _GenderAgeSpecificToggle extends StatelessWidget {
+  const _GenderAgeSpecificToggle({
+    required this.value,
+    required this.onTap,
+  });
+
+  final bool value;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: onTap,
+      splashColor: Colors.transparent,
+      highlightColor: Colors.transparent,
+      child: Row(
+        children: [
+          Container(
+            width: 22,
+            height: 23,
+            decoration: BoxDecoration(
+              color: Colors.white,
+              shape: BoxShape.circle,
+              border: Border.all(
+                color: const Color(0xFF2D2D2D),
+              ),
+            ),
+            child: value
+                ? Center(
+                    child: Container(
+                      width: 8,
+                      height: 8,
+                      decoration: const BoxDecoration(
+                        color: Color(0xFF2D2D2D),
+                        shape: BoxShape.circle,
+                      ),
+                    ),
+                  )
+                : null,
+          ),
+          const SizedBox(width: 11),
+          const Expanded(
+            child: Text(
+              'สนใจเฉพาะเพศและช่วงอายุ',
+              style: TextStyle(
+                color: TextColors.secondary,
+                fontSize: 14,
+                fontWeight: FontWeight.w400,
+                height: 20 / 14,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ScopeRangeThumbShape extends RangeSliderThumbShape {
+  const _ScopeRangeThumbShape();
+
+  @override
+  Size getPreferredSize(bool isEnabled, bool isDiscrete) {
+    return const Size.square(16);
+  }
+
+  @override
+  void paint(
+    PaintingContext context,
+    Offset center, {
+    required Animation<double> activationAnimation,
+    required Animation<double> enableAnimation,
+    bool isDiscrete = false,
+    bool isEnabled = false,
+    bool isOnTop = false,
+    required SliderThemeData sliderTheme,
+    TextDirection textDirection = TextDirection.ltr,
+    Thumb thumb = Thumb.start,
+    bool isPressed = false,
+  }) {
+    final canvas = context.canvas;
+    final paint = Paint()..color = const Color(0xFF2D2D2D);
+    canvas.drawCircle(center, 8, paint);
   }
 }

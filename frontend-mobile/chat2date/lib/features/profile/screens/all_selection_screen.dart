@@ -1,6 +1,5 @@
 import 'package:chat2date/components/design_system/organisms/ds_app_secondary_header.dart';
 import 'package:chat2date/components/inputs/ds_text_field/ds_text_field.dart';
-import 'package:chat2date/components/layout/responsive_container.dart';
 import 'package:chat2date/core/theme/app_colors.dart';
 import 'package:chat2date/core/theme/tokens/colors/app_gradients.dart';
 import 'package:chat2date/core/theme/tokens/colors/input_colors.dart';
@@ -272,23 +271,9 @@ class TagSelectionScreen extends StatefulWidget {
 
 class _TagSelectionScreenState extends State<TagSelectionScreen> {
   final TextEditingController _searchController = TextEditingController();
+  final ScrollController _scrollController = ScrollController();
   String _searchQuery = '';
   late List<int> _selected;
-
-  List<int> _mapFilteredIndicesToOriginalIndices(List<int> filteredIndices) {
-    final originalIndices = <int>[];
-    final filteredList = _filteredItems;
-
-    final selectedNames = filteredIndices.map((i) => filteredList[i]).toSet();
-
-    for (int i = 0; i < widget.items.length; i++) {
-      if (selectedNames.contains(widget.items[i])) {
-        originalIndices.add(i);
-      }
-    }
-
-    return originalIndices;
-  }
 
   @override
   void initState() {
@@ -314,16 +299,51 @@ class _TagSelectionScreenState extends State<TagSelectionScreen> {
         .toList();
   }
 
+  List<_SelectionItemData> get _filteredTagItems => widget.items
+      .asMap()
+      .entries
+      .where(
+        (entry) => _searchQuery.isEmpty
+            ? true
+            : entry.value.toLowerCase().contains(_searchQuery.toLowerCase()),
+      )
+      .map(
+        (entry) => _SelectionItemData(
+          index: entry.key,
+          label: entry.value,
+          fallbackIcon: Icons.label_outline,
+        ),
+      )
+      .toList();
+
+  void _toggleTag(int index) {
+    setState(() {
+      if (_selected.contains(index)) {
+        _selected.remove(index);
+      } else if (_selected.length < 5) {
+        _selected.add(index);
+      } else {
+        Toast.show(
+          context,
+          type: ToastType.warning,
+          title: 'จำนวน Tag เกิน',
+          message: 'สามารถเลือก Tag สูงสุด 5 ข้อ',
+        );
+      }
+    });
+  }
+
   @override
   void dispose() {
     _searchController.removeListener(_onSearchChanged);
     _searchController.dispose();
+    _scrollController.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    final selectedCount = _mapFilteredIndicesToOriginalIndices(_selected).length;
+    final selectedCount = _selected.length;
 
     return Scaffold(
       backgroundColor: Colors.white,
@@ -335,10 +355,7 @@ class _TagSelectionScreenState extends State<TagSelectionScreen> {
               DsAppSecondaryHeader(
                 variant: DsAppSecondaryHeaderVariant.baseText,
                 title: 'Tag',
-                onBackTap: () => Navigator.pop(
-                  context,
-                  _mapFilteredIndicesToOriginalIndices(_selected),
-                ),
+                onBackTap: () => Navigator.pop(context, _selected),
               ),
               DsTextField(
                 controller: _searchController,
@@ -384,7 +401,7 @@ class _TagSelectionScreenState extends State<TagSelectionScreen> {
                   ),
                 ),
               Expanded(
-                child: _filteredItems.isEmpty
+                child: _filteredTagItems.isEmpty
                     ? Center(
                         child: Column(
                           mainAxisAlignment: MainAxisAlignment.center,
@@ -415,31 +432,33 @@ class _TagSelectionScreenState extends State<TagSelectionScreen> {
                         ),
                       )
                     : Center(
-                        child: SingleChildScrollView(
-                          padding: const EdgeInsets.only(top: 8),
-                          child: TagSelection(
-                            items: _filteredItems,
-                            initialSelected: _selected,
-                            shape: TagShape.rectangle,
-                            forceGridMode: false,
-                            onChanged: (newSelected) {
-                              final mappedSelection =
-                                  _mapFilteredIndicesToOriginalIndices(
-                                newSelected,
-                              );
-                              if (mappedSelection.length > 5) {
-                                Toast.show(
-                                  context,
-                                  type: ToastType.warning,
-                                  title: 'จำนวน Tag เกิน',
-                                  message: 'สามารถเลือก Tag สูงสุด 5 ข้อ',
-                                );
-                                return;
-                              }
-                              setState(() {
-                                _selected = newSelected;
-                              });
-                            },
+                        child: ScrollbarTheme(
+                          data: ScrollbarThemeData(
+                            thumbColor: WidgetStateProperty.all(
+                              const Color(0xFF5CE1E6).withValues(alpha: 0.7),
+                            ),
+                            trackColor: WidgetStateProperty.all(
+                              Colors.grey.shade300,
+                            ),
+                            trackBorderColor: WidgetStateProperty.all(
+                              Colors.grey.shade400,
+                            ),
+                          ),
+                          child: Scrollbar(
+                            controller: _scrollController,
+                            thumbVisibility: true,
+                            thickness: 4,
+                            radius: const Radius.circular(8),
+                            interactive: true,
+                            child: SingleChildScrollView(
+                              controller: _scrollController,
+                              padding: const EdgeInsets.only(top: 8),
+                              child: _buildSelectionGrid(
+                                items: _filteredTagItems,
+                                selected: _selected,
+                                onToggle: _toggleTag,
+                              ),
+                            ),
                           ),
                         ),
                       ),
@@ -707,6 +726,7 @@ class LifestylesSelectionScreen extends StatefulWidget {
 
 class _LifestylesSelectionScreenState extends State<LifestylesSelectionScreen> {
   final TextEditingController _searchController = TextEditingController();
+  final ScrollController _scrollController = ScrollController();
   String _searchQuery = '';
   late List<int> _selected;
   late List<Lifestyle> _items;
@@ -843,6 +863,7 @@ class _LifestylesSelectionScreenState extends State<LifestylesSelectionScreen> {
   void dispose() {
     _searchController.removeListener(_onSearchChanged);
     _searchController.dispose();
+    _scrollController.dispose();
     super.dispose();
   }
 
@@ -877,12 +898,33 @@ class _LifestylesSelectionScreenState extends State<LifestylesSelectionScreen> {
                 const SizedBox(height: 16),
                 Expanded(
                   child: _gridItems.isEmpty
-                      ? _SelectionEmptyState(query: _searchQuery)
-                      : SingleChildScrollView(
-                          child: Column(
-                            children: _buildCategorySections(),
+                    ? _SelectionEmptyState(query: _searchQuery)
+                    : ScrollbarTheme(
+                        data: ScrollbarThemeData(
+                          thumbColor: WidgetStateProperty.all(
+                            const Color(0xFF5CE1E6).withValues(alpha: 0.7),
+                          ),
+                          trackColor: WidgetStateProperty.all(
+                            Colors.grey.shade300,
+                          ),
+                          trackBorderColor: WidgetStateProperty.all(
+                            Colors.grey.shade400,
                           ),
                         ),
+                        child: Scrollbar(
+                          controller: _scrollController,
+                          thumbVisibility: true,
+                          thickness: 4,
+                          radius: const Radius.circular(8),
+                          interactive: true,
+                          child: SingleChildScrollView(
+                            controller: _scrollController,
+                            child: Column(
+                              children: _buildCategorySections(),
+                            ),
+                          ),
+                        ),
+                      ),
                 ),
                 const SizedBox(height: 20),
               ],
@@ -929,6 +971,7 @@ class InterestsSelectionScreenWidget extends StatefulWidget {
 class _InterestsSelectionScreenWidgetState
     extends State<InterestsSelectionScreenWidget> {
   final TextEditingController _searchController = TextEditingController();
+  final ScrollController _scrollController = ScrollController();
   String _searchQuery = '';
   late List<int> _selected;
 
@@ -1041,6 +1084,7 @@ class _InterestsSelectionScreenWidgetState
   void dispose() {
     _searchController.removeListener(_onSearchChanged);
     _searchController.dispose();
+    _scrollController.dispose();
     super.dispose();
   }
 
@@ -1075,12 +1119,33 @@ class _InterestsSelectionScreenWidgetState
                 const SizedBox(height: 16),
                 Expanded(
                   child: _gridItems.isEmpty
-                      ? _SelectionEmptyState(query: _searchQuery)
-                      : SingleChildScrollView(
-                          child: Column(
-                            children: _buildCategorySections(),
+                    ? _SelectionEmptyState(query: _searchQuery)
+                    : ScrollbarTheme(
+                        data: ScrollbarThemeData(
+                          thumbColor: WidgetStateProperty.all(
+                            const Color(0xFF5CE1E6).withValues(alpha: 0.7),
+                          ),
+                          trackColor: WidgetStateProperty.all(
+                            Colors.grey.shade300,
+                          ),
+                          trackBorderColor: WidgetStateProperty.all(
+                            Colors.grey.shade400,
                           ),
                         ),
+                        child: Scrollbar(
+                          controller: _scrollController,
+                          thumbVisibility: true,
+                          thickness: 4,
+                          radius: const Radius.circular(8),
+                          interactive: true,
+                          child: SingleChildScrollView(
+                            controller: _scrollController,
+                            child: Column(
+                              children: _buildCategorySections(),
+                            ),
+                          ),
+                        ),
+                      ),
                 ),
                 const SizedBox(height: 20),
               ],

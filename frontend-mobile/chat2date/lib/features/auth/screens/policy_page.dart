@@ -1,5 +1,6 @@
 import 'package:chat2date/components/design_system/index.dart';
 import 'package:chat2date/core/theme/app_colors.dart';
+import 'package:chat2date/core/theme/tokens/colors/text_colors.dart';
 import 'package:flutter/material.dart';
 
 class PolicyPage extends StatefulWidget {
@@ -61,6 +62,7 @@ class _PolicyPageState extends State<PolicyPage> {
                 variant: DsAppSecondaryHeaderVariant.baseText,
                 title: 'ข้อตกลง',
                 onBackTap: () => Navigator.pop(context),
+                showBottomBorder: true,
               ),
 
               // ─── Policy Content ─────────────────────
@@ -168,42 +170,12 @@ class _PolicyPageState extends State<PolicyPage> {
               // ─── Checkbox ───────────────────────────
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 40),
-                child: Row(
-                  children: [
-                    SizedBox(
-                      width: 22,
-                      height: 23,
-                      child: Checkbox(
-                        value: _accepted,
-                        onChanged: _unlocked
-                            ? (v) => setState(() => _accepted = v ?? false)
-                            : null,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(20),
-                        ),
-                        side: BorderSide(
-                          width: 1,
-                          color: _unlocked
-                              ? AppColors.brandPrimary
-                              : const Color(0xFFB9B9B9),
-                        ),
-                        activeColor: AppColors.brandPrimary,
-                        materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                      ),
-                    ),
-                    const SizedBox(width: 11),
-                    Text(
-                      'ยินยอมนโยบายทั้งหมด',
-                      style: TextStyle(
-                        color: _unlocked
-                            ? Colors.black
-                            : const Color(0xFFB8B8B8),
-                        fontSize: 14,
-                        fontFamily: 'Inter',
-                        fontWeight: FontWeight.w400,
-                      ),
-                    ),
-                  ],
+                child: _PolicyAcceptanceRadio(
+                  value: _accepted,
+                  enabled: _unlocked,
+                  onTap: _unlocked
+                      ? () => setState(() => _accepted = !_accepted)
+                      : null,
                 ),
               ),
 
@@ -232,6 +204,72 @@ class _PolicyPageState extends State<PolicyPage> {
             ],
           ),
         ),
+      ),
+    );
+  }
+}
+
+class _PolicyAcceptanceRadio extends StatelessWidget {
+  const _PolicyAcceptanceRadio({
+    required this.value,
+    required this.enabled,
+    required this.onTap,
+  });
+
+  final bool value;
+  final bool enabled;
+  final VoidCallback? onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final Color borderColor = enabled
+        ? const Color(0xFF2D2D2D)
+        : const Color(0xFFB9B9B9);
+    final Color textColor = enabled
+        ? TextColors.secondary
+        : TextColors.disabled;
+
+    return InkWell(
+      onTap: onTap,
+      splashColor: Colors.transparent,
+      highlightColor: Colors.transparent,
+      child: Row(
+        children: [
+          Container(
+            width: 22,
+            height: 23,
+            decoration: BoxDecoration(
+              color: Colors.white,
+              shape: BoxShape.circle,
+              border: Border.all(color: borderColor),
+            ),
+            child: value
+                ? const Center(
+                    child: SizedBox(
+                      width: 8,
+                      height: 8,
+                      child: DecoratedBox(
+                        decoration: BoxDecoration(
+                          color: Color(0xFF2D2D2D),
+                          shape: BoxShape.circle,
+                        ),
+                      ),
+                    ),
+                  )
+                : null,
+          ),
+          const SizedBox(width: 11),
+          Text(
+            'ยินยอมนโยบายทั้งหมด',
+            style: TextStyle(
+              color: textColor,
+              fontSize: 14,
+              fontFamily: 'Inter',
+              fontWeight: FontWeight.w400,
+              height: 20 / 14,
+            ),
+          ),
+        ],
       ),
     );
   }

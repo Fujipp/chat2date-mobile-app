@@ -23,6 +23,7 @@ class ProfileSetupScreen extends ConsumerStatefulWidget {
 
 class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
   final _nicknameCtrl = TextEditingController();
+  final _scrollController = ScrollController();
 
   List<Travelstyle> _travelStyles = [];
   List<Lifestyle> _lifeStyles = [];
@@ -58,6 +59,7 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
     _nicknameCtrl
       ..removeListener(_refresh)
       ..dispose();
+    _scrollController.dispose();
     super.dispose();
   }
 
@@ -338,7 +340,7 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
       await userService.addPreferenceUser(preference);
 
       if (!mounted) return;
-      Navigator.pushReplacementNamed(context, '/matchPreference');
+      Navigator.pushNamed(context, '/matchPreference');
     } catch (e) {
       if (!mounted) return;
       Toast.show(
@@ -357,6 +359,7 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
       builder: (context, constraints) {
         const spacing = 8.0;
         final itemWidth = (constraints.maxWidth - spacing) / 2;
+        final isAtMax = _selectedTravelStyles.length >= 3;
 
         return Wrap(
           spacing: spacing,
@@ -364,9 +367,12 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
           children: List.generate(_travelStyles.length, (index) {
             final item = _travelStyles[index];
             final selected = _selectedTravelStyles.contains(index);
+            final disabled = !selected && isAtMax;
 
             return GestureDetector(
-              onTap: () {
+              onTap: disabled
+                  ? null
+                  : () {
                 setState(() {
                   if (selected) {
                     _selectedTravelStyles.remove(index);
@@ -381,7 +387,11 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
                 padding: const EdgeInsets.symmetric(horizontal: 12),
                 decoration: BoxDecoration(
                   gradient: selected ? AppGradients.themeApp2 : null,
-                  color: selected ? null : InputColors.background,
+                  color: selected
+                      ? null
+                      : disabled
+                          ? InputColors.backgroundDisabled
+                          : InputColors.background,
                   border: selected
                       ? null
                       : Border.all(color: InputColors.border, width: 1),
@@ -413,7 +423,9 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
                         ).copyWith(
                           color: selected
                               ? TextColors.secondary
-                              : TextColors.supportText,
+                              : disabled
+                                  ? TextColors.disabled
+                                  : TextColors.supportText,
                         ),
                       ),
                     ),
@@ -444,74 +456,113 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
                     variant: DsAppSecondaryHeaderVariant.baseText,
                     title: 'ข้อมูลส่วนตัว',
                     leading: const SizedBox(width: 40, height: 40),
+                    showBottomBorder: true,
                   ),
                   Expanded(
-                    child: SingleChildScrollView(
-                      padding: const EdgeInsets.fromLTRB(40, 10, 40, 24),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          DsTextField(
-                            label: 'ชื่อเล่น',
-                            required: true,
-                            controller: _nicknameCtrl,
-                            labelFontSize: 16,
-                            inputFontSize: 14,
-                            contentPadding: const EdgeInsets.symmetric(
-                              horizontal: 16,
-                              vertical: 12,
-                            ),
-                          ),
-                          const SizedBox(height: 20),
-                          _buildSelectionSummaryField(
-                            label: 'ไลฟ์สไตล์',
-                            required: true,
-                            selectedLabels: _selectedLifestyles
-                                .map((i) => _lifeStyles[i].lifestyle)
-                                .toList(),
-                            onTap: _pickLifestyles,
-                          ),
-                          const SizedBox(height: 20),
-                          _buildSelectionSummaryField(
-                            label: 'สิ่งที่สนใจ',
-                            required: true,
-                            selectedLabels: _selectedInterests
-                                .map((i) => _interests[i].interest)
-                                .toList(),
-                            onTap: _pickInterests,
-                          ),
-                          const SizedBox(height: 20),
-                          _buildSelectionSummaryField(
-                            label: 'Tags (ไม่บังคับ)',
-                            required: false,
-                            selectedLabels: _selectedTags
-                                .map((i) => _tags[i].tag)
-                                .toList(),
-                            onTap: _pickTags,
-                          ),
-                          const SizedBox(height: 20),
-                          Text(
-                            'สไตล์การท่องเที่ยว',
-                            style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                                  color: const Color(0xFF2F3036),
-                                  fontWeight: FontWeight.w600,
-                                  fontSize: 16,
-                                  height: 22 / 16,
+                    child: ScrollbarTheme(
+                      data: ScrollbarThemeData(
+                        thumbColor: WidgetStateProperty.all(
+                          const Color(0xFF5CE1E6).withValues(alpha: 0.7),
+                        ),
+                        trackColor: WidgetStateProperty.all(
+                          Colors.grey.shade300,
+                        ),
+                        trackBorderColor: WidgetStateProperty.all(
+                          Colors.grey.shade400,
+                        ),
+                      ),
+                        child: Scrollbar(
+                          controller: _scrollController,
+                          thumbVisibility: true,
+                          thickness: 4,
+                          radius: const Radius.circular(8),
+                          interactive: true,
+                        child: SingleChildScrollView(
+                          controller: _scrollController,
+                          padding: const EdgeInsets.fromLTRB(40, 10, 40, 24),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              DsTextField(
+                                label: 'ชื่อเล่น',
+                                required: true,
+                                controller: _nicknameCtrl,
+                                labelFontSize: 16,
+                                inputFontSize: 14,
+                                contentPadding: const EdgeInsets.symmetric(
+                                  horizontal: 16,
+                                  vertical: 12,
                                 ),
+                              ),
+                              const SizedBox(height: 20),
+                              _buildSelectionSummaryField(
+                                label: 'ไลฟ์สไตล์',
+                                required: true,
+                                selectedLabels: _selectedLifestyles
+                                    .map((i) => _lifeStyles[i].lifestyle)
+                                    .toList(),
+                                onTap: _pickLifestyles,
+                              ),
+                              const SizedBox(height: 20),
+                              _buildSelectionSummaryField(
+                                label: 'สิ่งที่สนใจ',
+                                required: true,
+                                selectedLabels: _selectedInterests
+                                    .map((i) => _interests[i].interest)
+                                    .toList(),
+                                onTap: _pickInterests,
+                              ),
+                              const SizedBox(height: 20),
+                              _buildSelectionSummaryField(
+                                label: 'Tags (ไม่บังคับ)',
+                                required: false,
+                                selectedLabels: _selectedTags
+                                    .map((i) => _tags[i].tag)
+                                    .toList(),
+                                onTap: _pickTags,
+                              ),
+                              const SizedBox(height: 20),
+                              Text(
+                                'สไตล์การท่องเที่ยว',
+                                style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                                      color: const Color(0xFF2F3036),
+                                      fontWeight: FontWeight.w600,
+                                      fontSize: 16,
+                                      height: 22 / 16,
+                                    ),
+                              ),
+                              const SizedBox(height: 8),
+                              Row(
+                                children: [
+                                  Text(
+                                    _selectedTravelStyles.length >= 2
+                                        ? 'เลือกแล้ว ${_selectedTravelStyles.length}/3 รายการ'
+                                        : 'เลือกเพิ่มอีก ${2 - _selectedTravelStyles.length} รายการ',
+                                    style: TextStyle(
+                                      color: _selectedTravelStyles.length >= 2
+                                          ? TextColors.supportText
+                                          : AppColors.brandSecondary,
+                                      fontSize: 13,
+                                      fontWeight: FontWeight.w500,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 8),
+                              _buildTravelStyleGrid(),
+                              const SizedBox(height: 24),
+                              Center(
+                                child: DsButton(
+                                  width: 231,
+                                  label: 'ไปหน้าถัดไป',
+                                  onPressed: (_canSubmit && !_saving) ? _submit : null,
+                                  variant: DsButtonVariant.outlinePrimary,
+                                  size: DsButtonSize.md,
+                                ),
+                              ),
+                            ],
                           ),
-                          const SizedBox(height: 8),
-                          _buildTravelStyleGrid(),
-                          const SizedBox(height: 24),
-                          Center(
-                            child: DsButton(
-                              width: 231,
-                              label: 'ไปหน้าถัดไป',
-                              onPressed: (_canSubmit && !_saving) ? _submit : null,
-                              variant: DsButtonVariant.outlinePrimary,
-                              size: DsButtonSize.md,
-                            ),
-                          ),
-                        ],
+                        ),
                       ),
                     ),
                   ),
