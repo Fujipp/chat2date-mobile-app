@@ -50,7 +50,6 @@ public class JwtAuthFilter extends OncePerRequestFilter {
         String matchUser2 = null;
         String path = request.getRequestURI();
 
-        // ✅ Skip JWT validation สำหรับ endpoint ที่ไม่ต้องการ authentication
         if (path.startsWith("/api/v1/auth") ||
                 path.startsWith("/api/v1/preferences") ||
                 path.equals("/api/v1/users/phone") ||
@@ -62,8 +61,6 @@ public class JwtAuthFilter extends OncePerRequestFilter {
 
         if (requestTokenHeader != null && requestTokenHeader.startsWith("Bearer ")) {
             jwtToken = requestTokenHeader.substring(7);
-
-            // ✅ เช็คว่า token ไม่เป็น empty string
             if (jwtToken.isEmpty()) {
                 sendErrorResponse(response, "Empty token", request, HttpStatus.UNAUTHORIZED);
                 return;

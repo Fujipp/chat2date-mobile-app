@@ -8,6 +8,8 @@ import 'package:flutter/foundation.dart' show debugPrint;
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:http/http.dart' as http;
+import 'package:http_parser/http_parser.dart';
+import 'package:chat2date/services/authenticated_client.dart';
 
 final kycRemoteServiceProvider = Provider(
   (ref) => KycRemoteService(ref as WidgetRef),
@@ -27,15 +29,10 @@ class KycRemoteService {
     final uri = Uri.parse('${ApiBase.baseUrl}/kyc/ocr/crop-id-face');
     debugPrint('[KYC] POST $uri');
 
-    final userState = ref.read(userStoreProvider);
-    final accessToken = "${userState['accessToken']}";
-
-    final res = await http.post(
+    final client = ref.read(authenticatedClientProvider);
+    final res = await client.post(
       uri,
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': accessToken,
-      },
+      headers: {'Content-Type': 'application/json'},
       body: jsonEncode({'idFrontBase64': idFrontBase64}),
     );
 

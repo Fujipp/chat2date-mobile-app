@@ -7,7 +7,7 @@ import 'package:chat2date/stores/user_store.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart' show debugPrint, kIsWeb;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:http/http.dart' as http;
+import 'package:chat2date/services/authenticated_client.dart';
 
 final fcmTokenServiceProvider = Provider(
   (ref) => FcmTokenService(ref),
@@ -91,13 +91,10 @@ class FcmTokenService {
     final uri = Uri.parse('${ApiBase.baseUrl}/device-tokens/register');
     debugPrint('[FCM] POST $uri body=$body');
 
-    final res = await http.post(
+    final client = ref.read(authenticatedClientProvider);
+    final res = await client.post(
       uri,
-      headers: {
-        'Content-Type': 'application/json',
-        // ถ้า endpoint ยังไม่เช็ค JWT จะใส่/ไม่ใส่ก็ได้
-        'Authorization': 'Bearer $accessToken',
-      },
+      headers: {'Content-Type': 'application/json'},
       body: jsonEncode(body),
     );
 
@@ -153,12 +150,10 @@ class FcmTokenService {
     final uri = Uri.parse('${ApiBase.baseUrl}/device-tokens/remove');
     debugPrint('[FCM] POST $uri body=$body');
 
-    final res = await http.post(
+    final client = ref.read(authenticatedClientProvider);
+    final res = await client.post(
       uri,
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': 'Bearer $accessToken',
-      },
+      headers: {'Content-Type': 'application/json'},
       body: jsonEncode(body),
     );
 

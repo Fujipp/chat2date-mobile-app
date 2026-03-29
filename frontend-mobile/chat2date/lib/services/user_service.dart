@@ -4,6 +4,7 @@ import 'package:chat2date/config/backend_base.dart';
 import 'package:chat2date/models/user.dart';
 import 'package:chat2date/services/auth_service.dart';
 import 'package:chat2date/stores/user_store.dart';
+import 'package:chat2date/services/authenticated_client.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:http/http.dart' as http;
 import 'package:riverpod_annotation/riverpod_annotation.dart';
@@ -20,39 +21,32 @@ class UserService {
   UserService(this.ref);
 
   Future<User?> getUser(String id) async {
-    final userState = ref.read(userStoreProvider);
-    final accessToken = "${userState['accessToken']}";
+    final client = ref.read(authenticatedClientProvider);
 
-    final response = await http.get(
+    final response = await client.get(
       Uri.parse('${ApiBase.baseUrl}/users/$id'),
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': 'Bearer $accessToken',
-      },
+      headers: {'Content-Type': 'application/json'},
     );
 
     if (response.statusCode != 200) {
-      throw Exception('Update failed: ${response.body}');
+      throw Exception('Load failed: ${response.statusCode} - ${response.body}');
     }
 
     final data = jsonDecode(response.body);
     final currentUser = User.fromJson(data);
     final userStoreNotifier = ref.read(userStoreProvider.notifier);
-    userStoreNotifier.setUser(currentUser, accessToken);
+    final userState = ref.read(userStoreProvider);
+    userStoreNotifier.setUser(currentUser, "${userState['accessToken']}");
 
     return User.fromJson(data);
   }
 
   Future<User> updateUser(User user) async {
-    final userState = ref.read(userStoreProvider);
-    final accessToken = "${userState['accessToken']}";
+    final client = ref.read(authenticatedClientProvider);
 
-    final response = await http.put(
+    final response = await client.put(
       Uri.parse('${ApiBase.baseUrl}/users/${user.userId}'),
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': 'Bearer $accessToken',
-      },
+      headers: {'Content-Type': 'application/json'},
       body: jsonEncode(user.toJson()),
     );
 
@@ -63,25 +57,23 @@ class UserService {
     final data = jsonDecode(response.body);
     final updatedUser = User.fromJson(data);
     final userStoreNotifier = ref.read(userStoreProvider.notifier);
-    userStoreNotifier.setUser(updatedUser, accessToken);
+    final userState = ref.read(userStoreProvider);
+    userStoreNotifier.setUser(updatedUser, "${userState['accessToken']}");
     return updatedUser;
   }
 
   Future<bool> deleteUser() async {
     try {
-      final accessToken = ref.read(userStoreProvider.notifier).accessToken;
       final user = ref.read(userStoreProvider.notifier).user;
 
-      if (accessToken == null || user == null) {
+      if (user == null) {
         throw Exception('User not logged in');
       }
 
-      final response = await http.delete(
+      final client = ref.read(authenticatedClientProvider);
+      final response = await client.delete(
         Uri.parse('${ApiBase.baseUrl}/users/${user.userId}'),
-        headers: {
-          'Authorization': 'Bearer $accessToken',
-          'Content-Type': 'application/json',
-        },
+        headers: {'Content-Type': 'application/json'},
       );
 
       if (response.statusCode == 204) {
@@ -101,19 +93,16 @@ class UserService {
 
   Future<void> restoreUser() async {
     try {
-      final accessToken = ref.read(userStoreProvider.notifier).accessToken;
       final user = ref.read(userStoreProvider.notifier).user;
 
-      if (accessToken == null || user == null) {
+      if (user == null) {
         throw Exception('User not logged in');
       }
 
-      final response = await http.post(
+      final client = ref.read(authenticatedClientProvider);
+      final response = await client.post(
         Uri.parse('${ApiBase.baseUrl}/users/${user.userId}/restore'),
-        headers: {
-          'Authorization': 'Bearer $accessToken',
-          'Content-Type': 'application/json',
-        },
+        headers: {'Content-Type': 'application/json'},
       );
 
       if (response.statusCode == 200) {
@@ -130,15 +119,11 @@ class UserService {
   Future<Map<String, dynamic>> addPreferenceUser(
     Map<String, Object> preference,
   ) async {
-    final userState = ref.read(userStoreProvider);
-    final accessToken = "${userState['accessToken']}";
+    final client = ref.read(authenticatedClientProvider);
 
-    final response = await http.post(
+    final response = await client.post(
       Uri.parse('${ApiBase.baseUrl}/users/preference'),
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': 'Bearer $accessToken',
-      },
+      headers: {'Content-Type': 'application/json'},
       body: jsonEncode(preference),
     );
 
@@ -153,15 +138,11 @@ class UserService {
   Future<Map<String, dynamic>> addPreferenceMatchUser(
     Map<String, Object> preferenceMatch,
   ) async {
-    final userState = ref.read(userStoreProvider);
-    final accessToken = "${userState['accessToken']}";
+    final client = ref.read(authenticatedClientProvider);
 
-    final response = await http.post(
+    final response = await client.post(
       Uri.parse('${ApiBase.baseUrl}/users/preferenceMatch'),
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': 'Bearer $accessToken',
-      },
+      headers: {'Content-Type': 'application/json'},
       body: jsonEncode(preferenceMatch),
     );
 
@@ -198,18 +179,14 @@ class UserService {
   }
 
   Future<Map<String, dynamic>> getProfile() async {
-    final userState = ref.read(userStoreProvider);
     final userStore = ref.read(userStoreProvider) as Map<String, dynamic>?;
     final user = userStore?['user'] as User;
     final userId = user.userId;
 
-    final accessToken = "${userState['accessToken']}";
-    final response = await http.get(
+    final client = ref.read(authenticatedClientProvider);
+    final response = await client.get(
       Uri.parse('${ApiBase.baseUrl}/users/$userId/profile'),
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': 'Bearer $accessToken',
-      },
+      headers: {'Content-Type': 'application/json'},
     );
 
     if (response.statusCode == 200) {
