@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'dart:typed_data';
 
 import 'package:chat2date/core/config/backend_base.dart';
+import 'package:chat2date/core/utils/authenticated_client.dart';
 import 'package:chat2date/stores/user_store.dart';
 import 'package:flutter/foundation.dart' show debugPrint;
 import 'package:flutter_dotenv/flutter_dotenv.dart';
@@ -24,18 +25,12 @@ class KycRemoteService {
   }
 
   Future<Map<String, dynamic>> cropFaceFromIdFront(String idFrontBase64) async {
+    final client = ref.read(authenticatedClientProvider);
     final uri = Uri.parse('${ApiBase.baseUrl}/kyc/ocr/crop-id-face');
     debugPrint('[KYC] POST $uri');
 
-    final userState = ref.read(userStoreProvider);
-    final accessToken = "${userState['accessToken']}";
-
-    final res = await http.post(
+    final res = await client.post(
       uri,
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': accessToken,
-      },
       body: jsonEncode({'idFrontBase64': idFrontBase64}),
     );
 
@@ -61,7 +56,6 @@ class KycRemoteService {
       final request = http.MultipartRequest('POST', uri);
 
       // ดึง API Key จาก header
-      final userState = ref.read(userStoreProvider);
       request.headers['apikey'] = dotenv.env['IAPP_FACE_VERIFY_API_KEY'] ?? '';
 
       // แปลง selfieBytes และ idFaceBase64 จาก Base64 string เป็น Uint8List

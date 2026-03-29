@@ -1,6 +1,7 @@
 import 'dart:convert';
 
 import 'package:chat2date/core/config/backend_base.dart';
+import 'package:chat2date/core/utils/authenticated_client.dart';
 import 'package:chat2date/models/user.dart';
 import 'package:chat2date/services/auth_service.dart';
 import 'package:chat2date/stores/user_store.dart';
@@ -20,15 +21,10 @@ class UserService {
   UserService(this.ref);
 
   Future<User?> getUser(String id) async {
-    final userState = ref.read(userStoreProvider);
-    final accessToken = "${userState['accessToken']}";
+    final client = ref.read(authenticatedClientProvider);
 
-    final response = await http.get(
+    final response = await client.get(
       Uri.parse('${ApiBase.baseUrl}/users/$id'),
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': 'Bearer $accessToken',
-      },
     );
 
     if (response.statusCode != 200) {
@@ -37,6 +33,9 @@ class UserService {
 
     final data = jsonDecode(response.body);
     final currentUser = User.fromJson(data);
+    
+    // ดึง accessToken ล่าสุดจาก store (เผื่อถูก refresh ไปแล้ว)
+    final accessToken = ref.read(userStoreProvider.notifier).accessToken ?? '';
     final userStoreNotifier = ref.read(userStoreProvider.notifier);
     userStoreNotifier.setUser(currentUser, accessToken);
 
@@ -44,15 +43,10 @@ class UserService {
   }
 
   Future<User> updateUser(User user) async {
-    final userState = ref.read(userStoreProvider);
-    final accessToken = "${userState['accessToken']}";
+    final client = ref.read(authenticatedClientProvider);
 
-    final response = await http.put(
+    final response = await client.put(
       Uri.parse('${ApiBase.baseUrl}/users/${user.userId}'),
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': 'Bearer $accessToken',
-      },
       body: jsonEncode(user.toJson()),
     );
 
@@ -62,26 +56,25 @@ class UserService {
 
     final data = jsonDecode(response.body);
     final updatedUser = User.fromJson(data);
+    
+    final accessToken = ref.read(userStoreProvider.notifier).accessToken ?? '';
     final userStoreNotifier = ref.read(userStoreProvider.notifier);
     userStoreNotifier.setUser(updatedUser, accessToken);
+    
     return updatedUser;
   }
 
   Future<bool> deleteUser() async {
     try {
-      final accessToken = ref.read(userStoreProvider.notifier).accessToken;
       final user = ref.read(userStoreProvider.notifier).user;
+      final client = ref.read(authenticatedClientProvider);
 
-      if (accessToken == null || user == null) {
+      if (user == null) {
         throw Exception('User not logged in');
       }
 
-      final response = await http.delete(
+      final response = await client.delete(
         Uri.parse('${ApiBase.baseUrl}/users/${user.userId}'),
-        headers: {
-          'Authorization': 'Bearer $accessToken',
-          'Content-Type': 'application/json',
-        },
       );
 
       if (response.statusCode == 204) {
@@ -101,19 +94,15 @@ class UserService {
 
   Future<void> restoreUser() async {
     try {
-      final accessToken = ref.read(userStoreProvider.notifier).accessToken;
       final user = ref.read(userStoreProvider.notifier).user;
+      final client = ref.read(authenticatedClientProvider);
 
-      if (accessToken == null || user == null) {
+      if (user == null) {
         throw Exception('User not logged in');
       }
 
-      final response = await http.post(
+      final response = await client.post(
         Uri.parse('${ApiBase.baseUrl}/users/${user.userId}/restore'),
-        headers: {
-          'Authorization': 'Bearer $accessToken',
-          'Content-Type': 'application/json',
-        },
       );
 
       if (response.statusCode == 200) {
@@ -130,15 +119,10 @@ class UserService {
   Future<Map<String, dynamic>> addPreferenceUser(
     Map<String, Object> preference,
   ) async {
-    final userState = ref.read(userStoreProvider);
-    final accessToken = "${userState['accessToken']}";
+    final client = ref.read(authenticatedClientProvider);
 
-    final response = await http.post(
+    final response = await client.post(
       Uri.parse('${ApiBase.baseUrl}/users/preference'),
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': 'Bearer $accessToken',
-      },
       body: jsonEncode(preference),
     );
 
@@ -153,15 +137,10 @@ class UserService {
   Future<Map<String, dynamic>> addPreferenceMatchUser(
     Map<String, Object> preferenceMatch,
   ) async {
-    final userState = ref.read(userStoreProvider);
-    final accessToken = "${userState['accessToken']}";
+    final client = ref.read(authenticatedClientProvider);
 
-    final response = await http.post(
+    final response = await client.post(
       Uri.parse('${ApiBase.baseUrl}/users/preferenceMatch'),
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': 'Bearer $accessToken',
-      },
       body: jsonEncode(preferenceMatch),
     );
 
@@ -173,6 +152,7 @@ class UserService {
     return data;
   }
 
+  // checkPhone ไม่เรียกผ่าน client ที่มี header เพราะยังไม่ login
   static Future<bool> checkPhone(String phone) async {
     final response = await http.post(
       Uri.parse('${ApiBase.baseUrl}/users/phone'),
@@ -198,27 +178,24 @@ class UserService {
   }
 
   Future<Map<String, dynamic>> getProfile() async {
-    final userState = ref.read(userStoreProvider);
     final userStore = ref.read(userStoreProvider) as Map<String, dynamic>?;
-    final user = userStore?['user'] as User;
+    final user = userStore?['user'] as User?;
+    final client = ref.read(authenticatedClientProvider);
+    
+    if (user == null) throw Exception('User not logged in');
     final userId = user.userId;
 
-    final accessToken = "${userState['accessToken']}";
-    final response = await http.get(
+    final response = await client.get(
       Uri.parse('${ApiBase.baseUrl}/users/$userId/profile'),
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': 'Bearer $accessToken',
-      },
     );
 
     if (response.statusCode == 200) {
       final data = jsonDecode(response.body);
       ref
           .read(userStoreProvider.notifier)
-          .setCardFaceBytes(data?['base64Card']);
-      ref.read(userStoreProvider.notifier).setProfile(data);
-      return data;
+          .setCardFaceBytes(data?['base64Card'] ?? '');
+      ref.read(userStoreProvider.notifier).setProfile(data ?? {});
+      return data ?? {};
     }
 
     // error อื่นที่ไม่คาดคิด

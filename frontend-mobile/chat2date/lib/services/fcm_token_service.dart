@@ -3,11 +3,11 @@ import 'dart:convert';
 import 'dart:io' show Platform;
 
 import 'package:chat2date/core/config/backend_base.dart';
+import 'package:chat2date/core/utils/authenticated_client.dart';
 import 'package:chat2date/stores/user_store.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart' show debugPrint, kIsWeb;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:http/http.dart' as http;
 
 final fcmTokenServiceProvider = Provider(
   (ref) => FcmTokenService(ref),
@@ -57,11 +57,11 @@ class FcmTokenService {
 
   final userState = ref.read(userStoreProvider);
   final user = userState['user'];
-  final accessToken = userState['accessToken'] as String?;
+  
+  // ให้ client เป็นตัวจัดการเรื่อง auth เอง
+  final client = ref.read(authenticatedClientProvider);
 
-  debugPrint('[FCM] user = $user, accessToken = ${accessToken != null}');
-
-  if (user == null || accessToken == null) {
+  if (user == null) {
     throw Exception('User not logged in');
   }
 
@@ -91,13 +91,8 @@ class FcmTokenService {
     final uri = Uri.parse('${ApiBase.baseUrl}/device-tokens/register');
     debugPrint('[FCM] POST $uri body=$body');
 
-    final res = await http.post(
+    final res = await client.post(
       uri,
-      headers: {
-        'Content-Type': 'application/json',
-        // ถ้า endpoint ยังไม่เช็ค JWT จะใส่/ไม่ใส่ก็ได้
-        'Authorization': 'Bearer $accessToken',
-      },
       body: jsonEncode(body),
     );
 
@@ -127,9 +122,10 @@ class FcmTokenService {
   Future<void> removeDeviceToken() async {
     final userState = ref.read(userStoreProvider);
     final user = userState['user'];
-    final accessToken = userState['accessToken'] as String?;
+    
+    final client = ref.read(authenticatedClientProvider);
 
-    if (user == null || accessToken == null) {
+    if (user == null) {
       throw Exception('User not logged in');
     }
 
@@ -153,12 +149,8 @@ class FcmTokenService {
     final uri = Uri.parse('${ApiBase.baseUrl}/device-tokens/remove');
     debugPrint('[FCM] POST $uri body=$body');
 
-    final res = await http.post(
+    final res = await client.post(
       uri,
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': 'Bearer $accessToken',
-      },
       body: jsonEncode(body),
     );
 

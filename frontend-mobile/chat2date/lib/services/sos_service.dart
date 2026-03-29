@@ -1,9 +1,8 @@
 import 'dart:convert';
 
 import 'package:chat2date/core/config/backend_base.dart';
-import 'package:chat2date/stores/user_store.dart';
+import 'package:chat2date/core/utils/authenticated_client.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:http/http.dart' as http;
 
 final sosServiceProvider = Provider<SosService>((ref) {
   return SosService(ref);
@@ -19,18 +18,12 @@ class SosService {
     required double longitude,
     required String calledNumber,
   }) async {
-    final userState = ref.read(userStoreProvider);
-    final accessToken = "${userState['accessToken']}";
-
+    final client = ref.read(authenticatedClientProvider);
     final url = Uri.parse('${ApiBase.baseUrl}/sos/incidents');
 
     try {
-      final response = await http.post(
+      final response = await client.post(
         url,
-        headers: {
-          'Authorization': 'Bearer $accessToken',
-          'Content-Type': 'application/json',
-        },
         body: json.encode({
           'appointmentId': appointmentId,
           'latitude': latitude,

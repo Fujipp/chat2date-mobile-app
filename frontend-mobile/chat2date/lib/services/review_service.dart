@@ -1,9 +1,8 @@
 import 'dart:convert';
 
 import 'package:chat2date/core/config/backend_base.dart';
-import 'package:chat2date/stores/user_store.dart';
+import 'package:chat2date/core/utils/authenticated_client.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:http/http.dart' as http;
 
 final reviewServiceProvider = Provider((ref) => ReviewService(ref));
 
@@ -12,15 +11,10 @@ class ReviewService {
   ReviewService(this.ref);
 
   Future<bool> checkReviewStatus(int appointmentId) async {
-    final userState = ref.read(userStoreProvider);
-    final accessToken = "${userState['accessToken']}";
-
+    final client = ref.read(authenticatedClientProvider);
     final url = Uri.parse('${ApiBase.baseUrl}/dates/reviews/$appointmentId');
 
-    final response = await http.get(
-      url,
-      headers: {'Authorization': 'Bearer $accessToken'},
-    );
+    final response = await client.get(url);
 
     if (response.statusCode == 200) {
       final data = json.decode(utf8.decode(response.bodyBytes));
@@ -36,9 +30,7 @@ class ReviewService {
     bool? wantToContinue,
     bool? wantToUnmatch,
   }) async {
-    final userState = ref.read(userStoreProvider);
-    final accessToken = "${userState['accessToken']}";
-
+    final client = ref.read(authenticatedClientProvider);
     final url = Uri.parse('${ApiBase.baseUrl}/dates/reviews/$appointmentId');
 
     final body = <String, dynamic>{
@@ -51,12 +43,8 @@ class ReviewService {
     print("📤 POST $url");
     print("📦 body: $body");
 
-    final response = await http.post(
+    final response = await client.post(
       url,
-      headers: {
-        'Authorization': 'Bearer $accessToken',
-        'Content-Type': 'application/json',
-      },
       body: json.encode(body),
     );
 

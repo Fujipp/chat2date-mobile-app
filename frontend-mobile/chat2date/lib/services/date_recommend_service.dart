@@ -1,9 +1,8 @@
 import 'dart:convert';
 import 'package:chat2date/core/config/backend_base.dart';
+import 'package:chat2date/core/utils/authenticated_client.dart';
 import 'package:chat2date/models/dto/date_recommend_dto.dart';
-import 'package:chat2date/stores/user_store.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart'; // ✅ ต้องเป็นตัวนี้
-import 'package:http/http.dart' as http;
 
 // ✅ นี่คือ Provider ที่คุณต้องใช้เรียกในหน้า UI
 final dateRecommendProvider = Provider<DateRecommendService>((ref) {
@@ -21,8 +20,7 @@ class DateRecommendService {
     required int range,
     bool forceRefresh = false,
   }) async {
-    final userState = ref.read(userStoreProvider);
-    final accessToken = "${userState['accessToken']}";
+    final client = ref.read(authenticatedClientProvider);
     final queryParams = {
       'mode': mode,
       'range': range.toString(),
@@ -34,13 +32,7 @@ class DateRecommendService {
       '${ApiBase.baseUrl}/dates/recommendations/$roomId',
     ).replace(queryParameters: queryParams);
 
-    final response = await http.get(
-      uri,
-      headers: {
-        'Authorization': 'Bearer $accessToken',
-        'Content-Type': 'application/json',
-      },
-    );
+    final response = await client.get(uri);
 
     if (response.statusCode == 200) {
       // คืนค่าเป็น List ของสถานที่
@@ -60,19 +52,14 @@ class DateRecommendService {
     String mode = 'MIDPOINT',
     String? userTarget,
   }) async {
-    final userState = ref.read(userStoreProvider);
-    final accessToken = "${userState['accessToken']}";
+    final client = ref.read(authenticatedClientProvider);
 
     final url = Uri.parse(
       '${ApiBase.baseUrl}/dates/recommendations/$roomId/confirm',
     );
 
-    final response = await http.put(
+    final response = await client.put(
       url,
-      headers: {
-        'Authorization': 'Bearer $accessToken',
-        'Content-Type': 'application/json',
-      },
       body: jsonEncode({
         'placeName': placeName,
         'action': action,
@@ -88,20 +75,13 @@ class DateRecommendService {
   }
 
   Future<String?> checkConfirmPlace({required String? roomId}) async {
-    final userState = ref.read(userStoreProvider);
-    final accessToken = "${userState['accessToken']}";
+    final client = ref.read(authenticatedClientProvider);
 
     final url = Uri.parse(
       '${ApiBase.baseUrl}/dates/recommendations/$roomId/confirm',
     );
 
-    final response = await http.get(
-      url,
-      headers: {
-        'Authorization': 'Bearer $accessToken',
-        'Content-Type': 'application/json',
-      },
-    );
+    final response = await client.get(url);
 
     if (response.statusCode == 200) {
       final Map<String, dynamic> data = jsonDecode(
@@ -117,21 +97,14 @@ class DateRecommendService {
   Future<Map<String, dynamic>> checkStatusSpin({
     required String? roomId,
   }) async {
-    final userState = ref.read(userStoreProvider);
-    final accessToken = "${userState['accessToken']}";
+    final client = ref.read(authenticatedClientProvider);
 
     final url = Uri.parse(
       '${ApiBase.baseUrl}/dates/recommendations/$roomId/spin-status',
     );
 
     try {
-      final response = await http.get(
-        url,
-        headers: {
-          'Authorization': 'Bearer $accessToken',
-          'Content-Type': 'application/json',
-        },
-      );
+      final response = await client.get(url);
 
       if (response.statusCode == 200) {
         final Map<String, dynamic> data = jsonDecode(
@@ -164,21 +137,14 @@ class DateRecommendService {
   }
 
   Future<void> closeRemoteModal(String roomId) async {
-    final userState = ref.read(userStoreProvider);
-    final accessToken = "${userState['accessToken']}";
+    final client = ref.read(authenticatedClientProvider);
 
     final url = Uri.parse(
       '${ApiBase.baseUrl}/dates/recommendations/$roomId/close-modal',
     );
 
     try {
-      final response = await http.post(
-        url,
-        headers: {
-          'Authorization': 'Bearer $accessToken',
-          'Content-Type': 'application/json', // เพิ่มให้เป็นมาตรฐานเดียวกัน
-        },
-      );
+      final response = await client.post(url);
 
       if (response.statusCode != 200) {
         // ลองแกะ error message จาก backend มาแสดง (ถ้ามี)
@@ -194,20 +160,13 @@ class DateRecommendService {
   }
 
   Future<void> deleteAppointmentAfterCooldown({required String? roomId}) async {
-    final userState = ref.read(userStoreProvider);
-    final accessToken = "${userState['accessToken']}";
+    final client = ref.read(authenticatedClientProvider);
 
     final url = Uri.parse(
       '${ApiBase.baseUrl}/dates/recommendations/$roomId/appointment',
     );
 
-    final response = await http.delete(
-      url,
-      headers: {
-        'Authorization': 'Bearer $accessToken',
-        'Content-Type': 'application/json',
-      },
-    );
+    final response = await client.delete(url);
 
     if (response.statusCode == 204) return;
     if (response.statusCode == 423) {
@@ -217,21 +176,14 @@ class DateRecommendService {
   }
 
   Future<void> triggerSpin(String roomId) async {
-    final userState = ref.read(userStoreProvider);
-    final accessToken = "${userState['accessToken']}";
+    final client = ref.read(authenticatedClientProvider);
 
     final url = Uri.parse(
       '${ApiBase.baseUrl}/dates/recommendations/$roomId/spin',
     );
 
     try {
-      final response = await http.post(
-        url,
-        headers: {
-          'Authorization': 'Bearer $accessToken',
-          'Content-Type': 'application/json',
-        },
-      );
+      final response = await client.post(url);
 
       if (response.statusCode != 200) {
         final errorData = jsonDecode(utf8.decode(response.bodyBytes));

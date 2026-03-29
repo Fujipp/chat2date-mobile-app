@@ -1,6 +1,7 @@
 import 'dart:convert';
 
 import 'package:chat2date/core/config/backend_base.dart';
+import 'package:chat2date/core/utils/authenticated_client.dart';
 import 'package:chat2date/models/chat_access_status.dart';
 import 'package:chat2date/models/chat_message.dart';
 import 'package:chat2date/models/chat_room.dart';
@@ -10,7 +11,6 @@ import 'package:chat2date/models/relationship_bar.dart';
 import 'package:chat2date/models/user.dart' show User;
 import 'package:chat2date/stores/user_store.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:http/http.dart' as http;
 
 /// Provider for ChatService
 final chatServiceProvider = Provider<ChatService>((ref) {
@@ -34,17 +34,9 @@ class ChatService {
   /// ดึงรายการห้องแชททั้งหมดของ user ปัจจุบัน
   /// GET /api/v1/chats/rooms
   Future<List<ChatRoom>> getChatRooms() async {
-    final userState = ref.read(userStoreProvider);
-    final accessToken = "${userState['accessToken']}";
-
+    final client = ref.read(authenticatedClientProvider);
     final uri = Uri.parse('${ApiBase.baseUrl}/chats/rooms');
-    final response = await http.get(
-      uri,
-      headers: {
-        'Authorization': 'Bearer $accessToken',
-        'Content-Type': 'application/json',
-      },
-    );
+    final response = await client.get(uri);
 
     if (response.statusCode == 200) {
       final data = jsonDecode(response.body);
@@ -70,19 +62,13 @@ class ChatService {
     }
 
     final userState = ref.read(userStoreProvider);
-    final accessToken = "${userState['accessToken']}";
     final currentUserId = _currentUserId(userState);
+    final client = ref.read(authenticatedClientProvider);
 
     final uri = Uri.parse(
       '${ApiBase.baseUrl}/chats/$roomId?paginate=$paginate',
     );
-    final response = await http.get(
-      uri,
-      headers: {
-        'Authorization': 'Bearer $accessToken',
-        'Content-Type': 'application/json',
-      },
-    );
+    final response = await client.get(uri);
 
     if (response.statusCode == 200) {
       final data = jsonDecode(response.body);
@@ -106,16 +92,12 @@ class ChatService {
     required String message,
   }) async {
     final userState = ref.read(userStoreProvider);
-    final accessToken = "${userState['accessToken']}";
     final currentUserId = _currentUserId(userState);
+    final client = ref.read(authenticatedClientProvider);
 
     final uri = Uri.parse('${ApiBase.baseUrl}/chats/send');
-    final response = await http.post(
+    final response = await client.post(
       uri,
-      headers: {
-        'Authorization': 'Bearer $accessToken',
-        'Content-Type': 'application/json',
-      },
       body: jsonEncode({'roomId': roomId, 'message': message}),
     );
 
@@ -144,20 +126,16 @@ class ChatService {
   Future<void> enterRoom(String roomId) async {
     print('[ChatService] enterRoom called for roomId=$roomId');
     final userState = ref.read(userStoreProvider);
-    final accessToken = "${userState['accessToken']}";
     final userId = _currentUserId(userState);
     if (userId.isEmpty) {
       throw Exception('ไม่พบข้อมูลผู้ใช้');
     }
 
+    final client = ref.read(authenticatedClientProvider);
     final uri = Uri.parse('${ApiBase.baseUrl}/chats/access');
     print('[ChatService] POST $uri');
-    final response = await http.post(
+    final response = await client.post(
       uri,
-      headers: {
-        'Authorization': 'Bearer $accessToken',
-        'Content-Type': 'application/json',
-      },
       body: jsonEncode({'roomId': roomId, 'userId': userId, 'type': 'ENTER'}),
     );
 
@@ -178,19 +156,15 @@ class ChatService {
   /// PUT /api/v1/chats/access
   Future<void> exitRoom(String roomId) async {
     final userState = ref.read(userStoreProvider);
-    final accessToken = "${userState['accessToken']}";
     final userId = _currentUserId(userState);
     if (userId.isEmpty) {
       return;
     }
 
+    final client = ref.read(authenticatedClientProvider);
     final uri = Uri.parse('${ApiBase.baseUrl}/chats/access');
-    final response = await http.put(
+    final response = await client.put(
       uri,
-      headers: {
-        'Authorization': 'Bearer $accessToken',
-        'Content-Type': 'application/json',
-      },
       body: jsonEncode({'roomId': roomId, 'userId': userId, 'type': 'EXIT'}),
     );
 
@@ -202,16 +176,9 @@ class ChatService {
   /// ดูสถานะสมาชิกในห้อง
   /// GET /api/v1/chats/access/{roomId}
   Future<ChatAccessStatus> getAccessStatus(String roomId) async {
-    final userState = ref.read(userStoreProvider);
-    final accessToken = "${userState['accessToken']}";
+    final client = ref.read(authenticatedClientProvider);
     final uri = Uri.parse('${ApiBase.baseUrl}/chats/access/$roomId');
-    final response = await http.get(
-      uri,
-      headers: {
-        'Authorization': 'Bearer $accessToken',
-        'Content-Type': 'application/json',
-      },
-    );
+    final response = await client.get(uri);
 
     if (response.statusCode == 200) {
       final data = jsonDecode(response.body);
@@ -228,17 +195,10 @@ class ChatService {
   /// ดึงรายการ matches ทั้งหมดของ user ปัจจุบัน
   /// GET /api/v1/matches
   Future<List<Match>> getMatches() async {
-    final userState = ref.read(userStoreProvider);
-    final accessToken = "${userState['accessToken']}";
+    final client = ref.read(authenticatedClientProvider);
 
     final uri = Uri.parse('${ApiBase.baseUrl}/matches');
-    final response = await http.get(
-      uri,
-      headers: {
-        'Authorization': 'Bearer $accessToken',
-        'Content-Type': 'application/json',
-      },
-    );
+    final response = await client.get(uri);
 
     if (response.statusCode == 200) {
       final data = jsonDecode(response.body);
@@ -254,17 +214,9 @@ class ChatService {
   }
 
   Future<RelationshipBar> getRelationshipBar(String roomId) async {
-    final userState = ref.read(userStoreProvider);
-    final accessToken = "${userState['accessToken']}";
-
+    final client = ref.read(authenticatedClientProvider);
     final uri = Uri.parse('${ApiBase.baseUrl}/relationship/$roomId');
-    final response = await http.get(
-      uri,
-      headers: {
-        'Authorization': 'Bearer $accessToken',
-        'Content-Type': 'application/json',
-      },
-    );
+    final response = await client.get(uri);
 
     if (response.statusCode == 200) {
       final data = jsonDecode(response.body);
@@ -283,16 +235,11 @@ class ChatService {
   }
 
   Future<RelationshipBar> createRelationshipBar(String roomId) async {
-    final userState = ref.read(userStoreProvider);
-    final accessToken = "${userState['accessToken']}";
+    final client = ref.read(authenticatedClientProvider);
 
     final uri = Uri.parse('${ApiBase.baseUrl}/relationship');
-    final response = await http.post(
+    final response = await client.post(
       uri,
-      headers: {
-        'Authorization': 'Bearer $accessToken',
-        'Content-Type': 'application/json',
-      },
       body: jsonEncode({'roomId': roomId}),
     );
 
@@ -309,17 +256,10 @@ class ChatService {
   }
 
   Future<RelationshipBar?> updateRelationshipBar(String roomId) async {
-    final userState = ref.read(userStoreProvider);
-    final accessToken = "${userState['accessToken']}";
+    final client = ref.read(authenticatedClientProvider);
 
     final uri = Uri.parse('${ApiBase.baseUrl}/relationship/$roomId');
-    final response = await http.put(
-      uri,
-      headers: {
-        'Authorization': 'Bearer $accessToken',
-        'Content-Type': 'application/json',
-      },
-    );
+    final response = await client.put(uri);
 
     if (response.statusCode == 200) {
       final data = jsonDecode(response.body);
@@ -339,20 +279,11 @@ class ChatService {
   }
 
   Future<String> checkNotiStatus(String roomId) async {
-    final userState = ref.read(userStoreProvider);
-    final accessToken = "${userState['accessToken']}";
-
-    // ใช้ Query Parameter ?type=...
+    final client = ref.read(authenticatedClientProvider);
     final uri = Uri.parse('${ApiBase.baseUrl}/relationship/check-noti/$roomId');
 
     try {
-      final response = await http.get(
-        uri,
-        headers: {
-          'Authorization': 'Bearer $accessToken',
-          'Content-Type': 'application/json',
-        },
-      );
+      final response = await client.get(uri);
 
       if (response.statusCode == 200) {
         // ลบฟันหนูออกและตัดช่องว่าง
@@ -366,12 +297,10 @@ class ChatService {
   }
 
   Future<void> triggerNotificationUpdate(String roomId) async {
-    final userState = ref.read(userStoreProvider);
-    final accessToken = "${userState['accessToken']}";
-
+    final client = ref.read(authenticatedClientProvider);
     final uri = Uri.parse(
       '${ApiBase.baseUrl}/relationship/$roomId/trigger-notification',
     );
-    await http.patch(uri, headers: {'Authorization': 'Bearer $accessToken'});
+    await client.patch(uri);
   }
 }

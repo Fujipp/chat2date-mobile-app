@@ -1,22 +1,23 @@
 import 'dart:convert';
 
 import 'package:chat2date/core/config/backend_base.dart';
+import 'package:chat2date/core/utils/authenticated_client.dart';
 import 'package:chat2date/models/dto/discovery_dto.dart';
 import 'package:chat2date/models/dto/feedback_response_dto.dart';
-import 'package:chat2date/stores/user_store.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:http/http.dart' as http;
 
 class DiscoveryService {
-  final String? accessToken;
+  final Ref ref;
 
-  DiscoveryService({this.accessToken});
+  DiscoveryService(this.ref);
 
   Future<List<DiscoveryResponse>> getCandidates({
     required String userId,
     int minDistance = 1,
     int maxDistance = 1800,
   }) async {
+    final client = ref.read(authenticatedClientProvider);
+
     try {
       final queryParams = {
         'userId': userId,
@@ -30,13 +31,7 @@ class DiscoveryService {
 
       print('🌐 Fetching: $uri');
 
-      final response = await http.get(
-        uri,
-        headers: {
-          'Content-Type': 'application/json',
-          if (accessToken != null) 'Authorization': 'Bearer $accessToken',
-        },
-      );
+      final response = await client.get(uri);
 
       print('📥 Response status: ${response.statusCode}');
 
@@ -58,6 +53,8 @@ class DiscoveryService {
     required String targetUserId,
     required String action,
   }) async {
+    final client = ref.read(authenticatedClientProvider);
+
     final uri = Uri.parse(
       '${ApiBase.baseUrl}/discovery/feedback',
     ).replace(queryParameters: {'userId': userId});
@@ -65,17 +62,10 @@ class DiscoveryService {
     final body = {'targetUserId': targetUserId, 'action': action};
 
     print('➡️ [Feedback] POST $uri');
-    print(
-      '   headers: ${{'Content-Type': 'application/json', if (accessToken != null) 'Authorization': 'Bearer $accessToken'}}',
-    );
     print('   body   : ${jsonEncode(body)}');
 
-    final res = await http.post(
+    final res = await client.post(
       uri,
-      headers: {
-        'Content-Type': 'application/json',
-        if (accessToken != null) 'Authorization': 'Bearer $accessToken',
-      },
       body: jsonEncode(body),
     );
 
@@ -92,14 +82,7 @@ class DiscoveryService {
 }
 
 final discoveryServiceProvider = Provider<DiscoveryService>((ref) {
-  final userStore = ref.watch(userStoreProvider);
-  final accessToken = userStore['accessToken'] as String?;
-
-  if (accessToken == null) {
-    throw Exception('Access token not found');
-  }
-
-  return DiscoveryService(accessToken: accessToken);
+  return DiscoveryService(ref);
 });
 
 class DiscoveryState {

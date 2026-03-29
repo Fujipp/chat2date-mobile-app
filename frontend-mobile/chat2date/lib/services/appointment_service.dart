@@ -1,10 +1,9 @@
 import 'dart:convert';
 
 import 'package:chat2date/core/config/backend_base.dart';
+import 'package:chat2date/core/utils/authenticated_client.dart';
 import 'package:chat2date/models/appointment.dart';
-import 'package:chat2date/stores/user_store.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:http/http.dart' as http;
 
 /// Provider for AppointmentService
 final appointmentServiceProvider = Provider<AppointmentService>((ref) {
@@ -14,16 +13,6 @@ final appointmentServiceProvider = Provider<AppointmentService>((ref) {
 class AppointmentService {
   final Ref ref;
   AppointmentService(this.ref);
-
-  String _accessToken() {
-    final userState = ref.read(userStoreProvider);
-    return '${userState['accessToken']}';
-  }
-
-  Map<String, String> get _headers => {
-    'Authorization': 'Bearer ${_accessToken()}',
-    'Content-Type': 'application/json',
-  };
 
   String _utcPayloadDateTime(DateTime dateTime) {
     return dateTime.toUtc().toIso8601String().replaceFirst('Z', '');
@@ -37,10 +26,11 @@ class AppointmentService {
     required String placeName,
     required DateTime dateTime,
   }) async {
+    final client = ref.read(authenticatedClientProvider);
     final uri = Uri.parse('${ApiBase.baseUrl}/dates/appointments');
-    final response = await http.post(
+
+    final response = await client.post(
       uri,
-      headers: _headers,
       body: jsonEncode({
         'roomId': roomId,
         'placeId': placeId,
@@ -64,8 +54,10 @@ class AppointmentService {
   /// GET /api/v1/dates/appointments/{roomId}
   /// Returns all appointments for a room. Returns empty list if none.
   Future<List<Appointment>> getAppointments(int roomId) async {
+    final client = ref.read(authenticatedClientProvider);
     final uri = Uri.parse('${ApiBase.baseUrl}/dates/appointments/$roomId');
-    final response = await http.get(uri, headers: _headers);
+
+    final response = await client.get(uri);
 
     if (response.statusCode == 200) {
       final data = jsonDecode(response.body) as Map<String, dynamic>;
@@ -87,13 +79,14 @@ class AppointmentService {
     required int appointmentId,
     required DateTime dateTime,
   }) async {
+    final client = ref.read(authenticatedClientProvider);
     final uri = Uri.parse(
       '${ApiBase.baseUrl}/dates/appointments/$appointmentId',
     );
+
     print(dateTime.toUtc().toIso8601String());
-    final response = await http.put(
+    final response = await client.put(
       uri,
-      headers: _headers,
       body: jsonEncode({
         // ส่งเป็น UTC เพื่อให้ DB เก็บเวลาแบบไม่บวก +7
         'dateTime': _utcPayloadDateTime(dateTime),
@@ -114,10 +107,12 @@ class AppointmentService {
   /// DELETE /api/v1/dates/appointments/{appointmentId}
   /// Deletes an existing appointment
   Future<void> deleteAppointment(int appointmentId) async {
+    final client = ref.read(authenticatedClientProvider);
     final uri = Uri.parse(
       '${ApiBase.baseUrl}/dates/appointments/$appointmentId',
     );
-    final response = await http.delete(uri, headers: _headers);
+
+    final response = await client.delete(uri);
 
     if (response.statusCode == 200) return;
     if (response.statusCode == 401) throw Exception('กรุณาเข้าสู่ระบบใหม่');

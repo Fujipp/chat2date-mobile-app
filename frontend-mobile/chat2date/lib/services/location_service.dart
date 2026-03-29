@@ -2,11 +2,11 @@
 import 'dart:convert';
 
 import 'package:chat2date/core/config/backend_base.dart';
+import 'package:chat2date/core/utils/authenticated_client.dart';
 import 'package:chat2date/stores/user_store.dart';
 import 'package:flutter/foundation.dart' show debugPrint;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:geolocator/geolocator.dart';
-import 'package:http/http.dart' as http;
 
 final locationServiceProvider = Provider((ref) => LocationService(ref));
 
@@ -51,9 +51,10 @@ class LocationService {
   Future<void> updateLocation() async {
     final userState = ref.read(userStoreProvider);
     final user = userState['user'];
-    final accessToken = userState['accessToken'] as String?;
 
-    if (user == null || accessToken == null) {
+    final client = ref.read(authenticatedClientProvider);
+
+    if (user == null) {
       throw Exception('User not logged in');
     }
 
@@ -72,12 +73,8 @@ class LocationService {
     final uri = Uri.parse('${ApiBase.baseUrl}/location/update');
     debugPrint('[Location] POST $uri body=$body');
 
-    final res = await http.post(
+    final res = await client.post(
       uri,
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': 'Bearer $accessToken',
-      },
       body: jsonEncode(body),
     );
 
@@ -107,17 +104,11 @@ class LocationService {
     required double latitude,
     required double longitude,
   }) async {
-    final userState = ref.read(userStoreProvider);
-    final accessToken = "${userState['accessToken']}";
-
+    final client = ref.read(authenticatedClientProvider);
     final url = Uri.parse('${ApiBase.baseUrl}/dates/share-location');
 
-    final response = await http.post(
+    final response = await client.post(
       url,
-      headers: {
-        'Authorization': 'Bearer $accessToken',
-        'Content-Type': 'application/json',
-      },
       body: json.encode({'latitude': latitude, 'longitude': longitude}),
     );
 
