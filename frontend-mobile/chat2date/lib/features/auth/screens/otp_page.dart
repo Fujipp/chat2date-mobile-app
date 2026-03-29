@@ -9,6 +9,7 @@ import 'package:chat2date/stores/user_store.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
 class OtpPage extends ConsumerStatefulWidget {
   const OtpPage({super.key});
@@ -133,8 +134,25 @@ class _OtpPageState extends ConsumerState<OtpPage> {
       if (!mounted) return;
 
       if (data['statusCode'] == 200) {
-        final user = User.fromJson(data['body']['user']);
-        final accessToken = data['body']['accessToken'];
+        final body = data['body'];
+        final user = User.fromJson(body['user']);
+        final accessToken = body['accessToken'];
+        final refreshToken = body['refreshToken'];
+
+        const storage = FlutterSecureStorage();
+        if (user.userId.isNotEmpty) {
+          await storage.write(key: 'userId', value: user.userId);
+        }
+        if (user.version != null) {
+          await storage.write(key: 'version', value: user.version.toString());
+        }
+        if (accessToken != null) {
+          await storage.write(key: 'access_token', value: accessToken);
+        }
+        if (refreshToken != null) {
+          await storage.write(key: 'refreshToken', value: refreshToken);
+        }
+
         ref.read(userStoreProvider.notifier).setUser(user, accessToken);
         ref.watch(userStoreProvider);
         final authController = ref.read(authControllerProvider);

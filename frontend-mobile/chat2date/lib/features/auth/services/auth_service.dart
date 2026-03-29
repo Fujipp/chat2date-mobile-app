@@ -83,13 +83,12 @@ class AuthService {
           throw Exception('User data not found in response');
         }
         final user = User.fromJson(userJson);
-        final userId = data['user']?['id'];
-        final email = data['user']?['email'];
-        final accountStatus = data['user']?['accountStatus'];
-        final version = data['user']?['version']?.toString() ?? '0';
+        final email = user.email;
+        final accountStatus = user.accountStatus;
+        final version = user.version?.toString() ?? '0';
 
-        if (userId != null) {
-          await _storage.write(key: 'userId', value: userId);
+        if (user.userId.isNotEmpty) {
+          await _storage.write(key: 'userId', value: user.userId);
           await _storage.write(key: 'version', value: version);
         }
 
@@ -99,19 +98,21 @@ class AuthService {
 
         developer.log('DATA: $data', name: 'AuthService');
 
-        if (data['accessToken'] != null) {
+        final accessToken = data['accessToken'] ?? data['access_token'];
+        if (accessToken != null) {
           ref
               .read(userStoreProvider.notifier)
-              .setUser(user, data['accessToken']);
+              .setUser(user, accessToken);
 
           // เก็บ access token ลง storage
-          await _storage.write(key: 'access_token', value: data['accessToken']);
+          await _storage.write(key: 'access_token', value: accessToken);
         }
 
-        if (data['refreshToken'] != null) {
+        final refreshToken = data['refreshToken'] ?? data['refresh_token'];
+        if (refreshToken != null) {
           await _storage.write(
             key: 'refreshToken',
-            value: data['refreshToken'],
+            value: refreshToken,
           );
         }
 
