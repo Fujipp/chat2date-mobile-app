@@ -1,47 +1,47 @@
-import { API_BASE_URL, getHeaders, handleResponse } from './shared'
+import { apiClient } from '../apiClient'
+import { API_BASE_URL, handleResponse } from './shared'
 
 export const userApi = {
   getAll: async () => {
-    const response = await fetch(`${API_BASE_URL}/users`, {
+    const res = await apiClient(`${API_BASE_URL}/users`, {
       method: 'GET',
-      headers: getHeaders(),
     })
-    return handleResponse(response)
+    return handleResponse(res)
   },
+
   getById: async (userId) => {
-    const response = await fetch(`${API_BASE_URL}/users/${userId}`, {
+    const res = await apiClient(`${API_BASE_URL}/users/${userId}`, {
       method: 'GET',
-      headers: getHeaders(),
     })
-    return handleResponse(response)
+    return handleResponse(res)
   },
+
   updateById: async (userId, user) => {
-    const response = await fetch(`${API_BASE_URL}/users/${userId}`, {
+    const res = await apiClient(`${API_BASE_URL}/users/${userId}`, {
       method: 'PUT',
-      headers: getHeaders(),
       body: JSON.stringify(user),
     })
-    return handleResponse(response)
+    return handleResponse(res)
   },
+
   deleteById: async (userId) => {
-    const response = await fetch(`${API_BASE_URL}/users/${userId}`, {
+    const res = await apiClient(`${API_BASE_URL}/users/${userId}`, {
       method: 'DELETE',
-      headers: getHeaders(),
     })
-    return handleResponse(response)
+    return handleResponse(res)
   },
+
   restoreById: async (userId) => {
-    const response = await fetch(`${API_BASE_URL}/users/${userId}/restore`, {
+    const res = await apiClient(`${API_BASE_URL}/users/${userId}/restore`, {
       method: 'POST',
-      headers: getHeaders(),
     })
-    return handleResponse(response)
+    return handleResponse(res)
   },
+
   getDeletionStatus: async (userId) => {
-    const response = await fetch(`${API_BASE_URL}/users/${userId}/deletion-status`, {
+    const res = await apiClient(`${API_BASE_URL}/users/${userId}/deletion-status`, {
       method: 'GET',
-      headers: getHeaders(),
     })
-    return handleResponse(response)
+    return handleResponse(res)
   },
 }

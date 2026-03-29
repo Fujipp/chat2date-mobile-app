@@ -90,20 +90,23 @@ public class ContactMessageService {
 
             if (latestIncident.isPresent()) {
                 SosIncident incident = latestIncident.get();
-                String suspectName = "ไม่พบข้อมูล/บัญชีถูกลบ (ID: " + incident.getTargetUserId() + ")";
-                User target = userRepository.findUsersByUserId(incident.getTargetUserId());
+//                String suspectName = "ไม่พบข้อมูล/บัญชีถูกลบ (ID: " + incident.getTargetUserId() + ")";
+//                String safeSuspectName = suspectName != null && suspectName.length() > 1
+//                        ? suspectName.charAt(0) + "."
+//                        : "Unknown";
+//                User target = userRepository.findUsersByUserId(incident.getTargetUserId());
 
-                if (target != null) {
-                    suspectName = target.getFirstname() + " " + target.getLastname();
-                }
 
-                String evidenceData = "\n\n====================================\n" +
+                String evidenceData = "\n====================================\n" +
                         "📍 ข้อมูลหลักฐานการแจ้งเหตุฉุกเฉิน (SOS)\n" +
                         "รหัสอ้างอิงเหตุการณ์: " + incident.getIncidentId() + "\n" +
-                        "คู่เดต (ผู้ต้องสงสัย): " + suspectName + "\n" +
+                        "เวลาเกิดเหตุ: " + incident.getCreatedAt() + "\n" +
+                        "ผู้แจ้ง (เจ้าของเหตุ): " + incident.getCalledNumber() + "\n" +
+                        "User ID คู่เดต: " + incident.getTargetUserId() + "\n" +
                         "พิกัด ณ ตอนเกิดเหตุ: " + incident.getLatitude() + ", " + incident.getLongitude() + "\n" +
                         "ลิงก์แผนที่: https://www.google.com/maps?q=" + incident.getLatitude() + "," + incident.getLongitude() + "\n" +
                         "เบอร์ที่ติดต่อตอนเกิดเหตุ: " + incident.getCalledNumber() + "\n" +
+                        "หมายเหตุ: เอกสารนี้ถูกสร้างโดยระบบ Chat2Date\n" +
                         "====================================";
 
                 finalEmailMessage = finalEmailMessage + evidenceData;
