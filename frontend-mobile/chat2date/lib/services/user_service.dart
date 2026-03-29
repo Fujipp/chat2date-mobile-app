@@ -29,7 +29,7 @@ class UserService {
     );
 
     if (response.statusCode != 200) {
-      throw Exception('Update failed: ${response.body}');
+      throw Exception('Load failed: ${response.statusCode} - ${response.body}');
     }
 
     final data = jsonDecode(response.body);

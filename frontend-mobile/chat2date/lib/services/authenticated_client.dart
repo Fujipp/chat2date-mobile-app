@@ -96,6 +96,12 @@ class AuthenticatedClient extends http.BaseClient {
         final newAccessToken = data["accessToken"];
 
         await _storage.write(key: "access_token", value: newAccessToken);
+        
+        // บาง Backend จะคืน refreshToken ใหม่มาด้วยเมื่อทำการ refresh
+        if (data["refreshToken"] != null) {
+          await _storage.write(key: "refreshToken", value: data["refreshToken"]);
+        }
+
         try {
           ref.read(userStoreProvider.notifier).setAccessToken(newAccessToken);
         } catch (_) {}
@@ -104,6 +110,7 @@ class AuthenticatedClient extends http.BaseClient {
         return true;
       } else {
         // อาจจะเป็น 403 ถูกระงับบัญชี หรือ Token หมดอายุเกลี้ยงจริงๆ
+        debugPrint('❌ [AuthenticatedClient] Refresh token failed with status ${res.statusCode}: ${res.body}');
         completer.complete(false);
         return false;
       }
