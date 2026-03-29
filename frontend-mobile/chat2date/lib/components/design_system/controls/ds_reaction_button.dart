@@ -135,7 +135,7 @@ class _DsReactionButtonState extends State<DsReactionButton> {
                     child: _ReactionGlyph(
                       type: widget.type,
                       color: iconColor,
-                      size: widget.type == DsReactionButtonType.match ? 31 : 24,
+                      size: widget.type == DsReactionButtonType.match ? 35 : 28,
                     ),
                   ),
                 ),
@@ -190,10 +190,10 @@ class _PassGlyphPainter extends CustomPainter {
     final paint = Paint()
       ..color = color
       ..style = PaintingStyle.stroke
-      ..strokeWidth = size.width * 0.26
+      ..strokeWidth = size.width * 0.30
       ..strokeCap = StrokeCap.round;
 
-    final inset = size.width * 0.18;
+    final inset = size.width * 0.16;
     canvas.drawLine(
       Offset(inset, inset),
       Offset(size.width - inset, size.height - inset),

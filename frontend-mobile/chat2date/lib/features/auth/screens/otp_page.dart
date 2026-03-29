@@ -226,7 +226,7 @@ class _OtpPageState extends ConsumerState<OtpPage> {
                 // ─── Header ─────────────────────────────
                 DsAppSecondaryHeader(
                   variant: DsAppSecondaryHeaderVariant.baseText,
-                  title: 'OTP',
+                  title: 'ยืนยัน',
                   onBackTap: () => Navigator.pushNamed(
                     context,
                     '/phone',

@@ -14,7 +14,7 @@ class DiscoveryService {
   Future<List<DiscoveryResponse>> getCandidates({
     required String userId,
     int minDistance = 1,
-    int maxDistance = 1800,
+    int maxDistance = 160,
   }) async {
     final client = ref.read(authenticatedClientProvider);
 
@@ -134,20 +134,25 @@ class DiscoveryState {
 class DiscoveryNotifier extends StateNotifier<DiscoveryState> {
   final DiscoveryService _service;
   final String userId;
+  static const Duration _minimumLoadingDuration = Duration(milliseconds: 3200);
 
   // ✅ เพิ่ม flag เพื่อป้องกันการเรียก API ซ้ำซ้อน
   bool _isLoadingInProgress = false;
+  int? _pendingMinDistance;
+  int? _pendingMaxDistance;
 
   DiscoveryNotifier(this._service, this.userId) : super(DiscoveryState());
 
   /// โหลด candidates ใหม่
   Future<void> loadCandidates({
     int minDistance = 1,
-    int maxDistance = 1800,
+    int maxDistance = 160,
   }) async {
-    // ✅ ถ้ากำลังโหลดอยู่แล้ว ข้ามไป
     if (_isLoadingInProgress) {
-      print('⚠️ Load already in progress, skipping...');
+      if (_pendingMinDistance == minDistance &&
+          _pendingMaxDistance == maxDistance) {
+        return;
+      }
       return;
     }
 
@@ -158,7 +163,10 @@ class DiscoveryNotifier extends StateNotifier<DiscoveryState> {
     }
 
     _isLoadingInProgress = true;
+    _pendingMinDistance = minDistance;
+    _pendingMaxDistance = maxDistance;
     state = state.copyWith(isLoading: true, error: null);
+    final stopwatch = Stopwatch()..start();
 
     try {
       final candidates = await _service.getCandidates(
@@ -166,6 +174,11 @@ class DiscoveryNotifier extends StateNotifier<DiscoveryState> {
         minDistance: minDistance,
         maxDistance: maxDistance,
       );
+
+      final remaining = _minimumLoadingDuration - stopwatch.elapsed;
+      if (remaining > Duration.zero) {
+        await Future.delayed(remaining);
+      }
 
       // ✅ เช็คอีกครั้งหลัง await
       if (!mounted) {
@@ -195,6 +208,11 @@ class DiscoveryNotifier extends StateNotifier<DiscoveryState> {
     } catch (e) {
       print('❌ Error in loadCandidates: $e');
 
+      final remaining = _minimumLoadingDuration - stopwatch.elapsed;
+      if (remaining > Duration.zero) {
+        await Future.delayed(remaining);
+      }
+
       if (!mounted) {
         print('⚠️ Notifier disposed during error handling');
         return;
@@ -208,6 +226,8 @@ class DiscoveryNotifier extends StateNotifier<DiscoveryState> {
       );
     } finally {
       _isLoadingInProgress = false;
+      _pendingMinDistance = null;
+      _pendingMaxDistance = null;
     }
   }
 
@@ -276,7 +296,7 @@ class DiscoveryNotifier extends StateNotifier<DiscoveryState> {
   }
 
   /// Refresh candidates
-  Future<void> refresh({int minDistance = 1, int maxDistance = 1800}) async {
+  Future<void> refresh({int minDistance = 1, int maxDistance = 160}) async {
     if (!mounted) return;
 
     print('🔄 Refreshing candidates...');

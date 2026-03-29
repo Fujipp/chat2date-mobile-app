@@ -1,15 +1,14 @@
 import 'dart:math';
-import 'dart:ui';
+import 'dart:ui' show ImageFilter;
 
 import 'package:chat2date/components/buttons/ds_button.dart';
-import 'package:chat2date/components/buttons/ds_svg_swap_button.dart';
-import 'package:chat2date/components/common/custom_range_slider.dart';
 import 'package:chat2date/components/common/modal_component.dart';
-import 'package:chat2date/components/common/style_component.dart';
-import 'package:chat2date/components/inputs/ds_label.dart';
-import 'package:chat2date/components/layout/header.dart';
 import 'package:chat2date/components/layout/menu_bar.dart';
 import 'package:chat2date/components/toasts/toast.dart';
+import 'package:chat2date/components/design_system/controls/ds_reaction_button.dart';
+import 'package:chat2date/components/design_system/controls/ds_slider.dart';
+import 'package:chat2date/components/design_system/organisms/ds_app_home_header.dart';
+import 'package:chat2date/core/theme/app_assets.dart';
 import 'package:chat2date/models/dto/discovery_dto.dart';
 import 'package:chat2date/models/user.dart';
 import 'package:chat2date/services/discovery_service.dart';
@@ -19,9 +18,13 @@ import 'package:chat2date/services/swipe_quota_service.dart';
 import 'package:chat2date/services/user_service.dart';
 import 'package:chat2date/stores/user_store.dart';
 import 'package:chat2date/core/theme/app_colors.dart';
+import 'package:chat2date/core/theme/tokens/colors/app_gradients.dart';
+import 'package:chat2date/core/theme/tokens/colors/input_colors.dart';
+import 'package:chat2date/core/theme/tokens/colors/text_colors.dart';
+import 'package:chat2date/features/profile/screens/selection_icon_mapper.dart';
+import 'package:chat2date/features/discovery/widgets/home_search_loading_content.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:flutter_svg/flutter_svg.dart';
 // NOTE: We deliberately handle location permission inline here (minimal change)
 // rather than introducing new global wrappers to satisfy the requirement.
 import 'package:geolocator/geolocator.dart';
@@ -109,12 +112,9 @@ class _DiscoveryScreenState extends ConsumerState<DiscoveryScreen>
   }
 
   void _handleBottomNavTap(int index) async {
-    // ปิด settings overlay เมื่อมีการเปลี่ยนหน้า
-    if (_isSettingsOpen) {
-      _settingsOverlay?.remove();
-      _settingsOverlay = null;
-      _isSettingsOpen = false;
-    }
+    setState(() {
+      _isDistancePanelOpen = false;
+    });
     setState(() {
       _selectedIndex = index;
     });
@@ -149,22 +149,12 @@ class _DiscoveryScreenState extends ConsumerState<DiscoveryScreen>
         }
         break;
       case 1:
-        // ปิดก่อนนำทางเพื่อไม่ให้ overlay ติดตามไปหน้าถัดไป
-        _settingsOverlay?.remove();
-        _settingsOverlay = null;
-        _isSettingsOpen = false;
         Navigator.pushReplacementNamed(context, '/chat-list');
         break;
       case 2:
-        _settingsOverlay?.remove();
-        _settingsOverlay = null;
-        _isSettingsOpen = false;
         Navigator.pushReplacementNamed(context, '/profile');
         break;
       case 3:
-        _settingsOverlay?.remove();
-        _settingsOverlay = null;
-        _isSettingsOpen = false;
         Navigator.pushReplacementNamed(context, '/settings');
         break;
     }
@@ -195,17 +185,10 @@ class _DiscoveryScreenState extends ConsumerState<DiscoveryScreen>
   String? _userId;
   int? behaviorScore;
 
-  // Settings
-  OverlayEntry? _settingsOverlay;
-  bool _isSettingsOpen = false;
-  RangeValues _selectedRange = const RangeValues(0, 1800);
-  void _closeSettingsOverlay() {
-    if (_isSettingsOpen) {
-      _settingsOverlay?.remove();
-      _settingsOverlay = null;
-      _isSettingsOpen = false;
-    }
-  }
+  RangeValues _selectedRange = const RangeValues(0, 160);
+  bool _isDistancePanelOpen = false;
+  double _distanceKm = 160;
+  bool _isSavingDistancePanel = false;
 
   Future<void> _loadPersistedRange() async {
     if (_userId == null) return;
@@ -216,16 +199,235 @@ class _DiscoveryScreenState extends ConsumerState<DiscoveryScreen>
       if (start != null && end != null) {
         setState(() {
           _selectedRange = RangeValues(
-            start.clamp(0.0, 1800.0),
-            end.clamp(0.0, 1800.0),
+            start.clamp(0.0, 160.0),
+            end.clamp(0.0, 160.0),
           );
+          _distanceKm = _selectedRange.end;
         });
       }
     } catch (_) {}
   }
 
-  // ✅ Key สำหรับบังคับให้ rebuild CandidateView
-  Key _candidateKey = UniqueKey();
+  Future<void> _persistSelectedRange(RangeValues values) async {
+    if (_userId == null) return;
+
+    final normalized = RangeValues(
+      values.start.clamp(0.0, 160.0),
+      values.end.clamp(0.0, 160.0),
+    );
+
+    setState(() {
+      _selectedRange = normalized;
+      _distanceKm = normalized.end;
+    });
+
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setDouble(
+      'distanceRange:${_userId}:start',
+      normalized.start,
+    );
+    await prefs.setDouble(
+      'distanceRange:${_userId}:end',
+      normalized.end,
+    );
+  }
+
+  Future<void> _refreshCandidatesSafely(RangeValues values) async {
+    if (_userId == null) return;
+
+    try {
+      await ref.read(discoveryProvider(_userId!).notifier).refresh(
+            minDistance: values.start.round(),
+            maxDistance: values.end.round(),
+          );
+      if (!mounted) return;
+      setState(() {
+        _candidateViewKey = GlobalKey<_CandidateViewState>();
+      });
+    } catch (_) {}
+  }
+
+  Future<void> _syncDistancePreferenceSafely(RangeValues values) async {
+    try {
+      final Map<String, Object> preferenceMatch = {
+        'interestedDistanceMin': values.start.round(),
+        'interestedDistanceMax': values.end.round(),
+      };
+      await ref.read(userServiceProvider).addPreferenceMatchUser(preferenceMatch);
+    } catch (_) {}
+  }
+
+  void _toggleDistancePanel() {
+    setState(() {
+      _distanceKm = _selectedRange.end.clamp(1.0, 160.0);
+      _isDistancePanelOpen = !_isDistancePanelOpen;
+    });
+  }
+
+  Future<void> _saveDistancePanel() async {
+    if (_isSavingDistancePanel) return;
+
+    final selectedRange = RangeValues(0, _distanceKm.clamp(1.0, 160.0));
+    final isUnchanged =
+        selectedRange.start.round() == _selectedRange.start.round() &&
+        selectedRange.end.round() == _selectedRange.end.round();
+
+    setState(() {
+      _isDistancePanelOpen = false;
+      _isSavingDistancePanel = true;
+    });
+
+    try {
+      if (isUnchanged) {
+        return;
+      }
+      await _persistSelectedRange(selectedRange);
+      await _syncDistancePreferenceSafely(selectedRange);
+      await _refreshCandidatesSafely(selectedRange);
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isSavingDistancePanel = false;
+        });
+      }
+    }
+  }
+
+  static const BoxDecoration _distancePanelDecoration = BoxDecoration(
+    color: AppColors.background,
+    boxShadow: [
+      BoxShadow(
+        color: Color(0x16000000),
+        blurRadius: 22,
+        spreadRadius: -8,
+        offset: Offset(0, 16),
+      ),
+    ],
+  );
+
+  Widget _buildHomeScaffold({
+    required Widget child,
+    VoidCallback? onActionTap,
+    bool hideBottomNav = false,
+  }) {
+    return Scaffold(
+      backgroundColor: AppColors.background,
+      body: SafeArea(
+        bottom: false,
+        child: Column(
+          children: [
+            DsAppHomeHeader(onActionTap: onActionTap),
+            Expanded(
+              child: Stack(
+                children: [
+                  Positioned.fill(child: child),
+                  AnimatedPositioned(
+                    duration: const Duration(milliseconds: 260),
+                    curve: Curves.easeOutCubic,
+                    top: _isDistancePanelOpen ? 0 : -220,
+                    left: 0,
+                    right: 0,
+                    child: _buildDistancePanel(),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+      bottomNavigationBar: widget.showBottomNav && !hideBottomNav
+          ? CustomBottomNavBar(
+              selectedIndex: _selectedIndex,
+              onTap: _handleBottomNavTap,
+            )
+          : null,
+    );
+  }
+
+  Widget _buildHomeLoadingState({required bool canOpenFilter}) {
+    return _buildHomeScaffold(
+      onActionTap: canOpenFilter ? _toggleDistancePanel : null,
+      child: const _DiscoveryImageLoadingArea(),
+    );
+  }
+
+  Widget _buildDistancePanel() {
+    return Material(
+      color: Colors.transparent,
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.fromLTRB(18, 18, 18, 12),
+        decoration: _distancePanelDecoration,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'การตั้งค่าการค้นหา',
+              style: TextStyle(
+                fontSize: 18,
+                height: 24 / 18,
+                fontWeight: FontWeight.w600,
+                color: AppColors.textPrimary,
+                fontFamily: 'Inter',
+              ),
+            ),
+            const SizedBox(height: 10),
+            Row(
+              children: [
+                const Expanded(
+                  child: Text(
+                    'ระยะห่างสูงสุด',
+                    style: TextStyle(
+                      fontSize: 18,
+                      height: 24 / 18,
+                      color: AppColors.textBlack,
+                      fontFamily: 'Inter',
+                    ),
+                  ),
+                ),
+                Text(
+                  '${_distanceKm.round()} Km.',
+                  style: const TextStyle(
+                    fontSize: 18,
+                    height: 24 / 18,
+                    color: AppColors.textPrimary,
+                    fontFamily: 'Inter',
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 6),
+            DsSlider(
+              value: _distanceKm,
+              min: 1,
+              max: 160,
+              width: double.infinity,
+              onChanged: (value) {
+                setState(() {
+                  _distanceKm = value;
+                });
+              },
+            ),
+            const SizedBox(height: 12),
+            Center(
+              child: DsButton(
+                label: 'บันทึก',
+                onPressed: _isSavingDistancePanel ? null : _saveDistancePanel,
+                width: 231,
+                size: DsButtonSize.md,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // ✅ Key สำหรับบังคับให้ rebuild CandidateView และเข้าถึง state ภายใน
+  GlobalKey<_CandidateViewState> _candidateViewKey =
+      GlobalKey<_CandidateViewState>();
+  bool _isCandidateAboutOpen = false;
 
   // ---------- Utils ----------
 
@@ -278,7 +480,7 @@ class _DiscoveryScreenState extends ConsumerState<DiscoveryScreen>
       if (mounted) {
         ref.read(discoveryProvider(_userId!).notifier).unlikeCurrentCandidate();
         setState(() {
-          _candidateKey = UniqueKey();
+          _candidateViewKey = GlobalKey<_CandidateViewState>();
         });
       }
     });
@@ -312,7 +514,7 @@ class _DiscoveryScreenState extends ConsumerState<DiscoveryScreen>
         ref.read(discoveryProvider(_userId!).notifier).likeCurrentCandidate();
         // ✅ สร้าง key ใหม่เพื่อ rebuild widget
         setState(() {
-          _candidateKey = UniqueKey();
+          _candidateViewKey = GlobalKey<_CandidateViewState>();
         });
       }
     });
@@ -488,7 +690,6 @@ class _DiscoveryScreenState extends ConsumerState<DiscoveryScreen>
   void dispose() {
     debugPrint('[Discovery] 🔴 Disposing screen...');
     _cardCtrl.dispose();
-    _settingsOverlay?.remove();
     WidgetsBinding.instance.removeObserver(this);
     super.dispose();
   }
@@ -507,588 +708,202 @@ class _DiscoveryScreenState extends ConsumerState<DiscoveryScreen>
     }
   }
 
-  void _togglePanel(BuildContext context) {
-    if (_isSettingsOpen) {
-      _closeSettingsOverlay();
-      return;
-    }
-
-    final overlay = Overlay.of(context);
-    final renderBox = context.findRenderObject() as RenderBox?;
-    if (renderBox == null) return;
-
-    final offset = renderBox.localToGlobal(Offset.zero);
-
-    _settingsOverlay = OverlayEntry(
-      builder: (context) => StatefulBuilder(
-        builder: (context, setStateOverlay) {
-          return Positioned(
-            top: offset.dy + 80,
-            left: 16,
-            right: 16,
-            child: Material(
-              color: Colors.transparent,
-              child: Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(12),
-                  boxShadow: const [
-                    BoxShadow(
-                      color: Colors.black26,
-                      blurRadius: 10,
-                      offset: Offset(0, 4),
-                    ),
-                  ],
-                ),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text(
-                      "ตั้งค่าการค้นหา",
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        DsLabel(
-                          label: 'ช่วงระยะห่างที่คุณอยากเจอ',
-                          required: true,
-                          labelFontSize: 20,
-                        ),
-                        const SizedBox(height: 10),
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Text(
-                              '${_selectedRange.start.round()} Km.',
-                              style: const TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.w500,
-                              ),
-                            ),
-                            Text(
-                              '${_selectedRange.end.round()} Km.',
-                              style: const TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.w500,
-                              ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 10),
-                        CustomRangeSlider(
-                          values: _selectedRange,
-                          min: 0,
-                          max: 1800,
-                          persistKey: _userId != null
-                              ? 'distanceRange:${_userId}'
-                              : null,
-                          onChangeEnd: (r) async {
-                            // sync ค่าที่แสดงกับที่บันทึกไว้
-                            setStateOverlay(() {
-                              _selectedRange = r;
-                            });
-                          },
-                          onChanged: (RangeValues values) {
-                            setStateOverlay(() {
-                              _selectedRange = values;
-                            });
-                          },
-                        ),
-                        const SizedBox(height: 10),
-                        Center(
-                          child: DsButton(
-                            label: 'ยืนยัน',
-                            onPressed: () async {
-                              setStateOverlay(() {
-                                _isSettingsOpen = false;
-                              });
-                              _settingsOverlay?.remove();
-                              _settingsOverlay = null;
-
-                              if (_userId != null) {
-                                await ref
-                                    .read(discoveryProvider(_userId!).notifier)
-                                    .refresh(
-                                      minDistance: _selectedRange.start.round(),
-                                      maxDistance: _selectedRange.end.round(),
-                                    );
-                                final Map<String, Object> preferenceMatch = {
-                                  "interestedDistanceMin": _selectedRange.start
-                                      .round(),
-                                  "interestedDistanceMax": _selectedRange.end
-                                      .round(),
-                                };
-                                await ref
-                                    .read(userServiceProvider)
-                                    .addPreferenceMatchUser(preferenceMatch);
-
-                                // ✅ สร้าง key ใหม่หลัง refresh
-                                setState(() {
-                                  _candidateKey = UniqueKey();
-                                });
-                              }
-                            },
-                            fontWeight: FontWeight.w700,
-                            size: DsButtonSize.md,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          );
-        },
-      ),
-    );
-
-    overlay.insert(_settingsOverlay!);
-    _isSettingsOpen = true;
-  }
-
   @override
   Widget build(BuildContext context) {
     // รอจนกว่าจะได้ userId
     if (_userId == null) {
-      return Scaffold(
-        body: Column(
-          children: [
-            const SizedBox(height: 25),
-            ChatToDateHeaderWhite(
-              leftIconPath: 'assets/icons/ui/icon_chat2date_full.svg',
-              rightIconPath: 'assets/icons/ui/icon_menu.svg',
-              iconColor: const Color(0xFF5ce1e6),
-              onBack: () {},
-              onSettings: () {},
-            ),
-            const Expanded(child: _DiscoveryLoadingWidget()),
-          ],
-        ),
-        bottomNavigationBar: widget.showBottomNav
-            ? CustomBottomNavBar(
-                selectedIndex: _selectedIndex,
-                onTap: _handleBottomNavTap,
-              )
-            : null,
-      );
+      return _buildHomeLoadingState(canOpenFilter: true);
     }
 
     final discoveryState = ref.watch(discoveryProvider(_userId!));
     final currentCandidate = discoveryState.currentCandidate;
 
     // ✅ แสดง Loading ถ้ายังไม่เคยโหลด หรือกำลัง initialize
-    if (discoveryState.isInitializing || !discoveryState.hasLoadedOnce) {
-      return Scaffold(
-        body: Column(
-          children: [
-            const SizedBox(height: 25),
-            ChatToDateHeaderWhite(
-              leftIconPath: 'assets/icons/ui/icon_chat2date_full.svg',
-              rightIconPath: 'assets/icons/ui/icon_menu.svg',
-              iconColor: const Color(0xFF5ce1e6),
-              onBack: () {},
-              onSettings: () async {
-                await ref
-                    .read(locationServiceProvider)
-                    .tryUpdateLocationSilently();
-                _togglePanel(context);
-              },
-            ),
-            const Expanded(child: _DiscoveryLoadingWidget()),
-          ],
-        ),
-        bottomNavigationBar: widget.showBottomNav
-            ? CustomBottomNavBar(
-                selectedIndex: _selectedIndex,
-                onTap: _handleBottomNavTap,
-              )
-            : null,
-      );
+    if (discoveryState.isLoading ||
+        discoveryState.isInitializing ||
+        !discoveryState.hasLoadedOnce) {
+      return _buildHomeLoadingState(canOpenFilter: true);
     }
 
-    // แสดง error state
-    if (discoveryState.error != null) {
-      return Scaffold(
-        body: Column(
-          children: [
-            const SizedBox(height: 25),
-            ChatToDateHeaderWhite(
-              leftIconPath: 'assets/icons/ui/icon_chat2date_full.svg',
-              rightIconPath: 'assets/icons/ui/icon_menu.svg',
-              iconColor: const Color(0xFF5ce1e6),
-              onBack: () {},
-              onSettings: () async {
-                await ref
-                    .read(locationServiceProvider)
-                    .tryUpdateLocationSilently();
-                _togglePanel(context);
-              },
-            ),
-            Expanded(
-              child: Center(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    const Icon(
-                      Icons.error_outline,
-                      size: 64,
-                      color: Colors.red,
-                    ),
-                    const SizedBox(height: 16),
-                    Text('เกิดข้อผิดพลาด: ${discoveryState.error}'),
-                    const SizedBox(height: 16),
-                    ElevatedButton(
-                      onPressed: () async {
-                        await ref
-                            .read(discoveryProvider(_userId!).notifier)
-                            .refresh();
-                        setState(() {
-                          _candidateKey = UniqueKey();
-                        });
-                      },
-                      child: const Text('ลองอีกครั้ง'),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ],
-        ),
-        bottomNavigationBar: widget.showBottomNav
-            ? CustomBottomNavBar(
-                selectedIndex: _selectedIndex,
-                onTap: _handleBottomNavTap,
-              )
-            : null,
-      );
+    // Backend error และ empty state ใช้หน้ากลางเดียวกัน
+    if (discoveryState.error != null || currentCandidate == null || discoveryState.isEmpty) {
+      return _buildHomeFallbackState();
     }
 
-    // ✅ ไม่มี candidates (แต่โหลดเสร็จแล้ว)
-    if (currentCandidate == null || discoveryState.isEmpty) {
-      return Scaffold(
-        body: Column(
-          children: [
-            const SizedBox(height: 25),
-            ChatToDateHeaderWhite(
-              leftIconPath: 'assets/icons/ui/icon_chat2date_full.svg',
-              rightIconPath: 'assets/icons/ui/icon_menu.svg',
-              iconColor: const Color(0xFF5ce1e6),
-              onBack: () {},
-              onSettings: () async {
-                await ref
-                    .read(locationServiceProvider)
-                    .tryUpdateLocationSilently();
-                _togglePanel(context);
+    // ✅ มี candidate - ใช้ CandidateView เป็น content เดียวกันใต้ header/nav กลาง
+    return _buildHomeScaffold(
+      onActionTap: _toggleDistancePanel,
+      hideBottomNav: _isCandidateAboutOpen,
+      child: _CandidateView(
+        key: _candidateViewKey,
+        userId: _userId!,
+        candidate: currentCandidate,
+        cardCtrl: _cardCtrl,
+        startPos: _startPos,
+        targetPos: _targetPos,
+        startRot: _startRot,
+        targetRot: _targetRot,
+        opacity: _opacity,
+        index: _index,
+        topCtrl: _topCtrl,
+        bottomCtrl: _bottomCtrl,
+        posTop: _posTop,
+        posBottom: _posBottom,
+        activePanel: activePanel,
+        selectedRange: _selectedRange,
+        blurredWhite: _blurredWhite,
+        onNextImage: _nextImage,
+        onPrevImage: _prevImage,
+        onLike: _onLike,
+        onUnlike: _onUnlike,
+        onPanelSlideTop: (p) {
+          setState(() {
+            _posTop = p;
+            if (p > 0) activePanel.value = ActivePanel.top;
+          });
+        },
+        onPanelClosedTop: () {
+          setState(() {
+            _posTop = 0;
+            if (activePanel.value == ActivePanel.top) {
+              activePanel.value = ActivePanel.none;
+            }
+          });
+        },
+        onPanelSlideBottom: (p) {
+          setState(() {
+            _posBottom = p;
+            if (p > 0) activePanel.value = ActivePanel.bottom;
+          });
+        },
+        onPanelClosedBottom: () {
+          setState(() {
+            _posBottom = 0;
+            if (activePanel.value == ActivePanel.bottom) {
+              activePanel.value = ActivePanel.none;
+            }
+          });
+        },
+        remainingAction: remainingAction,
+        onAboutOpenChanged: (isOpen) {
+          if (_isCandidateAboutOpen == isOpen) return;
+          setState(() {
+            _isCandidateAboutOpen = isOpen;
+          });
+        },
+      ),
+    );
+  }
 
-                if (_userId != null) {
-                  await ref
-                      .read(discoveryProvider(_userId!).notifier)
-                      .refresh(
-                        minDistance: _selectedRange.start.round(),
-                        maxDistance: _selectedRange.end.round(),
-                      );
-
-                  // รีเฟรช widget หรือแสดงข้อมูลใหม่
-                  setState(() {
-                    _candidateKey = UniqueKey(); // force rebuild widget
-                  });
-                }
-              },
-            ),
-            Expanded(
-              child: Container(
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.topCenter,
-                    end: Alignment.bottomCenter,
-                    colors: [
-                      const Color(0xFFFFF5F8).withOpacity(0.3),
-                      const Color(0xFFFFE5ED).withOpacity(0.5),
-                    ],
-                  ),
-                ),
-                child: Center(
-                  child: SingleChildScrollView(
-                    padding: const EdgeInsets.all(24),
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        // Icon with gradient background
-                        Container(
-                          padding: const EdgeInsets.all(32),
-                          decoration: BoxDecoration(
-                            shape: BoxShape.circle,
-                            gradient: const LinearGradient(
-                              begin: Alignment.topLeft,
-                              end: Alignment.bottomRight,
-                              colors: [Color(0xFFFFE5EE), Color(0xFFFFCCDD)],
+  Widget _buildHomeFallbackState() {
+    return _buildHomeScaffold(
+      onActionTap: _toggleDistancePanel,
+      child: Center(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.fromLTRB(10, 25, 10, 25),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+                            const Icon(
+                              Icons.person_search_rounded,
+                              size: 134,
+                              color: AppColors.brandPrimary,
                             ),
-                            boxShadow: [
-                              BoxShadow(
-                                color: const Color(0xFFFF8FB3).withOpacity(0.3),
-                                blurRadius: 30,
-                                spreadRadius: 5,
-                              ),
-                            ],
-                          ),
-                          child: const Icon(
-                            Icons.person_search,
-                            size: 80,
-                            color: Color(0xFFFF8FB3),
-                          ),
-                        ),
-
-                        const SizedBox(height: 32),
-
-                        const Text(
-                          'ไม่พบคนที่เหมาะสมในขณะนี้',
-                          style: TextStyle(
-                            fontSize: 24,
-                            fontWeight: FontWeight.bold,
-                            color: Color(0xFF333333),
-                            fontFamily: 'Inter',
-                          ),
-                          textAlign: TextAlign.center,
-                        ),
-
-                        const SizedBox(height: 12),
-
-                        Text(
-                          'ไม่ต้องกังวล! เรามีคำแนะนำให้คุณ',
-                          style: TextStyle(
-                            fontSize: 16,
-                            color: Colors.grey[600],
-                            fontFamily: 'Inter',
-                          ),
-                          textAlign: TextAlign.center,
-                        ),
-
-                        const SizedBox(height: 32),
-
-                        // Suggestions card
-                        Container(
-                          padding: const EdgeInsets.all(20),
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            borderRadius: BorderRadius.circular(16),
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.black.withOpacity(0.05),
-                                blurRadius: 20,
-                                offset: const Offset(0, 4),
-                              ),
-                            ],
-                          ),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              const Text(
-                                '💡 ลองปรับเปลี่ยน',
-                                style: TextStyle(
-                                  fontSize: 18,
-                                  fontWeight: FontWeight.bold,
-                                  color: Color(0xFF333333),
-                                  fontFamily: 'Inter',
-                                ),
-                              ),
-                              const SizedBox(height: 16),
-
-                              _SuggestionItem(
-                                icon: Icons.location_on,
-                                text: 'เพิ่มระยะทางการค้นหา',
-                                color: const Color(0xFFFF8FB3),
-                              ),
-                              const SizedBox(height: 12),
-
-                              _SuggestionItem(
-                                icon: Icons.favorite,
-                                text: 'ปรับประเภทคู่เดตที่สนใจ',
-                                color: const Color(0xFFFF8FB3),
-                              ),
-                              const SizedBox(height: 12),
-
-                              _SuggestionItem(
-                                icon: Icons.refresh,
-                                text: 'ลองค้นหาใหม่อีกครั้ง',
-                                color: const Color(0xFFFF8FB3),
-                              ),
-                            ],
-                          ),
-                        ),
-
-                        const SizedBox(height: 32),
-
-                        // Action buttons
-                        Column(
-                          children: [
-                            SizedBox(
-                              width: double.infinity,
-                              height: 56,
-                              child: ElevatedButton(
-                                onPressed: () async {
-                                  await ref
-                                      .read(
-                                        discoveryProvider(_userId!).notifier,
-                                      )
-                                      .refresh(
-                                        minDistance: _selectedRange.start
-                                            .round(),
-                                        maxDistance: _selectedRange.end.round(),
-                                      );
-                                  setState(() {
-                                    _candidateKey = UniqueKey();
-                                  });
-                                },
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: const Color(0xFFFF8FB3),
-                                  foregroundColor: Colors.white,
-                                  elevation: 0,
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(16),
+                            const SizedBox(height: 10),
+                            const SizedBox(
+                              width: 358,
+                              child: Column(
+                                children: [
+                                  Text(
+                                    'ไม่พบคนที่เหมาะสมในขณะนี้',
+                                    textAlign: TextAlign.center,
+                                    style: TextStyle(
+                                      fontSize: 22,
+                                      height: 28 / 22,
+                                      fontWeight: FontWeight.w600,
+                                      color: AppColors.textPrimary,
+                                      fontFamily: 'Inter',
+                                    ),
                                   ),
-                                ),
-                                child: Row(
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  children: const [
-                                    Icon(Icons.refresh, size: 24),
-                                    SizedBox(width: 8),
-                                    Text(
-                                      'ค้นหาใหม่',
-                                      style: TextStyle(
-                                        fontSize: 18,
-                                        fontWeight: FontWeight.w600,
-                                        fontFamily: 'Inter',
+                                  SizedBox(height: 2),
+                                  Text(
+                                    'ไม่ต้องกังวลเรามีคำแนะนำให้คุณ',
+                                    textAlign: TextAlign.center,
+                                    style: TextStyle(
+                                      fontSize: 16,
+                                      height: 22 / 16,
+                                      color: TextColors.supportText,
+                                      fontFamily: 'Inter',
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            const SizedBox(height: 10),
+                            Container(
+                              width: 358,
+                              padding: const EdgeInsets.fromLTRB(20, 10, 20, 24),
+                              decoration: BoxDecoration(
+                                color: InputColors.background,
+                                borderRadius: BorderRadius.circular(20),
+                                border: Border.all(color: InputColors.border),
+                              ),
+                              child: const Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  SizedBox(
+                                    height: 47,
+                                    child: Align(
+                                      alignment: Alignment.centerLeft,
+                                      child: Text(
+                                        'คำแนะนำ : ให้ลองปรับเปลี่ยนตามนี้',
+                                        style: TextStyle(
+                                          fontSize: 14,
+                                          height: 20 / 14,
+                                          color: TextColors.secondary,
+                                          fontFamily: 'Inter',
+                                        ),
                                       ),
                                     ),
-                                  ],
-                                ),
+                                  ),
+                                  _EmptySuggestionLine(
+                                    text: 'ปรับระยะทางการค้นหาคู่เดตให้มากขึ้น',
+                                  ),
+                                  _EmptySuggestionLine(
+                                    text: 'ปรับประเภทคู่เดตที่สนใจ',
+                                  ),
+                                  _EmptySuggestionLine(
+                                    text: 'ลองค้นหาใหม่อีกครั้ง',
+                                  ),
+                                ],
                               ),
                             ),
-
-                            const SizedBox(height: 12),
-
-                            SizedBox(
-                              width: double.infinity,
-                              height: 56,
-                              child: OutlinedButton(
-                                onPressed: () async {
-                                  await ref
-                                      .read(locationServiceProvider)
-                                      .tryUpdateLocationSilently();
-                                  if (context.mounted) {
-                                    _togglePanel(context);
-                                  }
-                                },
-                                style: OutlinedButton.styleFrom(
-                                  foregroundColor: const Color(0xFFFF8FB3),
-                                  side: const BorderSide(
-                                    color: Color(0xFFFF8FB3),
-                                    width: 2,
-                                  ),
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(16),
-                                  ),
-                                ),
-                                child: Row(
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  children: const [
-                                    Icon(Icons.tune, size: 24),
-                                    SizedBox(width: 8),
-                                    Text(
-                                      'ปรับการตั้งค่า',
-                                      style: TextStyle(
-                                        fontSize: 18,
-                                        fontWeight: FontWeight.w600,
-                                        fontFamily: 'Inter',
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
+                            const SizedBox(height: 10),
+                            DsButton(
+                              label: 'ค้นหาอีกครั้ง',
+                              onPressed: () async {
+                                await _refreshCandidatesSafely(_selectedRange);
+                              },
+                              width: 231,
+                              size: DsButtonSize.md,
+                              variant: DsButtonVariant.outlinePrimary,
+                              leadingSvgAsset: AppAssets.refreshIcon,
+                              iconSize: 17,
                             ),
-                          ],
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ),
-            ),
-          ],
+                            const SizedBox(height: 10),
+                            DsButton(
+                              label: 'ปรับระยะทางค้นหา',
+                              onPressed: _toggleDistancePanel,
+                              width: 231,
+                              size: DsButtonSize.md,
+                              variant: DsButtonVariant.outlinePrimary,
+                              leadingSvgAsset: AppAssets.settingsIcon,
+                              iconSize: 20,
+                            ),
+            ],
+          ),
         ),
-        bottomNavigationBar: widget.showBottomNav
-            ? CustomBottomNavBar(
-                selectedIndex: _selectedIndex,
-                onTap: _handleBottomNavTap,
-              )
-            : null,
-      );
-    }
-
-    // ✅ มี candidate - ใช้ CandidateView ที่มี FutureBuilder
-    return _CandidateView(
-      key: _candidateKey, // บังคับ rebuild เมื่อเปลี่ยน candidate
-      userId: _userId!,
-      candidate: currentCandidate,
-      selectedIndex: _selectedIndex,
-      showBottomNav: widget.showBottomNav,
-      cardCtrl: _cardCtrl,
-      startPos: _startPos,
-      targetPos: _targetPos,
-      startRot: _startRot,
-      targetRot: _targetRot,
-      opacity: _opacity,
-      index: _index,
-      topCtrl: _topCtrl,
-      bottomCtrl: _bottomCtrl,
-      posTop: _posTop,
-      posBottom: _posBottom,
-      activePanel: activePanel,
-      selectedRange: _selectedRange,
-      blurredWhite: _blurredWhite,
-      onNextImage: _nextImage,
-      onPrevImage: _prevImage,
-      onLike: _onLike,
-      onUnlike: _onUnlike,
-      onTogglePanel: () => _togglePanel(context),
-      onPanelSlideTop: (p) {
-        setState(() {
-          _posTop = p;
-          if (p > 0) activePanel.value = ActivePanel.top;
-        });
-      },
-      onPanelClosedTop: () {
-        setState(() {
-          _posTop = 0;
-          if (activePanel.value == ActivePanel.top) {
-            activePanel.value = ActivePanel.none;
-          }
-        });
-      },
-      onPanelSlideBottom: (p) {
-        setState(() {
-          _posBottom = p;
-          if (p > 0) activePanel.value = ActivePanel.bottom;
-        });
-      },
-      onPanelClosedBottom: () {
-        setState(() {
-          _posBottom = 0;
-          if (activePanel.value == ActivePanel.bottom) {
-            activePanel.value = ActivePanel.none;
-          }
-        });
-      },
-      onBottomNavTap: _handleBottomNavTap,
-      remainingAction: remainingAction,
+      ),
     );
   }
 }
@@ -1097,8 +912,6 @@ class _DiscoveryScreenState extends ConsumerState<DiscoveryScreen>
 class _CandidateView extends ConsumerStatefulWidget {
   final String userId;
   final DiscoveryResponse candidate;
-  final int selectedIndex;
-  final bool showBottomNav;
   final AnimationController cardCtrl;
   final Offset startPos;
   final Offset targetPos;
@@ -1117,20 +930,17 @@ class _CandidateView extends ConsumerStatefulWidget {
   final void Function(int) onPrevImage;
   final VoidCallback onLike;
   final VoidCallback onUnlike;
-  final VoidCallback onTogglePanel;
   final void Function(double) onPanelSlideTop;
   final VoidCallback onPanelClosedTop;
   final void Function(double) onPanelSlideBottom;
   final VoidCallback onPanelClosedBottom;
-  final void Function(int) onBottomNavTap;
   final int? remainingAction;
+  final ValueChanged<bool> onAboutOpenChanged;
 
   const _CandidateView({
     super.key,
     required this.userId,
     required this.candidate,
-    required this.selectedIndex,
-    required this.showBottomNav,
     required this.cardCtrl,
     required this.startPos,
     required this.targetPos,
@@ -1149,12 +959,11 @@ class _CandidateView extends ConsumerStatefulWidget {
     required this.onPrevImage,
     required this.onLike,
     required this.onUnlike,
-    required this.onTogglePanel,
     required this.onPanelSlideTop,
     required this.onPanelClosedTop,
     required this.onPanelSlideBottom,
     required this.onPanelClosedBottom,
-    required this.onBottomNavTap,
+    required this.onAboutOpenChanged,
     this.remainingAction,
   });
 
@@ -1165,11 +974,12 @@ class _CandidateView extends ConsumerStatefulWidget {
 class _CandidateViewState extends ConsumerState<_CandidateView> {
   Future<void>? _imagePrecacheFuture;
   bool _hasPreloaded = false;
+  bool _isAboutOpen = false;
+  bool _isInfoButtonPressed = false;
 
   @override
   void initState() {
     super.initState();
-    // ✅ ไม่ทำอะไรเลย
   }
 
   @override
@@ -1193,70 +1003,321 @@ class _CandidateViewState extends ConsumerState<_CandidateView> {
   }
 
   @override
-  Widget build(BuildContext context) {
-    // ✅ Match listener ถูกย้ายไปอยู่ที่ GlobalMatchListener ใน main.dart แล้ว
-    // ไม่ต้อง listen ที่นี่อีกต่อไป เพราะจะทำงานได้ทุกหน้าแล้ว
+  void didUpdateWidget(covariant _CandidateView oldWidget) {
+    super.didUpdateWidget(oldWidget);
+  }
 
-    // ✅ ใช้ FutureBuilder รอให้รูปโหลดเสร็จก่อนแสดง
+  void _toggleAbout() {
+    setState(() {
+      _isAboutOpen = !_isAboutOpen;
+    });
+    widget.onAboutOpenChanged(_isAboutOpen);
+  }
+
+  Future<void> _handleLike() async {
+    final quota = await ref.read(swipeQuotaProvider).checkSwipeStatus();
+
+    if (quota.isRestricted && quota.remainingCount == 0) {
+      if (!mounted) return;
+      Toast.show(
+        context,
+        type: ToastType.warning,
+        title: 'โควตาเต็มแล้ว',
+        message: 'คุณปัดครบ 10 คนสำหรับวันนี้แล้วจ้า พรุ่งนี้มาหาคู่ใหม่นะ!',
+        durationSeconds: 4,
+      );
+      return;
+    }
+    widget.onLike();
+  }
+
+  Future<void> _handlePass() async {
+    final quota = await ref.read(swipeQuotaProvider).checkSwipeStatus();
+
+    if (quota.isRestricted && quota.remainingCount == 0) {
+      if (!mounted) return;
+      Toast.show(
+        context,
+        type: ToastType.warning,
+        title: 'โควตาเต็มแล้ว',
+        message: 'คุณปัดครบ 10 คนสำหรับวันนี้แล้วจ้า พรุ่งนี้มาหาคู่ใหม่นะ!',
+        durationSeconds: 4,
+      );
+      return;
+    }
+    widget.onUnlike();
+  }
+
+  void _handleImageTap(TapUpDetails details, double width, int imageCount) {
+    if (imageCount <= 1) return;
+    if (details.localPosition.dx < width / 2) {
+      widget.onPrevImage(imageCount);
+    } else {
+      widget.onNextImage(imageCount);
+    }
+  }
+
+  Widget _buildClosedTagChip(String label) {
+    return Container(
+      height: 27,
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(30),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const Icon(
+            Icons.sell_outlined,
+            size: 15,
+            color: AppColors.background,
+          ),
+          const SizedBox(width: 5),
+          Text(
+            displaySelectionLabel(label),
+            style: const TextStyle(
+              fontSize: 14,
+              height: 1.2,
+              color: AppColors.textOnDark,
+              fontFamily: 'Inter',
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildGradientChip(String label, {bool compact = false}) {
+    final icon = mapSelectionIcon(label);
+    final text = displaySelectionLabel(label);
+    final height = compact ? 31.0 : 48.0;
+    final radius = compact ? 30.0 : 12.0;
+    final fontSize = compact ? 16.0 : 14.0;
+
+    return Container(
+      height: height,
+      padding: EdgeInsets.symmetric(
+        horizontal: compact ? 14 : 16,
+        vertical: compact ? 5 : 12,
+      ),
+      decoration: BoxDecoration(
+        gradient: AppGradients.themeApp2,
+        borderRadius: BorderRadius.circular(radius),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: compact ? 14 : 18, color: AppColors.textBlack),
+          const SizedBox(width: 6),
+          Flexible(
+            child: Text(
+              text,
+              overflow: TextOverflow.ellipsis,
+              maxLines: 1,
+              style: TextStyle(
+                fontSize: fontSize,
+                height: compact ? 1 : 20 / 14,
+                color: AppColors.textBlack,
+                fontFamily: 'Inter',
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSectionTitle(String title) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 10),
+      child: Text(
+        title,
+        style: const TextStyle(
+          fontSize: 18,
+          height: 24 / 18,
+          fontWeight: FontWeight.w600,
+          color: AppColors.textPrimary,
+          fontFamily: 'Inter',
+        ),
+      ),
+    );
+  }
+
+  Widget _buildAboutSection(
+    String title,
+    List<String> items, {
+    bool compact = false,
+  }) {
+    if (items.isEmpty) return const SizedBox.shrink();
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _buildSectionTitle(title),
+        Wrap(
+          spacing: compact ? 12 : 15,
+          runSpacing: compact ? 12 : 15,
+          children: items
+              .map((item) => _buildGradientChip(item, compact: compact))
+              .toList(),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildDistanceField() {
+    return Container(
+      height: 48,
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      decoration: BoxDecoration(
+        color: AppColors.background,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: InputColors.border),
+      ),
+      child: Row(
+        children: [
+          Text(
+            '${widget.candidate.distance.round()}',
+            style: const TextStyle(
+              fontSize: 14,
+              height: 20 / 14,
+              color: AppColors.textBlack,
+              fontFamily: 'Inter',
+            ),
+          ),
+          const Spacer(),
+          const Text(
+            'km.',
+            style: TextStyle(
+              fontSize: 14,
+              height: 18 / 14,
+              color: TextColors.supportText,
+              fontFamily: 'Inter',
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildInfoToggleButton({required bool expanded}) {
+    final isPressed = _isInfoButtonPressed;
+
+    return GestureDetector(
+      onTapDown: (_) {
+        setState(() {
+          _isInfoButtonPressed = true;
+        });
+      },
+      onTapUp: (_) {
+        setState(() {
+          _isInfoButtonPressed = false;
+        });
+      },
+      onTapCancel: () {
+        setState(() {
+          _isInfoButtonPressed = false;
+        });
+      },
+      onTap: _toggleAbout,
+      child: AnimatedScale(
+        duration: const Duration(milliseconds: 160),
+        curve: Curves.easeOutBack,
+        scale: isPressed ? 1.18 : 1.0,
+        child: SizedBox(
+          width: 44,
+          height: 44,
+          child: DecoratedBox(
+            decoration: BoxDecoration(
+              color: AppColors.surface,
+              shape: BoxShape.circle,
+              boxShadow: isPressed
+                  ? [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.16),
+                        blurRadius: 14,
+                        offset: const Offset(0, 4),
+                      ),
+                    ]
+                  : const [],
+            ),
+            child: Center(
+              child: AnimatedRotation(
+                duration: const Duration(milliseconds: 220),
+                curve: Curves.easeOutCubic,
+                turns: expanded ? 0.5 : 0,
+                child: Icon(
+                  Icons.arrow_upward_rounded,
+                  size: isPressed ? 30 : 28,
+                  color: AppColors.background,
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildAboutSheet(double maxHeight) {
+    final lifestyles = widget.candidate.lifestyles.take(4).toList();
+    final interests = widget.candidate.interests.take(5).toList();
+    final travelStyles = widget.candidate.travelStyles.take(3).toList();
+
+    return Container(
+      width: double.infinity,
+      height: maxHeight,
+      color: AppColors.background,
+      child: SafeArea(
+        top: false,
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(12, 12, 12, 18),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                child: SingleChildScrollView(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      _buildAboutSection('ไลฟ์สไตล์', lifestyles),
+                      const SizedBox(height: 12),
+                      _buildAboutSection('สิ่งที่สนใจ', interests),
+                      const SizedBox(height: 12),
+                      _buildAboutSection(
+                        'สไตล์การท่องเที่ยว',
+                        travelStyles,
+                        compact: true,
+                      ),
+                      const SizedBox(height: 12),
+                      _buildSectionTitle('ระยะห่าง'),
+                      _buildDistanceField(),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
     return FutureBuilder<void>(
       future: _imagePrecacheFuture,
       builder: (context, snapshot) {
-        // ยังโหลดรูปอยู่ - แสดง Loading
         if (snapshot.connectionState != ConnectionState.done) {
-          return Scaffold(
-            body: Column(
-              children: [
-                const SizedBox(height: 25),
-                ChatToDateHeaderWhite(
-                  leftIconPath: 'assets/icons/ui/icon_chat2date_full.svg',
-                  rightIconPath: 'assets/icons/ui/icon_menu.svg',
-                  iconColor: const Color(0xFF5ce1e6),
-                  onBack: () {},
-                  onSettings: () async {
-                    await ref
-                        .read(locationServiceProvider)
-                        .tryUpdateLocationSilently();
-                    widget.onTogglePanel();
-                  },
-                ),
-                const Expanded(child: _DiscoveryLoadingWidget()),
-              ],
-            ),
-            bottomNavigationBar: widget.showBottomNav
-                ? CustomBottomNavBar(
-                    selectedIndex: widget.selectedIndex,
-                    onTap: widget.onBottomNavTap,
-                  )
-                : null,
-          );
+          return const _DiscoveryImageLoadingArea();
         }
 
-        // รูปโหลดเสร็จแล้ว - แสดงข้อมูล candidate
         final images = widget.candidate.photos;
-
-        // ✅ กรณีไม่มีรูปเลย → ใช้ placeholder แทน
         final bool hasImages = images.isNotEmpty;
-
         final String sex = widget.candidate.sex;
-
-        final headerTop = [
-          {
-            'title': 'สไตล์การท่องเที่ยว',
-            'style': widget.candidate.travelStyles,
-          },
-          {'title': 'ระยะห่าง', 'range': widget.candidate.distance},
-        ];
-
-        final headerBottom = [
-          {
-            'title': 'ความสนใจ',
-            'style': widget.candidate.interests.take(5).toList(), // ไม่เกิน 5
-          },
-          {
-            'title': 'ไลฟ์สไตล์',
-            'style': widget.candidate.lifestyles.take(5).toList(), // ไม่เกิน 5
-          },
-        ];
+        final tags = widget.candidate.tags.take(5).toList();
 
         final t = Curves.easeOutCubic.transform(widget.cardCtrl.value);
         final dx =
@@ -1265,426 +1326,229 @@ class _CandidateViewState extends ConsumerState<_CandidateView> {
             widget.startPos.dy + (widget.targetPos.dy - widget.startPos.dy) * t;
         final rot = widget.startRot + (widget.targetRot - widget.startRot) * t;
 
-        return Scaffold(
-          body: Column(
-            children: [
-              const SizedBox(height: 25),
-              ChatToDateHeaderWhite(
-                leftIconPath: 'assets/icons/ui/icon_chat2date_full.svg',
-                rightIconPath: 'assets/icons/ui/icon_menu.svg',
-                iconColor: const Color(0xFF5ce1e6),
-                onBack: () {},
-                onSettings: () async {
-                  await ref
-                      .read(locationServiceProvider)
-                      .tryUpdateLocationSilently();
-                  widget.onTogglePanel();
-                },
-              ),
+        return LayoutBuilder(
+          builder: (context, constraints) {
+            final aboutTop = _isAboutOpen ? 0.0 : constraints.maxHeight + 24;
+            final aboutHeight = constraints.maxHeight;
 
-              // ===== Canvas (ภาพ + Panels + Overlay) =====
-              SizedBox(
-                width: double.infinity,
-                height: 585,
-                child: Stack(
-                  clipBehavior: Clip.none,
-                  children: [
-                    // --- Profile image (with animation) ---
-                    Opacity(
-                      opacity: widget.opacity,
-                      child: Transform.translate(
-                        offset: Offset(dx, dy),
-                        child: Transform.rotate(
-                          angle: rot,
-                          child: hasImages
-                              ? Image.network(
-                                  images[widget
-                                      .index], // ✅ ใช้ได้เพราะเช็คแล้วว่าไม่ว่าง
-                                  width: double.infinity,
-                                  height: 585,
-                                  fit: BoxFit.cover,
-                                  errorBuilder: (context, error, stackTrace) {
-                                    return _buildImageFallback(sex);
-                                  },
-                                )
-                              : _buildImageFallback(sex),
-                        ),
-                      ),
-                    ),
-
-                    if (widget.remainingAction !=
-                        null) // แสดงเฉพาะเมื่อมีการจำกัดโควตา
-                      Positioned(
-                        top: 20,
-                        right: 20,
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 12,
-                            vertical: 6,
-                          ),
-                          decoration: BoxDecoration(
-                            color: Colors.black.withOpacity(
-                              0.5,
-                            ), // พื้นหลังมืดเพื่อให้เลขสีขาวเด่น
-                            borderRadius: BorderRadius.circular(20),
-                            border: Border.all(
-                              color: Colors.white.withOpacity(0.3),
-                              width: 1,
-                            ),
-                          ),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              const Icon(
-                                Icons.bolt, // ไอคอนสายฟ้าสื่อถึงพลังงาน/โควตา
-                                color: Color(0xFFFFD700), // สีทอง
-                                size: 16,
-                              ),
-                              const SizedBox(width: 4),
-                              Text(
-                                '${widget.remainingAction}',
-                                style: const TextStyle(
-                                  color: Colors.white,
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 14,
-                                  fontFamily: 'Inter',
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-
-                    // --- Bottom Panel ---
-                    if (widget.activePanel.value != ActivePanel.top)
-                      ValueListenableBuilder(
-                        valueListenable: widget.activePanel,
-                        builder: (context, value, _) {
-                          if (value == ActivePanel.top) {
-                            return const SizedBox.shrink();
-                          }
-                          return IgnorePointer(
-                            ignoring:
-                                widget.activePanel.value == ActivePanel.top,
-                            child: SlidingUpPanel(
-                              controller: widget.bottomCtrl,
-                              maxHeight: 436,
-                              minHeight: 40,
-                              color: widget.blurredWhite(widget.posBottom),
-                              backdropEnabled: value == ActivePanel.bottom,
-                              isDraggable: value != ActivePanel.top,
-                              panelSnapping: true,
-                              collapsed: const Center(
-                                child: Icon(
-                                  Icons.keyboard_double_arrow_up,
-                                  color: Colors.white,
-                                ),
-                              ),
-                              onPanelSlide: widget.onPanelSlideBottom,
-                              onPanelClosed: widget.onPanelClosedBottom,
-                              panel: ClipRRect(
-                                borderRadius: const BorderRadius.vertical(
-                                  bottom: Radius.circular(20),
-                                ),
-                                child: BackdropFilter(
-                                  filter: ImageFilter.blur(
-                                    sigmaX: 5 * widget.posBottom,
-                                    sigmaY: 5 * widget.posBottom,
+            return Stack(
+                        children: [
+                          Positioned.fill(
+                            child: DecoratedBox(
+                              decoration: BoxDecoration(
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: Colors.black.withValues(alpha: 0.22),
+                                    blurRadius: 28,
+                                    spreadRadius: 2,
+                                    offset: const Offset(0, 10),
                                   ),
-                                  child: Container(
-                                    color: Colors.white.withOpacity(
-                                      0.2 * widget.posBottom,
-                                    ),
-                                    child: SingleChildScrollView(
-                                      physics: const BouncingScrollPhysics(),
-                                      padding:
-                                          const EdgeInsets.symmetric(
-                                            horizontal: 32,
-                                            vertical: 40,
-                                          ).copyWith(
-                                            bottom: 56,
-                                          ), // กัน content ชิดขอบตอนเลื่อน
-                                      child: Column(
-                                        crossAxisAlignment:
-                                            CrossAxisAlignment.start,
-                                        children: [
-                                          HeadersWithStyles(headers: headerTop),
-                                        ],
-                                      ),
-                                    ),
+                                  BoxShadow(
+                                    color: Colors.black.withValues(alpha: 0.10),
+                                    blurRadius: 8,
+                                    offset: const Offset(0, 2),
                                   ),
-                                ),
+                                ],
                               ),
-                            ),
-                          );
-                        },
-                      ),
-
-                    // --- Top Panel ---
-                    if (widget.activePanel.value != ActivePanel.bottom)
-                      IgnorePointer(
-                        ignoring:
-                            widget.activePanel.value == ActivePanel.bottom,
-                        child: ValueListenableBuilder(
-                          valueListenable: widget.activePanel,
-                          builder: (context, value, _) {
-                            return SlidingUpPanel(
-                              controller: widget.topCtrl,
-                              slideDirection: SlideDirection.DOWN,
-                              maxHeight: 436,
-                              minHeight: 40,
-                              color: widget.blurredWhite(widget.posTop),
-                              backdropEnabled: value == ActivePanel.top,
-                              isDraggable: value != ActivePanel.bottom,
-                              panelSnapping: true,
-                              collapsed: const Center(
-                                child: Icon(
-                                  Icons.keyboard_double_arrow_down,
-                                  color: Colors.white,
+                              child: GestureDetector(
+                                behavior: HitTestBehavior.opaque,
+                                onTapUp: (details) => _handleImageTap(
+                                  details,
+                                  constraints.maxWidth,
+                                  images.length,
                                 ),
-                              ),
-                              onPanelSlide: widget.onPanelSlideTop,
-                              onPanelClosed: widget.onPanelClosedTop,
-                              panel: ClipRRect(
-                                borderRadius: const BorderRadius.vertical(
-                                  bottom: Radius.circular(20),
-                                ),
-                                child: BackdropFilter(
-                                  filter: ImageFilter.blur(
-                                    sigmaX: 5 * widget.posTop,
-                                    sigmaY: 5 * widget.posTop,
-                                  ),
-                                  child: Container(
-                                    color: Colors.white.withOpacity(
-                                      0.2 * widget.posTop,
-                                    ),
-                                    child: SingleChildScrollView(
-                                      physics: const BouncingScrollPhysics(),
-                                      padding: const EdgeInsets.symmetric(
-                                        horizontal: 24,
-                                        vertical: 32,
-                                      ).copyWith(bottom: 56),
-                                      child: Column(
-                                        crossAxisAlignment:
-                                            CrossAxisAlignment.start,
-                                        children: [
-                                          HeadersWithStyles(
-                                            headers: headerBottom,
-                                          ),
-                                        ],
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                              ),
-                            );
-                          },
-                        ),
-                      ),
-
-                    // --- Action buttons ---
-                    // UNLIKE (ซ้าย)
-                    ValueListenableBuilder<ActivePanel>(
-                      valueListenable: widget.activePanel,
-                      builder: (context, value, _) {
-                        final panelsClosed = value == ActivePanel.none;
-                        if (!panelsClosed) return const SizedBox.shrink();
-
-                        return Positioned(
-                          left: 75,
-                          bottom: -30,
-                          child: DsSvgSwapButton(
-                            assetA: 'assets/icons/ui/icon_unlike.svg', // 60 x 60
-                            assetB:
-                                'assets/icons/ui/icon_unlike_active.svg', // 80 x 80
-                            iconSize: 60,
-                            activeIconSize: 80,
-                            padding: 0,
-                            onPressed: () async {
-                              final quota = await ref
-                                  .read(swipeQuotaProvider)
-                                  .checkSwipeStatus();
-
-                              if (quota.isRestricted &&
-                                  quota.remainingCount == 0) {
-                                Toast.show(
-                                  context,
-                                  type: ToastType.warning,
-                                  title: 'โควตาเต็มแล้ว',
-                                  message:
-                                      'คุณปัดครบ 10 คนสำหรับวันนี้แล้วจ้า พรุ่งนี้มาหาคู่ใหม่นะ!',
-                                  durationSeconds: 4,
-                                );
-                              } else {
-                                widget.onUnlike();
-                              }
-                            },
-                          ),
-                        );
-                      },
-                    ),
-
-                    // LIKE (ขวา)
-                    ValueListenableBuilder<ActivePanel>(
-                      valueListenable: widget.activePanel,
-                      builder: (context, value, _) {
-                        final panelsClosed = value == ActivePanel.none;
-                        if (!panelsClosed) return const SizedBox.shrink();
-
-                        return Positioned(
-                          right: 75,
-                          bottom: -30,
-                          child: DsSvgSwapButton(
-                            assetA: 'assets/icons/ui/icon_heart.svg', // 60 x 60
-                            assetB:
-                                'assets/icons/ui/icon_heart_active.svg', // 77 x 77
-                            iconSize: 60,
-                            activeIconSize: 77,
-                            padding: 0,
-                            onPressed: () async {
-                              final quota = await ref
-                                  .read(swipeQuotaProvider)
-                                  .checkSwipeStatus();
-
-                              if (quota.isRestricted &&
-                                  quota.remainingCount == 0) {
-                                Toast.show(
-                                  context,
-                                  type: ToastType.warning,
-                                  title: 'โควตาเต็มแล้ว',
-                                  message:
-                                      'คุณปัดครบ 10 คนสำหรับวันนี้แล้วจ้า พรุ่งนี้มาหาคู่ใหม่นะ!',
-                                  durationSeconds: 4,
-                                );
-                              } else {
-                                widget.onLike();
-                              }
-                            },
-                          ),
-                        );
-                      },
-                    ),
-
-                    // arrows + name + tags
-                    ValueListenableBuilder<ActivePanel>(
-                      valueListenable: widget.activePanel,
-                      builder: (context, value, _) {
-                        final panelsClosed = value == ActivePanel.none;
-
-                        return Stack(
-                          children: [
-                            if (panelsClosed) ...[
-                              Padding(
-                                padding: const EdgeInsets.symmetric(
-                                  vertical: 65,
-                                  horizontal: 16,
-                                ),
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                child: Stack(
+                                  clipBehavior: Clip.none,
+                                  fit: StackFit.expand,
                                   children: [
-                                    const Spacer(),
-                                    Row(
-                                      children: [
-                                        _ArrowButton(
-                                          icon: Icons.chevron_left,
-                                          onTap: () =>
-                                              widget.onPrevImage(images.length),
+                                      ClipRect(
+                                        child: Opacity(
+                                          opacity: widget.opacity,
+                                          child: Transform.translate(
+                                            offset: Offset(dx, dy),
+                                            child: Transform.rotate(
+                                              angle: rot,
+                                              child: hasImages
+                                                  ? Image.network(
+                                                      images[widget.index],
+                                                      fit: BoxFit.cover,
+                                                      errorBuilder: (context, error, stackTrace) {
+                                                        return _buildImageFallback(sex);
+                                                      },
+                                                    )
+                                                  : _buildImageFallback(sex),
+                                            ),
+                                          ),
                                         ),
-                                        const Spacer(),
-                                        _ArrowButton(
-                                          icon: Icons.chevron_right,
-                                          onTap: () =>
-                                              widget.onNextImage(images.length),
-                                        ),
-                                      ],
-                                    ),
-                                    const SizedBox(height: 118),
-                                    Padding(
-                                      padding: const EdgeInsets.symmetric(
-                                        horizontal: 20,
                                       ),
-                                      child: SizedBox(
-                                        width: 311,
-                                        child: Text(
-                                          '${widget.candidate.nickname}, ${widget.candidate.age}',
-                                          style: const TextStyle(
-                                            fontSize: 32,
-                                            color: Colors.white,
-                                            fontFamily: 'Inter',
+                                      Positioned(
+                                        left: -28,
+                                        right: -28,
+                                        bottom: -18,
+                                        child: IgnorePointer(
+                                          child: ImageFiltered(
+                                            imageFilter: ImageFilter.blur(
+                                              sigmaX: 0,
+                                              sigmaY: 18,
+                                            ),
+                                            child: Container(
+                                              height: 278,
+                                              decoration: const BoxDecoration(
+                                                borderRadius: BorderRadius.vertical(
+                                                  bottom: Radius.circular(42),
+                                                ),
+                                                gradient: LinearGradient(
+                                                  begin: Alignment.topCenter,
+                                                  end: Alignment.bottomCenter,
+                                                  stops: [0.0, 0.22, 0.58, 1.0],
+                                                  colors: [
+                                                    Color(0x00000000),
+                                                    Color(0x22000000),
+                                                    Color(0xCC1F1F1F),
+                                                    Colors.black,
+                                                  ],
+                                                ),
+                                              ),
+                                            ),
+                                          ),
+                                        ),
+                                      ),
+                                      if (widget.remainingAction != null)
+                                        Positioned(
+                                          top: 18,
+                                          right: 18,
+                                          child: Container(
+                                            padding: const EdgeInsets.symmetric(
+                                              horizontal: 12,
+                                              vertical: 6,
+                                            ),
+                                            decoration: BoxDecoration(
+                                              color: Colors.black.withValues(alpha: 0.48),
+                                              borderRadius: BorderRadius.circular(20),
+                                              border: Border.all(
+                                                color: Colors.white.withValues(alpha: 0.2),
+                                              ),
+                                            ),
+                                            child: Row(
+                                              mainAxisSize: MainAxisSize.min,
+                                              children: [
+                                                const Icon(
+                                                  Icons.bolt_rounded,
+                                                  size: 16,
+                                                  color: AppColors.brandSecondary,
+                                                ),
+                                                const SizedBox(width: 4),
+                                                Text(
+                                                  '${widget.remainingAction}',
+                                                  style: const TextStyle(
+                                                    fontSize: 14,
+                                                    fontWeight: FontWeight.w700,
+                                                    color: AppColors.textOnDark,
+                                                    fontFamily: 'Inter',
+                                                  ),
+                                                ),
+                                              ],
+                                            ),
+                                          ),
+                                        ),
+                                    ],
+                                  ),
+                                ),
+                            ),
+                          ),
+                          if (!_isAboutOpen)
+                            Positioned(
+                              left: 0,
+                              right: 0,
+                              bottom: 94,
+                              child: Padding(
+                                padding: const EdgeInsets.symmetric(horizontal: 30),
+                                child: Column(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Row(
+                                      mainAxisAlignment: MainAxisAlignment.center,
+                                      children: List.generate(
+                                        max(images.length, 1),
+                                        (index) => Container(
+                                          width: 5,
+                                          height: 5,
+                                          margin: const EdgeInsets.symmetric(horizontal: 2.5),
+                                          decoration: BoxDecoration(
+                                            color: index == widget.index
+                                                ? AppColors.background
+                                                : Colors.white.withValues(alpha: 0.42),
+                                            shape: BoxShape.circle,
                                           ),
                                         ),
                                       ),
                                     ),
-                                    if (widget.candidate.tags.isNotEmpty)
-                                      Padding(
-                                        padding: const EdgeInsets.symmetric(
-                                          horizontal: 10,
+                                    const SizedBox(height: 12),
+                                    Align(
+                                      alignment: Alignment.centerLeft,
+                                      child: Text(
+                                        '${widget.candidate.nickname} (${widget.candidate.age})',
+                                        style: const TextStyle(
+                                          fontSize: 22,
+                                          height: 28 / 22,
+                                          fontWeight: FontWeight.w600,
+                                          color: AppColors.textOnDark,
+                                          fontFamily: 'Inter',
                                         ),
+                                      ),
+                                    ),
+                                    if (tags.isNotEmpty) ...[
+                                      const SizedBox(height: 11),
+                                      Align(
+                                        alignment: Alignment.centerLeft,
                                         child: Wrap(
                                           spacing: 5,
                                           runSpacing: 7,
-                                          children: widget.candidate.tags.map((
-                                            tag,
-                                          ) {
-                                            return Container(
-                                              padding:
-                                                  const EdgeInsets.symmetric(
-                                                    horizontal: 10,
-                                                    vertical: 4,
-                                                  ),
-                                              height: 27,
-                                              constraints: const BoxConstraints(
-                                                minWidth: 60,
-                                              ),
-                                              decoration: BoxDecoration(
-                                                color: AppColors.btnPrimary,
-                                                borderRadius:
-                                                    BorderRadius.circular(30),
-                                              ),
-                                              child: Row(
-                                                mainAxisSize: MainAxisSize.min,
-                                                children: [
-                                                  SvgPicture.asset(
-                                                    'assets/icons/ui/icon_tag.svg',
-                                                    width: 24,
-                                                    height: 24,
-                                                  ),
-                                                  Text(
-                                                    tag,
-                                                    style: const TextStyle(
-                                                      fontSize: 14,
-                                                      color: Colors.white,
-                                                      fontFamily: 'Inter',
-                                                      fontWeight:
-                                                          FontWeight.w400,
-                                                    ),
-                                                  ),
-                                                  const SizedBox(width: 20),
-                                                ],
-                                              ),
-                                            );
-                                          }).toList(),
+                                          children: tags.map(_buildClosedTagChip).toList(),
                                         ),
                                       ),
+                                    ],
                                   ],
                                 ),
                               ),
-                            ],
-                          ],
-                        );
-                      },
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-          bottomNavigationBar: widget.showBottomNav
-              ? CustomBottomNavBar(
-                  selectedIndex: widget.selectedIndex,
-                  onTap: widget.onBottomNavTap,
-                )
-              : null,
+                            ),
+                          AnimatedPositioned(
+                            duration: const Duration(milliseconds: 260),
+                            curve: Curves.easeOutCubic,
+                            top: aboutTop,
+                            left: 0,
+                            right: 0,
+                            height: aboutHeight,
+                            child: _buildAboutSheet(aboutHeight),
+                          ),
+                          Positioned(
+                            left: 0,
+                            right: 0,
+                            bottom: 20,
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                if (!_isAboutOpen) ...[
+                                  DsReactionButton(
+                                    type: DsReactionButtonType.pass,
+                                    onTap: _handlePass,
+                                  ),
+                                  const SizedBox(width: 25),
+                                ],
+                                _buildInfoToggleButton(expanded: _isAboutOpen),
+                                if (!_isAboutOpen) ...[
+                                  const SizedBox(width: 25),
+                                  DsReactionButton(
+                                    type: DsReactionButtonType.match,
+                                    onTap: _handleLike,
+                                  ),
+                                ],
+                              ],
+                            ),
+                          ),
+                        ],
+                      );
+          },
         );
       },
     );
@@ -1708,403 +1572,62 @@ Widget _buildImageFallback(String? gender) {
       assetPath = 'assets/images/placeholders/female.jpg'; // หรือ default อื่น
   }
 
-  return SizedBox(
-    width: double.infinity,
-    height: 585,
-    child: Image.asset(assetPath, fit: BoxFit.cover),
-  );
+  return Image.asset(assetPath, fit: BoxFit.cover);
 }
 
-// ✨ Beautiful Loading Widget (เหมือนเดิม)
-
-class _DiscoveryLoadingWidget extends StatefulWidget {
-  const _DiscoveryLoadingWidget();
-
-  @override
-  State<_DiscoveryLoadingWidget> createState() =>
-      _DiscoveryLoadingWidgetState();
-}
-
-class _DiscoveryLoadingWidgetState extends State<_DiscoveryLoadingWidget>
-    with TickerProviderStateMixin {
-  late AnimationController _shimmerController;
-  late AnimationController _pulseController;
-
-  @override
-  void initState() {
-    super.initState();
-    _shimmerController = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 2000),
-    )..repeat();
-
-    _pulseController = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 1500),
-    )..repeat(reverse: true);
-  }
-
-  @override
-  void dispose() {
-    _shimmerController.dispose();
-    _pulseController.dispose();
-    super.dispose();
-  }
+class _DiscoveryImageLoadingArea extends StatelessWidget {
+  const _DiscoveryImageLoadingArea();
 
   @override
   Widget build(BuildContext context) {
-    return AnimatedBuilder(
-      animation: Listenable.merge([_shimmerController, _pulseController]),
-      builder: (context, child) {
-        return Container(
-          width: double.infinity,
-          height: 585,
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: [
-                const Color(0xFFFFF5F8).withOpacity(0.3),
-                const Color(0xFFFFE5ED).withOpacity(0.5),
-                const Color(0xFFFFF0F5).withOpacity(0.4),
-              ],
-              stops: [
-                (_shimmerController.value - 0.2).clamp(0.0, 1.0),
-                _shimmerController.value.clamp(0.0, 1.0),
-                (_shimmerController.value + 0.3).clamp(0.0, 1.0),
-              ],
-            ),
-          ),
-          child: Stack(
-            children: [
-              // Subtle background card
-              Positioned.fill(
-                child: Container(
-                  margin: const EdgeInsets.all(20),
-                  decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.6),
-                    borderRadius: BorderRadius.circular(24),
-                    border: Border.all(
-                      color: const Color(0xFFFFB3C6).withOpacity(0.3),
-                      width: 1,
-                    ),
-                    boxShadow: [
-                      BoxShadow(
-                        color: const Color(0xFFFFB3C6).withOpacity(0.1),
-                        blurRadius: 30,
-                        spreadRadius: 0,
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-
-              // Center content
-              Center(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    // Heart with pulse effect
-                    Stack(
-                      alignment: Alignment.center,
-                      children: [
-                        // Pulse ring
-                        AnimatedBuilder(
-                          animation: _pulseController,
-                          builder: (context, child) {
-                            final scale = 1.0 + (_pulseController.value * 0.3);
-                            final opacity =
-                                (1.0 - _pulseController.value) * 0.5;
-                            return Transform.scale(
-                              scale: scale,
-                              child: Container(
-                                width: 130,
-                                height: 130,
-                                decoration: BoxDecoration(
-                                  shape: BoxShape.circle,
-                                  border: Border.all(
-                                    color: const Color(
-                                      0xFFFF8FB3,
-                                    ).withOpacity(opacity),
-                                    width: 2,
-                                  ),
-                                ),
-                              ),
-                            );
-                          },
-                        ),
-
-                        // Main heart
-                        TweenAnimationBuilder<double>(
-                          tween: Tween(begin: 0.95, end: 1.05),
-                          duration: const Duration(milliseconds: 800),
-                          curve: Curves.easeInOut,
-                          builder: (context, scale, child) {
-                            return Transform.scale(
-                              scale: scale,
-                              child: Container(
-                                padding: const EdgeInsets.all(28),
-                                decoration: BoxDecoration(
-                                  shape: BoxShape.circle,
-                                  gradient: const LinearGradient(
-                                    begin: Alignment.topLeft,
-                                    end: Alignment.bottomRight,
-                                    colors: [
-                                      Color(0xFFFFE5EE),
-                                      Color(0xFFFFCCDD),
-                                    ],
-                                  ),
-                                  boxShadow: [
-                                    BoxShadow(
-                                      color: const Color(
-                                        0xFFFF8FB3,
-                                      ).withOpacity(0.3),
-                                      blurRadius: 35,
-                                      spreadRadius: 5,
-                                    ),
-                                  ],
-                                ),
-                                child: const Icon(
-                                  Icons.favorite,
-                                  size: 64,
-                                  color: Color(0xFFFF8FB3),
-                                ),
-                              ),
-                            );
-                          },
-                          onEnd: () {
-                            if (mounted) {
-                              setState(() {});
-                            }
-                          },
-                        ),
-                      ],
-                    ),
-
-                    const SizedBox(height: 40),
-
-                    // Text
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 24,
-                        vertical: 12,
-                      ),
-                      decoration: BoxDecoration(
-                        color: Colors.white.withOpacity(0.7),
-                        borderRadius: BorderRadius.circular(16),
-                        border: Border.all(
-                          color: const Color(0xFFFFB3C6).withOpacity(0.3),
-                          width: 1,
-                        ),
-                      ),
-                      child: const Text(
-                        'กำลังค้นหาคนที่ใช่สำหรับคุณ',
-                        style: TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.w600,
-                          color: Color(0xFFFF8FB3),
-                          fontFamily: 'Inter',
-                          letterSpacing: 0.2,
-                        ),
-                      ),
-                    ),
-
-                    const SizedBox(height: 16),
-
-                    // Animated dots
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: List.generate(3, (index) {
-                        return AnimatedBuilder(
-                          animation: _shimmerController,
-                          builder: (context, child) {
-                            final delay = index * 0.15;
-                            final progress =
-                                (_shimmerController.value + delay) % 1.0;
-                            final opacity = (sin(progress * pi * 2) + 1) / 2;
-                            final scale = 0.7 + (opacity * 0.3);
-
-                            return Transform.scale(
-                              scale: scale,
-                              child: Container(
-                                margin: const EdgeInsets.symmetric(
-                                  horizontal: 5,
-                                ),
-                                width: 10,
-                                height: 10,
-                                decoration: BoxDecoration(
-                                  shape: BoxShape.circle,
-                                  color: const Color(
-                                    0xFFFF8FB3,
-                                  ).withOpacity(opacity),
-                                  boxShadow: [
-                                    BoxShadow(
-                                      color: const Color(
-                                        0xFFFF8FB3,
-                                      ).withOpacity(opacity * 0.4),
-                                      blurRadius: 8,
-                                      spreadRadius: 1,
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            );
-                          },
-                        );
-                      }),
-                    ),
-                  ],
-                ),
-              ),
-
-              // Bottom shimmer bars
-              Positioned(
-                bottom: 80,
-                left: 32,
-                right: 32,
-                child: Column(
-                  children: [
-                    _ShimmerBar(
-                      width: double.infinity,
-                      height: 16,
-                      animation: _shimmerController,
-                    ),
-                    const SizedBox(height: 12),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: _ShimmerBar(
-                            width: double.infinity,
-                            height: 32,
-                            animation: _shimmerController,
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          child: _ShimmerBar(
-                            width: double.infinity,
-                            height: 32,
-                            animation: _shimmerController,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-        );
-      },
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(10, 0, 10, 20),
+      child: const HomeSearchLoadingContent(),
     );
   }
 }
 
-class _ShimmerBar extends StatelessWidget {
-  final double width;
-  final double height;
-  final Animation<double> animation;
+class _EmptySuggestionLine extends StatelessWidget {
+  final String text;
 
-  const _ShimmerBar({
-    required this.width,
-    required this.height,
-    required this.animation,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: width,
-      height: height,
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(10),
-        gradient: LinearGradient(
-          begin: Alignment.centerLeft,
-          end: Alignment.centerRight,
-          colors: [
-            const Color(0xFFFFE5EE).withOpacity(0.3),
-            const Color(0xFFFFB3C6).withOpacity(0.4),
-            const Color(0xFFFFCCDD).withOpacity(0.35),
-            const Color(0xFFFFE5EE).withOpacity(0.3),
-          ],
-          stops: [
-            (animation.value - 0.3).clamp(0.0, 1.0),
-            (animation.value - 0.05).clamp(0.0, 1.0),
-            (animation.value + 0.05).clamp(0.0, 1.0),
-            (animation.value + 0.3).clamp(0.0, 1.0),
-          ],
-        ),
-        border: Border.all(
-          color: const Color(0xFFFFB3C6).withOpacity(0.25),
-          width: 1,
-        ),
-      ),
-    );
-  }
-}
-
-class _ArrowButton extends StatelessWidget {
-  final IconData icon;
-  final VoidCallback onTap;
-  const _ArrowButton({required this.icon, required this.onTap});
+  const _EmptySuggestionLine({required this.text});
 
   @override
   Widget build(BuildContext context) {
     return SizedBox(
-      width: 25,
-      height: 22,
-      child: FittedBox(
-        fit: BoxFit.fill,
-        child: Container(
-          decoration: BoxDecoration(
-            color: Colors.black.withOpacity(0.12),
-            borderRadius: BorderRadius.circular(30),
-          ),
-          child: IconButton(
-            icon: Icon(icon, color: Colors.white, size: 50),
-            onPressed: onTap,
-          ),
+      height: 47,
+      child: Align(
+        alignment: Alignment.centerLeft,
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Padding(
+              padding: EdgeInsets.only(top: 6),
+              child: Text(
+                '•',
+                style: TextStyle(
+                  fontSize: 14,
+                  height: 20 / 14,
+                  color: TextColors.secondary,
+                  fontFamily: 'Inter',
+                ),
+              ),
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Text(
+                text,
+                style: const TextStyle(
+                  fontSize: 14,
+                  height: 20 / 14,
+                  color: TextColors.secondary,
+                  fontFamily: 'Inter',
+                ),
+              ),
+            ),
+          ],
         ),
       ),
-    );
-  }
-}
-
-class _SuggestionItem extends StatelessWidget {
-  final IconData icon;
-  final String text;
-  final Color color;
-
-  const _SuggestionItem({
-    required this.icon,
-    required this.text,
-    required this.color,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      children: [
-        Container(
-          padding: const EdgeInsets.all(8),
-          decoration: BoxDecoration(
-            color: color.withOpacity(0.1),
-            borderRadius: BorderRadius.circular(8),
-          ),
-          child: Icon(icon, size: 20, color: color),
-        ),
-        const SizedBox(width: 12),
-        Expanded(
-          child: Text(
-            text,
-            style: const TextStyle(
-              fontSize: 15,
-              color: Color(0xFF666666),
-              fontFamily: 'Inter',
-            ),
-          ),
-        ),
-      ],
     );
   }
 }

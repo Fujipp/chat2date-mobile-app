@@ -45,6 +45,7 @@ abstract final class AppAssets {
   static const String heartStatusIcon = '$modalIconDir/icon_heart_status.svg';
   static const String heartActiveIcon = '$iconDir/icon_heart_active.svg';
   static const String heartIcon = '$iconDir/icon_heart.svg';
+  static const String heartOnlyIcon = '$iconDir/icon_heart_only.svg';
   static const String statusHeartIcon = '$iconDir/HEART_STATUS_BAR.svg';
   static const String statusInfoIcon = '$iconDir/INFO_STATUS_BAR.svg';
   static const String gpsMapIcon = '$gpsIconDir/icon_gps_map.svg';

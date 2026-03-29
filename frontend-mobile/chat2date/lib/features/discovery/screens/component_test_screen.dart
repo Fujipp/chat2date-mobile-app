@@ -63,7 +63,7 @@ class _ComponentTestScreenState extends State<ComponentTestScreen> {
   void _onItemTapped(int index) {
     switch (index) {
       case 0:
-        Navigator.pushNamed(context, '/discovery');
+        Navigator.pushNamed(context, '/main');
         break;
       case 1:
         Navigator.pushNamed(context, '/chat');

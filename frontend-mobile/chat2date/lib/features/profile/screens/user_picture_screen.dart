@@ -115,7 +115,7 @@ class _UserPictureScreenState extends ConsumerState<UserPictureScreen> {
       );
 
       if (mounted) {
-        Navigator.pushReplacementNamed(context, '/discovery');
+        Navigator.pushReplacementNamed(context, '/main');
       }
     } catch (e) {
       if (mounted) {

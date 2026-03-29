@@ -88,24 +88,32 @@ class _CustomBottomNavBarState extends State<CustomBottomNavBar> {
 
   @override
   Widget build(BuildContext context) {
-    return SafeArea(
-      top: false,
-      child: Container(
-        height: 80,
-        color: AppColors.surface,
-        padding: const EdgeInsets.symmetric(vertical: 10),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: List.generate(_items.length, (index) {
-            final item = _items[index];
-            final bool isSelected = index == _selectedIndex;
-            return _BottomNavButton(
-              label: item.label,
-              iconPath: isSelected ? item.activeIcon : item.inactiveIcon,
-              isSelected: isSelected,
-              onTap: () => _handleTap(index),
-            );
-          }),
+    final bottomInset = MediaQuery.of(context).padding.bottom;
+    final double contentBottomPadding = bottomInset > 0 ? bottomInset - 2.0 : 4.0;
+
+    return Container(
+      height: 60 + bottomInset,
+      color: AppColors.surface,
+      child: Padding(
+        padding: EdgeInsets.only(bottom: contentBottomPadding),
+          child: Align(
+          alignment: Alignment.bottomCenter,
+          child: SizedBox(
+            height: 42,
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: List.generate(_items.length, (index) {
+                final item = _items[index];
+                final bool isSelected = index == _selectedIndex;
+                return _BottomNavButton(
+                  label: item.label,
+                  iconPath: isSelected ? item.activeIcon : item.inactiveIcon,
+                  isSelected: isSelected,
+                  onTap: () => _handleTap(index),
+                );
+              }),
+            ),
+          ),
         ),
       ),
     );
@@ -144,29 +152,29 @@ class _BottomNavButton extends StatelessWidget {
       softWrap: false,
       style: AppBodyTextStyles.captionBold.copyWith(
         color: isSelected ? Colors.white : AppColors.textOnDark,
-        height: 1,
+        height: 1.15,
       ),
     );
 
     return Expanded(
       child: Align(
         alignment: Alignment.center,
-        child: InkWell(
+          child: InkWell(
           onTap: onTap,
           borderRadius: BorderRadius.circular(12),
           child: SizedBox(
             width: 56,
-            height: 45,
+            height: 40,
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               mainAxisSize: MainAxisSize.min,
               children: [
                 SizedBox(
-                  width: 30,
-                  height: 30,
+                  width: 24,
+                  height: 24,
                   child: iconWidget,
                 ),
-                const SizedBox(height: 0),
+                const SizedBox(height: 2),
                 if (isSelected)
                   ShaderMask(
                     blendMode: BlendMode.srcIn,
@@ -188,7 +196,7 @@ class _BottomNavButton extends StatelessWidget {
   Widget _buildSettingIcon() {
     final Widget icon = const Icon(
       Icons.settings_rounded,
-      size: 28,
+      size: 24,
       color: Colors.white,
     );
 

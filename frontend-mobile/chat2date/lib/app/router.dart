@@ -5,7 +5,6 @@ import 'package:chat2date/features/auth/screens/index.dart';
 import 'package:chat2date/features/chat/screens/chat_list_screen.dart';
 import 'package:chat2date/features/chat/screens/inside_chat_screen.dart';
 import 'package:chat2date/features/discovery/screens/component_test_screen.dart';
-import 'package:chat2date/features/discovery/screens/discovery_screen.dart';
 import 'package:chat2date/features/discovery/screens/main_tabs.dart';
 import 'package:chat2date/features/discovery/screens/ui_showcase_screen.dart';
 import 'package:chat2date/features/game/screens/guessing_game_screen.dart';
@@ -42,7 +41,6 @@ Map<String, WidgetBuilder> buildAppRoutes() {
 
     // ─── Main (หลัง Login สำเร็จ) ────────────────────
     '/main': (context) => const MainTabs(),
-    '/discovery': (context) => const DiscoveryScreen(),
 
     // ─── Profile / Setup ─────────────────────────────
     '/profileSetup': (context) => const ProfileSetupScreen(),

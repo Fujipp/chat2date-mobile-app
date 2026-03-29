@@ -54,6 +54,10 @@ class _MainTabsState extends State<MainTabs> {
         selectedIndex: _index,
         onTap: (i) {
           if (i == _index) {
+            if (i == 0) {
+              return;
+            }
+
             setState(() {
               _pageKeys[i] = UniqueKey();
               _pages[i] = _buildPage(i);

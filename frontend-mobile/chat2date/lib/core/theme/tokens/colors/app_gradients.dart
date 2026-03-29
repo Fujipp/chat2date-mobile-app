@@ -31,7 +31,7 @@ abstract final class AppGradients {
       MainColors.primary,  // 0%   – #FF6DB1
       DataColors.pastel5,  // 100% – #FFF1A8
     ],
-    begin: Alignment.centerLeft,
-    end: Alignment.centerRight,
+    begin: Alignment.topCenter,
+    end: Alignment.bottomCenter,
   );
 }
