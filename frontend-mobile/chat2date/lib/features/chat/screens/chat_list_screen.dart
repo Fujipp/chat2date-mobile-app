@@ -1,22 +1,25 @@
 import 'dart:async';
 
-import 'package:chat2date/components/card/card_chat_component.dart';
-import 'package:chat2date/components/chat/content_switcher.dart';
-import 'package:chat2date/components/layout/header.dart';
-import 'package:chat2date/components/layout/menu_bar.dart';
+import 'package:chat2date/components/design_system/index.dart';
+import 'package:chat2date/core/theme/app_colors.dart';
+import 'package:chat2date/core/theme/tokens/colors/app_gradients.dart';
+import 'package:chat2date/core/theme/tokens/colors/input_colors.dart';
+import 'package:chat2date/core/theme/tokens/colors/text_colors.dart';
+import 'package:chat2date/features/discovery/screens/main_tabs.dart';
 import 'package:chat2date/models/chat_room.dart';
 import 'package:chat2date/models/dto/match_event_dto.dart';
 import 'package:chat2date/models/match.dart';
 import 'package:chat2date/models/user.dart';
-import 'package:chat2date/features/discovery/screens/main_tabs.dart';
 import 'package:chat2date/services/chat_list_socket_service.dart';
 import 'package:chat2date/services/chat_service.dart';
 import 'package:chat2date/services/match_socket_service.dart';
 import 'package:chat2date/stores/user_store.dart';
-import 'package:chat2date/core/theme/app_colors.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'package:intl/intl.dart';
+
+enum _ChatListTab { chat, match }
 
 class ChatListScreen extends ConsumerStatefulWidget {
   final bool showBottomNav;
@@ -30,11 +33,10 @@ class ChatListScreen extends ConsumerStatefulWidget {
 class _ChatListScreenState extends ConsumerState<ChatListScreen>
     with WidgetsBindingObserver {
   int _selectedIndex = 1;
-  int selectedIndex1 = 0;
+  _ChatListTab _selectedTab = _ChatListTab.chat;
   final Set<String> _viewedMatchIds = {};
   final Set<String> _clearedUnreadRoomIds = {};
 
-  // State สำหรับข้อมูลจาก API
   List<ChatRoom> _chatRooms = [];
   List<Match> _matches = [];
   bool _isLoadingChats = true;
@@ -43,7 +45,6 @@ class _ChatListScreenState extends ConsumerState<ChatListScreen>
   String? _matchError;
   List<Map<String, String>> pendingNotis = [];
 
-  // WebSocket for realtime updates
   ChatListSocketService? _chatListSocket;
   StreamSubscription<ChatListUpdateEvent>? _chatListSubscription;
   MatchSocketService? _matchSocket;
@@ -59,9 +60,18 @@ class _ChatListScreenState extends ConsumerState<ChatListScreen>
   }
 
   @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    _chatListSubscription?.cancel();
+    _chatListSocket?.dispose();
+    _matchSubscription?.cancel();
+    _matchSocket?.dispose();
+    super.dispose();
+  }
+
+  @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     super.didChangeAppLifecycleState(state);
-    // Refresh data when app resumes from background
     if (state == AppLifecycleState.resumed) {
       _loadData();
     }
@@ -100,20 +110,17 @@ class _ChatListScreenState extends ConsumerState<ChatListScreen>
 
     _matchSubscription = _matchSocket?.stream.listen((event) {
       if (!mounted) return;
-      // New match received - reload matches list
       _loadMatches();
     });
   }
 
   void _handleChatListUpdate(ChatListUpdateEvent event) {
-    // อัพเดท unread count แบบ realtime
     setState(() {
       final roomIndex = _chatRooms.indexWhere(
         (room) => room.roomId == event.roomId,
       );
 
       if (roomIndex >= 0) {
-        // อัพเดทห้องที่มีอยู่แล้ว
         final updatedRoom = _chatRooms[roomIndex].copyWith(
           unreadCount: event.unreadCount,
           lastMessage: event.lastMessage ?? _chatRooms[roomIndex].lastMessage,
@@ -122,102 +129,19 @@ class _ChatListScreenState extends ConsumerState<ChatListScreen>
         );
         _chatRooms[roomIndex] = updatedRoom;
 
-        // ถ้า unread count = 0 ให้เพิ่มเข้า cleared list เพื่อแสดง 0 ทันที
         if (event.unreadCount == 0) {
           _clearedUnreadRoomIds.add(event.roomId);
         } else {
-          // ถ้า unread count > 0 ให้ลบออกจาก cleared list
           _clearedUnreadRoomIds.remove(event.roomId);
         }
       } else if (event.unreadCount > 0) {
-        // ห้องใหม่ที่ยังไม่มีใน list - reload เพื่อดึงข้อมูลเต็ม
         _loadChatRooms();
       }
     });
   }
 
-  String _formatRelativeLastMessageTime(DateTime? time) {
-    if (time == null) {
-      return '';
-    }
-
-    final now = DateTime.now();
-    var difference = now.difference(time);
-    if (difference.isNegative) {
-      difference = Duration.zero;
-    }
-
-    if (difference.inMinutes < 1) {
-      return 'เมื่อสักครู่';
-    }
-    if (difference.inHours < 1) {
-      return '${difference.inMinutes} นาทีที่แล้ว';
-    }
-    if (difference.inDays < 1) {
-      return '${difference.inHours} ชั่วโมงที่แล้ว';
-    }
-    if (difference.inDays < 7) {
-      return '${difference.inDays} วันที่แล้ว';
-    }
-    if (difference.inDays < 30) {
-      return '${difference.inDays ~/ 7} สัปดาห์ที่แล้ว';
-    }
-    if (difference.inDays < 365) {
-      return '${difference.inDays ~/ 30} เดือนที่แล้ว';
-    }
-    return '${difference.inDays ~/ 365} ปีที่แล้ว';
-  }
-
-  String _buildChatSubtitle(ChatRoom room) {
-    final lastMessage = (room.lastMessage ?? '').trim();
-    final relativeTime = _formatRelativeLastMessageTime(room.lastMessageTime);
-
-    if (lastMessage.isEmpty) {
-      return 'ยังไม่มีข้อความ';
-    }
-    if (relativeTime.isEmpty) {
-      return lastMessage;
-    }
-    return '$lastMessage ส่งเมื่อ $relativeTime';
-  }
-
-  @override
-  void dispose() {
-    WidgetsBinding.instance.removeObserver(this);
-    _chatListSubscription?.cancel();
-    _chatListSocket?.dispose();
-    _matchSubscription?.cancel();
-    _matchSocket?.dispose();
-    super.dispose();
-  }
-
   Future<void> _loadData() async {
     await Future.wait([_loadChatRooms(), _loadMatches()]);
-  }
-
-  Future<void> _checkAndShowNotifications(
-    String roomId,
-    String partnerName,
-  ) async {
-    if (!mounted) return;
-    final chatService = ref.read(chatServiceProvider);
-
-    // เช็ค Noti ของทุกห้อง
-    try {
-      // เช็ค Noti เฉพาะห้องที่ส่ง Id เข้ามา
-      final String notiType = await chatService.checkNotiStatus(roomId);
-
-      if (notiType != "NONE" && notiType.isNotEmpty) {
-        final List<Map<String, String>> toShow = [
-          {'name': partnerName, 'type': notiType, 'roomId': roomId},
-        ];
-
-        // แสดง Dialog (ใช้ Logic เดิมของคุณ)
-        await _showSequentialDialogs(toShow);
-      }
-    } catch (e) {
-      debugPrint('Check Noti Error for $roomId: $e');
-    }
   }
 
   Future<void> _loadChatRooms() async {
@@ -230,26 +154,22 @@ class _ChatListScreenState extends ConsumerState<ChatListScreen>
       pendingNotis = [];
       final chatService = ref.read(chatServiceProvider);
       final rooms = await chatService.getChatRooms();
-      if (mounted) {
-        setState(() {
-          _chatRooms = rooms.where((room) => room.type != 'new').toList();
-          // เมื่อ API คืน unreadCount = 0 แสดงว่าข้อมูลถูก sync แล้ว
-          // ลบ roomId ออกจาก clearedUnreadRoomIds เพราะไม่จำเป็นต้อง override อีกต่อไป
-          final syncedRoomIds = _chatRooms
-              .where((room) => room.unreadCount == 0)
-              .map((room) => room.roomId)
-              .toSet();
-          _clearedUnreadRoomIds.removeWhere(syncedRoomIds.contains);
-          _isLoadingChats = false;
-        });
-      }
+      if (!mounted) return;
+      setState(() {
+        _chatRooms = rooms.where((room) => room.type != 'new').toList();
+        final syncedRoomIds = _chatRooms
+            .where((room) => room.unreadCount == 0)
+            .map((room) => room.roomId)
+            .toSet();
+        _clearedUnreadRoomIds.removeWhere(syncedRoomIds.contains);
+        _isLoadingChats = false;
+      });
     } catch (e) {
-      if (mounted) {
-        setState(() {
-          _chatError = e.toString().replaceAll('Exception: ', '');
-          _isLoadingChats = false;
-        });
-      }
+      if (!mounted) return;
+      setState(() {
+        _chatError = e.toString().replaceAll('Exception: ', '');
+        _isLoadingChats = false;
+      });
     }
   }
 
@@ -264,19 +184,17 @@ class _ChatListScreenState extends ConsumerState<ChatListScreen>
       final chatService = ref.read(chatServiceProvider);
       final matches = await chatService.getMatches();
 
-      if (mounted) {
-        setState(() {
-          _matches = matches.where((match) => match.type == 'new').toList();
-          _isLoadingMatches = false;
-        });
-      }
+      if (!mounted) return;
+      setState(() {
+        _matches = matches.where((match) => match.type == 'new').toList();
+        _isLoadingMatches = false;
+      });
     } catch (e) {
-      if (mounted) {
-        setState(() {
-          _matchError = e.toString().replaceAll('Exception: ', '');
-          _isLoadingMatches = false;
-        });
-      }
+      if (!mounted) return;
+      setState(() {
+        _matchError = e.toString().replaceAll('Exception: ', '');
+        _isLoadingMatches = false;
+      });
     }
   }
 
@@ -286,22 +204,21 @@ class _ChatListScreenState extends ConsumerState<ChatListScreen>
     for (var noti in notis) {
       if (!mounted) return;
 
-      final isBefore = noti['type'] == "BEFORE";
+      final isBefore = noti['type'] == 'BEFORE';
 
       await showDialog(
         context: context,
         barrierDismissible: false,
-        builder: (BuildContext dialogContext) => Dialog(
+        builder: (dialogContext) => Dialog(
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(24),
           ),
           backgroundColor: AppColors.background,
           child: Padding(
-            padding: const EdgeInsets.all(24.0),
+            padding: const EdgeInsets.all(24),
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                // Icon Header พร้อมวงกลมซ้อนหลัง
                 Stack(
                   alignment: Alignment.center,
                   children: [
@@ -315,26 +232,20 @@ class _ChatListScreenState extends ConsumerState<ChatListScreen>
                         shape: BoxShape.circle,
                       ),
                     ),
-                    SvgPicture.asset(
+                    Icon(
                       isBefore
-                          ? 'assets/icons/ui/icon_warning.svg' // <-- ใส่ path ของคุณที่นี่
-                          : 'assets/icons/ui/icon_bad-ending.svg', // <-- ใส่ path ของคุณที่นี่
-                      width: 40,
-                      height: 40,
-                      colorFilter: ColorFilter.mode(
-                        isBefore
-                            ? AppColors.warning
-                            : AppColors.brandAccentStrong,
-                        BlendMode.srcIn,
-                      ),
+                          ? Icons.warning_amber_rounded
+                          : Icons.heart_broken_rounded,
+                      size: 40,
+                      color: isBefore
+                          ? AppColors.warning
+                          : AppColors.brandAccentStrong,
                     ),
                   ],
                 ),
                 const SizedBox(height: 24),
-
-                // Title
                 Text(
-                  isBefore ? "ใกล้หมดเวลาแล้วนะ!" : "ความสัมพันธ์สิ้นสุดลง",
+                  isBefore ? 'ใกล้หมดเวลาแล้วนะ!' : 'ความสัมพันธ์สิ้นสุดลง',
                   style: const TextStyle(
                     fontSize: 20,
                     fontWeight: FontWeight.bold,
@@ -343,8 +254,6 @@ class _ChatListScreenState extends ConsumerState<ChatListScreen>
                   textAlign: TextAlign.center,
                 ),
                 const SizedBox(height: 12),
-
-                // Content
                 RichText(
                   textAlign: TextAlign.center,
                   text: TextSpan(
@@ -354,9 +263,9 @@ class _ChatListScreenState extends ConsumerState<ChatListScreen>
                       height: 1.5,
                     ),
                     children: [
-                      const TextSpan(text: "คุณและ "),
+                      const TextSpan(text: 'คุณและ '),
                       TextSpan(
-                        text: "${noti['name']} ",
+                        text: '${noti['name']} ',
                         style: const TextStyle(
                           fontWeight: FontWeight.bold,
                           color: AppColors.textPrimary,
@@ -364,37 +273,20 @@ class _ChatListScreenState extends ConsumerState<ChatListScreen>
                       ),
                       TextSpan(
                         text: isBefore
-                            ? "ไม่ได้คุยกันนานแล้ว รีบทักไปคุยก่อนจะสายเกินไปนะ!"
-                            : "Unmatch กันเรียบร้อยแล้ว เนื่องจากไม่ได้มีการเคลื่อนไหวในช่วงที่ผ่านมา",
+                            ? 'ไม่ได้คุยกันนานแล้ว รีบทักไปคุยก่อนจะสายเกินไปนะ!'
+                            : 'Unmatch กันเรียบร้อยแล้ว เนื่องจากไม่ได้มีการเคลื่อนไหวในช่วงที่ผ่านมา',
                       ),
                     ],
                   ),
                 ),
                 const SizedBox(height: 32),
-
-                // Button
                 SizedBox(
                   width: double.infinity,
-                  height: 50,
-                  child: ElevatedButton(
+                  child: DsButton(
+                    label: 'รับทราบ',
                     onPressed: () => Navigator.of(dialogContext).pop(),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: isBefore
-                          ? AppColors.btnPrimary
-                          : AppColors.brandPrimary200,
-                      foregroundColor: AppColors.btnTextPrimary,
-                      elevation: 0,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(16),
-                      ),
-                    ),
-                    child: const Text(
-                      "รับทราบ",
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
+                    variant: DsButtonVariant.primary,
+                    size: DsButtonSize.md,
                   ),
                 ),
               ],
@@ -403,21 +295,36 @@ class _ChatListScreenState extends ConsumerState<ChatListScreen>
         ),
       );
 
-      // หลังจากกดปิด Dialog แล้ว ค่อยแจ้ง Backend
       try {
         await chatService.triggerNotificationUpdate(noti['roomId']!);
 
         if (!isBefore) {
-          // ถ้าเป็น UNMATCH (ความสัมพันธ์จบแล้ว) ให้ลบออกจาก List ทันที
           setState(() {
             _chatRooms.removeWhere((room) => room.roomId == noti['roomId']);
             _matches.removeWhere((match) => match.matchId == noti['roomId']);
           });
         }
-      } catch (e) {
-        debugPrint("Failed to trigger update: $e");
-      }
+      } catch (_) {}
     }
+  }
+
+  Future<void> _checkAndShowNotifications(
+    String roomId,
+    String partnerName,
+  ) async {
+    if (!mounted) return;
+    final chatService = ref.read(chatServiceProvider);
+
+    try {
+      final String notiType = await chatService.checkNotiStatus(roomId);
+
+      if (notiType != 'NONE' && notiType.isNotEmpty) {
+        final List<Map<String, String>> toShow = [
+          {'name': partnerName, 'type': notiType, 'roomId': roomId},
+        ];
+        await _showSequentialDialogs(toShow);
+      }
+    } catch (_) {}
   }
 
   bool _isSvgImage(String? path) {
@@ -427,248 +334,564 @@ class _ChatListScreenState extends ConsumerState<ChatListScreen>
     return normalizedPath.endsWith('.svg');
   }
 
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Colors.white,
-      body: Column(
-        children: [
-          const SizedBox(height: 25),
-          ChatToDateHeaderWhite(
-            leftIconPath: 'assets/icons/ui/icon_chat2date_full.svg',
-            rightIconPath: '',
-            iconColor: const Color(0xFF5ce1e6),
-            onBack: () async => true,
-            onSettings: () async => true,
-          ),
-          const SizedBox(height: 10),
-          ContentSwitcher(
-            items: const ['CHAT', 'MATCH'],
-            selectedIndex: selectedIndex1,
-            onChanged: (index) => setState(() => selectedIndex1 = index),
-          ),
-          const SizedBox(height: 10),
+  String _formatRelativeLastMessageTime(DateTime? time) {
+    if (time == null) return '';
 
-          // แสดงเนื้อหาตาม tab ที่เลือก
-          Expanded(
-            child: selectedIndex1 == 0 ? _buildChatTab() : _buildMatchTab(),
+    final now = DateTime.now();
+    var difference = now.difference(time);
+    if (difference.isNegative) difference = Duration.zero;
+
+    if (difference.inMinutes < 1) return 'เมื่อสักครู่';
+    if (difference.inHours < 1) return '${difference.inMinutes} นาทีที่แล้ว';
+    if (difference.inDays < 1) return '${difference.inHours} ชั่วโมงที่แล้ว';
+    if (difference.inDays < 7) return '${difference.inDays} วันที่แล้ว';
+    if (difference.inDays < 30) return '${difference.inDays ~/ 7} สัปดาห์ที่แล้ว';
+    if (difference.inDays < 365) return '${difference.inDays ~/ 30} เดือนที่แล้ว';
+    return '${difference.inDays ~/ 365} ปีที่แล้ว';
+  }
+
+  String _buildChatSubtitle(ChatRoom room) {
+    final lastMessage = (room.lastMessage ?? '').trim();
+    final relativeTime = _formatRelativeLastMessageTime(room.lastMessageTime);
+
+    if (lastMessage.isEmpty) return 'ยังไม่มีข้อความ';
+    if (relativeTime.isEmpty) return lastMessage;
+    return lastMessage;
+  }
+
+  String _buildMatchSubtitle(Match match) {
+    final date = match.matchedAt;
+    if (date == null) return 'แมทต์เมื่อไม่นานมานี้';
+    return 'แมทต์เมื่อวันที่ ${DateFormat('d MMMM yyyy', 'th').format(date)}';
+  }
+
+  Future<void> _openChatRoom({
+    required String roomId,
+    required String partnerId,
+    required String partnerName,
+    required String? avatarUrl,
+  }) async {
+    final chatService = ref.read(chatServiceProvider);
+    try {
+      await chatService.updateRelationshipBar(roomId);
+    } catch (_) {}
+
+    await _checkAndShowNotifications(roomId, partnerName);
+
+    if (!mounted) return;
+    await Navigator.pushNamed(
+      context,
+      '/chat',
+      arguments: {
+        'roomId': roomId,
+        'targetUserId': partnerId,
+        'userName': partnerName,
+        'avatarUrl': avatarUrl,
+      },
+    );
+  }
+
+  Widget _buildListBody({
+    required bool isLoading,
+    required String? error,
+    required bool isEmpty,
+    required VoidCallback onRetry,
+    required Future<void> Function() onRefresh,
+    required String emptyTitle,
+    required String emptySubtitle,
+    required int itemCount,
+    required IndexedWidgetBuilder itemBuilder,
+  }) {
+    if (isLoading) {
+      return const Center(
+        child: CircularProgressIndicator(color: AppColors.brandPrimary),
+      );
+    }
+
+    if (error != null) {
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 32),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(
+                Icons.wifi_off_rounded,
+                size: 36,
+                color: TextColors.supportText,
+              ),
+              const SizedBox(height: 12),
+              Text(
+                error,
+                textAlign: TextAlign.center,
+                style: const TextStyle(
+                  color: TextColors.supportText,
+                  fontSize: 14,
+                  height: 20 / 14,
+                ),
+              ),
+              const SizedBox(height: 16),
+              DsButton(
+                label: 'ลองใหม่',
+                onPressed: onRetry,
+                variant: DsButtonVariant.outlinePrimary,
+                size: DsButtonSize.sm,
+                width: 140,
+              ),
+            ],
           ),
-        ],
+        ),
+      );
+    }
+
+    if (isEmpty) {
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 32),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(
+                Icons.forum_outlined,
+                size: 38,
+                color: TextColors.supportText,
+              ),
+              const SizedBox(height: 12),
+              Text(
+                emptyTitle,
+                textAlign: TextAlign.center,
+                style: const TextStyle(
+                  color: TextColors.secondary,
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                  height: 22 / 16,
+                ),
+              ),
+              const SizedBox(height: 6),
+              Text(
+                emptySubtitle,
+                textAlign: TextAlign.center,
+                style: const TextStyle(
+                  color: TextColors.supportText,
+                  fontSize: 12,
+                  height: 16 / 12,
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
+    return RefreshIndicator(
+      color: AppColors.brandPrimary,
+      onRefresh: onRefresh,
+      child: ListView.separated(
+        padding: const EdgeInsets.fromLTRB(10, 0, 10, 110),
+        itemCount: itemCount,
+        separatorBuilder: (_, __) => const SizedBox(height: 12),
+        itemBuilder: itemBuilder,
       ),
-      bottomNavigationBar: widget.showBottomNav
-          ? CustomBottomNavBar(
-              selectedIndex: _selectedIndex,
-              onTap: (index) {
-                if (!mounted) return;
-                setState(() => _selectedIndex = index);
-                Navigator.of(context).pushReplacement(
-                  PageRouteBuilder(
-                    pageBuilder: (_, __, ___) => MainTabs(initialIndex: index),
-                    transitionDuration: Duration.zero,
-                    reverseTransitionDuration: Duration.zero,
-                  ),
-                );
-              },
-            )
-          : null,
     );
   }
 
   Widget _buildChatTab() {
-    // Loading state
-    if (_isLoadingChats) {
-      return const Center(child: CircularProgressIndicator());
-    }
-
-    // Error state
-    if (_chatError != null) {
-      return Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Text(
-              _chatError!,
-              style: const TextStyle(color: Colors.red),
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: 16),
-            ElevatedButton(
-              onPressed: _loadChatRooms,
-              child: const Text('ลองใหม่'),
-            ),
-          ],
-        ),
-      );
-    }
-
-    // Empty state
-    if (_chatRooms.isEmpty) {
-      return const Center(
-        child: Text(
-          'ยังไม่มีแชท',
-          style: TextStyle(color: Colors.grey, fontSize: 16),
-        ),
-      );
-    }
-
-    // Data state
-    return RefreshIndicator(
+    return _buildListBody(
+      isLoading: _isLoadingChats,
+      error: _chatError,
+      isEmpty: _chatRooms.isEmpty,
+      onRetry: _loadChatRooms,
       onRefresh: _loadChatRooms,
-      child: ListView.separated(
-        padding: const EdgeInsets.symmetric(horizontal: 20),
-        itemCount: _chatRooms.length,
-        separatorBuilder: (_, __) => const SizedBox(height: 10),
-        itemBuilder: (context, index) {
-          final room = _chatRooms[index];
-          final avatarPath = room.partnerImage;
-          final isSvgAvatar = _isSvgImage(avatarPath);
-          final bool isCleared = _clearedUnreadRoomIds.contains(room.roomId);
-          final int displayUnreadCount = isCleared ? 0 : room.unreadCount;
-          print(
-            '[ChatList] roomId=${room.roomId}, isCleared=$isCleared, room.unreadCount=${room.unreadCount}, display=$displayUnreadCount',
-          );
-          return CardChatComponent(
-            svgPath: isSvgAvatar ? avatarPath : null,
-            imagePath: isSvgAvatar ? null : avatarPath,
-            title: room.partnerName,
-            subtitle: _buildChatSubtitle(room),
-            unreadCount: displayUnreadCount,
-            colors: [AppColors.backgroundWhite],
-            onClick: () async {
-              setState(() {
-                _clearedUnreadRoomIds.add(room.roomId);
-              });
+      emptyTitle: 'ยังไม่มีแชท',
+      emptySubtitle: 'เมื่อเริ่มคุยกับคู่เดต รายการแชทจะขึ้นที่นี่',
+      itemCount: _chatRooms.length,
+      itemBuilder: (context, index) {
+        final room = _chatRooms[index];
+        final avatarPath = room.partnerImage;
+        final isCleared = _clearedUnreadRoomIds.contains(room.roomId);
+        final displayUnreadCount = isCleared ? 0 : room.unreadCount;
+        final highlighted = displayUnreadCount > 0;
 
-              final chatService = ref.read(chatServiceProvider);
-              try {
-                await chatService.updateRelationshipBar(room.roomId);
-              } catch (e) {
-                debugPrint("Stats update failed: $e");
-              }
+        return _ChatListCard(
+          avatarPath: avatarPath,
+          isSvgAvatar: _isSvgImage(avatarPath),
+          title: room.partnerName,
+          subtitle: _buildChatSubtitle(room),
+          highlighted: highlighted,
+          unreadCount: displayUnreadCount,
+          onTap: () async {
+            setState(() {
+              _clearedUnreadRoomIds.add(room.roomId);
+            });
 
-              await _checkAndShowNotifications(room.roomId, room.partnerName);
+            await _openChatRoom(
+              roomId: room.roomId,
+              partnerId: room.partnerId,
+              partnerName: room.partnerName,
+              avatarUrl: room.partnerImage,
+            );
 
-              final bool roomStillExists = _chatRooms.any(
-                (r) => r.roomId == room.roomId,
-              );
-
-              if (roomStillExists) {
-                await Navigator.pushNamed(
-                  context,
-                  '/chat',
-                  arguments: {
-                    'roomId': room.roomId,
-                    'targetUserId': room.partnerId,
-                    'userName': room.partnerName,
-                    'avatarUrl': room.partnerImage,
-                  },
-                );
-              }
-              if (!mounted) return;
-              await _loadChatRooms();
-            },
-          );
-        },
-      ),
+            if (!mounted) return;
+            await _loadChatRooms();
+          },
+        );
+      },
     );
   }
 
   Widget _buildMatchTab() {
-    // Loading state
-    if (_isLoadingMatches) {
-      return const Center(child: CircularProgressIndicator());
-    }
+    return _buildListBody(
+      isLoading: _isLoadingMatches,
+      error: _matchError,
+      isEmpty: _matches.isEmpty,
+      onRetry: _loadMatches,
+      onRefresh: _loadMatches,
+      emptyTitle: 'ยังไม่มีแมทช์',
+      emptySubtitle: 'เมื่อมีคู่เดตใหม่ รายการแมทช์จะขึ้นที่นี่',
+      itemCount: _matches.length,
+      itemBuilder: (context, index) {
+        final match = _matches[index];
+        return _ChatListCard(
+          avatarPath: match.partnerImage,
+          isSvgAvatar: _isSvgImage(match.partnerImage),
+          title: match.partnerName,
+          subtitle: _buildMatchSubtitle(match),
+          highlighted: false,
+          unreadCount: null,
+          onTap: () async {
+            setState(() {
+              _viewedMatchIds.add(match.matchId);
+            });
 
-    // Error state
-    if (_matchError != null) {
-      return Center(
+            await _openChatRoom(
+              roomId: match.matchId,
+              partnerId: match.partnerId,
+              partnerName: match.partnerName,
+              avatarUrl: match.partnerImage,
+            );
+
+            if (!mounted) return;
+            await Future.wait([_loadMatches(), _loadChatRooms()]);
+          },
+        );
+      },
+    );
+  }
+
+  void _handleBottomNavTap(int index) {
+    if (!mounted) return;
+    setState(() => _selectedIndex = index);
+    Navigator.of(context).pushReplacement(
+      PageRouteBuilder(
+        pageBuilder: (_, __, ___) => MainTabs(initialIndex: index),
+        transitionDuration: Duration.zero,
+        reverseTransitionDuration: Duration.zero,
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: AppColors.background,
+      body: SafeArea(
         child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Text(
-              _matchError!,
-              style: const TextStyle(color: Colors.red),
-              textAlign: TextAlign.center,
+            DsAppHomeHeader(
+              showBottomBorder: true,
+              bottomBorderSpacing: 0,
             ),
-            const SizedBox(height: 16),
-            ElevatedButton(
-              onPressed: _loadMatches,
-              child: const Text('ลองใหม่'),
+            Expanded(
+              child: Column(
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(29, 20, 29, 20),
+                    child: _ChatSwitcher(
+                      selectedTab: _selectedTab,
+                      onChanged: (tab) {
+                        setState(() => _selectedTab = tab);
+                      },
+                    ),
+                  ),
+                  Expanded(
+                    child: _selectedTab == _ChatListTab.chat
+                        ? _buildChatTab()
+                        : _buildMatchTab(),
+                  ),
+                ],
+              ),
             ),
           ],
         ),
-      );
-    }
+      ),
+      bottomNavigationBar: widget.showBottomNav
+          ? CustomBottomNavBar(
+              selectedIndex: _selectedIndex,
+              onTap: _handleBottomNavTap,
+            )
+          : null,
+    );
+  }
+}
 
-    // Empty state
-    if (_matches.isEmpty) {
-      return const Center(
-        child: Text(
-          'ยังไม่มี match',
-          style: TextStyle(color: Colors.grey, fontSize: 16),
+class _ChatSwitcher extends StatelessWidget {
+  const _ChatSwitcher({
+    required this.selectedTab,
+    required this.onChanged,
+  });
+
+  final _ChatListTab selectedTab;
+  final ValueChanged<_ChatListTab> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      height: 39,
+      padding: const EdgeInsets.all(4),
+      decoration: BoxDecoration(
+        color: AppColors.background,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: InputColors.border),
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            child: _ChatSwitcherItem(
+              label: 'CHAT',
+              selected: selectedTab == _ChatListTab.chat,
+              onTap: () => onChanged(_ChatListTab.chat),
+            ),
+          ),
+          Container(width: 1, height: 10, color: InputColors.border),
+          Expanded(
+            child: _ChatSwitcherItem(
+              label: 'MATCH',
+              selected: selectedTab == _ChatListTab.match,
+              onTap: () => onChanged(_ChatListTab.match),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ChatSwitcherItem extends StatelessWidget {
+  const _ChatSwitcherItem({
+    required this.label,
+    required this.selected,
+    required this.onTap,
+  });
+
+  final String label;
+  final bool selected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(12),
+      child: Container(
+        alignment: Alignment.center,
+        decoration: BoxDecoration(
+          color: selected ? AppColors.surface : Colors.transparent,
+          borderRadius: BorderRadius.circular(12),
         ),
-      );
+        child: Text(
+          label,
+          style: TextStyle(
+            color: selected ? AppColors.textOnDark : TextColors.supportText,
+            fontSize: 12,
+            fontWeight: FontWeight.w600,
+            height: 16 / 12,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _ChatListCard extends StatelessWidget {
+  const _ChatListCard({
+    required this.title,
+    required this.subtitle,
+    required this.onTap,
+    this.avatarPath,
+    this.isSvgAvatar = false,
+    this.highlighted = false,
+    this.unreadCount,
+  });
+
+  final String? avatarPath;
+  final bool isSvgAvatar;
+  final String title;
+  final String subtitle;
+  final VoidCallback onTap;
+  final bool highlighted;
+  final int? unreadCount;
+
+  @override
+  Widget build(BuildContext context) {
+    final bool showUnread = unreadCount != null && unreadCount! > 0;
+
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(16),
+      child: Container(
+        height: 72,
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: highlighted ? null : AppColors.background,
+          gradient: highlighted ? AppGradients.themeApp2 : null,
+          borderRadius: BorderRadius.circular(16),
+        ),
+        child: Row(
+          children: [
+            _ChatAvatar(
+              avatarPath: avatarPath,
+              isSvgAvatar: isSvgAvatar,
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      color: TextColors.secondary,
+                      fontSize: 14,
+                      fontWeight: FontWeight.w700,
+                      height: 1,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    subtitle,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      color: highlighted
+                          ? AppColors.textOnDark
+                          : TextColors.supportText,
+                      fontSize: 12,
+                      fontWeight: highlighted ? FontWeight.w700 : FontWeight.w400,
+                      height: 16 / 12,
+                      letterSpacing: 0.12,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            if (showUnread)
+              _UnreadBadge(count: unreadCount!)
+            else
+              const SizedBox(width: 33),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _ChatAvatar extends StatelessWidget {
+  const _ChatAvatar({
+    this.avatarPath,
+    required this.isSvgAvatar,
+  });
+
+  final String? avatarPath;
+  final bool isSvgAvatar;
+
+  @override
+  Widget build(BuildContext context) {
+    final decoration = BoxDecoration(
+      shape: BoxShape.circle,
+      color: AppColors.surface,
+      border: Border.all(
+        color: Colors.white,
+        width: 2,
+      ),
+    );
+
+    Widget child;
+    if (avatarPath != null && avatarPath!.isNotEmpty) {
+      if (isSvgAvatar) {
+        child = ClipOval(
+          child: avatarPath!.startsWith('http')
+              ? SvgPicture.network(avatarPath!, fit: BoxFit.cover)
+              : SvgPicture.asset(avatarPath!, fit: BoxFit.cover),
+        );
+      } else {
+        child = ClipOval(
+          child: avatarPath!.startsWith('http')
+              ? Image.network(
+                  avatarPath!,
+                  fit: BoxFit.cover,
+                  errorBuilder: (_, __, ___) => _fallback(),
+                )
+              : Image.asset(
+                  avatarPath!,
+                  fit: BoxFit.cover,
+                  errorBuilder: (_, __, ___) => _fallback(),
+                ),
+        );
+      }
+    } else {
+      child = _fallback();
     }
 
-    // Data state
-    return RefreshIndicator(
-      onRefresh: _loadMatches,
-      child: ListView.separated(
-        padding: const EdgeInsets.symmetric(horizontal: 20),
-        itemCount: _matches.length,
-        separatorBuilder: (_, __) => const SizedBox(height: 10),
-        itemBuilder: (context, index) {
-          final match = _matches[index];
-          final isNew =
-              match.type == 'new' && !_viewedMatchIds.contains(match.matchId);
-          final avatarPath = match.partnerImage;
-          final isSvgAvatar = _isSvgImage(avatarPath);
-          return CardChatComponent(
-            svgPath: isSvgAvatar ? avatarPath : null,
-            imagePath: isSvgAvatar ? null : avatarPath,
-            title: match.partnerName,
-            subtitle: match.matchDuration,
-            isNewMatch: isNew,
-            colors: isNew ? null : [AppColors.backgroundWhite],
-            onClick: () async {
-              final chatService = ref.read(chatServiceProvider);
-              try {
-                await chatService.updateRelationshipBar(match.matchId);
-              } catch (e) {
-                debugPrint("Stats update failed: $e");
-              }
+    return Container(
+      width: 50,
+      height: 50,
+      decoration: decoration,
+      clipBehavior: Clip.antiAlias,
+      child: child,
+    );
+  }
 
-              setState(() {
-                _viewedMatchIds.add(match.matchId);
-              });
+  Widget _fallback() {
+    return const Icon(
+      Icons.person,
+      size: 34,
+      color: AppColors.textOnDark,
+    );
+  }
+}
 
-              // เปิดแชทกับ match
-              await _checkAndShowNotifications(
-                match.matchId,
-                match.partnerName,
-              );
+class _UnreadBadge extends StatelessWidget {
+  const _UnreadBadge({required this.count});
 
-              final bool matchStillExists = _matches.any(
-                (m) => m.matchId == match.matchId,
-              );
+  final int count;
 
-              if (matchStillExists) {
-                await Navigator.pushNamed(
-                  context,
-                  '/chat',
-                  arguments: {
-                    'roomId': match.matchId,
-                    'targetUserId': match.partnerId,
-                    'userName': match.partnerName,
-                    'avatarUrl': match.partnerImage,
-                  },
-                );
-              }
-              if (!mounted) return;
-              await Future.wait([_loadMatches(), _loadChatRooms()]);
-            },
-          );
-        },
+  @override
+  Widget build(BuildContext context) {
+    final label = count > 9 ? '9+' : '$count';
+    return Container(
+      width: 33,
+      alignment: Alignment.centerRight,
+      child: Container(
+        width: 23,
+        height: 24,
+        decoration: const BoxDecoration(
+          color: AppColors.textOnDark,
+          shape: BoxShape.circle,
+        ),
+        alignment: Alignment.center,
+        child: Text(
+          label,
+          style: const TextStyle(
+            color: AppColors.deniedActive,
+            fontSize: 14,
+            fontWeight: FontWeight.w700,
+            height: 16 / 14,
+            letterSpacing: 0.14,
+          ),
+        ),
       ),
     );
   }

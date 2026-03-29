@@ -10,6 +10,7 @@ import 'package:image_picker/image_picker.dart';
 
 class ImageUploadGrid extends StatefulWidget {
   final Function(List<XFile> images)? onImagesChanged;
+  final ValueChanged<List<dynamic>>? onItemsChanged;
   final Function(int index, dynamic removedItem)? onImageRemoved;
   final double spacing;
   final double runSpacing;
@@ -30,6 +31,7 @@ class ImageUploadGrid extends StatefulWidget {
     this.itemWidth = 119,
     this.itemHeight = 120,
     this.onImagesChanged,
+    this.onItemsChanged,
     this.spacing = 12.0,
     this.runSpacing = 50.0,
     this.imageUser = const [],
@@ -276,6 +278,7 @@ class _ImageUploadGridState extends State<ImageUploadGrid> {
         .cast<XFile>()
         .toList();
     widget.onImagesChanged?.call(currentImages);
+    widget.onItemsChanged?.call(_images.where((image) => image != null).toList());
   }
 
   void _reorderImage(int from, int to) {

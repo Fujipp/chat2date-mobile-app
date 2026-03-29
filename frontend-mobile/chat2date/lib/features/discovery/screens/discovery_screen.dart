@@ -149,7 +149,7 @@ class _DiscoveryScreenState extends ConsumerState<DiscoveryScreen>
         }
         break;
       case 1:
-        Navigator.pushReplacementNamed(context, '/chat-list');
+        Navigator.pushReplacementNamed(context, '/chatList');
         break;
       case 2:
         Navigator.pushReplacementNamed(context, '/profile');
@@ -316,7 +316,11 @@ class _DiscoveryScreenState extends ConsumerState<DiscoveryScreen>
         bottom: false,
         child: Column(
           children: [
-            DsAppHomeHeader(onActionTap: onActionTap),
+            DsAppHomeHeader(
+              onActionTap: onActionTap,
+              showBottomBorder: true,
+              bottomBorderSpacing: 0,
+            ),
             Expanded(
               child: Stack(
                 children: [

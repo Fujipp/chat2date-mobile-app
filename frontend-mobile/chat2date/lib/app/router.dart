@@ -53,7 +53,6 @@ Map<String, WidgetBuilder> buildAppRoutes() {
 
     // ─── Chat ────────────────────────────────────────
     '/chatList': (context) => const ChatListScreen(),
-    '/chat-list': (context) => const ChatListScreen(),
     '/chat': (context) {
       final args =
           ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>?;
