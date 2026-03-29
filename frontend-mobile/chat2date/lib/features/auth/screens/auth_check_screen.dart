@@ -11,7 +11,7 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:http/http.dart' as http;
 
 /// ---- Refresh Token Function ----
-Future<Map<String, dynamic>> tryRefresh(WidgetRef ref) async {
+Future<Map<String, dynamic>> tryRefresh(dynamic ref) async {
   final storage = const FlutterSecureStorage();
   final refreshToken = await storage.read(key: "refreshToken");
   if (refreshToken == null) return {'success': false};

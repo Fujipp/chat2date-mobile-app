@@ -751,36 +751,36 @@ class _FaceVerifyScreenIosState extends ConsumerState<FaceVerifyScreenIos>
               ),
             ),
           ),
+          Center(
+            child: SizedBox(
+              width: ringSize,
+              height: ringSize,
+              child: CustomPaint(
+                painter: _FaceScanRingPainterIos(
+                  progress: _progress,
+                  tickCount: 72,
+                ),
+              ),
+            ),
+          ),
+          if (!_started)
+            const Center(
+              child: SizedBox(
+                width: 64,
+                height: 64,
+                child: DecoratedBox(
+                  decoration: ShapeDecoration(
+                    shape: CircleBorder(
+                      side: BorderSide(color: Color(0xFFD8DEE6)),
+                    ),
+                  ),
+                  child: Icon(Icons.tag_faces, color: Color(0xFFD8DEE6)),
+                ),
+              ),
+            ),
           SafeArea(
             child: Stack(
               children: [
-                Center(
-                  child: SizedBox(
-                    width: ringSize,
-                    height: ringSize,
-                    child: CustomPaint(
-                      painter: _FaceScanRingPainterIos(
-                        progress: _progress,
-                        tickCount: 72,
-                      ),
-                    ),
-                  ),
-                ),
-                if (!_started)
-                  const Center(
-                    child: SizedBox(
-                      width: 64,
-                      height: 64,
-                      child: DecoratedBox(
-                        decoration: ShapeDecoration(
-                          shape: CircleBorder(
-                            side: BorderSide(color: Color(0xFFD8DEE6)),
-                          ),
-                        ),
-                        child: Icon(Icons.tag_faces, color: Color(0xFFD8DEE6)),
-                      ),
-                    ),
-                  ),
                 if (!_started)
                   Positioned(
                     left: 0,
