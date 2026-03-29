@@ -126,7 +126,7 @@ public class ThSMSClient {
                                         boolean onLogin) {
         // URL ของ OTP validate API
         String phone = normalizePhone(phoneNumber);
-        boolean mock = true;
+        boolean mock = false;
         if (!mock) {
             String redisKey = "otp:value:" + phone;
 
