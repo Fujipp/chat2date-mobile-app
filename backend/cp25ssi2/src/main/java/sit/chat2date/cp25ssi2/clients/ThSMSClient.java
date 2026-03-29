@@ -51,7 +51,7 @@ public class ThSMSClient {
      */
     public String send(String phone08, String refCode, String deviceId) {
         User user = userRepository.findUsersByPhoneNumber(phone08);
-        boolean mock = true;
+        boolean mock = false;
 
         if (user != null) {
             if (Boolean.TRUE.equals(user.getDeleteFlag())) {
