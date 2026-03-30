@@ -1,3 +1,5 @@
+import 'dart:ui';
+
 import 'package:chat2date/components/design_system/buttons/ds_button.dart';
 import 'package:chat2date/components/design_system/navigation/ds_bottom_nav_bar.dart';
 import 'package:chat2date/components/design_system/organisms/ds_app_home_header.dart';
@@ -80,10 +82,37 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
 
   Future<void> _openEntry(_SettingsEntry entry) async {
     if (entry.opensGuideModal) {
-      await showDialog<void>(
+      await showGeneralDialog<void>(
         context: context,
         barrierDismissible: false,
-        builder: (context) => const FeatureGuideModal(),
+        barrierLabel: 'feature-guide',
+        barrierColor: Colors.transparent,
+        pageBuilder: (context, _, __) => Stack(
+          children: [
+            Positioned.fill(
+              child: BackdropFilter(
+                filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+                child: ColoredBox(
+                  color: AppColors.overlay.withValues(alpha: 0.7),
+                ),
+              ),
+            ),
+            const FeatureGuideModal(),
+          ],
+        ),
+        transitionBuilder: (context, animation, secondaryAnimation, child) {
+          final curved = CurvedAnimation(
+            parent: animation,
+            curve: Curves.easeOutCubic,
+          );
+          return FadeTransition(
+            opacity: curved,
+            child: ScaleTransition(
+              scale: Tween<double>(begin: 0.96, end: 1).animate(curved),
+              child: child,
+            ),
+          );
+        },
       );
       return;
     }

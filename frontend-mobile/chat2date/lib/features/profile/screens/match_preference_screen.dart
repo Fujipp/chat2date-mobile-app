@@ -20,12 +20,18 @@ class _MatchPreferenceScreenState extends ConsumerState<MatchPreferenceScreen> {
   final ScrollController _scrollController = ScrollController();
 
   RangeValues _selectedRange = const RangeValues(18, 100);
+  late RangeValues _initialRange;
   bool _isGenderAgeSpecific = false;
+  late bool _initialIsGenderAgeSpecific;
 
   String? _travelStylePreference;
   String? _lifeStylePreference;
   String? _interestPreference;
   String? _selectedGenderPreference;
+  String? _initialTravelStylePreference;
+  String? _initialLifeStylePreference;
+  String? _initialInterestPreference;
+  String? _initialGenderPreference;
 
   @override
   void initState() {
@@ -35,7 +41,9 @@ class _MatchPreferenceScreenState extends ConsumerState<MatchPreferenceScreen> {
     final profile = userStore?['profile'] as Map<String, dynamic>?;
 
     _selectedGenderPreference = profile?['interestedGender'] ?? 'BOTH';
-    _selectedRange = const RangeValues(18, 100);
+    final ageMin = (profile?['interestedAgeMin'] as num?)?.toDouble() ?? 18;
+    final ageMax = (profile?['interestedAgeMax'] as num?)?.toDouble() ?? 100;
+    _selectedRange = RangeValues(ageMin, ageMax);
     _travelStylePreference = profile?['interestedTravelStyle'];
     _lifeStylePreference = profile?['interestedLifeStyle'];
     _interestPreference = profile?['interestedInterest'];
@@ -44,6 +52,13 @@ class _MatchPreferenceScreenState extends ConsumerState<MatchPreferenceScreen> {
         _interestPreference == 'UNNECESSARY' &&
         _lifeStylePreference == 'UNNECESSARY' &&
         _travelStylePreference == 'UNNECESSARY';
+
+    _initialGenderPreference = _selectedGenderPreference;
+    _initialRange = _selectedRange;
+    _initialTravelStylePreference = _travelStylePreference;
+    _initialLifeStylePreference = _lifeStylePreference;
+    _initialInterestPreference = _interestPreference;
+    _initialIsGenderAgeSpecific = _isGenderAgeSpecific;
   }
 
   @override
@@ -57,6 +72,15 @@ class _MatchPreferenceScreenState extends ConsumerState<MatchPreferenceScreen> {
       _travelStylePreference != null &&
       _lifeStylePreference != null &&
       _interestPreference != null;
+
+  bool get _hasChanges =>
+      _selectedGenderPreference != _initialGenderPreference ||
+      _selectedRange.start != _initialRange.start ||
+      _selectedRange.end != _initialRange.end ||
+      _travelStylePreference != _initialTravelStylePreference ||
+      _lifeStylePreference != _initialLifeStylePreference ||
+      _interestPreference != _initialInterestPreference ||
+      _isGenderAgeSpecific != _initialIsGenderAgeSpecific;
 
   void _toggleGenderAgeSpecific() {
     setState(() {
@@ -241,7 +265,9 @@ class _MatchPreferenceScreenState extends ConsumerState<MatchPreferenceScreen> {
                             DsButton(
                               width: 231,
                               label: onUpdate ? 'บันทึก' : 'ไปหน้าถัดไป',
-                              onPressed: _canSubmit
+                              onPressed: (onUpdate
+                                      ? (_canSubmit && _hasChanges)
+                                      : _canSubmit)
                                   ? () => _submit(onUpdate)
                                   : null,
                               variant: DsButtonVariant.outlinePrimary,
