@@ -608,61 +608,51 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
   Future<void> _restoreSpinSessionIfNeeded() async {
     final roomId = widget.roomId;
     final currentUserId = _currentUserId;
-    if (roomId == null ||
-        roomId.isEmpty ||
-        currentUserId == null ||
-        currentUserId.isEmpty) {
-      return;
-    }
-
-    final prefs = await SharedPreferences.getInstance();
-    final raw = prefs.getString(_spinSessionPrefsKey(roomId));
-    if (raw == null || raw.isEmpty) {
-      return;
-    }
+    if (roomId == null || roomId.isEmpty || currentUserId == null) return;
 
     try {
-      final saved = jsonDecode(raw) as Map<String, dynamic>;
-      final leaderId = saved['leaderId']?.toString();
-      if (leaderId == null || leaderId.isEmpty) {
+      final service = ref.read(dateRecommendProvider);
+      final sessionData = await service.getRoomSession(roomId);
+
+      if (sessionData == null) {
         await _clearPersistedSpinSession();
+        if (mounted) _clearWheelState();
         return;
       }
-
-      if (leaderId == currentUserId) {
-        return;
-      }
-
-      final status = await ref
-          .read(chatServiceProvider)
-          .getAccessStatus(roomId);
-      final leaderStillPresent = status.roomMember.any(
-        (member) => member.userId == leaderId && member.type == 'ENTER',
-      );
-
-      if (!leaderStillPresent) {
-        await _clearPersistedSpinSession();
-        if (mounted) {
-          _clearWheelState();
-        }
-        return;
-      }
-
-      final prizes = ((saved['prizes'] as List?) ?? [])
-          .map((item) => Map<String, dynamic>.from(item as Map))
-          .toList();
+      final leaderId = sessionData['leaderId']?.toString();
+      final modeStr = sessionData['mode'] ?? 'MIDPOINT';
+      final targetStr = sessionData['userTarget'] ?? 'PARTNER';
+      final rawData = sessionData['data'] ?? {};
+      final placesList = rawData['places'] as List? ?? [];
 
       if (!mounted) return;
+
       setState(() {
         _isSpinSessionActive = true;
         _leaderId = leaderId;
-        _indexMode = (saved['indexMode'] as num?)?.toInt() ?? 1;
-        _indexSelected = (saved['indexSelected'] as num?)?.toInt() ?? 1;
-        _currentRange = (saved['range'] as num?)?.toDouble() ?? 20;
-        _dynamicPrizes = prizes;
+        _showWheelModal = true;
+
+        _indexMode = (modeStr == 'DISTANCE') ? 0 : 1;
+
+        if (currentUserId == leaderId) {
+          _indexSelected = (targetStr == "ME") ? 1 : 0;
+        } else {
+          _indexSelected = (targetStr == "PARTNER") ? 1 : 0;
+        }
+
+        _currentRange = (sessionData['range'] as num?)?.toDouble() ?? 20;
+
+        _dynamicPrizes = placesList.map((place) {
+          return {
+            "name": place['name'],
+            "imageUrl": place['imageUrl'],
+            "placeId": place['googlePlaceId'],
+          };
+        }).toList();
       });
-    } catch (_) {
+    } catch (e) {
       await _clearPersistedSpinSession();
+      if (mounted) _clearWheelState();
     }
   }
 
@@ -734,7 +724,6 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
       });
       _startChatSocket();
       await _syncAccessStatus();
-      await _restoreSpinSessionIfNeeded();
       _checkSpinWheelCondition();
     } catch (e) {
       if (!mounted) return;
@@ -900,15 +889,19 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
           final String leaderIdFromSocket =
               payload['leaderId']?.toString() ?? '';
 
+
+          if (!_isSpinSessionActive || _currentUserId == leaderIdFromSocket) {
+            _showWheelModal = true;
+          }
+
           setState(() {
             _isSpinSessionActive = true;
-            _showWheelModal = true;
             _leaderId = leaderIdFromSocket;
 
             _indexMode = (modeStr == 'DISTANCE') ? 0 : 1;
 
             if (_currentUserId == leaderIdFromSocket) {
-              _indexSelected = (targetStr == nickname) ? 1 : 0;
+              _indexSelected = (targetStr == "ME") ? 1 : 0;
             } else {
               _indexSelected = (targetStr == "PARTNER") ? 1 : 0;
             }
@@ -1454,17 +1447,9 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
         );
       }
       return;
-      // ScaffoldMessenger.of(context).showSnackBar(
-      //   SnackBar(
-      //     content: Text('กรุณารออีก $_cooldownDays วันก่อนหมุนได้อีกครั้ง'),
-      //     backgroundColor: AppColors.textMuted,
-      //   ),
-      // );
-      // return;
     }
 
     if (!_checkUserEligibility()) {
-      // ไม่ผ่านเงื่อนไข
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('คุณยังไม่ผ่านเงื่อนไขในการหมุนวงล้อ'),
@@ -1474,8 +1459,46 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
       return;
     }
 
+    final roomId = widget.roomId;
+    if (roomId == null || roomId.isEmpty) return;
+
+    final service = ref.read(dateRecommendProvider);
+    final sessionData = await service.getRoomSession(roomId);
+
+    if (sessionData != null) {
+      final leaderId = sessionData['leaderId']?.toString();
+      final modeStr = sessionData['mode'] ?? 'MIDPOINT';
+      final targetStr = sessionData['userTarget'] ?? 'PARTNER';
+      final rawData = sessionData['data'] ?? {};
+      final placesList = rawData['places'] as List? ?? [];
+
+      setState(() {
+        _isSpinSessionActive = true;
+        _leaderId = leaderId;
+        _showWheelModal = true;
+
+        _indexMode = (modeStr == 'DISTANCE') ? 0 : 1;
+
+        if (_currentUserId == leaderId) {
+          _indexSelected = (targetStr == "ME") ? 1 : 0;
+        } else {
+          _indexSelected = (targetStr == "PARTNER") ? 1 : 0;
+        }
+
+        _currentRange = (sessionData['range'] as num?)?.toDouble() ?? 20;
+
+        _dynamicPrizes = placesList.map((place) {
+          return {
+            "name": place['name'],
+            "imageUrl": place['imageUrl'],
+            "placeId": place['googlePlaceId'],
+          };
+        }).toList();
+      });
+      return;
+    }
+
     await _prepareBeforeSpin(20, "MIDPOINT", "", false);
-    // ผ่านทุกเงื่อนไข - เปิด modal
     setState(() {
       _leaderId = _currentUserId;
       _isSpinSessionActive = true;
