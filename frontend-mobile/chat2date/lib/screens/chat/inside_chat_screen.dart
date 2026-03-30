@@ -2668,11 +2668,11 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
   Widget build(BuildContext context) {
     final latestOwnIndex = _findLatestOwnMessageIndex();
     return WillPopScope(
-       onWillPop: () async {
-    if (_isReviewing) return false;
-    await _exitRoomOnce();
-    return true;
-  },
+        if (_isReviewing) return false; 
+      onWillPop: () async {
+        await _exitRoomOnce();
+        return true;
+      },
       child: Scaffold(
         backgroundColor: Colors.white,
 
