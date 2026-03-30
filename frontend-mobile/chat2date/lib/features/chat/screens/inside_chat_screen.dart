@@ -12,6 +12,7 @@ import 'package:chat2date/components/modal/relationship_mission_modal.dart';
 import 'package:chat2date/components/page/unlock_date_modal.dart';
 import 'package:chat2date/components/design_system/controls/ds_level_progress_bar.dart';
 import 'package:chat2date/components/design_system/inputs/ds_chat_message_input.dart';
+import 'package:chat2date/components/design_system/inputs/ios_themed_chat_text_view.dart';
 import 'package:chat2date/components/design_system/organisms/ds_app_secondary_header.dart';
 import 'package:chat2date/components/design_system/organisms/ds_bot_chat.dart';
 import 'package:chat2date/components/design_system/organisms/ds_gps_alert.dart';
@@ -68,6 +69,7 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
     with WidgetsBindingObserver {
   final TextEditingController _messageController = TextEditingController();
   final ScrollController _scrollController = ScrollController();
+  final GlobalKey _chatInputKey = GlobalKey();
   static const int _pageSize = 20;
   bool _hasText = false;
   bool _isSending = false;
@@ -1937,10 +1939,24 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
   }
 
   void _dismissKeyboard() {
-    final currentFocus = FocusScope.of(context);
-    if (!currentFocus.hasPrimaryFocus && currentFocus.focusedChild != null) {
-      currentFocus.unfocus();
+    FocusManager.instance.primaryFocus?.unfocus();
+    SystemChannels.textInput.invokeMethod<void>('TextInput.hide');
+    IosThemedChatTextView.dismissActiveKeyboard();
+  }
+
+  void _handleRootPointerDown(PointerDownEvent event) {
+    final inputContext = _chatInputKey.currentContext;
+    if (inputContext != null) {
+      final renderBox = inputContext.findRenderObject() as RenderBox?;
+      if (renderBox != null && renderBox.hasSize) {
+        final topLeft = renderBox.localToGlobal(Offset.zero);
+        final inputRect = topLeft & renderBox.size;
+        if (inputRect.contains(event.position)) {
+          return;
+        }
+      }
     }
+    _dismissKeyboard();
   }
 
   void _keepLatestMessageVisible({bool animated = true}) {
@@ -3402,10 +3418,13 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
       child: Scaffold(
         backgroundColor: AppColors.background,
 
-        body: GestureDetector(
+        body: Listener(
           behavior: HitTestBehavior.translucent,
-          onTap: _dismissKeyboard,
-          child: Stack(
+          onPointerDown: _handleRootPointerDown,
+          child: GestureDetector(
+            behavior: HitTestBehavior.translucent,
+            onTap: _dismissKeyboard,
+            child: Stack(
             children: [
               SafeArea(
                 child: Column(
@@ -3563,6 +3582,7 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
                           ),
                           if (_isChatDisabled)
                             Padding(
+                              key: _chatInputKey,
                               padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
                               child: DsChatMessageInput(
                                 width: double.infinity,
@@ -3573,6 +3593,7 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
                             )
                           else
                             Padding(
+                              key: _chatInputKey,
                               padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
                               child: DsChatMessageInput(
                                 width: double.infinity,
@@ -3832,6 +3853,7 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
                 ),
               ],
             ],
+          ),
           ),
         ),
       ),

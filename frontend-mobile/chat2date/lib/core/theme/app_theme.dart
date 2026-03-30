@@ -42,9 +42,12 @@ ThemeData buildLightTheme() {
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       ),
     ),
+    textSelectionTheme: TextSelectionThemeData(
+      cursorColor: AppColors.brandPrimary,
+      selectionColor: AppColors.brandPrimary.withValues(alpha: 0.28),
+      selectionHandleColor: AppColors.brandPrimary,
+    ),
     dividerColor: AppColors.divider,
-    fontFamily: AppTypography.fontFamily,
-    fontFamilyFallback: AppTypography.fontFamilyFallback,
   );
 
   return base.copyWith(textTheme: AppTypography.buildTextTheme(base.textTheme));

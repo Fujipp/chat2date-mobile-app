@@ -234,6 +234,10 @@ class _DsTextFieldState extends State<DsTextField> {
           readOnly: widget.readOnly,
           keyboardType: widget.keyboardType,
           onChanged: widget.onChanged,
+          autocorrect: false,
+          enableSuggestions: false,
+          spellCheckConfiguration:
+              const SpellCheckConfiguration.disabled(),
           style: inputStyle,
           cursorColor: AppColors.brandPrimary,
           autofocus: widget.autofocus,

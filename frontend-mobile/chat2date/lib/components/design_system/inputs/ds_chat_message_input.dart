@@ -7,6 +7,8 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 
+import 'ios_themed_chat_text_view.dart';
+
 class DsChatMessageInput extends StatefulWidget {
   const DsChatMessageInput({
     super.key,
@@ -184,53 +186,78 @@ class _DsChatMessageInputState extends State<DsChatMessageInput> {
                   children: [
                     Expanded(
                       child: widget.enabled
-                          ? Theme(
-                              data: Theme.of(context).copyWith(
-                                textSelectionTheme: TextSelectionThemeData(
-                                  cursorColor: AppColors.brandPrimary,
-                                  selectionColor: AppColors.brandPrimary
-                                      .withValues(alpha: 0.28),
-                                  selectionHandleColor: AppColors.brandPrimary,
-                                ),
-                              ),
-                              child: TextFormField(
-                                controller: _controller,
-                                focusNode: _focusNode,
-                                enabled: true,
-                                autofocus: widget.autofocus,
-                                onChanged: widget.onChanged,
-                                onTap: () => widget.onFocusChanged?.call(true),
-                                minLines: 1,
-                                maxLines: 5,
-                                maxLength: 2000,
-                                keyboardType: TextInputType.multiline,
-                                textInputAction: TextInputAction.newline,
-                                style: bodyStyle,
-                                cursorColor: AppColors.brandPrimary,
-                                selectionControls:
-                                    Theme.of(context).platform ==
-                                        TargetPlatform.iOS
-                                    ? _iosSelectionControls
-                                    : null,
-                                scrollPhysics: const BouncingScrollPhysics(),
-                                decoration: InputDecoration(
-                                  isCollapsed: true,
-                                  isDense: true,
-                                  filled: false,
-                                  counterText: '',
-                                  border: InputBorder.none,
-                                  enabledBorder: InputBorder.none,
-                                  focusedBorder: InputBorder.none,
-                                  disabledBorder: InputBorder.none,
-                                  errorBorder: InputBorder.none,
-                                  focusedErrorBorder: InputBorder.none,
-                                  hintText: widget.hintText,
-                                  hintStyle: AppBodyTextStyles.body.copyWith(
-                                    color: hintColor,
-                                  ),
-                                ),
-                              ),
-                            )
+                          ? Theme.of(context).platform == TargetPlatform.iOS
+                                ? IosThemedChatTextView(
+                                    controller: _controller,
+                                    hintText: widget.hintText,
+                                    textStyle: bodyStyle,
+                                    hintColor: hintColor,
+                                    cursorColor: AppColors.brandPrimary,
+                                    selectionColor: AppColors.brandPrimary
+                                        .withValues(alpha: 0.28),
+                                    autofocus: widget.autofocus,
+                                    onChanged: widget.onChanged,
+                                    onFocusChanged: widget.onFocusChanged,
+                                  )
+                                : Theme(
+                                    data: Theme.of(context).copyWith(
+                                      textSelectionTheme:
+                                          TextSelectionThemeData(
+                                            cursorColor:
+                                                AppColors.brandPrimary,
+                                            selectionColor: AppColors
+                                                .brandPrimary
+                                                .withValues(alpha: 0.28),
+                                            selectionHandleColor:
+                                                AppColors.brandPrimary,
+                                          ),
+                                    ),
+                                    child: TextFormField(
+                                      controller: _controller,
+                                      focusNode: _focusNode,
+                                      enabled: true,
+                                      autofocus: widget.autofocus,
+                                      onChanged: widget.onChanged,
+                                      onTap: () =>
+                                          widget.onFocusChanged?.call(true),
+                                      autocorrect: false,
+                                      enableSuggestions: false,
+                                      spellCheckConfiguration:
+                                          const SpellCheckConfiguration
+                                              .disabled(),
+                                      minLines: 1,
+                                      maxLines: 5,
+                                      maxLength: 2000,
+                                      keyboardType: TextInputType.multiline,
+                                      textInputAction: TextInputAction.newline,
+                                      style: bodyStyle,
+                                      cursorColor: AppColors.brandPrimary,
+                                      selectionControls:
+                                          Theme.of(context).platform ==
+                                              TargetPlatform.iOS
+                                          ? _iosSelectionControls
+                                          : null,
+                                      scrollPhysics:
+                                          const BouncingScrollPhysics(),
+                                      decoration: InputDecoration(
+                                        isCollapsed: true,
+                                        isDense: true,
+                                        filled: false,
+                                        counterText: '',
+                                        border: InputBorder.none,
+                                        enabledBorder: InputBorder.none,
+                                        focusedBorder: InputBorder.none,
+                                        disabledBorder: InputBorder.none,
+                                        errorBorder: InputBorder.none,
+                                        focusedErrorBorder: InputBorder.none,
+                                        hintText: widget.hintText,
+                                        hintStyle:
+                                            AppBodyTextStyles.body.copyWith(
+                                              color: hintColor,
+                                            ),
+                                      ),
+                                    ),
+                                  )
                           : Text(
                               widget.disabledText,
                               maxLines: 3,
