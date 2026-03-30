@@ -1972,6 +1972,7 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
 
   //review & emergency suggestion
   bool _isResultModalShown = false;
+  bool _isReviewing = false;
   bool _hasShownBadEnding = false;
   bool _hasShownEmergencySuggestion = false;
   bool _isEmergencyLoaded = false;
@@ -2082,6 +2083,7 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
     final appt = _existingAppointment;
     if (appt == null) return;
 
+    setState(() => _isReviewing = true); 
     showDialog(
       context: context,
       barrierDismissible: false,
@@ -2109,11 +2111,13 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
               'หากฝ่ายใดฝ่ายหนึ่งเลือก unmatch หรือ พอแค่นี้ จะจบทันที',
           onFirstChoice: () async {
             Navigator.pop(ctx);
+            setState(() => _isReviewing = false);
             setState(() => _myReviewSatisfied = false);
             await _submitReview(appt: appt, isSatisfied: false);
           },
           onSecondChoice: () async {
             Navigator.pop(ctx);
+            setState(() => _isReviewing = false);
             setState(() => _myReviewSatisfied = true);
             await _submitReview(appt: appt, isSatisfied: true);
           },
@@ -2547,6 +2551,7 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
   Widget build(BuildContext context) {
     final latestOwnIndex = _findLatestOwnMessageIndex();
     return WillPopScope(
+        if (_isReviewing) return false; 
       onWillPop: () async {
         await _exitRoomOnce();
         return true;
