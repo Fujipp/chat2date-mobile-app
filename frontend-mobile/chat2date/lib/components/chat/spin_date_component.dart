@@ -63,6 +63,7 @@ class _SpinDateComponentState extends State<SpinDateComponent>
   late int selectedIndex;
   late String? firstName;
   late String? secondName;
+  bool isDialogShowing = false;
 
   late AnimationController _controller;
   late Animation<double> _animation;
@@ -144,7 +145,8 @@ class _SpinDateComponentState extends State<SpinDateComponent>
       await Future.wait(
         widget.prizes.map((prize) async {
           final String? url = prize['imageUrl'];
-          if (url == null || url.isEmpty || _loadedImages.containsKey(url)) return;
+          if (url == null || url.isEmpty || _loadedImages.containsKey(url))
+            return;
 
           try {
             final Completer<ui.Image> completer = Completer();
@@ -275,8 +277,10 @@ class _SpinDateComponentState extends State<SpinDateComponent>
   }
 
   void _showWinnerDialog(Map<String, dynamic> place) {
+    setState(() => isDialogShowing = true);
     final bool hasImage =
         place['imageUrl'] != null && place['imageUrl'].toString().isNotEmpty;
+        
 
     showDialog(
       context: context,
@@ -339,7 +343,9 @@ class _SpinDateComponentState extends State<SpinDateComponent>
                     ),
                     padding: const EdgeInsets.symmetric(vertical: 12),
                   ),
-                  onPressed: () => Navigator.pop(context),
+                  onPressed: () => {
+                    Navigator.pop(context),
+                  },
                   child: const Text(
                     'ตกลง',
                     style: TextStyle(
@@ -376,7 +382,9 @@ class _SpinDateComponentState extends State<SpinDateComponent>
 
   @override
   Widget build(BuildContext context) {
-    return Container(
+    return PopScope(
+    canPop: false,
+    child: Container(
       padding: const EdgeInsets.fromLTRB(10, 12, 10, 12),
       width: 333,
       decoration: BoxDecoration(
@@ -478,41 +486,53 @@ class _SpinDateComponentState extends State<SpinDateComponent>
                 _buildBottomUI(),
               ],
             ),
-    );
+    ));
   }
 
   Widget _buildHeader() {
+    if (!widget.isLeader) {
+      return Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          const SizedBox(width: 31),
+          const Expanded(
+            child: Center(
+              child: Text(
+                'อีกฝ่ายกำลังสุ่มอยู่',
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              ),
+            ),
+          ),
+          InkWell(
+            onTap: () {
+              if (_controller.isAnimating) return;
+              widget.onCloseModal?.call();
+            },
+            child: SvgPicture.asset("assets/icons/icon_close.svg", width: 31),
+          ),
+        ],
+      );
+    }
+
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        widget.isLeader
-            ? InkWell(
-                onTap: () {
-                  if (_controller.isAnimating) return;
-                  _isReady = false;
-                  _handleFilterUpdate(isRefresh: true);
-                  widget.onRefreshSpin?.call();
-                },
-                child: SvgPicture.asset(
-                  "assets/icons/icon_refresh.svg",
-                  width: 31,
-                ),
-              )
-            : SvgPicture.asset(
-                "assets/icons/icon_seen.svg",
-                width: 28,
-                colorFilter: const ColorFilter.mode(
-                  AppColors.brandAccentStrong,
-                  BlendMode.srcIn,
-                ),
-              ),
+        InkWell(
+          onTap: () {
+            if (_controller.isAnimating) return;
+            _isReady = false;
+            _handleFilterUpdate(isRefresh: true);
+            widget.onRefreshSpin?.call();
+          },
+          child: SvgPicture.asset("assets/icons/icon_refresh.svg", width: 31),
+        ),
         Text(
-          'SPIN TO CHOOSE ${widget.isLeader ? "(ผู้คุม)" : "(ผู้ชม)"}',
+          'SPIN TO CHOOSE',
           style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
         ),
         InkWell(
           onTap: () {
-            if (_controller.isAnimating || !widget.isLeader) return;
+            if (_controller.isAnimating) return;
             widget.onCloseModal?.call();
           },
           child: SvgPicture.asset("assets/icons/icon_close.svg", width: 31),
