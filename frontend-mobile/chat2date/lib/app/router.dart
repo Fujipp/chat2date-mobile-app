@@ -22,7 +22,7 @@ import 'package:chat2date/features/settings/screens/widgets/contact_screen.dart'
 import 'package:flutter/material.dart';
 
 /// Route แรกที่เข้ามา
-const String initialRoute = '/login';
+const String initialRoute = '/auth';
 
 /// สร้าง route map ทั้งหมดของแอป
 Map<String, WidgetBuilder> buildAppRoutes() {

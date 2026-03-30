@@ -202,13 +202,8 @@ class DsAppSecondaryHeader extends StatelessWidget {
 
     switch (variant) {
       case DsAppSecondaryHeaderVariant.chat1:
-        return _TapTarget(
-          onTap: onPrimaryActionTap,
-          child: SvgPicture.asset(
-            AppAssets.headerSecondaryChat1Actions,
-            width: 25,
-            height: 27,
-          ),
+        return _buildActionSlots(
+          right: _buildReportAction(onTap: onPrimaryActionTap),
         );
       case DsAppSecondaryHeaderVariant.chat2:
         return _TapTarget(
@@ -220,166 +215,174 @@ class DsAppSecondaryHeader extends StatelessWidget {
           ),
         );
       case DsAppSecondaryHeaderVariant.chat3:
-        return Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            if (showCalendarAction) ...[
-              _TapTarget(
-                onTap: onPrimaryActionTap,
-                padding: EdgeInsets.zero,
-                child: SizedBox(
-                  width: 19,
-                  height: 21.11,
-                  child: Stack(
-                    clipBehavior: Clip.none,
-                    alignment: Alignment.center,
-                    children: [
-                      SvgPicture.asset(
-                        AppAssets.headerSecondaryChat4LeftAction,
-                        width: 19,
-                        height: 21.11,
-                      ),
-                      if (showCalendarUnreadDot)
-                        Positioned(
-                          top: -3,
-                          right: -3,
-                          child: Container(
-                            width: 8,
-                            height: 8,
-                            decoration: const BoxDecoration(
-                              color: AppColors.brandPrimary,
-                              shape: BoxShape.circle,
-                            ),
-                          ),
-                        ),
-                    ],
-                  ),
+        return _buildActionSlots(
+          left: showCalendarAction ? _buildCalendarAction() : null,
+          middle: _TapTarget(
+            onTap: onSecondaryActionTap,
+            padding: EdgeInsets.zero,
+            child: SizedBox(
+              width: 25,
+              height: 25,
+              child: Center(
+                child: SvgPicture.asset(
+                  AppAssets.headerSecondaryChat3CenterAction,
+                  width: 25,
+                  height: 25,
                 ),
               ),
-              const SizedBox(width: 10),
-            ],
-            _TapTarget(
-              onTap: onSecondaryActionTap,
-              padding: EdgeInsets.zero,
-              child: SvgPicture.asset(
-                AppAssets.headerSecondaryChat3CenterAction,
-                width: 25,
-                height: 31,
-              ),
             ),
-            const SizedBox(width: 10),
-            _TapTarget(
-              onTap: onTertiaryActionTap,
-              padding: EdgeInsets.zero,
-              child: SvgPicture.asset(
-                AppAssets.headerSecondaryChat4RightAction,
-                width: 25,
-                height: 27,
-              ),
-            ),
-          ],
+          ),
+          right: _buildReportAction(),
         );
       case DsAppSecondaryHeaderVariant.chat4:
-        return Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            if (showCalendarAction) ...[
-              _TapTarget(
-                onTap: onPrimaryActionTap,
-                padding: EdgeInsets.zero,
-                child: SizedBox(
-                  width: 19,
-                  height: 21.11,
-                  child: Stack(
-                    clipBehavior: Clip.none,
-                    alignment: Alignment.center,
-                    children: [
-                      SvgPicture.asset(
-                        AppAssets.headerSecondaryChat4LeftAction,
-                        width: 19,
-                        height: 21.11,
-                      ),
-                      if (showCalendarUnreadDot)
-                        Positioned(
-                          top: -3,
-                          right: -3,
-                          child: Container(
-                            width: 8,
-                            height: 8,
-                            decoration: const BoxDecoration(
-                              color: AppColors.brandPrimary,
-                              shape: BoxShape.circle,
-                            ),
-                          ),
-                        ),
-                    ],
+        return _buildActionSlots(
+          left: showCalendarAction ? _buildCalendarAction() : null,
+          middle: _TapTarget(
+            onTap: onSecondaryActionTap,
+            padding: EdgeInsets.zero,
+            child: SizedBox(
+              width: 25,
+              height: 31,
+              child: Stack(
+                clipBehavior: Clip.none,
+                alignment: Alignment.center,
+                children: [
+                  SvgPicture.asset(
+                    AppAssets.headerSecondaryChat4CenterAction,
+                    width: 25,
+                    height: 25,
                   ),
-                ),
-              ),
-              const SizedBox(width: 10),
-            ],
-            _TapTarget(
-              onTap: onSecondaryActionTap,
-              padding: EdgeInsets.zero,
-              child: SizedBox(
-                width: 25,
-                height: 31,
-                child: Stack(
-                  clipBehavior: Clip.none,
-                  alignment: Alignment.center,
-                  children: [
-                    SvgPicture.asset(
-                      AppAssets.headerSecondaryChat4CenterAction,
-                      width: 25,
-                      height: 25,
-                    ),
-                    Positioned(
-                      top: -2,
-                      child: SvgPicture.asset(
-                        AppAssets.headerSecondaryChat4CenterBadge,
-                        width: 7,
-                        height: 10,
+                  Positioned(
+                    top: 6,
+                    child: Container(
+                      width: 18,
+                      height: 18,
+                      decoration: BoxDecoration(
+                        color: AppColors.divider,
+                        shape: BoxShape.circle,
                       ),
-                    ),
-                    Positioned(
-                      top: 6,
-                      child: Container(
-                        width: 18,
-                        height: 18,
-                        decoration: BoxDecoration(
-                          color: AppColors.divider,
-                          shape: BoxShape.circle,
-                        ),
-                        alignment: Alignment.center,
-                        child: Text(
-                          '$cooldownValue',
-                          textAlign: TextAlign.center,
-                          style: AppBodyTextStyles.overline.copyWith(
-                            color: AppColors.textBlack,
-                          ),
+                      alignment: Alignment.center,
+                      child: Text(
+                        '$cooldownValue',
+                        textAlign: TextAlign.center,
+                        style: AppBodyTextStyles.overline.copyWith(
+                          color: AppColors.textBlack,
                         ),
                       ),
                     ),
-                  ],
-                ),
+                  ),
+                  Positioned(
+                    top: -2,
+                    child: SvgPicture.asset(
+                      AppAssets.headerSecondaryChat4CenterBadge,
+                      width: 7,
+                      height: 10,
+                    ),
+                  ),
+                ],
               ),
             ),
-            const SizedBox(width: 10),
-            _TapTarget(
-              onTap: onTertiaryActionTap,
-              padding: EdgeInsets.zero,
-              child: SvgPicture.asset(
-                AppAssets.headerSecondaryChat4RightAction,
-                width: 25,
-                height: 27,
-              ),
-            ),
-          ],
+          ),
+          right: _buildReportAction(),
         );
       case DsAppSecondaryHeaderVariant.base:
       case DsAppSecondaryHeaderVariant.baseText:
         return const SizedBox.shrink();
     }
+  }
+
+  Widget _buildCalendarAction() {
+    final icon = SizedBox(
+      width: 24,
+      height: 24,
+      child: Stack(
+        clipBehavior: Clip.none,
+        children: [
+          Positioned.fill(
+            child: Align(
+              alignment: Alignment.center,
+              child: SvgPicture.asset(
+                AppAssets.headerSecondaryChat4LeftAction,
+                width: 19,
+                height: 21,
+              ),
+            ),
+          ),
+          if (showCalendarUnreadDot)
+            Positioned(
+              top: -3,
+              right: -3,
+              child: Container(
+                width: 10,
+                height: 10,
+                decoration: BoxDecoration(
+                  color: AppColors.error,
+                  shape: BoxShape.circle,
+                  border: Border.all(color: Colors.white, width: 1.4),
+                ),
+              ),
+            ),
+        ],
+      ),
+    );
+
+    return _TapTarget(
+      onTap: onPrimaryActionTap,
+      padding: EdgeInsets.zero,
+      child: icon,
+    );
+  }
+
+  Widget _buildReportAction({VoidCallback? onTap}) {
+    return _TapTarget(
+      onTap: onTap ?? onTertiaryActionTap,
+      padding: EdgeInsets.zero,
+      child: SizedBox(
+        width: 24,
+        height: 24,
+        child: Center(
+          child: SvgPicture.asset(
+            AppAssets.reportIcon,
+            width: 25,
+            height: 20,
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildActionSlots({
+    Widget? left,
+    Widget? middle,
+    Widget? right,
+  }) {
+    return SizedBox(
+      width: 90,
+      height: 31,
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.end,
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          SizedBox(
+            width: 24,
+            height: 24,
+            child: left == null ? null : Center(child: left),
+          ),
+          const SizedBox(width: 6),
+          SizedBox(
+            width: 25,
+            height: 31,
+            child: middle == null ? null : Center(child: middle),
+          ),
+          const SizedBox(width: 6),
+          SizedBox(
+            width: 24,
+            height: 24,
+            child: right == null ? null : Center(child: right),
+          ),
+        ],
+      ),
+    );
   }
 }
 
