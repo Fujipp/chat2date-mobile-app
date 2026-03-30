@@ -1,3 +1,4 @@
+import 'package:chat2date/components/common/app_raw_scrollbar.dart';
 import 'package:chat2date/components/design_system/index.dart';
 import 'package:chat2date/core/formatters/thai_nickname_input_formatter.dart';
 import 'package:chat2date/core/theme/app_colors.dart';
@@ -481,24 +482,8 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
                     showBottomBorder: true,
                   ),
                   Expanded(
-                    child: ScrollbarTheme(
-                      data: ScrollbarThemeData(
-                        thumbColor: WidgetStateProperty.all(
-                          const Color(0xFF5CE1E6).withValues(alpha: 0.7),
-                        ),
-                        trackColor: WidgetStateProperty.all(
-                          Colors.grey.shade300,
-                        ),
-                        trackBorderColor: WidgetStateProperty.all(
-                          Colors.grey.shade400,
-                        ),
-                      ),
-                        child: Scrollbar(
+                    child: AppRawScrollbar(
                           controller: _scrollController,
-                          thumbVisibility: true,
-                          thickness: 4,
-                          radius: const Radius.circular(8),
-                          interactive: true,
                         child: SingleChildScrollView(
                           controller: _scrollController,
                           padding: const EdgeInsets.fromLTRB(40, 10, 40, 24),
@@ -594,7 +579,6 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
                               ),
                             ],
                           ),
-                        ),
                       ),
                     ),
                   ),

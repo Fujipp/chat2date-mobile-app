@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:io';
 import 'dart:ui';
 
+import 'package:chat2date/components/common/app_raw_scrollbar.dart';
 import 'package:chat2date/components/common/image_upload_grid.dart';
 import 'package:chat2date/components/design_system/index.dart';
 import 'package:chat2date/core/theme/app_colors.dart';
@@ -231,12 +232,8 @@ class _UserReportScreenState extends ConsumerState<UserReportScreen> {
                         bottomBorderSpacing: 0,
                       ),
                       Expanded(
-                        child: Scrollbar(
+                        child: AppRawScrollbar(
                           controller: _scrollController,
-                          thumbVisibility: true,
-                          thickness: 4,
-                          radius: const Radius.circular(8),
-                          interactive: true,
                           child: SingleChildScrollView(
                             controller: _scrollController,
                             padding: const EdgeInsets.fromLTRB(24, 8, 24, 28),

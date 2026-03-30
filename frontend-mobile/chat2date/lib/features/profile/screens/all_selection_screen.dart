@@ -1,3 +1,4 @@
+import 'package:chat2date/components/common/app_raw_scrollbar.dart';
 import 'package:chat2date/components/design_system/organisms/ds_app_secondary_header.dart';
 import 'package:chat2date/components/inputs/ds_text_field/ds_text_field.dart';
 import 'package:chat2date/core/theme/app_colors.dart';
@@ -444,12 +445,8 @@ class _TagSelectionScreenState extends State<TagSelectionScreen> {
                               Colors.grey.shade400,
                             ),
                           ),
-                          child: Scrollbar(
+                        child: AppRawScrollbar(
                             controller: _scrollController,
-                            thumbVisibility: true,
-                            thickness: 4,
-                            radius: const Radius.circular(8),
-                            interactive: true,
                             child: SingleChildScrollView(
                               controller: _scrollController,
                               padding: const EdgeInsets.only(top: 8),
@@ -911,12 +908,8 @@ class _LifestylesSelectionScreenState extends State<LifestylesSelectionScreen> {
                             Colors.grey.shade400,
                           ),
                         ),
-                        child: Scrollbar(
+                        child: AppRawScrollbar(
                           controller: _scrollController,
-                          thumbVisibility: true,
-                          thickness: 4,
-                          radius: const Radius.circular(8),
-                          interactive: true,
                           child: SingleChildScrollView(
                             controller: _scrollController,
                             child: Column(
@@ -1132,12 +1125,8 @@ class _InterestsSelectionScreenWidgetState
                             Colors.grey.shade400,
                           ),
                         ),
-                        child: Scrollbar(
+                        child: AppRawScrollbar(
                           controller: _scrollController,
-                          thumbVisibility: true,
-                          thickness: 4,
-                          radius: const Radius.circular(8),
-                          interactive: true,
                           child: SingleChildScrollView(
                             controller: _scrollController,
                             child: Column(

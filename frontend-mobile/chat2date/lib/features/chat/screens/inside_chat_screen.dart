@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:ui';
 
+import 'package:chat2date/components/common/app_raw_scrollbar.dart';
 import 'package:chat2date/components/calendar/calendar_modal.dart';
 import 'package:chat2date/components/chat/chat_text_component.dart';
 import 'package:chat2date/components/common/modal_component.dart';
@@ -3514,18 +3515,20 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
                                       ),
                                     ),
                                   )
-                                : ListView.builder(
+                                : AppRawScrollbar(
                                     controller: _scrollController,
-                                    padding: EdgeInsets.fromLTRB(
-                                      20,
-                                      showGpsOverlay ? 128 : 12,
-                                      20,
-                                      24,
-                                    ),
-                                    itemCount:
-                                        _messages.length +
-                                        (_isLoadingMore ? 1 : 0),
-                                    itemBuilder: (context, index) {
+                                    child: ListView.builder(
+                                      controller: _scrollController,
+                                      padding: EdgeInsets.fromLTRB(
+                                        20,
+                                        showGpsOverlay ? 128 : 12,
+                                        20,
+                                        24,
+                                      ),
+                                      itemCount:
+                                          _messages.length +
+                                          (_isLoadingMore ? 1 : 0),
+                                      itemBuilder: (context, index) {
                                       final int offset = _isLoadingMore ? 1 : 0;
                                       if (_isLoadingMore && index == 0) {
                                         return const Padding(
@@ -3577,7 +3580,8 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
                                           ),
                                         ],
                                       );
-                                    },
+                                      },
+                                    ),
                                   ),
                           ),
                           if (_isChatDisabled)

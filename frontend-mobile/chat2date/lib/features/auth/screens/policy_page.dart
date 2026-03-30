@@ -1,3 +1,4 @@
+import 'package:chat2date/components/common/app_raw_scrollbar.dart';
 import 'package:chat2date/components/design_system/index.dart';
 import 'package:chat2date/core/theme/app_colors.dart';
 import 'package:chat2date/core/theme/tokens/colors/text_colors.dart';
@@ -81,10 +82,8 @@ class _PolicyPageState extends State<PolicyPage> {
                         borderRadius: BorderRadius.circular(29),
                       ),
                     ),
-                    child: Scrollbar(
+                    child: AppRawScrollbar(
                       controller: _scrollCtrl,
-                      thumbVisibility: true,
-                      thickness: 4,
                       radius: const Radius.circular(20),
                       child: SingleChildScrollView(
                         controller: _scrollCtrl,

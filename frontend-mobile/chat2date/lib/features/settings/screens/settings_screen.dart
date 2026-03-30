@@ -1,16 +1,19 @@
-import 'package:chat2date/components/layout/header.dart';
+import 'package:chat2date/components/design_system/buttons/ds_button.dart';
+import 'package:chat2date/components/design_system/navigation/ds_bottom_nav_bar.dart';
+import 'package:chat2date/components/design_system/organisms/ds_app_home_header.dart';
 import 'package:chat2date/components/modal/feature_guide_modal.dart';
+import 'package:chat2date/core/theme/app_colors.dart';
+import 'package:chat2date/core/theme/tokens/typography/body_text_styles.dart';
+import 'package:chat2date/features/discovery/screens/main_tabs.dart';
 import 'package:chat2date/features/settings/screens/widgets/delete_account_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import 'package:chat2date/components/layout/menu_bar.dart';
-import 'package:chat2date/features/discovery/screens/main_tabs.dart';
 import 'widgets/logout_modal.dart';
 
-// ✅ เปลี่ยนจาก StatefulWidget เป็น ConsumerStatefulWidget
 class SettingsScreen extends ConsumerStatefulWidget {
   final bool showBottomNav;
+
   const SettingsScreen({super.key, this.showBottomNav = true});
 
   @override
@@ -18,276 +21,252 @@ class SettingsScreen extends ConsumerStatefulWidget {
 }
 
 class _SettingsScreenState extends ConsumerState<SettingsScreen> {
+  static const List<_SettingsEntry> _entries = [
+    _SettingsEntry(
+      title: 'บัญชีของฉัน',
+      subtitle: 'จัดการบัญชีผู้ใช้และข้อมูลส่วนตัว',
+      icon: Icons.account_circle_rounded,
+      routeName: '/account-settings',
+    ),
+    _SettingsEntry(
+      title: 'ตั้งค่าคู่ของคุณ',
+      subtitle: 'กำหนดความชอบและเงื่อนไขของคู่ที่ต้องการ',
+      icon: Icons.favorite_rounded,
+      routeName: '/matchPreference',
+      routeArguments: {'onUpdate': true},
+    ),
+    _SettingsEntry(
+      title: 'คู่มือการใช้งาน',
+      subtitle: 'เรียนรู้วิธีการใช้แอปพลิเคชัน',
+      icon: Icons.menu_book_rounded,
+      opensGuideModal: true,
+    ),
+    _SettingsEntry(
+      title: 'เกี่ยวกับเรา',
+      subtitle: 'ข้อมูลเกี่ยวกับแอปพลิเคชัน',
+      icon: Icons.info_rounded,
+      routeName: '/about',
+    ),
+    _SettingsEntry(
+      title: 'ติดต่อเรา',
+      subtitle: 'ช่องทางการติดต่อและสอบถามข้อมูล',
+      icon: Icons.public_rounded,
+      routeName: '/contact',
+    ),
+    _SettingsEntry(
+      title: 'นโยบายความเป็นส่วนตัว',
+      subtitle: 'ข้อกำหนดตกลงการใช้',
+      icon: Icons.note_alt_rounded,
+      routeName: '/privacy-policy',
+    ),
+  ];
+
   int _selectedIndex = 3;
+
+  void _handleBottomNavTap(int index) {
+    setState(() {
+      _selectedIndex = index;
+    });
+
+    Navigator.of(context).pushAndRemoveUntil(
+      PageRouteBuilder(
+        pageBuilder: (_, __, ___) => MainTabs(initialIndex: index),
+        transitionDuration: const Duration(milliseconds: 0),
+        reverseTransitionDuration: const Duration(milliseconds: 0),
+      ),
+      (route) => false,
+    );
+  }
+
+  Future<void> _openEntry(_SettingsEntry entry) async {
+    if (entry.opensGuideModal) {
+      await showDialog<void>(
+        context: context,
+        barrierDismissible: false,
+        builder: (context) => const FeatureGuideModal(),
+      );
+      return;
+    }
+
+    if (entry.routeName == null) {
+      return;
+    }
+
+    await Navigator.pushNamed(
+      context,
+      entry.routeName!,
+      arguments: entry.routeArguments,
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
-      body: Column(
-        children: [
-          const SizedBox(height: 25),
-          ChatToDateHeaderWhite(
-            leftIconPath: 'assets/icons/ui/icon_chat2date_full.svg',
-            rightIconPath: '',
-            iconColor: const Color(0xFF5ce1e6),
-            onBack: () {},
-          ),
-
-          // Content area
-          Expanded(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
-              child: Column(
-                children: [
-                  // Account
-                  _SettingsCard(
-                    icon: Icons.person_outline,
-                    title: 'บัญชีของฉัน',
-                    subtitle: 'จัดการบัญชีผู้ใช้และข้อมูลส่วนตัว',
-                    onTap: () {
-                      Navigator.pushNamed(context, '/account-settings');
-                    },
-                  ),
-                  const SizedBox(height: 12),
-
-                  // 🆕 Partner Preferences
-                  _SettingsCard(
-                    icon: Icons.favorite_border,
-                    title: 'ตั้งค่าคู่ของคุณ',
-                    subtitle: 'กำหนดความชอบและเงื่อนไขของคู่ที่ต้องการ',
-                    onTap: () {
-                      Navigator.pushNamed(
-                        context,
-                        '/matchPreference',
-                        arguments: {"onUpdate": true},
-                      );
-                    },
-                  ),
-                  const SizedBox(height: 12),
-
-                  // Tutorial
-                  _SettingsCard(
-                    icon: Icons.menu_book_outlined,
-                    title: 'คู่มือการใช้งาน',
-                    subtitle: 'เรียนรู้วิธีใช้แอปพลิเคชัน',
-                    onTap: () {
-                      showDialog(
-                        context: context,
-                        barrierDismissible: false,
-                        builder: (context) => const FeatureGuideModal(),
-                      );
-                    },
-                  ),
-                  const SizedBox(height: 12),
-
-                  // About
-                  _SettingsCard(
-                    icon: Icons.info_outline,
-                    title: 'เกี่ยวกับเรา',
-                    subtitle: 'ข้อมูลเกี่ยวกับแอปพลิเคชัน',
-                    onTap: () {
-                      Navigator.pushNamed(context, '/about');
-                    },
-                  ),
-                  const SizedBox(height: 12),
-
-                  // Contact
-                  _SettingsCard(
-                    icon: Icons.support_agent_outlined,
-                    title: 'ติดต่อเรา',
-                    subtitle: 'ช่องทางการติดต่อ Admin และทีมงาน',
-                    onTap: () {
-                      Navigator.pushNamed(context, '/contact');
-                    },
-                  ),
-                  const SizedBox(height: 12),
-
-                  // Privacy & Terms
-                  _SettingsCard(
-                    icon: Icons.privacy_tip_outlined,
-                    title: 'นโยบายความเป็นส่วนตัว',
-                    subtitle: 'เงื่อนไขการใช้งานและนโยบาย',
-                    onTap: () {
-                      Navigator.pushNamed(context, '/privacy-policy');
-                    },
-                  ),
-
-                  const SizedBox(height: 32),
-
-                  // ✅ Logout Button - ใช้ ref ได้แล้ว
-                  _ActionButton(
-                    label: 'ออกจากระบบ',
-                    color: const Color(0xFFFF6B6B),
-                    onTap: () {
-                      showLogoutModal(context, ref);
-                    },
-                  ),
-                  const SizedBox(height: 12),
-
-                  // Delete Account Button
-                  _ActionButton(
-                    label: 'ลบบัญชี',
-                    color: const Color(0xFFEF4444),
-                    onTap: () {
-                      showDeleteAccountModal(context, ref);
-                    },
-                  ),
-                  const SizedBox(height: 16),
-                ],
+      backgroundColor: AppColors.background,
+      body: SafeArea(
+        bottom: false,
+        child: Column(
+          children: [
+            DsAppHomeHeader(
+              action: const SizedBox.shrink(),
+              showBottomBorder: true,
+              bottomBorderSpacing: 10,
+            ),
+            Expanded(
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(10, 0, 10, 24),
+                child: Column(
+                  children: [
+                    for (final entry in _entries) ...[
+                      _SettingsMenuCard(
+                        title: entry.title,
+                        subtitle: entry.subtitle,
+                        icon: entry.icon,
+                        onTap: () => _openEntry(entry),
+                      ),
+                      if (entry != _entries.last) const SizedBox(height: 10),
+                    ],
+                    const Spacer(),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 26),
+                      child: Column(
+                        children: [
+                          _SettingsActionButton(
+                            label: 'ออกจากระบบ',
+                            onPressed: () => showLogoutModal(context, ref),
+                          ),
+                          const SizedBox(height: 20),
+                          _SettingsActionButton(
+                            label: 'ลบบัญชี',
+                            onPressed: () => showDeleteAccountModal(
+                              context,
+                              ref,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
       bottomNavigationBar: widget.showBottomNav
           ? CustomBottomNavBar(
               selectedIndex: _selectedIndex,
-              onTap: (index) {
-                setState(() {
-                  _selectedIndex = index;
-                });
-
-                // Jump back into the persistent tab shell without route animation
-                Navigator.of(context).pushAndRemoveUntil(
-                  PageRouteBuilder(
-                    pageBuilder: (_, __, ___) => MainTabs(initialIndex: index),
-                    transitionDuration: const Duration(milliseconds: 0),
-                    reverseTransitionDuration: const Duration(milliseconds: 0),
-                  ),
-                  (route) => false,
-                );
-              },
+              onTap: _handleBottomNavTap,
             )
           : null,
     );
   }
 }
 
-// Settings Card Widget
-class _SettingsCard extends StatelessWidget {
-  final IconData icon;
-  final String title;
-  final String subtitle;
-  final VoidCallback onTap;
-
-  const _SettingsCard({
-    required this.icon,
+class _SettingsMenuCard extends StatelessWidget {
+  const _SettingsMenuCard({
     required this.title,
     required this.subtitle,
+    required this.icon,
     required this.onTap,
   });
 
+  final String title;
+  final String subtitle;
+  final IconData icon;
+  final VoidCallback onTap;
+
   @override
   Widget build(BuildContext context) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(16),
-      child: Container(
-        width: double.infinity,
-        padding: const EdgeInsets.all(16),
-        decoration: ShapeDecoration(
-          color: const Color(0xFFF7FAFE),
-          shape: RoundedRectangleBorder(
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(16),
+        child: Ink(
+          width: double.infinity,
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+          decoration: BoxDecoration(
+            color: AppColors.background,
             borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: AppColors.inputBorder),
           ),
-        ),
-        child: Row(
-          children: [
-            // Icon Container
-            Container(
-              width: 50,
-              height: 50,
-              decoration: BoxDecoration(
-                color: const Color(0xFFE0F2F7),
-                borderRadius: BorderRadius.circular(12),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              SizedBox(
+                width: 44,
+                height: 44,
+                child: Icon(icon, size: 38, color: AppColors.surface),
               ),
-              child: Icon(icon, size: 28, color: const Color(0xFF5ce1e6)),
-            ),
-            const SizedBox(width: 16),
-
-            // Text Content
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    title,
-                    style: const TextStyle(
-                      color: Color(0xFF0F172A),
-                      fontSize: 14,
-                      fontFamily: 'Inter',
-                      fontWeight: FontWeight.w700,
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      title,
+                      style: AppBodyTextStyles.body.copyWith(
+                        fontSize: 16,
+                        height: 22 / 16,
+                        fontWeight: FontWeight.w600,
+                        color: AppColors.textBlack,
+                      ),
                     ),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    subtitle,
-                    style: const TextStyle(
-                      color: Color(0xFF64748B),
-                      fontSize: 12,
-                      fontFamily: 'Inter',
-                      fontWeight: FontWeight.w400,
-                      height: 1.33,
-                      letterSpacing: 0.12,
+                    const SizedBox(height: 2),
+                    Text(
+                      subtitle,
+                      style: AppBodyTextStyles.body.copyWith(
+                        color: AppColors.textSupport,
+                      ),
                     ),
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ],
+                  ],
+                ),
               ),
-            ),
-
-            // Arrow Icon
-            const Icon(
-              Icons.arrow_forward_ios,
-              size: 16,
-              color: Color(0xFF64748B),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
   }
 }
 
-// Action Button Widget (Logout/Delete)
-class _ActionButton extends StatelessWidget {
-  final String label;
-  final Color color;
-  final VoidCallback onTap;
-
-  const _ActionButton({
+class _SettingsActionButton extends StatelessWidget {
+  const _SettingsActionButton({
     required this.label,
-    required this.color,
-    required this.onTap,
+    required this.onPressed,
   });
+
+  final String label;
+  final VoidCallback onPressed;
 
   @override
   Widget build(BuildContext context) {
-    return SizedBox(
+    return DsButton(
+      label: label,
+      onPressed: onPressed,
+      variant: DsButtonVariant.error,
+      size: DsButtonSize.md,
       width: double.infinity,
-      height: 40,
-      child: ElevatedButton(
-        onPressed: onTap,
-        style: ElevatedButton.styleFrom(
-          backgroundColor: color,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
-          ),
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-          elevation: 0,
-        ),
-        child: Text(
-          label,
-          style: const TextStyle(
-            color: Colors.white,
-            fontSize: 14,
-            fontFamily: 'Inter',
-            fontWeight: FontWeight.w700,
-          ),
-        ),
-      ),
     );
   }
+}
+
+class _SettingsEntry {
+  const _SettingsEntry({
+    required this.title,
+    required this.subtitle,
+    required this.icon,
+    this.routeName,
+    this.routeArguments,
+    this.opensGuideModal = false,
+  });
+
+  final String title;
+  final String subtitle;
+  final IconData icon;
+  final String? routeName;
+  final Object? routeArguments;
+  final bool opensGuideModal;
 }

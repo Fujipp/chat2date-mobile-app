@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:chat2date/components/common/app_raw_scrollbar.dart';
 import 'package:chat2date/components/design_system/index.dart';
 import 'package:chat2date/core/theme/app_colors.dart';
 import 'package:chat2date/core/theme/tokens/colors/data_colors.dart';
@@ -37,6 +38,7 @@ class _ChatListScreenState extends ConsumerState<ChatListScreen>
   _ChatListTab _selectedTab = _ChatListTab.chat;
   final Set<String> _viewedMatchIds = {};
   final Set<String> _clearedUnreadRoomIds = {};
+  final ScrollController _chatListScrollController = ScrollController();
 
   List<ChatRoom> _chatRooms = [];
   List<Match> _matches = [];
@@ -63,6 +65,7 @@ class _ChatListScreenState extends ConsumerState<ChatListScreen>
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
+    _chatListScrollController.dispose();
     _chatListSubscription?.cancel();
     _chatListSocket?.dispose();
     _matchSubscription?.cancel();
@@ -487,11 +490,15 @@ class _ChatListScreenState extends ConsumerState<ChatListScreen>
     return RefreshIndicator(
       color: AppColors.brandPrimary,
       onRefresh: onRefresh,
-      child: ListView.separated(
-        padding: const EdgeInsets.fromLTRB(10, 0, 10, 110),
-        itemCount: itemCount,
-        separatorBuilder: (_, __) => const SizedBox(height: 12),
-        itemBuilder: itemBuilder,
+      child: AppRawScrollbar(
+        controller: _chatListScrollController,
+        child: ListView.separated(
+          controller: _chatListScrollController,
+          padding: const EdgeInsets.fromLTRB(10, 0, 10, 110),
+          itemCount: itemCount,
+          separatorBuilder: (_, __) => const SizedBox(height: 12),
+          itemBuilder: itemBuilder,
+        ),
       ),
     );
   }

@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:chat2date/components/common/app_raw_scrollbar.dart';
 import 'package:chat2date/components/common/image_upload_grid.dart';
 import 'package:chat2date/components/design_system/index.dart';
 import 'package:chat2date/core/formatters/thai_nickname_input_formatter.dart';
@@ -917,19 +918,15 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
   Widget _buildBody() {
     final bottomPadding = widget.showBottomNav ? 92.0 : 32.0;
 
-    return Scrollbar(
+    return AppRawScrollbar(
       controller: _scrollController,
-      thumbVisibility: true,
-      thickness: 4,
-      radius: const Radius.circular(8),
-      interactive: true,
       child: SingleChildScrollView(
-        controller: _scrollController,
-        padding: EdgeInsets.fromLTRB(25, 12, 25, bottomPadding),
-        child: Center(
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 310),
-            child: Column(
+          controller: _scrollController,
+          padding: EdgeInsets.fromLTRB(25, 12, 25, bottomPadding),
+          child: Center(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 310),
+              child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 DsTextField(
@@ -1037,10 +1034,10 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                 const SizedBox(height: 24),
                 _buildBehaviorSection(),
               ],
+              ),
             ),
           ),
         ),
-      ),
     );
   }
 
