@@ -8,7 +8,8 @@ import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-
+import 'package:google_maps_flutter_android/google_maps_flutter_android.dart';
+import 'package:google_maps_flutter_platform_interface/google_maps_flutter_platform_interface.dart';
 import 'firebase_options.dart';
 import 'screens/index.dart';
 import 'screens/main_tabs.dart';
@@ -40,6 +41,16 @@ void _handleNotificationNavigation(RemoteMessage message) {
 Future<void> main() async {
   // ต้องเรียกก่อนใช้ async ใน main เสมอ
   WidgetsFlutterBinding.ensureInitialized();
+
+  final GoogleMapsFlutterPlatform mapsImplementation =
+      GoogleMapsFlutterPlatform.instance;
+  if (mapsImplementation is GoogleMapsFlutterAndroid) {
+    mapsImplementation.useAndroidViewSurface =
+        true; // บังคับใช้ AndroidView แทน TextureLayer
+    mapsImplementation.initializeWithRenderer(
+      AndroidMapRenderer.legacy,
+    ); // ใช้ Renderer ตัวเก่าเพื่อความชัวร์
+  }
 
   // โหลด .env
   await dotenv.load(fileName: ".env");
