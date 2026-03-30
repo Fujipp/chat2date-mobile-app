@@ -98,9 +98,10 @@ public class DateRecommendService {
             String cachedData = (String) redis.opsForValue().get(dataKey);
             if (cachedData != null) {
                 String actualLeaderId = redis.opsForValue().get("room_leader:" + user.getUserId());
+                RecommendationResponse cachedResponse = objectMapper.readValue(cachedData, RecommendationResponse.class);
 
                 Map<String, Object> spinSignal = new HashMap<>();
-                spinSignal.put("type", "FRESH_MODE"); // บอก Flutter ว่า "เริ่มหมุนได้!"
+                spinSignal.put("type", "FRESH_MODE");
                 spinSignal.put("mode", mode);
                 spinSignal.put("userTarget", userTarget);
                 spinSignal.put("range", range);
@@ -108,6 +109,7 @@ public class DateRecommendService {
                 spinSignal.put("data", cachedData);
 
                 messagingTemplate.convertAndSend("/topic/spin/" + roomId, spinSignal);
+                saveRoomState(roomId, mode, userTarget, range, cachedResponse.getLeaderId(), cachedResponse);
                 return ResponseEntity.ok(objectMapper.readValue(cachedData, RecommendationResponse.class));
             }
         }
@@ -163,6 +165,8 @@ public class DateRecommendService {
                 spinSignal.put("leaderId", currentLeaderId);
                 spinSignal.put("data", finalResponse);
 
+                saveRoomState(roomId, mode, userTarget, range, currentLeaderId, finalResponse);
+
                 messagingTemplate.convertAndSend("/topic/spin/" + roomId, spinSignal);
                 redis.opsForValue().set(rateKey, "active", Duration.ofSeconds(10));
                 redis.opsForValue().set(dataKey, objectMapper.writeValueAsString(finalResponse), Duration.ofMinutes(30));
@@ -174,6 +178,28 @@ public class DateRecommendService {
         }
 
         throw new LockedException("Your partner still retrieving data");
+    }
+
+    private void saveRoomState(String roomId, String mode, String userTarget, int range, String leaderId, RecommendationResponse response) throws JsonProcessingException {
+        try {
+            Map<String, Object> roomState = new HashMap<>();
+            roomState.put("mode", mode);
+            roomState.put("userTarget", userTarget);
+            roomState.put("range", range);
+            roomState.put("leaderId", leaderId);
+            roomState.put("data", response);
+            roomState.put("updatedAt", System.currentTimeMillis());
+
+            String roomStateKey = "room_state:" + roomId;
+            redis.opsForValue().set(roomStateKey, objectMapper.writeValueAsString(roomState), Duration.ofMinutes(30));
+        } catch (Exception e) {
+            System.err.println("Failed to save room state: " + e.getMessage());
+        }
+    }
+
+    public String getCurrentRoomSession(String roomId) {
+        String roomStateKey = "room_state:" + roomId;
+        return (String) redis.opsForValue().get(roomStateKey);
     }
 
     public void triggerSpin(String roomId) {
@@ -188,15 +214,23 @@ public class DateRecommendService {
     public void triggerCloseModal(String roomId, String accessToken) {
         User user = extractToken(accessToken);
 
-        String leaderKey = "room_leader:" + user.getUserId();
-        if (!redis.hasKey(leaderKey)) {
-            throw new ForbiddenAccessException("Only the room leader can close the modal.");
+        String roomStateKey = "room_state:" + roomId;
+        String roomStateJson = redis.opsForValue().get(roomStateKey);
+
+        if (roomStateJson == null) {
+            return;
         }
 
-        Match match = matchRepository.findById(Integer.valueOf(roomId))
-                .orElseThrow(() -> new NotFoundException("Match not found"));
-        redis.delete("room_leader:" + match.getUserId1().getUserId());
-        redis.delete("room_leader:" + match.getUserId2().getUserId());
+        try {
+            JsonNode stateNode = objectMapper.readTree(roomStateJson);
+            String leaderId = stateNode.get("leaderId").asText();
+
+            if (!String.valueOf(user.getUserId()).equals(leaderId)) {
+                throw new ForbiddenAccessException("Only the room leader can close the modal.");
+            }
+        } catch (JsonProcessingException e) {
+            redis.delete(roomStateKey);
+        }
 
         Set<String> keys = redis.keys("room_data:" + roomId + ":*");
         if (!keys.isEmpty()) {
@@ -204,6 +238,10 @@ public class DateRecommendService {
         }
 
         redis.delete("lock:room:" + roomId);
+
+        redis.delete("room_state:" + roomId);
+
+        System.out.println(123456);
 
         Map<String, Object> closeCmd = new HashMap<>();
         closeCmd.put("type", "CMD_CLOSE_MODAL");
@@ -649,7 +687,7 @@ public class DateRecommendService {
             throw new LockedException("Cooldown has not ended yet");
         }
 
-        if (latest.getStatus() ==  AppointmentStatus.SCHEDULED || latest.getStatus() ==  AppointmentStatus.PLACE_SELECTED) {
+        if (latest.getStatus() == AppointmentStatus.SCHEDULED || latest.getStatus() == AppointmentStatus.PLACE_SELECTED) {
             throw new LockedException("Cannot delete active appointment");
         }
         appointmentRepository.delete(latest);

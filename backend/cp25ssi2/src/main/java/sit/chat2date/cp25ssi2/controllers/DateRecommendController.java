@@ -2,6 +2,7 @@ package sit.chat2date.cp25ssi2.controllers;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import sit.chat2date.cp25ssi2.dto.ConfirmationRequest;
@@ -34,6 +35,20 @@ public class DateRecommendController {
         response.put("status", action.name());
 
         return ResponseEntity.ok(response);
+    }
+
+    @GetMapping("/{roomId}/session")
+    public ResponseEntity<?> getRoomSession(@PathVariable String roomId) {
+        // ให้ Service ไปดึง JSON จาก Redis มาให้
+        String sessionData = dateRecommendService.getCurrentRoomSession(roomId);
+
+        if (sessionData == null) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                    .body(Map.of("message", "No active session for this room"));
+        }
+
+        // ส่ง JSON String กลับไปตรงๆ (Service จัดการ parse หรือส่งเป็น String ก็ได้)
+        return ResponseEntity.ok(sessionData);
     }
 
     @PostMapping("/{roomId}/spin")
