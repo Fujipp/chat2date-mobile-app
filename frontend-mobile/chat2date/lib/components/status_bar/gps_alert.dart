@@ -61,7 +61,9 @@ class _FullScreenMapPageState extends State<FullScreenMapPage> {
   @override
   void dispose() {
     _positionStream?.cancel();
+    _positionStream = null;
     _mapController?.dispose();
+    _mapController = null;
     super.dispose();
   }
 
@@ -82,7 +84,15 @@ class _FullScreenMapPageState extends State<FullScreenMapPage> {
           if (latDiff > 0.0001 || lngDiff > 0.0001) {
             _lastCameraLat = pos.latitude;
             _lastCameraLng = pos.longitude;
-            _mapController?.animateCamera(CameraUpdate.newLatLng(newLatLng));
+            if (mounted && _mapController != null) {
+              try {
+                _mapController!.animateCamera(
+                  CameraUpdate.newLatLng(newLatLng),
+                );
+              } catch (e) {
+                debugPrint('animateCamera error (disposed): $e');
+              }
+            }
           }
 
           // ✅ reroute เฉพาะเมื่อออกนอกเส้นทาง + cooldown 3 วิ
@@ -202,7 +212,10 @@ class _FullScreenMapPageState extends State<FullScreenMapPage> {
               _lastCameraLat = pos.latitude;
               _lastCameraLng = pos.longitude;
 
-              controller.animateCamera(
+              if (!mounted) return; // ← เพิ่ม
+
+              _mapController?.animateCamera(
+                // ← เปลี่ยนจาก controller. เป็น _mapController?.
                 CameraUpdate.newLatLngZoom(_currentPosition!, 15),
               );
 
@@ -395,7 +408,9 @@ class _GpsMapAlertState extends State<GpsMapAlert> with WidgetsBindingObserver {
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
     _positionStream?.cancel();
+    _positionStream = null;
     _mapController?.dispose();
+    _mapController = null;
     super.dispose();
   }
 
@@ -417,7 +432,15 @@ class _GpsMapAlertState extends State<GpsMapAlert> with WidgetsBindingObserver {
           if (latDiff > 0.0001 || lngDiff > 0.0001) {
             _lastCameraLat = pos.latitude;
             _lastCameraLng = pos.longitude;
-            _mapController?.animateCamera(CameraUpdate.newLatLng(newLatLng));
+            if (mounted && _mapController != null) {
+              try {
+                _mapController!.animateCamera(
+                  CameraUpdate.newLatLng(newLatLng),
+                );
+              } catch (e) {
+                debugPrint('animateCamera error (disposed): $e');
+              }
+            }
           }
 
           // ✅ reroute เฉพาะเมื่อออกนอกเส้นทาง + cooldown 3 วิ
@@ -598,6 +621,8 @@ class _GpsMapAlertState extends State<GpsMapAlert> with WidgetsBindingObserver {
         if (mounted) {
           setState(() => _isExpanded = false);
           _stopPositionStream();
+          _mapController?.dispose(); // ← เพิ่มบรรทัดนี้
+          _mapController = null; // ← และบรรทัดนี้
         }
       });
     }
@@ -840,7 +865,12 @@ class _GpsMapAlertState extends State<GpsMapAlert> with WidgetsBindingObserver {
                                 _lastCameraLat = pos.latitude;
                                 _lastCameraLng = pos.longitude;
 
-                                controller.animateCamera(
+                                // ตรงนี้ถ้า widget dispose ระหว่าง await ด้านบน
+                                // controller ยังใช้ได้อยู่ แต่ควรเช็ค mounted ก่อน
+                                if (!mounted) return; // ← เพิ่ม
+
+                                _mapController?.animateCamera(
+                                  // ← เปลี่ยนจาก controller. เป็น _mapController?.
                                   CameraUpdate.newLatLngZoom(
                                     _currentPosition!,
                                     15,
