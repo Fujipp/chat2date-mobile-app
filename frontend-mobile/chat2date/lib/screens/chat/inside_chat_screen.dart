@@ -577,6 +577,93 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
     }
   }
 
+  String _spinSessionPrefsKey(String roomId) {
+    final userId = _currentUserId ?? 'guest';
+    return 'spin_session_${userId}_$roomId';
+  }
+
+  Future<void> _persistSpinSession() async {
+    final roomId = widget.roomId;
+    if (roomId == null || roomId.isEmpty || _leaderId == null) return;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(
+      _spinSessionPrefsKey(roomId),
+      jsonEncode({
+        'leaderId': _leaderId,
+        'indexMode': _indexMode,
+        'indexSelected': _indexSelected,
+        'range': _currentRange,
+        'prizes': _dynamicPrizes,
+      }),
+    );
+  }
+
+  Future<void> _clearPersistedSpinSession() async {
+    final roomId = widget.roomId;
+    if (roomId == null || roomId.isEmpty) return;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove(_spinSessionPrefsKey(roomId));
+  }
+
+  Future<void> _restoreSpinSessionIfNeeded() async {
+    final roomId = widget.roomId;
+    final currentUserId = _currentUserId;
+    if (roomId == null ||
+        roomId.isEmpty ||
+        currentUserId == null ||
+        currentUserId.isEmpty) {
+      return;
+    }
+
+    final prefs = await SharedPreferences.getInstance();
+    final raw = prefs.getString(_spinSessionPrefsKey(roomId));
+    if (raw == null || raw.isEmpty) {
+      return;
+    }
+
+    try {
+      final saved = jsonDecode(raw) as Map<String, dynamic>;
+      final leaderId = saved['leaderId']?.toString();
+      if (leaderId == null || leaderId.isEmpty) {
+        await _clearPersistedSpinSession();
+        return;
+      }
+
+      if (leaderId == currentUserId) {
+        return;
+      }
+
+      final status = await ref.read(chatServiceProvider).getAccessStatus(roomId);
+      final leaderStillPresent = status.roomMember.any(
+        (member) => member.userId == leaderId && member.type == 'ENTER',
+      );
+
+      if (!leaderStillPresent) {
+        await _clearPersistedSpinSession();
+        if (mounted) {
+          _clearWheelState();
+        }
+        return;
+      }
+
+      final prizes = ((saved['prizes'] as List?) ?? [])
+          .map((item) => Map<String, dynamic>.from(item as Map))
+          .toList();
+
+      if (!mounted) return;
+      setState(() {
+        _isSpinSessionActive = true;
+        _leaderId = leaderId;
+        _indexMode = (saved['indexMode'] as num?)?.toInt() ?? 1;
+        _indexSelected = (saved['indexSelected'] as num?)?.toInt() ?? 1;
+        _currentRange = (saved['range'] as num?)?.toDouble() ?? 20;
+        _dynamicPrizes = prizes;
+      });
+    } catch (_) {
+      await _clearPersistedSpinSession();
+    }
+  }
+
   Future<void> _initConfirmStatus() async {
     try {
       final service = ref.read(dateRecommendProvider);
@@ -645,6 +732,7 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
       });
       _startChatSocket();
       await _syncAccessStatus();
+      await _restoreSpinSessionIfNeeded();
       _checkSpinWheelCondition();
     } catch (e) {
       if (!mounted) return;
@@ -732,6 +820,12 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
   Future<void> _exitRoomOnce() async {
     if (_hasExited) return;
     _hasExited = true;
+    if (_isSpinSessionActive && _leaderId == _currentUserId) {
+      try {
+        await ref.read(dateRecommendProvider).closeRemoteModal(widget.roomId!);
+      } catch (_) {}
+      await _clearPersistedSpinSession();
+    }
     await _exitRoom();
   }
 
@@ -828,6 +922,7 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
             _currentRange = (payload['range'] as num).toDouble();
             winningIndex = null;
           });
+          _persistSpinSession();
         } catch (e) {
           debugPrint("❌ Error in FRESH_MODE listener: $e");
         }
@@ -836,6 +931,7 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
           winningIndex = payload['winningIndex'];
         });
       } else if (type == 'CMD_CLOSE_MODAL') {
+        _clearPersistedSpinSession();
         _clearWheelState();
       }
     });
@@ -925,11 +1021,21 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
   void _handleAccessStatus(ChatAccessStatus status) {
     final currentUserId = _currentUserId;
     if (currentUserId == null || currentUserId.isEmpty) return;
+    final leaderId = _leaderId;
+    if (_isSpinSessionActive &&
+        leaderId != null &&
+        leaderId != currentUserId &&
+        !status.roomMember.any(
+          (member) => member.userId == leaderId && member.type == 'ENTER',
+        )) {
+      _clearWheelState();
+    }
     // Access status changed - may need to refresh for edge cases
     _refreshReadStatus();
   }
 
   void _clearWheelState() {
+    unawaited(_clearPersistedSpinSession());
     setState(() {
       _isSpinSessionActive = false;
       _showWheelModal = false;
