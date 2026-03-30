@@ -90,6 +90,7 @@ class _DsSpinWheelCardState extends State<DsSpinWheelCard>
   late int _referenceIndex;
   late double _distanceKm;
   int _highlightedIndex = 0;
+  bool _isResultLocked = false;
   List<int> _spinSequence = const [];
   final Map<int, ui.Image> _loadedImages = {};
   // ignore: unused_field, prefer_final_fields
@@ -166,7 +167,7 @@ class _DsSpinWheelCardState extends State<DsSpinWheelCard>
     if (widget.initialDistanceKm != oldWidget.initialDistanceKm && mounted) {
       _distanceKm = widget.initialDistanceKm.clamp(1, 20);
     }
-    if (widget.items != oldWidget.items) {
+    if (_didItemsChange(oldWidget.items, widget.items)) {
       _loadedImages.clear();
       _prepareItemImages();
     }
@@ -182,9 +183,35 @@ class _DsSpinWheelCardState extends State<DsSpinWheelCard>
   }
 
   bool get _isSpinning => _spinController.isAnimating;
-  bool get _canInteract => widget.isInteractive && !_isSpinning;
+  bool get _canInteract =>
+      widget.isInteractive && !_isSpinning && !_isResultLocked;
   bool get _canEditFilters => _canInteract && widget.enableFilterControls;
   int get _effectiveItemCount => max(widget.items.length, 10);
+  String get _resolvedActionLabel =>
+      _isSpinning || _isResultLocked ? 'กำลังสุ่ม' : widget.actionLabel;
+
+  bool _didItemsChange(
+    List<DsSpinWheelItem> previous,
+    List<DsSpinWheelItem> next,
+  ) {
+    if (identical(previous, next)) {
+      return false;
+    }
+    if (previous.length != next.length) {
+      return true;
+    }
+    for (var index = 0; index < previous.length; index++) {
+      final oldItem = previous[index];
+      final newItem = next[index];
+      if (oldItem.label != newItem.label) {
+        return true;
+      }
+      if (oldItem.imageProvider != newItem.imageProvider) {
+        return true;
+      }
+    }
+    return false;
+  }
 
   Future<void> _prepareItemImages() async {
     for (var index = 0; index < widget.items.length; index++) {
@@ -230,7 +257,7 @@ class _DsSpinWheelCardState extends State<DsSpinWheelCard>
   }
 
   void _handleSpin() {
-    if (!widget.isInteractive || _isSpinning) {
+    if (!widget.isInteractive || _isSpinning || _isResultLocked) {
       return;
     }
     if (!widget.enablePrimaryAction) {
@@ -262,6 +289,9 @@ class _DsSpinWheelCardState extends State<DsSpinWheelCard>
     _autoCloseTimer?.cancel();
     _blinkController.stop();
     _blinkController.value = 0;
+    setState(() {
+      _isResultLocked = true;
+    });
     _spinController.forward(from: 0).whenComplete(() {
       if (!mounted) return;
       setState(() {
@@ -269,6 +299,17 @@ class _DsSpinWheelCardState extends State<DsSpinWheelCard>
         _spinSequence = const [];
       });
       _blinkController.repeat(reverse: true);
+      _autoCloseTimer?.cancel();
+      _autoCloseTimer = Timer(const Duration(seconds: 5), () {
+        if (!mounted) {
+          return;
+        }
+        _blinkController.stop();
+        setState(() {
+          _blinkController.value = 0;
+          _isResultLocked = false;
+        });
+      });
       if (widget.items.isEmpty) {
         return;
       }
@@ -278,7 +319,7 @@ class _DsSpinWheelCardState extends State<DsSpinWheelCard>
   }
 
   void _handleReset() {
-    if (!widget.isInteractive || _isSpinning) {
+    if (!widget.isInteractive || _isSpinning || _isResultLocked) {
       return;
     }
     if (!widget.enableResetAction) {
@@ -289,6 +330,7 @@ class _DsSpinWheelCardState extends State<DsSpinWheelCard>
     _blinkController.value = 0;
     setState(() {
       _highlightedIndex = 0;
+      _isResultLocked = false;
     });
     widget.onReset?.call();
   }
@@ -504,8 +546,11 @@ class _DsSpinWheelCardState extends State<DsSpinWheelCard>
           ),
           const SizedBox(height: 18),
           DsButton(
-            label: widget.actionLabel,
-            onPressed: widget.isInteractive && widget.enablePrimaryAction
+            label: _resolvedActionLabel,
+            onPressed: widget.isInteractive &&
+                    widget.enablePrimaryAction &&
+                    !_isSpinning &&
+                    !_isResultLocked
                 ? _handleSpin
                 : null,
             variant: DsButtonVariant.primary,

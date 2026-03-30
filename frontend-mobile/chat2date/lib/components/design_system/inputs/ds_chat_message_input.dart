@@ -11,7 +11,7 @@ class DsChatMessageInput extends StatefulWidget {
   const DsChatMessageInput({
     super.key,
     this.controller,
-    this.hintText = 'เขียนข้อความ',
+    this.hintText = 'พิมพ์ข้อความ',
     this.disabledText = 'ไม่สามารถส่งข้อความได้เนื่องจากมีการรายงาน',
     this.enabled = true,
     this.onChanged,

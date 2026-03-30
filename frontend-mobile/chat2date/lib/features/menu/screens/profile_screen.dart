@@ -3,6 +3,7 @@ import 'dart:io';
 
 import 'package:chat2date/components/common/image_upload_grid.dart';
 import 'package:chat2date/components/design_system/index.dart';
+import 'package:chat2date/core/formatters/thai_nickname_input_formatter.dart';
 import 'package:chat2date/core/theme/app_colors.dart';
 import 'package:chat2date/core/theme/tokens/colors/app_gradients.dart';
 import 'package:chat2date/core/theme/tokens/colors/button_colors.dart';
@@ -16,6 +17,7 @@ import 'package:chat2date/models/tag.dart';
 import 'package:chat2date/models/travelstyle.dart';
 import 'package:chat2date/models/user.dart';
 import 'package:chat2date/services/photo_verification_service.dart';
+import 'package:chat2date/services/preference_service.dart';
 import 'package:chat2date/services/user_service.dart';
 import 'package:chat2date/stores/user_store.dart';
 import 'package:flutter/material.dart';
@@ -34,6 +36,7 @@ class ProfileScreen extends ConsumerStatefulWidget {
 
 class _ProfileScreenState extends ConsumerState<ProfileScreen> {
   final TextEditingController _nicknameCtrl = TextEditingController();
+  final FocusNode _nicknameFocusNode = FocusNode();
   final TextEditingController _lifestyleCtrl = TextEditingController();
   final TextEditingController _interestsCtrl = TextEditingController();
   final TextEditingController _tagsCtrl = TextEditingController();
@@ -68,6 +71,17 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
   bool _isSavePressed = false;
   int _selectedIndex = 2;
 
+  String? get _nicknameErrorText {
+    final nickname = _nicknameCtrl.text.trim();
+    if (nickname.isEmpty) {
+      return 'กรุณากรอกชื่อเล่น';
+    }
+    if (nickname.length > 20) {
+      return 'ชื่อเล่นต้องไม่เกิน 20 ตัวอักษร';
+    }
+    return null;
+  }
+
   @override
   void initState() {
     super.initState();
@@ -80,6 +94,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     _nicknameCtrl
       ..removeListener(_refresh)
       ..dispose();
+    _nicknameFocusNode.dispose();
     _lifestyleCtrl.dispose();
     _interestsCtrl.dispose();
     _tagsCtrl.dispose();
@@ -97,6 +112,10 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     final userService = ref.read(userServiceProvider);
 
     if (currentUser == null) return;
+
+    try {
+      await ref.read(preferenceServiceProvider).getPreference();
+    } catch (_) {}
 
     try {
       await userService.getUser(currentUser.userId);
@@ -339,12 +358,14 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     if (_isLoading) return;
 
     if (_nicknameCtrl.text.trim().isEmpty) {
-      Toast.show(
-        context,
-        type: ToastType.warning,
-        title: 'ชื่อเล่นหายไป',
-        message: 'กรุณากรอกชื่อเล่น',
-      );
+      _nicknameFocusNode.requestFocus();
+      setState(() {});
+      return;
+    }
+
+    if (_nicknameCtrl.text.trim().length > 20) {
+      _nicknameFocusNode.requestFocus();
+      setState(() {});
       return;
     }
 
@@ -914,6 +935,14 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                 DsTextField(
                   label: 'ชื่อเล่น',
                   controller: _nicknameCtrl,
+                  focusNode: _nicknameFocusNode,
+                  maxLength: 20,
+                  inputFormatters: const [ThaiNicknameInputFormatter()],
+                  state: _nicknameErrorText != null
+                      ? DsInputVisualState.error
+                      : null,
+                  supportText: _nicknameErrorText,
+                  showSupportText: _nicknameErrorText != null,
                   textColor: TextColors.secondary,
                 ),
                 const SizedBox(height: 20),

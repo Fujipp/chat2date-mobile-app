@@ -1,12 +1,12 @@
+import 'dart:async';
 import 'dart:io';
+import 'dart:ui';
 
-import 'package:chat2date/components/buttons/ds_button.dart';
 import 'package:chat2date/components/common/image_upload_grid.dart';
-import 'package:chat2date/components/common/modal_component.dart';
-import 'package:chat2date/components/inputs/ds_label.dart';
-import 'package:chat2date/components/inputs/ds_text_field/tag_autocomplete.dart';
-import 'package:chat2date/components/layout/header.dart';
-import 'package:chat2date/components/layout/responsive_container.dart';
+import 'package:chat2date/components/design_system/index.dart';
+import 'package:chat2date/core/theme/app_colors.dart';
+import 'package:chat2date/core/theme/tokens/typography/body_text_styles.dart';
+import 'package:chat2date/core/theme/tokens/typography/display_text_styles.dart';
 import 'package:chat2date/models/report_reason.dart';
 import 'package:chat2date/models/report_request.dart';
 import 'package:chat2date/models/user.dart';
@@ -14,8 +14,6 @@ import 'package:chat2date/services/report_service.dart';
 import 'package:chat2date/stores/user_store.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:flutter_svg/flutter_svg.dart';
-import 'package:go_router/go_router.dart';
 
 class UserReportScreen extends ConsumerStatefulWidget {
   const UserReportScreen({
@@ -38,25 +36,23 @@ class UserReportScreen extends ConsumerStatefulWidget {
 }
 
 class _UserReportScreenState extends ConsumerState<UserReportScreen> {
-  Key _imageGridKey = UniqueKey();
   late final List<ReportReason> _reportItems;
-  bool _showModal = false;
-  bool _showErrorModal = false;
-  String _errorMessage = '';
-  bool _isSubmitting = false;
-  
-  List<String> _selectedReasons = []; // เก็บเหตุผลที่เลือก
-  List<String> otherReasons = []; // เก็บรายการเหตุผลที่เพิ่ม
-  final TextEditingController _controller = TextEditingController();
+  final TextEditingController _otherReasonController = TextEditingController();
   final TextEditingController _descriptionController = TextEditingController();
-  final int charLimit = 50;
-  
-  List<File> _selectedImages = []; // เก็บไฟล์หลักฐาน
+  final FocusNode _otherReasonFocusNode = FocusNode();
+  final FocusNode _descriptionFocusNode = FocusNode();
+  final ScrollController _scrollController = ScrollController();
 
-  bool get _canSubmit {
-  return !_isSubmitting &&
-      (_selectedReasons.isNotEmpty || otherReasons.isNotEmpty);
-  }
+  final int _otherReasonCharLimit = 50;
+  bool _isSubmitting = false;
+  bool _showSuccessModal = false;
+  List<String> _selectedReasons = [];
+  List<String> _otherReasons = [];
+  List<File> _selectedImages = [];
+
+  bool get _canSubmit =>
+      !_isSubmitting &&
+      (_selectedReasons.isNotEmpty || _otherReasons.isNotEmpty);
 
   @override
   void initState() {
@@ -70,456 +66,544 @@ class _UserReportScreenState extends ConsumerState<UserReportScreen> {
           ReportReason(id: 4, report: 'ภาษาที่ไม่เหมาะสม'),
           ReportReason(id: 5, report: 'อื่น ๆ'),
         ];
+    _otherReasonController.addListener(_refresh);
   }
-  
-  
-  /// Submit report to backend
+
+  @override
+  void dispose() {
+    _otherReasonController
+      ..removeListener(_refresh)
+      ..dispose();
+    _descriptionController.dispose();
+    _otherReasonFocusNode.dispose();
+    _descriptionFocusNode.dispose();
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  void _refresh() {
+    if (mounted) setState(() {});
+  }
+
+  void _dismissKeyboard() {
+    FocusManager.instance.primaryFocus?.unfocus();
+  }
+
+  void _navigateBackToChat() {
+    Navigator.pushReplacementNamed(
+      context,
+      '/chat',
+      arguments: {
+        'roomId': widget.roomId,
+        'targetUserId': widget.targetUserId,
+        'userName': widget.userName,
+        'avatarUrl': widget.avatarUrl,
+      },
+    );
+  }
+
+  void _closeSuccessModalAndReturn() {
+    if (!mounted) return;
+    setState(() => _showSuccessModal = false);
+    _navigateBackToChat();
+  }
+
+  void _toggleReason(String reason) {
+    setState(() {
+      if (_selectedReasons.contains(reason)) {
+        _selectedReasons = _selectedReasons.where((item) => item != reason).toList();
+      } else {
+        _selectedReasons = [..._selectedReasons, reason];
+      }
+    });
+  }
+
+  void _addOtherReason() {
+    final reason = _otherReasonController.text.trim();
+    if (reason.isEmpty || _otherReasons.contains(reason)) {
+      return;
+    }
+
+    setState(() {
+      _otherReasons = [..._otherReasons, reason];
+      _otherReasonController.clear();
+    });
+    _otherReasonFocusNode.requestFocus();
+  }
+
+  void _removeOtherReason(String reason) {
+    setState(() {
+      _otherReasons = _otherReasons.where((item) => item != reason).toList();
+    });
+  }
+
+  void _showError(String message) {
+    DsStatusModal.show(
+      context,
+      type: DsStatusModalType.warning,
+      title: 'เกิดข้อผิดพลาด',
+      message: message,
+      duration: const Duration(seconds: 3),
+    );
+  }
+
   Future<void> _submitReport() async {
     if (widget.targetUserId == null) {
       _showError('ไม่พบข้อมูลผู้ใช้ที่ต้องการรายงาน');
       return;
     }
-    
-    if (_selectedReasons.isEmpty && otherReasons.isEmpty) {
+
+    if (_selectedReasons.isEmpty && _otherReasons.isEmpty) {
       _showError('กรุณาเลือกเหตุผลในการรายงาน');
       return;
     }
-    
+
     setState(() => _isSubmitting = true);
-    
+
     try {
       final userStore = ref.read(userStoreProvider);
       final currentUser = userStore['user'] as User?;
-      
+
       if (currentUser == null) {
         _showError('กรุณาเข้าสู่ระบบก่อนรายงาน');
+        setState(() => _isSubmitting = false);
         return;
       }
-      
-      // รวมเหตุผลทั้งหมด
-      final allReasons = [..._selectedReasons, ...otherReasons];
+
+      final allReasons = [..._selectedReasons, ..._otherReasons];
       final primaryReason = allReasons.first;
-      final anotherReason = allReasons.length > 1 
-          ? allReasons.skip(1).join(', ') 
-          : null;
-      
+      final anotherReason =
+          allReasons.length > 1 ? allReasons.skip(1).join(', ') : null;
+
       final request = ReportRequest(
         userId: currentUser.userId,
         targetUserId: widget.targetUserId!,
         reason: primaryReason,
         anotherReason: anotherReason,
-        description: _descriptionController.text.trim().isEmpty 
-            ? null 
+        description: _descriptionController.text.trim().isEmpty
+            ? null
             : _descriptionController.text.trim(),
       );
-      
+
       final reportService = ref.read(reportServiceProvider);
       await reportService.createReport(
         request,
         evidenceFiles: _selectedImages.isEmpty ? null : _selectedImages,
       );
-      
-      // Success
+
+      if (!mounted) return;
       setState(() {
         _isSubmitting = false;
-        _showModal = true;
+        _showSuccessModal = true;
       });
-      
-      // ปิด modal และกลับหน้า chat หลัง 3 วินาที
-      Future.delayed(const Duration(seconds: 3), () {
-        if (!mounted) return;
-        setState(() => _showModal = false);
-        Navigator.pushReplacementNamed(
-          context,
-          '/chat',
-          arguments: {
-            'roomId': widget.roomId,
-            'targetUserId': widget.targetUserId,
-            'userName': widget.userName,
-            'avatarUrl': widget.avatarUrl,
-          },
-        );
-      });
-      
+
+      unawaited(
+        Future<void>.delayed(const Duration(seconds: 3), () {
+          if (!mounted) return;
+          _closeSuccessModalAndReturn();
+        }),
+      );
     } catch (e) {
+      if (!mounted) return;
       setState(() => _isSubmitting = false);
       _showError(e.toString().replaceAll('Exception: ', ''));
     }
   }
-  
-  void _showError(String message) {
-    setState(() {
-      _errorMessage = message;
-      _showErrorModal = true;
-    });
-    
-    Future.delayed(const Duration(seconds: 3), () {
-      if (!mounted) return;
-      setState(() => _showErrorModal = false);
-    });
-  }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Colors.white,
-      resizeToAvoidBottomInset: true,
-      body: SafeArea(
-        child: Stack(
+    return GestureDetector(
+      onTap: _dismissKeyboard,
+      child: Scaffold(
+        backgroundColor: AppColors.background,
+        body: Stack(
           children: [
-            /// ================== Layer 1 : หน้ารายงาน ==================
-            Column(
-              children: [
-                Header(
-                  name: 'รายงานผู้ใช้',
-                  onBack: () =>
-                      Navigator.pushReplacementNamed(
-                        context,
-                        '/chat',
-                        arguments: {
-                          'roomId': widget.roomId,
-                          'targetUserId': widget.targetUserId,
-                          'userName': widget.userName,
-                          'avatarUrl': widget.avatarUrl,
-                        },
+            SafeArea(
+              child: Stack(
+                children: [
+                  Column(
+                    children: [
+                      DsAppSecondaryHeader(
+                        variant: DsAppSecondaryHeaderVariant.baseText,
+                        title: 'รายงาน',
+                        onBackTap: _navigateBackToChat,
+                        showBottomBorder: true,
+                        bottomBorderSpacing: 0,
                       ),
-                  showAvatar: false,
-                  showBorder: false,
-                ),
-
-                Expanded(
-                  child: SingleChildScrollView(
-                    padding: const EdgeInsets.symmetric(
-                      vertical: 16,
-                      horizontal: 16,
-                    ),
-                    child: Column(
-                      children: [
-                        const SizedBox(height: 10),
-
-                        Column(
-                          children: [
-                            CircleAvatar(
-                              radius: 50,
-                              backgroundColor: Colors.grey[300],
-                              backgroundImage: widget.avatarUrl != null
-                                  ? NetworkImage(widget.avatarUrl!)
-                                  : null,
-                              child: widget.avatarUrl == null
-                                  ? const Icon(
-                                      Icons.person,
-                                      color: Colors.white,
-                                      size: 60,
-                                    )
-                                  : null,
-                            ),
-                            const SizedBox(height: 4),
-                            Text(
-                              widget.userName ?? 'Name',
-                              style: const TextStyle(
-                                color: Color(0xFF0F172A),
-                                fontSize: 16,
+                      Expanded(
+                        child: Scrollbar(
+                          controller: _scrollController,
+                          thumbVisibility: true,
+                          thickness: 4,
+                          radius: const Radius.circular(8),
+                          interactive: true,
+                          child: SingleChildScrollView(
+                            controller: _scrollController,
+                            padding: const EdgeInsets.fromLTRB(24, 8, 24, 28),
+                            child: Center(
+                              child: ConstrainedBox(
+                                constraints: const BoxConstraints(maxWidth: 310),
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    const SizedBox(height: 6),
+                                    _buildProfilePreview(),
+                                    const SizedBox(height: 18),
+                                    _buildReasonSection(),
+                                    const SizedBox(height: 16),
+                                    _buildOtherReasonSection(),
+                                    const SizedBox(height: 16),
+                                    DsTextAreaField(
+                                      label: 'คำอธิบายเพิ่มเติม',
+                                      hintText: 'ใส่คำอธิบาย',
+                                      controller: _descriptionController,
+                                      focusNode: _descriptionFocusNode,
+                                      minLines: 4,
+                                      maxLines: 4,
+                                    ),
+                                    const SizedBox(height: 16),
+                                    _buildEvidenceSection(),
+                                    const SizedBox(height: 20),
+                                    Center(
+                                      child: DsButton(
+                                        label: _isSubmitting
+                                            ? 'กำลังส่ง...'
+                                            : 'บันทึก',
+                                        onPressed: _canSubmit
+                                            ? _submitReport
+                                            : null,
+                                        variant: DsButtonVariant.primary,
+                                        size: DsButtonSize.md,
+                                        width: 231,
+                                      ),
+                                    ),
+                                  ],
+                                ),
                               ),
-                            ),
-                          ],
-                        ),
-
-                        const SizedBox(height: 16),
-                        // ---- เหตุผลที่ต้องการรายงาน ----
-                        SizedBox(
-                          width: double.infinity, // ให้ขยายเต็มพื้นที่ที่เหลือ
-                          child: Padding(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 26,
-                            ), // ใส่ทั้งซ้ายและขวาให้เท่ากัน
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                DsLabel(
-                                  label: 'เหตุผลที่ต้องการรายงาน',
-                                  labelFontSize: 16,
-                                ),
-                                const SizedBox(height: 12),
-                                TagSelection(
-                                  // ✅ เปิดโหมดใหม่ที่เราสร้างไว้
-                                  items: _reportItems
-                                      .map((t) => t.report)
-                                      .toList(),
-                                  onChanged: (selectedIndices) {
-                                    // แปลง indices เป็น reason strings
-                                    final reasons = selectedIndices
-                                        .map((i) => _reportItems[i].report)
-                                        .toList();
-                                    setState(() {
-                                      _selectedReasons = reasons;
-                                    });
-                                  },
-                                ),
-                              ],
                             ),
                           ),
                         ),
-
-                        const SizedBox(height: 16),
-
-                        // ---- เหตุผลอื่น ๆ ----
-                        Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 26),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              DsLabel(label: 'เหตุผลอื่น ๆ', labelFontSize: 16),
-                              const SizedBox(height: 8),
-                              Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  // --- ส่วนแสดง Chip ที่เด้งขึ้นมา ---
-                                  Wrap(
-                                    spacing: 8.0,
-                                    runSpacing: 4.0,
-                                    children: otherReasons.map((reason) {
-                                      return Chip(
-                                        label: Text(
-                                          reason,
-                                          style: const TextStyle(
-                                            color: Colors.white,
-                                            fontSize: 12,
-                                          ),
-                                        ),
-                                        backgroundColor: const Color(
-                                          0xFFFF8EBD,
-                                        ), // สีชมพูตามรูป
-                                        deleteIcon: const Icon(
-                                          Icons.cancel,
-                                          size: 18,
-                                          color: Colors.white,
-                                        ),
-                                        onDeleted: () {
-                                          setState(() {
-                                            otherReasons.remove(
-                                              reason,
-                                            ); // ลบ Chip ออกจากรายการ
-                                          });
-                                        },
-                                        shape: RoundedRectangleBorder(
-                                          borderRadius: BorderRadius.circular(
-                                            20,
-                                          ),
-                                        ),
-                                        side: BorderSide.none,
-                                      );
-                                    }).toList(),
-                                  ),
-
-                                  const SizedBox(height: 12),
-
-                                  // --- ส่วน TextField ---
-                                  SizedBox(
-                                    height:
-                                        55, // ปรับความสูงให้พอดีกับ 1 บรรทัด (เพื่อให้แนวเดียวกับปุ่ม +)
-                                    child: TextField(
-                                      controller: _controller,
-                                      maxLength: charLimit,
-                                      textAlignVertical: TextAlignVertical
-                                          .center, // ปรับให้อยู่ตรงกลางแนวตั้ง
-                                      style: const TextStyle(fontSize: 14),
-                                      decoration: InputDecoration(
-                                        hintText: 'ระบุเหตุผลอื่นๆ...',
-                                        hintStyle: const TextStyle(
-                                          fontSize: 12,
-                                          color: Colors.grey,
-                                        ),
-                                        // ปรับ padding ให้ข้อความอยู่ตรงกลาง และไม่เบียดปุ่ม
-                                        contentPadding:
-                                            const EdgeInsets.symmetric(
-                                              horizontal: 12,
-                                              vertical: 0,
-                                            ),
-
-                                        counterText:
-                                            "", // ซ่อนตัวนับด้านล่างถ้าอยากให้คลีน (หรือจะเปิดไว้ก็ได้)
-
-                                        suffixIcon: IconButton(
-                                          icon: const Icon(
-                                            Icons.add,
-                                            color: Color(0xFF005581),
-                                            size:
-                                                28, // ปรับขนาดลงเล็กน้อยให้พอดีกับความสูงช่อง
-                                          ),
-                                          onPressed: () {
-                                            if (_controller.text
-                                                .trim()
-                                                .isNotEmpty) {
-                                              setState(() {
-                                                otherReasons.add(
-                                                  _controller.text.trim(),
-                                                );
-                                                _controller.clear();
-                                              });
-                                            }
-                                          },
-                                        ),
-
-                                        enabledBorder: OutlineInputBorder(
-                                          borderRadius: BorderRadius.circular(
-                                            12,
-                                          ), // ทำขอบมนให้เหมือน Chip
-                                          borderSide: const BorderSide(
-                                            color: Colors.grey,
-                                            width: 1.0,
-                                          ),
-                                        ),
-                                        focusedBorder: OutlineInputBorder(
-                                          borderRadius: BorderRadius.circular(
-                                            12,
-                                          ),
-                                          borderSide: const BorderSide(
-                                            color: Colors.grey,
-                                            width: 1.5,
-                                          ),
-                                        ),
-                                      ),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ],
-                          ),
-                        ),
-
-                        const SizedBox(height: 16),
-
-                        // ---- คำอธิบายเพิ่มเติม ----
-                        Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 26),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              DsLabel(
-                                label: 'คำอธิบายเพิ่มเติม',
-                                labelFontSize: 16,
-                              ),
-                              const SizedBox(height: 8),
-                              SizedBox(
-                                height: 120,
-                                child: TextField(
-                                  controller: _descriptionController,
-                                  maxLines: null,
-                                  expands: true,
-                                  textAlignVertical: TextAlignVertical.top,
-                                  decoration: InputDecoration(
-                                    hintText: 'ใส่คำอธิบาย',
-                                    hintStyle: const TextStyle(
-                                      fontSize: 12,
-                                      color: Colors.grey,
-                                    ),
-                                    contentPadding: const EdgeInsets.all(12),
-                                    border: OutlineInputBorder(
-                                      borderRadius: BorderRadius.circular(8),
-                                    ),
-                                    enabledBorder: OutlineInputBorder(
-                                      borderRadius: BorderRadius.circular(8),
-                                      borderSide: const BorderSide(
-                                        color: Colors.grey,
-                                        width: 1.0,
-                                      ),
-                                    ),
-
-                                    // 2. สถานะตอนกดพิมพ์ (ถ้าอยากให้เป็นสีเทาเหมือนเดิม)
-                                    focusedBorder: OutlineInputBorder(
-                                      borderRadius: BorderRadius.circular(8),
-                                      borderSide: const BorderSide(
-                                        color: Colors.grey,
-                                        width: 1.5,
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-
-                        const SizedBox(height: 16),
-
-                        // ---- แนบหลักฐาน ----
-                        Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 26),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              DsLabel(label: 'แนบหลักฐาน', labelFontSize: 16),
-                              const SizedBox(height: 8),
-                              ImageUploadGrid(
-                                isHorizontal: true,
-                                maxImages: 3,
-                                itemHeight: 70,
-                                itemWidth: 70,
-                                key:
-                                    _imageGridKey, // ✅ ใช้ key เพื่อ force rebuild
-                                onImagesChanged: (images) {
-                                  setState(() {
-                                    _selectedImages = images
-                                        .map((xFile) => File(xFile.path))
-                                        .toList();
-                                  });
-                                },
-                              ),
-                            ],
-                          ),
-                        ),
-
-                        const SizedBox(height: 24),
-
-                        DsButton(
-                          label: _isSubmitting ? 'กำลังส่ง...' : 'บันทึก',
-                          onPressed: _canSubmit ? _submitReport : null,
-                          variant: DsButtonVariant.primary,
-                          size: DsButtonSize.md,
-                        ),
-
-                        const SizedBox(height: 24),
-                      ],
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+            if (_showSuccessModal) ...[
+              Positioned.fill(
+                child: GestureDetector(
+                  behavior: HitTestBehavior.opaque,
+                  onTap: () {},
+                  child: BackdropFilter(
+                    filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
+                    child: ColoredBox(
+                      color: AppColors.overlay.withValues(alpha: 0.18),
                     ),
                   ),
                 ),
-              ],
-            ),
-
-            /// ================== Layer 2 : Dim + Modal ==================
-            if (_showModal) ...[
-              Positioned.fill(child: Container(color: const Color(0x66B2B2B2))),
-
-              Center(
-                child: ModalComponent(
-                  topic: 'ขอบคุณสำหรับการรายงาน',
-                  description:
-                      'เราได้ทำการส่งเรื่องของคุณ\nให้ทาง admin เป็นที่เรียบร้อยแล้ว \nและจะดำเนินการบล็อคบัญชีที่ถูกรายงานให้กับคุณทันที',
-                  textOnly: true,
-                  spaceTop: 20,
-                  spaceBottom: 20,
-                  width: 330,
-                ),
               ),
-            ],
-            
-            /// ================== Layer 3 : Error Modal ==================
-            if (_showErrorModal) ...[
-              Positioned.fill(child: Container(color: const Color(0x66B2B2B2))),
-
               Center(
-                child: ModalComponent(
-                  topic: 'เกิดข้อผิดพลาด',
-                  description: _errorMessage,
-                  textOnly: true,
-                  spaceTop: 20,
-                  spaceBottom: 20,
-                  width: 330,
+                child: GestureDetector(
+                  behavior: HitTestBehavior.opaque,
+                  onTap: () {},
+                  child: Container(
+                    width: 310,
+                    height: 190,
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 20,
+                      vertical: 10,
+                    ),
+                    decoration: BoxDecoration(
+                      color: AppColors.background,
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(color: AppColors.inputBorder),
+                    ),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Text(
+                          'ขอบคุณสำหรับการรายงาน',
+                          textAlign: TextAlign.center,
+                          style: AppDisplayTextStyles.subtitleBold.copyWith(
+                            color: AppColors.textBlack,
+                          ),
+                        ),
+                        const SizedBox(height: 10),
+                        Text(
+                          'ระบบได้ส่งเรื่องของคุณไปยังผู้ดูแลระบบเรียบร้อยแล้ว\nและจะดำเนินการบล็อกบัญชีที่ถูกรายงานโดยทันที',
+                          textAlign: TextAlign.center,
+                          style: AppBodyTextStyles.bodySmall.copyWith(
+                            color: AppColors.textSupport,
+                            fontSize: 13,
+                            height: 18 / 13,
+                          ),
+                        ),
+                        const SizedBox(height: 16),
+                        DsButton(
+                          label: 'ปิด',
+                          onPressed: _closeSuccessModalAndReturn,
+                          variant: DsButtonVariant.primary,
+                          size: DsButtonSize.md,
+                          width: 231,
+                        ),
+                      ],
+                    ),
+                  ),
                 ),
               ),
             ],
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _buildProfilePreview() {
+    final avatarUrl = widget.avatarUrl;
+
+    return Center(
+      child: Column(
+        children: [
+          Container(
+            width: 100,
+            height: 100,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: const Color(0xFFF2F4F7),
+              image: avatarUrl != null && avatarUrl.isNotEmpty
+                  ? DecorationImage(
+                      image: NetworkImage(avatarUrl),
+                      fit: BoxFit.cover,
+                    )
+                  : null,
+            ),
+            child: avatarUrl == null || avatarUrl.isEmpty
+                ? const Icon(
+                    Icons.account_circle_rounded,
+                    size: 100,
+                    color: AppColors.surface,
+                  )
+                : null,
+          ),
+          const SizedBox(height: 8),
+          Text(
+            widget.userName?.trim().isNotEmpty == true ? widget.userName! : 'Name',
+            style: AppBodyTextStyles.body.copyWith(color: AppColors.textBlack),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildReasonSection() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'เหตุผลที่ต้องการรายงาน',
+          style: AppDisplayTextStyles.subtitleBold.copyWith(
+            color: AppColors.textPrimary,
+          ),
+        ),
+        const SizedBox(height: 8),
+        LayoutBuilder(
+          builder: (context, constraints) {
+            final itemWidth = (constraints.maxWidth - 8) / 2;
+            return Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: _reportItems
+                  .map(
+                    (item) => SizedBox(
+                      width: itemWidth,
+                      child: _ReportReasonChip(
+                        label: item.report,
+                        selected: _selectedReasons.contains(item.report),
+                        onTap: () => _toggleReason(item.report),
+                      ),
+                    ),
+                  )
+                  .toList(),
+            );
+          },
+        ),
+      ],
+    );
+  }
+
+  Widget _buildOtherReasonSection() {
+    final canAdd = _otherReasonController.text.trim().isNotEmpty;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        if (_otherReasons.isNotEmpty) ...[
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: _otherReasons
+                .map(
+                  (reason) => _OtherReasonChip(
+                    label: reason,
+                    onRemove: () => _removeOtherReason(reason),
+                  ),
+                )
+                .toList(),
+          ),
+          const SizedBox(height: 12),
+        ],
+        DsTextField(
+          label: 'เหตุผลอื่น ๆ',
+          hintText: 'ระบุเหตุผล',
+          controller: _otherReasonController,
+          focusNode: _otherReasonFocusNode,
+          maxLength: _otherReasonCharLimit,
+          suffix: GestureDetector(
+            onTap: canAdd ? _addOtherReason : null,
+            behavior: HitTestBehavior.opaque,
+            child: Padding(
+              padding: const EdgeInsets.only(left: 8),
+              child: Icon(
+                Icons.add,
+                size: 22,
+                color: canAdd ? AppColors.brandPrimary : AppColors.textDisabled,
+              ),
+            ),
+          ),
+          supportText: _otherReasons.isNotEmpty
+              ? 'เพิ่มเหตุผลอื่นได้อีก หากต้องการระบุเพิ่มเติม'
+              : null,
+          showSupportText: _otherReasons.isNotEmpty,
+        ),
+      ],
+    );
+  }
+
+  Widget _buildEvidenceSection() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'แนบหลักฐาน',
+          style: AppDisplayTextStyles.subtitleBold.copyWith(
+            color: AppColors.textPrimary,
+          ),
+        ),
+        const SizedBox(height: 8),
+        ImageUploadGrid(
+          isHorizontal: true,
+          maxImages: 3,
+          itemHeight: 70,
+          itemWidth: 70,
+          spacing: 16,
+          addTileColor: AppColors.divider,
+          addIconColor: AppColors.surface,
+          tileRadius: 10,
+          onImagesChanged: (images) {
+            setState(() {
+              _selectedImages = images.map((xFile) => File(xFile.path)).toList();
+            });
+          },
+        ),
+      ],
+    );
+  }
+}
+
+class _ReportReasonChip extends StatelessWidget {
+  const _ReportReasonChip({
+    required this.label,
+    required this.selected,
+    required this.onTap,
+  });
+
+  final String label;
+  final bool selected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final textColor = selected ? AppColors.textBlack : AppColors.textSupport;
+
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(30),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 160),
+        height: 33,
+        padding: const EdgeInsets.symmetric(horizontal: 12),
+        decoration: BoxDecoration(
+          color: selected ? AppColors.brandSecondary : AppColors.background,
+          borderRadius: BorderRadius.circular(30),
+          border: Border.all(
+            color: selected ? AppColors.brandSecondary : AppColors.textSupport,
+          ),
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            if (selected) ...[
+              const Icon(Icons.check_rounded, size: 16, color: AppColors.textBlack),
+              const SizedBox(width: 4),
+            ],
+            Flexible(
+              child: Text(
+                label,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: AppBodyTextStyles.body.copyWith(color: textColor),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _OtherReasonChip extends StatelessWidget {
+  const _OtherReasonChip({
+    required this.label,
+    required this.onRemove,
+  });
+
+  final String label;
+  final VoidCallback onRemove;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      decoration: BoxDecoration(
+        color: AppColors.brandPrimary.withValues(alpha: 0.12),
+        borderRadius: BorderRadius.circular(999),
+        border: Border.all(color: AppColors.brandPrimary.withValues(alpha: 0.35)),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 180),
+            child: Text(
+              label,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: AppBodyTextStyles.bodySmall.copyWith(
+                color: AppColors.brandPrimary,
+              ),
+            ),
+          ),
+          const SizedBox(width: 6),
+          GestureDetector(
+            onTap: onRemove,
+            child: const Icon(
+              Icons.close_rounded,
+              size: 16,
+              color: AppColors.brandPrimary,
+            ),
+          ),
+        ],
       ),
     );
   }

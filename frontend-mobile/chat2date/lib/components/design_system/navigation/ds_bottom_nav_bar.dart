@@ -89,14 +89,16 @@ class _CustomBottomNavBarState extends State<CustomBottomNavBar> {
   @override
   Widget build(BuildContext context) {
     final bottomInset = MediaQuery.of(context).padding.bottom;
-    final double contentBottomPadding = bottomInset > 0 ? bottomInset - 2.0 : 4.0;
+    final double contentBottomPadding = bottomInset > 0
+        ? (bottomInset - 2.0).clamp(0.0, double.infinity)
+        : 4.0;
 
     return Container(
       height: 60 + bottomInset,
       color: AppColors.surface,
       child: Padding(
         padding: EdgeInsets.only(bottom: contentBottomPadding),
-          child: Align(
+        child: Align(
           alignment: Alignment.bottomCenter,
           child: SizedBox(
             height: 42,
@@ -159,7 +161,7 @@ class _BottomNavButton extends StatelessWidget {
     return Expanded(
       child: Align(
         alignment: Alignment.center,
-          child: InkWell(
+        child: InkWell(
           onTap: onTap,
           borderRadius: BorderRadius.circular(12),
           child: SizedBox(

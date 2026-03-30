@@ -1,5 +1,9 @@
+import 'dart:math' as math;
+
 import 'package:chat2date/core/theme/app_colors.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'ds_text_field_helper.dart';
 import 'ds_text_field_props.dart';
 
@@ -31,6 +35,8 @@ class DsTextField extends StatefulWidget {
     this.autofocus = false,
     this.maxLines = 1,
     this.minLines,
+    this.maxLength,
+    this.inputFormatters,
     this.textInputAction,
     this.textColor,
   });
@@ -60,6 +66,8 @@ class DsTextField extends StatefulWidget {
   final bool autofocus;
   final int? maxLines;
   final int? minLines;
+  final int? maxLength;
+  final List<TextInputFormatter>? inputFormatters;
   final TextInputAction? textInputAction;
   final Color? textColor;
 
@@ -68,6 +76,8 @@ class DsTextField extends StatefulWidget {
 }
 
 class _DsTextFieldState extends State<DsTextField> {
+  static final TextSelectionControls _iosSelectionControls =
+      _BrandCupertinoTextSelectionControls();
   TextEditingController? _internalController;
   FocusNode? _internalFocusNode;
 
@@ -205,22 +215,46 @@ class _DsTextFieldState extends State<DsTextField> {
       border: DsTextFieldHelper.borderForVisualState(effectiveState),
     );
 
-    final textField = TextField(
-      controller: _controller,
-      focusNode: _focusNode,
-      enabled: widget.enabled,
-      readOnly: widget.readOnly,
-      keyboardType: widget.keyboardType,
-      onChanged: widget.onChanged,
-      style: inputStyle,
-      cursorColor: AppColors.brandPrimary,
-      autofocus: widget.autofocus,
-      maxLines: widget.maxLines,
-      minLines: widget.minLines,
-      textInputAction: widget.textInputAction,
-      onTapOutside: (_) => FocusScope.of(context).unfocus(),
-      onSubmitted: (_) => FocusScope.of(context).unfocus(),
-      decoration: decoration,
+    final textField = CupertinoTheme(
+      data: CupertinoTheme.of(context).copyWith(
+        primaryColor: AppColors.brandPrimary,
+      ),
+      child: Theme(
+        data: Theme.of(context).copyWith(
+          textSelectionTheme: TextSelectionThemeData(
+            cursorColor: AppColors.brandPrimary,
+            selectionColor: AppColors.brandPrimary.withValues(alpha: 0.28),
+            selectionHandleColor: AppColors.brandPrimary,
+          ),
+        ),
+        child: TextFormField(
+          controller: _controller,
+          focusNode: _focusNode,
+          enabled: widget.enabled,
+          readOnly: widget.readOnly,
+          keyboardType: widget.keyboardType,
+          onChanged: widget.onChanged,
+          style: inputStyle,
+          cursorColor: AppColors.brandPrimary,
+          autofocus: widget.autofocus,
+          maxLines: widget.maxLines,
+          minLines: widget.minLines,
+          maxLength: widget.maxLength,
+          maxLengthEnforcement: MaxLengthEnforcement.enforced,
+          inputFormatters: [
+            ...?widget.inputFormatters,
+            if (widget.maxLength != null)
+              _CharactersLimitFormatter(widget.maxLength!),
+          ],
+          selectionControls: Theme.of(context).platform == TargetPlatform.iOS
+              ? _iosSelectionControls
+              : null,
+          textInputAction: widget.textInputAction,
+          onTapOutside: (_) => FocusScope.of(context).unfocus(),
+          onFieldSubmitted: (_) => FocusScope.of(context).unfocus(),
+          decoration: decoration.copyWith(counterText: ''),
+        ),
+      ),
     );
 
     return Column(
@@ -252,6 +286,115 @@ class _DsTextFieldState extends State<DsTextField> {
           ),
         ],
       ],
+    );
+  }
+}
+
+class _BrandCupertinoTextSelectionControls
+    extends CupertinoTextSelectionControls {
+  @override
+  Widget buildHandle(
+    BuildContext context,
+    TextSelectionHandleType type,
+    double textLineHeight, [
+    VoidCallback? onTap,
+  ]) {
+    final Size desiredSize;
+    final Widget handle;
+    const Widget customPaint = CustomPaint(
+      painter: _BrandCupertinoTextSelectionHandlePainter(
+        AppColors.brandPrimary,
+      ),
+    );
+
+    switch (type) {
+      case TextSelectionHandleType.left:
+        desiredSize = getHandleSize(textLineHeight);
+        handle = SizedBox.fromSize(size: desiredSize, child: customPaint);
+        return handle;
+      case TextSelectionHandleType.right:
+        desiredSize = getHandleSize(textLineHeight);
+        handle = SizedBox.fromSize(size: desiredSize, child: customPaint);
+        return Transform(
+          transform: Matrix4.identity()
+            ..translateByDouble(
+              desiredSize.width / 2,
+              desiredSize.height / 2,
+              0,
+              1,
+            )
+            ..rotateZ(math.pi)
+            ..translateByDouble(
+              -desiredSize.width / 2,
+              -desiredSize.height / 2,
+              0,
+              1,
+            ),
+          child: handle,
+        );
+      case TextSelectionHandleType.collapsed:
+        return SizedBox.fromSize(size: getHandleSize(textLineHeight));
+    }
+  }
+}
+
+class _BrandCupertinoTextSelectionHandlePainter extends CustomPainter {
+  const _BrandCupertinoTextSelectionHandlePainter(this.color);
+
+  final Color color;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    const double selectionHandleRadius = 6;
+    const double selectionHandleOverlap = 1.5;
+    const double halfStrokeWidth = 1.0;
+
+    final paint = Paint()..color = color;
+    final circle = Rect.fromCircle(
+      center: const Offset(selectionHandleRadius, selectionHandleRadius),
+      radius: selectionHandleRadius,
+    );
+    final line = Rect.fromPoints(
+      const Offset(
+        selectionHandleRadius - halfStrokeWidth,
+        2 * selectionHandleRadius - selectionHandleOverlap,
+      ),
+      Offset(selectionHandleRadius + halfStrokeWidth, size.height),
+    );
+
+    final path = Path()
+      ..addOval(circle)
+      ..addRect(line);
+
+    canvas.drawPath(path, paint);
+  }
+
+  @override
+  bool shouldRepaint(covariant _BrandCupertinoTextSelectionHandlePainter old) {
+    return old.color != color;
+  }
+}
+
+class _CharactersLimitFormatter extends TextInputFormatter {
+  _CharactersLimitFormatter(this.maxCharacters);
+
+  final int maxCharacters;
+
+  @override
+  TextEditingValue formatEditUpdate(
+    TextEditingValue oldValue,
+    TextEditingValue newValue,
+  ) {
+    final characters = newValue.text.characters;
+    if (characters.length <= maxCharacters) {
+      return newValue;
+    }
+
+    final limited = characters.take(maxCharacters).toString();
+    return TextEditingValue(
+      text: limited,
+      selection: TextSelection.collapsed(offset: limited.characters.length),
+      composing: TextRange.empty,
     );
   }
 }

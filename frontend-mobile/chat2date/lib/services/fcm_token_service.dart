@@ -39,9 +39,23 @@ class FcmTokenService {
       return null;
     }
 
-    final token = await _messaging.getToken();
-    debugPrint('[FCM] Current token = $token');
-    return token;
+    // สำหรับ iOS ต้องรอให้มี APNS token ก่อนพิมพ์ FCM Token ไม่เช่นนั้นจะเกิด error
+    if (Platform.isIOS) {
+      final apnsToken = await _messaging.getAPNSToken();
+      if (apnsToken == null) {
+        debugPrint('[FCM] APNS Token แจ้งเป็น null (ถ้าทดสอบใน iOS Simulator ให้ข้ามไปก่อน หรือต้องเพิ่ม Push Notifications ใน Xcode)');
+        return null;
+      }
+    }
+
+    try {
+      final token = await _messaging.getToken();
+      debugPrint('[FCM] Current token = $token');
+      return token;
+    } catch (e) {
+      debugPrint('[FCM] getToken error: $e');
+      return null;
+    }
   }
 
   String _detectPlatform() {

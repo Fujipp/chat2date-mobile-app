@@ -4,7 +4,6 @@ import 'dart:ui';
 
 import 'package:chat2date/components/buttons/ds_button.dart';
 import 'package:chat2date/components/calendar/calendar_modal.dart';
-import 'package:chat2date/components/chat/bot_message_component.dart';
 import 'package:chat2date/components/chat/chat_text_component.dart';
 import 'package:chat2date/components/common/modal_component.dart';
 import 'package:chat2date/components/layout/header.dart';
@@ -14,6 +13,7 @@ import 'package:chat2date/components/page/unlock_date_modal.dart';
 import 'package:chat2date/components/design_system/controls/ds_level_progress_bar.dart';
 import 'package:chat2date/components/design_system/inputs/ds_chat_message_input.dart';
 import 'package:chat2date/components/design_system/organisms/ds_app_secondary_header.dart';
+import 'package:chat2date/components/design_system/organisms/ds_bot_chat.dart';
 import 'package:chat2date/components/design_system/organisms/ds_gps_alert.dart';
 import 'package:chat2date/components/design_system/organisms/ds_spin_wheel_card.dart';
 import 'package:chat2date/components/toasts/toast.dart';
@@ -97,12 +97,14 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
   bool _isSpinLoading = false;
   DateTime? _spinSearchCooldownUntil;
   Timer? _spinSearchCooldownTimer;
+  final Map<String, ImageProvider> _spinWheelImageProviderCache = {};
 
   // === Appointment / Calendar ===
   Appointment? _existingAppointment;
   bool _calendarHasUnreadUpdate = false;
   String _lastSpunPlaceId = ''; // ★ แก้: ไม่ใช่ final เพื่อให้อัพเดตได้
   String _lastSpunPlaceName = ''; // ★ แก้: ไม่ใช่ final เพื่อให้อัพเดตได้
+  String _lastSpunPlaceImageUrl = '';
   bool _isCalendarLoading = false;
   DateTime? _lastSpinTime;
   // overlay state (เหมือน SpinWheel)
@@ -619,6 +621,43 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
       ? _chatUserName
       : '$_chatUserName (${_chatUserAge!})';
 
+  String _latestSpunPlaceNamePrefsKey(String roomId) =>
+      'latest_spun_place_name_$roomId';
+
+  String _latestSpunPlaceImagePrefsKey(String roomId) =>
+      'latest_spun_place_image_$roomId';
+
+  Future<void> _restoreLatestSpunPlacePreview() async {
+    final roomId = widget.roomId;
+    if (roomId == null || roomId.isEmpty) {
+      return;
+    }
+    final prefs = await SharedPreferences.getInstance();
+    final savedName = prefs.getString(_latestSpunPlaceNamePrefsKey(roomId)) ?? '';
+    final savedImage =
+        prefs.getString(_latestSpunPlaceImagePrefsKey(roomId)) ?? '';
+    if (!mounted) {
+      return;
+    }
+    setState(() {
+      _lastSpunPlaceName = savedName;
+      _lastSpunPlaceImageUrl = savedImage;
+    });
+  }
+
+  Future<void> _persistLatestSpunPlacePreview() async {
+    final roomId = widget.roomId;
+    if (roomId == null || roomId.isEmpty) {
+      return;
+    }
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_latestSpunPlaceNamePrefsKey(roomId), _lastSpunPlaceName);
+    await prefs.setString(
+      _latestSpunPlaceImagePrefsKey(roomId),
+      _lastSpunPlaceImageUrl,
+    );
+  }
+
   Future<void> _initConfirmStatus() async {
     try {
       final service = ref.read(dateRecommendProvider);
@@ -685,9 +724,8 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
           _chatUserImages = roomData.partnerImages;
         }
       });
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        _scrollToBottom(animated: false);
-      });
+      _ensureLatestMessagePinned();
+      await _restoreLatestSpunPlacePreview();
       _startChatSocket();
       await _syncAccessStatus();
       _checkSpinWheelCondition();
@@ -938,18 +976,14 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
 
       _messages.sort((a, b) => a.timestamp.compareTo(b.timestamp));
     });
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      _scrollToBottom(animated: true);
-    });
+    _ensureLatestMessagePinned();
     // If the incoming message is from the other person (not ours),
     // mark it as read since we're currently viewing the chat.
     // This triggers the backend to broadcast "เห็นแล้ว" to the sender in real-time.
     // Debounced to avoid flooding the API when multiple messages arrive quickly.
 
     if (!message.isOwn) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        _scrollToBottom(animated: true);
-      });
+      _ensureLatestMessagePinned();
       _markReadDebounce?.cancel();
       _markReadDebounce = Timer(const Duration(milliseconds: 500), () {
         _enterRoom();
@@ -1054,14 +1088,64 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
   List<DsSpinWheelItem> get _spinWheelItems {
     return _dynamicPrizes
         .map(
-          (place) => DsSpinWheelItem(
-            label: (place['name'] as String?) ?? 'Place',
-            imageProvider: ((place['imageUrl'] as String?)?.isNotEmpty ?? false)
-                ? NetworkImage(place['imageUrl'] as String)
-                : null,
-          ),
+          (place) {
+            final imageUrl = place['imageUrl'] as String?;
+            return DsSpinWheelItem(
+              label: (place['name'] as String?) ?? 'Place',
+              imageProvider:
+                  (imageUrl?.isNotEmpty ?? false)
+                  ? _spinWheelImageProviderCache.putIfAbsent(
+                      imageUrl!,
+                      () => NetworkImage(imageUrl),
+                    )
+                  : null,
+            );
+          },
         )
         .toList();
+  }
+
+  ImageProvider<Object>? _botPlaceImageProvider(ChatMessage message) {
+    if (message.botType != BotMessageType.ask) {
+      return null;
+    }
+
+    final lastImageUrl = _lastSpunPlaceImageUrl.trim();
+    if (lastImageUrl.isNotEmpty &&
+        (_lastSpunPlaceName.isNotEmpty &&
+            (message.text.contains(_lastSpunPlaceName) ||
+                (message.description ?? '').contains(_lastSpunPlaceName)))) {
+      return _spinWheelImageProviderCache.putIfAbsent(
+        lastImageUrl,
+        () => NetworkImage(lastImageUrl),
+      );
+    }
+
+    final haystacks = <String>[
+      message.text,
+      message.description ?? '',
+      _lastSpunPlaceName,
+    ].where((value) => value.trim().isNotEmpty).toList();
+
+    for (final place in _dynamicPrizes) {
+      final placeName = (place['name'] as String?)?.trim();
+      final imageUrl = (place['imageUrl'] as String?)?.trim();
+      if (placeName == null ||
+          placeName.isEmpty ||
+          imageUrl == null ||
+          imageUrl.isEmpty) {
+        continue;
+      }
+      final matchesPlace = haystacks.any((text) => text.contains(placeName));
+      if (matchesPlace) {
+        return _spinWheelImageProviderCache.putIfAbsent(
+          imageUrl,
+          () => NetworkImage(imageUrl),
+        );
+      }
+    }
+
+    return null;
   }
 
   List<Map<String, dynamic>> _mapSpinPlaces(List placesList) {
@@ -1504,6 +1588,9 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
   }
 
   DsAppSecondaryHeaderVariant _mapDsHeaderVariant() {
+    if (_isChatDisabled) {
+      return DsAppSecondaryHeaderVariant.chat1;
+    }
     switch (_headerVariant) {
       case ChatHeaderVariant.chat1:
         return DsAppSecondaryHeaderVariant.chat1;
@@ -1517,6 +1604,9 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
   }
 
   ImageProvider<Object>? _chatUserAvatarProvider() {
+    if (_isChatDisabled) {
+      return const AssetImage(AppAssets.reportUserAvatar);
+    }
     final avatar = _chatUserAvatar;
     if (avatar == null || avatar.isEmpty) return null;
     if (_isSvgImage(avatar)) return null;
@@ -1526,6 +1616,9 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
   }
 
   List<String> get _effectiveChatUserImages {
+    if (_isChatDisabled) {
+      return const <String>[];
+    }
     final images = <String>[
       ..._chatUserImages.where((image) => image.isNotEmpty),
     ];
@@ -1563,7 +1656,9 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
 
   Widget _buildChatHeaderCenter() {
     return GestureDetector(
-      onTap: _effectiveChatUserImages.isEmpty ? null : _showChatUserGallery,
+      onTap: _isChatDisabled || _effectiveChatUserImages.isEmpty
+          ? null
+          : _showChatUserGallery,
       behavior: HitTestBehavior.opaque,
       child: Column(
         mainAxisSize: MainAxisSize.min,
@@ -1804,9 +1899,12 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
   }
 
   Widget _buildRelationshipBar() {
+    final displayHeartCount = _isChatDisabled ? 0 : _heartCount;
+    final displayProgress = _isChatDisabled ? 0.0 : _currentPercent;
+
     return DsLevelProgressBar(
-      level: _heartCount,
-      progress: _currentPercent,
+      level: displayHeartCount,
+      progress: displayProgress,
       width: 322,
       barWidth: 255,
       barThickness: 10,
@@ -1819,8 +1917,8 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
           isScrollControlled: true,
           backgroundColor: Colors.transparent,
           builder: (context) => RelationshipMissionModal(
-            heart: _heartCount,
-            currentScore: (_currentPercent * 100).round(),
+            heart: displayHeartCount,
+            currentScore: (displayProgress * 100).round(),
             isFirstMessageBonus: _isFirstMessageBonus,
             streakDays: _steakDays,
             dailyMessages: _dailyMessagesCount,
@@ -1857,16 +1955,28 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
     });
   }
 
-  void _lockToBottomForKeyboard() {
+  void _ensureLatestMessagePinned() {
     _keepLatestMessageVisible(animated: false);
     Future.delayed(const Duration(milliseconds: 1), () {
       if (!mounted) return;
       _keepLatestMessageVisible(animated: false);
     });
-    Future.delayed(const Duration(milliseconds: 40), () {
+    Future.delayed(const Duration(milliseconds: 16), () {
       if (!mounted) return;
       _keepLatestMessageVisible(animated: false);
     });
+    Future.delayed(const Duration(milliseconds: 60), () {
+      if (!mounted) return;
+      _keepLatestMessageVisible(animated: false);
+    });
+    Future.delayed(const Duration(milliseconds: 140), () {
+      if (!mounted) return;
+      _keepLatestMessageVisible(animated: false);
+    });
+  }
+
+  void _lockToBottomForKeyboard() {
+    _ensureLatestMessagePinned();
   }
 
   String _formatChatTimestamp(DateTime time) {
@@ -1967,11 +2077,17 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
       _lastSpinDate = DateTime.now();
       _lastSpunPlaceId = (result['placeId'] as String?) ?? '';
       _lastSpunPlaceName = (result['name'] as String?) ?? '';
+      _lastSpunPlaceImageUrl = (result['imageUrl'] as String?) ?? '';
     });
+    unawaited(_persistLatestSpunPlacePreview());
     _checkSpinWheelCondition();
     if (_leaderId == _currentUserId) {
       final service = ref.read(dateRecommendProvider);
       try {
+        await Future.delayed(const Duration(seconds: 3));
+        if (!mounted || _leaderId != _currentUserId) {
+          return;
+        }
         String mode = (_indexMode == 0) ? "DISTANCE" : "MIDPOINT";
         String userTarget = (_indexSelected == 1) ? "ME" : "PARTNER";
         await service.confirmPlace(
@@ -3067,14 +3183,26 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
     if (message.isBot && message.botType != null) {
       final bool isAlreadyActioned =
           _myConfirmStatus != null && _myConfirmStatus != 'BLANK';
-      return BotMessageComponent.fromMessage(
-        message: message,
+      return DsBotChat(
+        type: _mapDsBotChatType(
+          message: message,
+          isAlreadyActioned: isAlreadyActioned,
+        ),
+        title: message.text,
+        description: message.description,
+        subDescription: message.subDescription,
+        actionLabel: message.actionButtonText ?? 'เริ่ม',
+        declineLabel: message.secondChoiceText ?? 'ไม่ไป',
+        acceptLabel: message.firstChoiceText ?? 'ไป',
+        answeredCount: message.answeredCount ?? 0,
+        totalCount: message.totalCount ?? 2,
+        createdAt: message.timestamp,
+        illustrationImage: _botPlaceImageProvider(message),
         onActionPressed: () async {
           if (message.botType == BotMessageType.ask && isAlreadyActioned) {
             return;
           }
           if (message.isActionDisabled ?? false) return;
-          _navigateToGameScreen(widget.roomId!);
           setState(() {
             _messages[index] = message.copyWith(
               isActionDisabled: true,
@@ -3083,21 +3211,18 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
           });
           if (message.botType == BotMessageType.minigame ||
               message.botType == BotMessageType.minigameFail) {
-            print("🚀 Navigating to Game...");
             _navigateToGameScreen(widget.roomId!);
-          } else {
-            print("⚠️ Unhandled bot type: ${message.botType}");
           }
         },
-        onFirstChoice: isAlreadyActioned
-            ? null
-            : () async {
-                await _handleConfirmAction(message, 'AGREED');
-              },
-        onSecondChoice: isAlreadyActioned
+        onDeclinePressed: isAlreadyActioned
             ? null
             : () async {
                 await _handleConfirmAction(message, 'DISAGREED');
+              },
+        onAcceptPressed: isAlreadyActioned
+            ? null
+            : () async {
+                await _handleConfirmAction(message, 'AGREED');
               },
       );
     }
@@ -3218,6 +3343,26 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
     }
   }
 
+  DsBotChatType _mapDsBotChatType({
+    required ChatMessage message,
+    required bool isAlreadyActioned,
+  }) {
+    switch (message.botType) {
+      case BotMessageType.minigame:
+        return DsBotChatType.minigame;
+      case BotMessageType.minigameFail:
+        return DsBotChatType.minigameFail;
+      case BotMessageType.ask:
+        return isAlreadyActioned ? DsBotChatType.askAnswer : DsBotChatType.ask;
+      case BotMessageType.askSuccess:
+        return DsBotChatType.askSuccess;
+      case BotMessageType.askFail:
+        return DsBotChatType.askFail;
+      case null:
+        return DsBotChatType.minigame;
+    }
+  }
+
   void _showFeatureGuide() async {
     final userState = ref.read(userStoreProvider);
     final userService = ref.read(userServiceProvider);
@@ -3315,8 +3460,13 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
                     DsAppSecondaryHeader(
                       variant: _mapDsHeaderVariant(),
                       center: _buildChatHeaderCenter(),
+                      trailing: _isChatDisabled
+                          ? const SizedBox.shrink()
+                          : null,
                       cooldownText: '${_cooldownDays.clamp(1, 9)}',
-                      showCalendarAction: _shouldShowCalendarIcon,
+                      showCalendarAction: _isChatDisabled
+                          ? false
+                          : _shouldShowCalendarIcon,
                       showCalendarUnreadDot: _calendarHasUnreadUpdate,
                       showBottomBorder: false,
                       onBackTap: () async {
@@ -3513,7 +3663,7 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
                                       20,
                                       12,
                                       20,
-                                      12,
+                                      24,
                                     ),
                                     itemCount:
                                         _messages.length +
@@ -3574,35 +3724,13 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
                                   ),
                           ),
                           if (_isChatDisabled)
-                            Container(
-                              width: double.infinity,
-                              padding: const EdgeInsets.symmetric(
-                                vertical: 12,
-                                horizontal: 16,
-                              ),
-                              decoration: BoxDecoration(
-                                color: Colors.grey.shade200,
-                                border: Border(
-                                  top: BorderSide(color: Colors.grey.shade300),
-                                ),
-                              ),
-                              child: Row(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  Icon(
-                                    Icons.block,
-                                    color: Colors.grey.shade600,
-                                    size: 18,
-                                  ),
-                                  const SizedBox(width: 8),
-                                  Text(
-                                    'ไม่สามารถส่งข้อความได้เนื่องจากมีการรายงาน',
-                                    style: TextStyle(
-                                      color: Colors.grey.shade600,
-                                      fontSize: 14,
-                                    ),
-                                  ),
-                                ],
+                            Padding(
+                              padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+                              child: DsChatMessageInput(
+                                width: double.infinity,
+                                enabled: false,
+                                disabledText:
+                                    'ห้องแชทนี้ถูกระงับการสนทนาเนื่องจากมีการรายงาน',
                               ),
                             )
                           else
@@ -3613,7 +3741,7 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
                                 enabled:
                                     !_isSending &&
                                     (widget.roomId?.isNotEmpty ?? false),
-                                hintText: 'เขียนข้อความ',
+                                hintText: 'พิมพ์ข้อความ',
                                 disabledText:
                                     'ไม่สามารถส่งข้อความได้เนื่องจากมีการรายงาน',
                                 controller: _messageController,
@@ -3702,9 +3830,7 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
                           child: ConstrainedBox(
                             constraints: const BoxConstraints(maxWidth: 340),
                             child: DsSpinWheelCard(
-                              key: ValueKey(
-                                '${_leaderId}_${_indexMode}_$_indexSelected',
-                              ),
+                              key: ValueKey(_leaderId),
                               width: 340,
                               items: _spinWheelItems,
                               userALabel: _chatUserName,

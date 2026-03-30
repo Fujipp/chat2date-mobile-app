@@ -35,6 +35,7 @@ class DsBotChat extends StatefulWidget {
     this.width = 360,
     this.avatarImage,
     this.avatar,
+    this.illustrationImage,
   });
 
   final DsBotChatType type;
@@ -54,6 +55,7 @@ class DsBotChat extends StatefulWidget {
   final double width;
   final ImageProvider<Object>? avatarImage;
   final Widget? avatar;
+  final ImageProvider<Object>? illustrationImage;
 
   @override
   State<DsBotChat> createState() => _DsBotChatState();
@@ -125,6 +127,10 @@ class _DsBotChatState extends State<DsBotChat> {
   }
 
   String? get _resolvedDescription {
+    if (_effectiveType == DsBotChatType.ask ||
+        _effectiveType == DsBotChatType.askAnswer) {
+      return 'คุณอยากไปเที่ยวหรือไม่';
+    }
     if (widget.description != null) return widget.description!;
     return switch (_effectiveType) {
       DsBotChatType.minigame || DsBotChatType.minigameFail =>
@@ -246,6 +252,26 @@ class _DsBotChatState extends State<DsBotChat> {
       crossAxisAlignment:
           _isCenteredResult ? CrossAxisAlignment.center : CrossAxisAlignment.start,
       children: [
+        if (widget.illustrationImage != null &&
+            (_effectiveType == DsBotChatType.ask ||
+                _effectiveType == DsBotChatType.askAnswer)) ...[
+          Center(
+            child: Container(
+              width: 76,
+              height: 76,
+              clipBehavior: Clip.antiAlias,
+              decoration: BoxDecoration(
+                color: AppColors.surface,
+                borderRadius: BorderRadius.circular(14),
+              ),
+              child: Image(
+                image: widget.illustrationImage!,
+                fit: BoxFit.cover,
+              ),
+            ),
+          ),
+          const SizedBox(height: 10),
+        ],
         Text(
           _resolvedTitle,
           style: AppBodyTextStyles.bodyBold.copyWith(
@@ -339,26 +365,28 @@ class _BotAvatar extends StatelessWidget {
     this.avatarImage,
   });
 
+  static const double _avatarSize = 38;
+
   final Widget? avatar;
   final ImageProvider<Object>? avatarImage;
 
   @override
   Widget build(BuildContext context) {
     if (avatar != null) {
-      return SizedBox(width: 50, height: 50, child: avatar);
+      return SizedBox(width: _avatarSize, height: _avatarSize, child: avatar);
     }
     if (avatarImage != null) {
       return Image(
         image: avatarImage!,
-        width: 50,
-        height: 50,
+        width: _avatarSize,
+        height: _avatarSize,
         fit: BoxFit.contain,
       );
     }
     return Image.asset(
       AppAssets.botChatIllustration,
-      width: 50,
-      height: 50,
+      width: _avatarSize,
+      height: _avatarSize,
       fit: BoxFit.contain,
     );
   }

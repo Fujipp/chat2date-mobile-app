@@ -1,4 +1,5 @@
 import 'package:chat2date/components/design_system/index.dart';
+import 'package:chat2date/core/formatters/thai_nickname_input_formatter.dart';
 import 'package:chat2date/core/theme/app_colors.dart';
 import 'package:chat2date/core/theme/tokens/colors/app_gradients.dart';
 import 'package:chat2date/core/theme/tokens/colors/input_colors.dart';
@@ -8,6 +9,7 @@ import 'package:chat2date/models/lifestyle.dart';
 import 'package:chat2date/models/tag.dart';
 import 'package:chat2date/models/travelstyle.dart';
 import 'package:chat2date/models/user.dart';
+import 'package:chat2date/services/preference_service.dart';
 import 'package:chat2date/services/user_service.dart';
 import 'package:chat2date/stores/user_store.dart';
 import 'package:chat2date/features/profile/screens/selection_icon_mapper.dart';
@@ -24,6 +26,7 @@ class ProfileSetupScreen extends ConsumerStatefulWidget {
 class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
   final _nicknameCtrl = TextEditingController();
   final _scrollController = ScrollController();
+  final _nicknameFocusNode = FocusNode();
 
   List<Travelstyle> _travelStyles = [];
   List<Lifestyle> _lifeStyles = [];
@@ -36,6 +39,17 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
   final List<int> _selectedTravelStyles = [];
 
   bool _saving = false;
+
+  String? get _nicknameErrorText {
+    final nickname = _nicknameCtrl.text.trim();
+    if (nickname.isEmpty) {
+      return 'กรุณากรอกชื่อเล่น';
+    }
+    if (nickname.length > 20) {
+      return 'ชื่อเล่นต้องไม่เกิน 20 ตัวอักษร';
+    }
+    return null;
+  }
 
   bool get _canSubmit =>
       _nicknameCtrl.text.trim().isNotEmpty &&
@@ -59,6 +73,7 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
     _nicknameCtrl
       ..removeListener(_refresh)
       ..dispose();
+    _nicknameFocusNode.dispose();
     _scrollController.dispose();
     super.dispose();
   }
@@ -183,11 +198,16 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
     );
   }
 
-  void _loadInitialData() {
+  Future<void> _loadInitialData() async {
+    try {
+      await ref.read(preferenceServiceProvider).getPreference();
+    } catch (_) {}
+
     final userStore = ref.read(userStoreProvider) as Map<String, dynamic>?;
     final prefs = userStore?['preferences'];
     if (prefs == null) return;
 
+    if (!mounted) return;
     setState(() {
       _travelStyles = List<Travelstyle>.from(prefs['travelStyles'] ?? []);
       _lifeStyles = List<Lifestyle>.from(prefs['lifeStyles'] ?? []);
@@ -257,12 +277,14 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
     if (_saving) return;
 
     if (_nicknameCtrl.text.trim().isEmpty) {
-      Toast.show(
-        context,
-        type: ToastType.warning,
-        title: 'ชื่อเล่นหายไป',
-        message: 'กรุณากรอกชื่อเล่น',
-      );
+      _nicknameFocusNode.requestFocus();
+      setState(() {});
+      return;
+    }
+
+    if (_nicknameCtrl.text.trim().length > 20) {
+      _nicknameFocusNode.requestFocus();
+      setState(() {});
       return;
     }
 
@@ -487,8 +509,18 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
                                 label: 'ชื่อเล่น',
                                 required: true,
                                 controller: _nicknameCtrl,
+                                focusNode: _nicknameFocusNode,
                                 labelFontSize: 16,
                                 inputFontSize: 14,
+                                maxLength: 20,
+                                inputFormatters: const [
+                                  ThaiNicknameInputFormatter(),
+                                ],
+                                state: _nicknameErrorText != null
+                                    ? DsInputVisualState.error
+                                    : null,
+                                supportText: _nicknameErrorText,
+                                showSupportText: _nicknameErrorText != null,
                                 contentPadding: const EdgeInsets.symmetric(
                                   horizontal: 16,
                                   vertical: 12,

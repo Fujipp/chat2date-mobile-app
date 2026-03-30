@@ -24,6 +24,8 @@ abstract final class AppAssets {
   static const String placeholderMale = 'assets/images/placeholders/male.jpg';
   static const String placeholderMajiko =
       'assets/images/placeholders/image_majiko.jpg';
+  static const String reportUserAvatar =
+      'assets/images/placeholders/report_user_avatar.webp';
 
   static const String iconDir = 'assets/icons/ui';
   static const String gpsIconDir = 'assets/icons/gps';
