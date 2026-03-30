@@ -6,6 +6,7 @@ class DsSlider extends StatelessWidget {
     super.key,
     required this.value,
     this.onChanged,
+    this.onChangeEnd,
     this.width = 300,
     this.min = 0,
     this.max = 100,
@@ -13,6 +14,7 @@ class DsSlider extends StatelessWidget {
 
   final double value;
   final ValueChanged<double>? onChanged;
+  final ValueChanged<double>? onChangeEnd;
   final double width;
   final double min;
   final double max;
@@ -37,6 +39,7 @@ class DsSlider extends StatelessWidget {
           min: min,
           max: max,
           onChanged: onChanged,
+          onChangeEnd: onChangeEnd,
         ),
       ),
     );

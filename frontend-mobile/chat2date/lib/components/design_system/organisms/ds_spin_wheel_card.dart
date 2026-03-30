@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:math';
+import 'dart:ui' as ui;
 
 import 'package:chat2date/components/design_system/buttons/index.dart';
 import 'package:chat2date/components/design_system/controls/index.dart';
@@ -32,9 +33,20 @@ class DsSpinWheelCard extends StatefulWidget {
     this.initialReferenceIndex = 0,
     this.initialDistanceKm = 10,
     this.width = 340,
+    this.isInteractive = true,
+    this.enableFilterControls = true,
+    this.enablePrimaryAction = true,
+    this.enableResetAction = true,
+    this.showResetAction = true,
+    this.showCloseAction = true,
+    this.actionLabel = 'สุ่มสถานที่เดต',
+    this.statusMessage,
+    this.isLoading = false,
+    this.externalWinningIndex,
     this.onClose,
     this.onReset,
     this.onSpinComplete,
+    this.onSpinRequested,
     this.onDistanceChanged,
     this.onVariantChanged,
     this.onReferenceChanged,
@@ -48,9 +60,20 @@ class DsSpinWheelCard extends StatefulWidget {
   final int initialReferenceIndex;
   final double initialDistanceKm;
   final double width;
+  final bool isInteractive;
+  final bool enableFilterControls;
+  final bool enablePrimaryAction;
+  final bool enableResetAction;
+  final bool showResetAction;
+  final bool showCloseAction;
+  final String actionLabel;
+  final String? statusMessage;
+  final bool isLoading;
+  final int? externalWinningIndex;
   final VoidCallback? onClose;
   final VoidCallback? onReset;
   final ValueChanged<DsSpinWheelItem>? onSpinComplete;
+  final VoidCallback? onSpinRequested;
   final ValueChanged<double>? onDistanceChanged;
   final ValueChanged<DsSpinWheelVariant>? onVariantChanged;
   final ValueChanged<int>? onReferenceChanged;
@@ -68,6 +91,7 @@ class _DsSpinWheelCardState extends State<DsSpinWheelCard>
   late double _distanceKm;
   int _highlightedIndex = 0;
   List<int> _spinSequence = const [];
+  final Map<int, ui.Image> _loadedImages = {};
   // ignore: unused_field, prefer_final_fields
   int _blinkCycles = 0;
   Timer? _autoCloseTimer;
@@ -107,6 +131,17 @@ class _DsSpinWheelCardState extends State<DsSpinWheelCard>
           setState(() {});
         }
       });
+
+    _prepareItemImages();
+
+    if (widget.externalWinningIndex != null) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) {
+          return;
+        }
+        _spinToIndex(widget.externalWinningIndex!);
+      });
+    }
   }
 
   @override
@@ -117,7 +152,75 @@ class _DsSpinWheelCardState extends State<DsSpinWheelCard>
     super.dispose();
   }
 
+  @override
+  void didUpdateWidget(covariant DsSpinWheelCard oldWidget) {
+    super.didUpdateWidget(oldWidget);
+
+    if (widget.initialVariant != oldWidget.initialVariant && mounted) {
+      _variant = widget.initialVariant;
+    }
+    if (widget.initialReferenceIndex != oldWidget.initialReferenceIndex &&
+        mounted) {
+      _referenceIndex = widget.initialReferenceIndex.clamp(0, 1);
+    }
+    if (widget.initialDistanceKm != oldWidget.initialDistanceKm && mounted) {
+      _distanceKm = widget.initialDistanceKm.clamp(1, 20);
+    }
+    if (widget.items != oldWidget.items) {
+      _loadedImages.clear();
+      _prepareItemImages();
+    }
+    if (widget.externalWinningIndex != null &&
+        widget.externalWinningIndex != oldWidget.externalWinningIndex) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) {
+          return;
+        }
+        _spinToIndex(widget.externalWinningIndex!);
+      });
+    }
+  }
+
   bool get _isSpinning => _spinController.isAnimating;
+  bool get _canInteract => widget.isInteractive && !_isSpinning;
+  bool get _canEditFilters => _canInteract && widget.enableFilterControls;
+  int get _effectiveItemCount => max(widget.items.length, 10);
+
+  Future<void> _prepareItemImages() async {
+    for (var index = 0; index < widget.items.length; index++) {
+      final provider = widget.items[index].imageProvider;
+      if (provider == null || _loadedImages.containsKey(index)) {
+        continue;
+      }
+      try {
+        final completer = Completer<ui.Image>();
+        final stream = provider.resolve(const ImageConfiguration());
+        late final ImageStreamListener listener;
+        listener = ImageStreamListener(
+          (info, _) {
+            if (!completer.isCompleted) {
+              completer.complete(info.image);
+            }
+            stream.removeListener(listener);
+          },
+          onError: (exception, stackTrace) {
+            if (!completer.isCompleted) {
+              completer.completeError(exception, stackTrace);
+            }
+            stream.removeListener(listener);
+          },
+        );
+        stream.addListener(listener);
+        final image = await completer.future;
+        if (!mounted) {
+          return;
+        }
+        setState(() {
+          _loadedImages[index] = image;
+        });
+      } catch (_) {}
+    }
+  }
 
   double get _blinkStrength {
     if (!_blinkController.isAnimating) {
@@ -127,11 +230,26 @@ class _DsSpinWheelCardState extends State<DsSpinWheelCard>
   }
 
   void _handleSpin() {
-    if (_isSpinning) {
+    if (!widget.isInteractive || _isSpinning) {
       return;
     }
-    final count = max(widget.items.length, 10);
+    if (!widget.enablePrimaryAction) {
+      return;
+    }
+    if (widget.onSpinRequested != null) {
+      widget.onSpinRequested?.call();
+      return;
+    }
+    final count = _effectiveItemCount;
     final targetIndex = Random().nextInt(count);
+    _spinToIndex(targetIndex);
+  }
+
+  void _spinToIndex(int targetIndex) {
+    if (_effectiveItemCount <= 0 || _isSpinning) {
+      return;
+    }
+    final count = _effectiveItemCount;
     final startIndex = _highlightedIndex % count;
     final absoluteTarget = targetIndex >= startIndex
         ? targetIndex
@@ -151,14 +269,6 @@ class _DsSpinWheelCardState extends State<DsSpinWheelCard>
         _spinSequence = const [];
       });
       _blinkController.repeat(reverse: true);
-      _autoCloseTimer = Timer(const Duration(seconds: 5), () {
-        if (!mounted) {
-          return;
-        }
-        _blinkController.stop();
-        _blinkController.value = 0;
-        widget.onClose?.call();
-      });
       if (widget.items.isEmpty) {
         return;
       }
@@ -168,22 +278,26 @@ class _DsSpinWheelCardState extends State<DsSpinWheelCard>
   }
 
   void _handleReset() {
-    if (_isSpinning) {
+    if (!widget.isInteractive || _isSpinning) {
+      return;
+    }
+    if (!widget.enableResetAction) {
       return;
     }
     _autoCloseTimer?.cancel();
     _blinkController.stop();
     _blinkController.value = 0;
     setState(() {
-      _distanceKm = widget.initialDistanceKm.clamp(1, 20);
       _highlightedIndex = 0;
     });
-    widget.onDistanceChanged?.call(_distanceKm);
     widget.onReset?.call();
   }
 
   void _handleVariantChanged(DsUserSelectorValue value) {
-    if (_isSpinning) {
+    if (!widget.isInteractive || _isSpinning) {
+      return;
+    }
+    if (!widget.enableFilterControls) {
       return;
     }
     final variant = value == DsUserSelectorValue.group
@@ -200,6 +314,7 @@ class _DsSpinWheelCardState extends State<DsSpinWheelCard>
     const wheelSize = 232.0;
     const wheelRadius = 98.0;
     final formattedDistance = _distanceKm.round();
+    final loadedImageSnapshot = Map<int, ui.Image>.of(_loadedImages);
 
     return Container(
       width: widget.width,
@@ -214,7 +329,11 @@ class _DsSpinWheelCardState extends State<DsSpinWheelCard>
         children: [
           _SpinWheelHeader(
             title: widget.title,
-            onReset: _handleReset,
+            showResetAction: widget.showResetAction,
+            showCloseAction: widget.showCloseAction,
+            onReset: widget.isInteractive && widget.enableResetAction
+                ? _handleReset
+                : null,
             onClose: widget.onClose,
           ),
           const SizedBox(height: 20),
@@ -225,7 +344,7 @@ class _DsSpinWheelCardState extends State<DsSpinWheelCard>
                 items: [widget.userALabel, widget.userBLabel],
                 selectedIndex: _referenceIndex,
                 onChanged: (index) {
-                  if (_isSpinning) {
+                  if (!_canEditFilters) {
                     return;
                   }
                   setState(() {
@@ -240,31 +359,55 @@ class _DsSpinWheelCardState extends State<DsSpinWheelCard>
           SizedBox(
             width: wheelSize,
             height: wheelSize,
-            child: Stack(
-              alignment: Alignment.center,
-              children: [
-                CustomPaint(
-                  size: const Size.square(wheelSize),
-                  painter: _SpinWheelPainter(
-                    highlightedIndex:
-                        _highlightedIndex % max(widget.items.length, 10),
-                    glowStrength: _isSpinning ? 1 : 0.75,
-                    blinkStrength: _isSpinning ? 0 : _blinkStrength,
-                    radius: wheelRadius,
-                    itemCount: max(widget.items.length, 10),
+            child: widget.isLoading
+                ? Center(
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const SizedBox(
+                          width: 36,
+                          height: 36,
+                          child: CircularProgressIndicator(
+                            color: AppColors.brandPrimary,
+                            strokeWidth: 3,
+                          ),
+                        ),
+                        const SizedBox(height: 12),
+                        Text(
+                          'กำลังโหลดสถานที่เดต',
+                          style: AppBodyTextStyles.body.copyWith(
+                            color: AppColors.textSupport,
+                          ),
+                        ),
+                      ],
+                    ),
+                  )
+                : Stack(
+                    alignment: Alignment.center,
+                    children: [
+                      CustomPaint(
+                        size: const Size.square(wheelSize),
+                        painter: _SpinWheelPainter(
+                          highlightedIndex:
+                              _highlightedIndex % max(widget.items.length, 10),
+                          glowStrength: _isSpinning ? 1 : 0.75,
+                          blinkStrength: _isSpinning ? 0 : _blinkStrength,
+                          radius: wheelRadius,
+                          items: widget.items,
+                          loadedImages: loadedImageSnapshot,
+                        ),
+                      ),
+                      const _StaticNeedle(),
+                      Container(
+                        width: 28,
+                        height: 28,
+                        decoration: const BoxDecoration(
+                          color: AppColors.surface,
+                          shape: BoxShape.circle,
+                        ),
+                      ),
+                    ],
                   ),
-                ),
-                const _StaticNeedle(),
-                Container(
-                  width: 28,
-                  height: 28,
-                  decoration: const BoxDecoration(
-                    color: AppColors.surface,
-                    shape: BoxShape.circle,
-                  ),
-                ),
-              ],
-            ),
           ),
           const SizedBox(height: 20),
           SizedBox(
@@ -297,15 +440,24 @@ class _DsSpinWheelCardState extends State<DsSpinWheelCard>
             min: 1,
             max: 20,
             width: 309,
-            onChanged: (value) {
-              if (_isSpinning) {
-                return;
-              }
-              setState(() {
-                _distanceKm = value;
-              });
-              widget.onDistanceChanged?.call(value);
-            },
+            onChanged: _canEditFilters
+                ? (value) {
+                    if (_isSpinning) {
+                      return;
+                    }
+                    setState(() {
+                      _distanceKm = value;
+                    });
+                  }
+                : null,
+            onChangeEnd: _canEditFilters
+                ? (value) {
+                    if (_isSpinning) {
+                      return;
+                    }
+                    widget.onDistanceChanged?.call(value);
+                  }
+                : null,
           ),
           const SizedBox(height: 14),
           Column(
@@ -330,6 +482,16 @@ class _DsSpinWheelCardState extends State<DsSpinWheelCard>
                   color: AppColors.textSupport,
                 ),
               ),
+              if (widget.statusMessage != null) ...[
+                const SizedBox(height: 6),
+                Text(
+                  widget.statusMessage!,
+                  textAlign: TextAlign.center,
+                  style: AppBodyTextStyles.caption.copyWith(
+                    color: AppColors.error,
+                  ),
+                ),
+              ],
             ],
           ),
           const SizedBox(height: 18),
@@ -342,8 +504,10 @@ class _DsSpinWheelCardState extends State<DsSpinWheelCard>
           ),
           const SizedBox(height: 18),
           DsButton(
-            label: 'สุ่มสถานที่เดต',
-            onPressed: _handleSpin,
+            label: widget.actionLabel,
+            onPressed: widget.isInteractive && widget.enablePrimaryAction
+                ? _handleSpin
+                : null,
             variant: DsButtonVariant.primary,
             width: 300,
           ),
@@ -356,11 +520,15 @@ class _DsSpinWheelCardState extends State<DsSpinWheelCard>
 class _SpinWheelHeader extends StatelessWidget {
   const _SpinWheelHeader({
     required this.title,
+    this.showResetAction = true,
+    this.showCloseAction = true,
     this.onReset,
     this.onClose,
   });
 
   final String title;
+  final bool showResetAction;
+  final bool showCloseAction;
   final VoidCallback? onReset;
   final VoidCallback? onClose;
 
@@ -368,10 +536,16 @@ class _SpinWheelHeader extends StatelessWidget {
   Widget build(BuildContext context) {
     return Row(
       children: [
-        _SpinWheelHeaderButton(
-          assetPath: 'assets/icons/ui/icon_refresh.svg',
-          onTap: onReset,
-          tintColor: AppColors.brandSecondary,
+        SizedBox(
+          width: 40,
+          height: 40,
+          child: showResetAction
+              ? _SpinWheelHeaderButton(
+                  assetPath: 'assets/icons/ui/icon_refresh.svg',
+                  onTap: onReset,
+                  tintColor: AppColors.brandSecondary,
+                )
+              : null,
         ),
         Expanded(
           child: SizedBox(
@@ -389,10 +563,16 @@ class _SpinWheelHeader extends StatelessWidget {
             ),
           ),
         ),
-        _SpinWheelHeaderButton(
-          assetPath: AppAssets.closeIcon,
-          onTap: onClose,
-          tintColor: AppColors.error,
+        SizedBox(
+          width: 40,
+          height: 40,
+          child: showCloseAction
+              ? _SpinWheelHeaderButton(
+                  assetPath: AppAssets.closeIcon,
+                  onTap: onClose,
+                  tintColor: AppColors.error,
+                )
+              : null,
         ),
       ],
     );
@@ -481,14 +661,16 @@ class _StaticNeedle extends StatelessWidget {
 
 class _SpinWheelPainter extends CustomPainter {
   const _SpinWheelPainter({
-    required this.itemCount,
+    required this.items,
+    required this.loadedImages,
     required this.highlightedIndex,
     required this.glowStrength,
     required this.blinkStrength,
     required this.radius,
   });
 
-  final int itemCount;
+  final List<DsSpinWheelItem> items;
+  final Map<int, ui.Image> loadedImages;
   final int highlightedIndex;
   final double glowStrength;
   final double blinkStrength;
@@ -496,6 +678,7 @@ class _SpinWheelPainter extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
+    final itemCount = max(items.length, 10);
     if (itemCount <= 0) {
       return;
     }
@@ -536,6 +719,31 @@ class _SpinWheelPainter extends CustomPainter {
         Paint()
           ..color = i.isEven ? AppColors.brandSecondary : AppColors.brandPrimary,
       );
+      if (i < items.length) {
+        final image = loadedImages[i];
+        if (image != null) {
+          canvas.save();
+          canvas.clipPath(segment);
+          final imageAngle = startAngle + (sweep / 2);
+          final imageCenter = Offset(
+            cos(imageAngle) * radius * 0.5,
+            sin(imageAngle) * radius * 0.5,
+          );
+          final shortestSide = min(image.width, image.height).toDouble();
+          final scale = (radius * 1.5) / shortestSide;
+          canvas.drawImageRect(
+            image,
+            Rect.fromLTWH(0, 0, image.width.toDouble(), image.height.toDouble()),
+            Rect.fromCenter(
+              center: imageCenter,
+              width: image.width * scale,
+              height: image.height * scale,
+            ),
+            Paint()..isAntiAlias = true,
+          );
+          canvas.restore();
+        }
+      }
       if (isHighlighted) {
         canvas.drawPath(
           segment,
@@ -590,7 +798,8 @@ class _SpinWheelPainter extends CustomPainter {
   @override
   bool shouldRepaint(covariant _SpinWheelPainter oldDelegate) {
     return oldDelegate.highlightedIndex != highlightedIndex ||
-        oldDelegate.itemCount != itemCount ||
+        oldDelegate.items.length != items.length ||
+        oldDelegate.loadedImages.length != loadedImages.length ||
         oldDelegate.glowStrength != glowStrength ||
         oldDelegate.blinkStrength != blinkStrength;
   }

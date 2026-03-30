@@ -6,7 +6,6 @@ import 'package:chat2date/components/buttons/ds_button.dart';
 import 'package:chat2date/components/calendar/calendar_modal.dart';
 import 'package:chat2date/components/chat/bot_message_component.dart';
 import 'package:chat2date/components/chat/chat_text_component.dart';
-import 'package:chat2date/components/chat/spin_date_component.dart';
 import 'package:chat2date/components/common/modal_component.dart';
 import 'package:chat2date/components/layout/header.dart';
 import 'package:chat2date/components/modal/feature_guide_modal.dart';
@@ -16,6 +15,7 @@ import 'package:chat2date/components/design_system/controls/ds_level_progress_ba
 import 'package:chat2date/components/design_system/inputs/ds_chat_message_input.dart';
 import 'package:chat2date/components/design_system/organisms/ds_app_secondary_header.dart';
 import 'package:chat2date/components/design_system/organisms/ds_gps_alert.dart';
+import 'package:chat2date/components/design_system/organisms/ds_spin_wheel_card.dart';
 import 'package:chat2date/components/toasts/toast.dart';
 import 'package:chat2date/core/theme/app_assets.dart';
 import 'package:chat2date/models/appointment.dart';
@@ -90,6 +90,13 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
   int _indexSelected = 1;
   String? _leaderId;
   double _currentRange = 20;
+  bool _isSpinSessionActive = false;
+  int _storedSpinIndexMode = 1;
+  int _storedSpinIndexSelected = 1;
+  double _storedSpinRange = 20;
+  bool _isSpinLoading = false;
+  DateTime? _spinSearchCooldownUntil;
+  Timer? _spinSearchCooldownTimer;
 
   // === Appointment / Calendar ===
   Appointment? _existingAppointment;
@@ -822,7 +829,7 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
       }
     });
 
-    _chatSocketService?.spinStream.listen((payload) {
+    _chatSocketService?.spinStream.listen((payload) async {
       if (!mounted) return;
 
       final type = payload['type'];
@@ -841,8 +848,16 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
           final String targetStr = payload['userTarget'] ?? 'PARTNER';
           final String leaderIdFromSocket =
               payload['leaderId']?.toString() ?? '';
+          final List placesList = data['places'] ?? [];
+          final mappedPrizes = _mapSpinPlaces(placesList);
+
+          await _precacheSpinPrizeImages(mappedPrizes);
+          if (!mounted) {
+            return;
+          }
 
           setState(() {
+            _isSpinSessionActive = true;
             _showWheelModal = true;
             _leaderId = leaderIdFromSocket;
 
@@ -854,15 +869,12 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
               _indexSelected = (targetStr == "PARTNER") ? 1 : 0;
             }
 
-            final List placesList = data['places'] ?? [];
-            _dynamicPrizes = placesList.map((place) {
-              return {
-                "name": place['name'],
-                "imageUrl": place['imageUrl'],
-                "placeId": place['googlePlaceId'], // เก็บไว้ใช้จองนัดหมาย
-              };
-            }).toList();
+            _dynamicPrizes = mappedPrizes;
             _currentRange = (payload['range'] as num).toDouble();
+            _storedSpinIndexMode = _indexMode;
+            _storedSpinIndexSelected = _indexSelected;
+            _storedSpinRange = _currentRange;
+            _isSpinLoading = false;
             winningIndex = null;
           });
         } catch (e) {
@@ -967,13 +979,190 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
   }
 
   void _clearWheelState() {
+    _spinSearchCooldownTimer?.cancel();
     setState(() {
+      _isSpinSessionActive = false;
       _showWheelModal = false;
       _leaderId = null;
       winningIndex = null;
       _dynamicPrizes = [];
       _indexMode = 1;
+      _indexSelected = 1;
       _currentRange = 20;
+      _storedSpinIndexMode = 1;
+      _storedSpinIndexSelected = 1;
+      _storedSpinRange = 20;
+      _isSpinLoading = false;
+      _spinSearchCooldownUntil = null;
+    });
+  }
+
+  bool get _isSpinLeader => _leaderId != null && _leaderId == _currentUserId;
+  bool get _hasActiveSpinSession => _isSpinSessionActive && _leaderId != null;
+  bool get _hasSpinSearchChanges =>
+      _indexMode != _storedSpinIndexMode ||
+      _indexSelected != _storedSpinIndexSelected ||
+      (_currentRange - _storedSpinRange).abs() > 0.01;
+  bool get _isSpinSearchCoolingDown =>
+      _spinSearchCooldownUntil != null &&
+      DateTime.now().isBefore(_spinSearchCooldownUntil!);
+  int get _spinSearchCooldownSecondsLeft {
+    final until = _spinSearchCooldownUntil;
+    if (until == null) {
+      return 0;
+    }
+    final remaining = until.difference(DateTime.now()).inSeconds;
+    return remaining <= 0 ? 0 : remaining + 1;
+  }
+  bool get _canAdjustSpinFilters => !_isSpinSearchCoolingDown && !_isSpinLoading;
+  String get _spinPrimaryActionLabel {
+    if (!_isSpinLeader) {
+      return 'กำลังรอคู่ของคุณสุ่ม';
+    }
+    if (_isSpinLoading) {
+      return 'กำลังค้นหาสถานที่เดต...';
+    }
+    if (_isSpinSearchCoolingDown && _hasSpinSearchChanges) {
+      return 'รอ $_spinSearchCooldownSecondsLeft วิ เพื่อค้นหาใหม่';
+    }
+    if (_hasSpinSearchChanges) {
+      return 'ค้นหาสถานที่เดตก่อน';
+    }
+    return 'สุ่มสถานที่เดต';
+  }
+  String? get _spinStatusMessage {
+    if (_isSpinLoading) {
+      return 'กำลังโหลดสถานที่เดตจากระยะที่เลือก';
+    }
+    if (_isSpinSearchCoolingDown) {
+      return 'สามารถเลื่อนระยะและค้นหาสถานที่เดตใหม่ได้อีกใน $_spinSearchCooldownSecondsLeft วินาที';
+    }
+    return 'เปิดครั้งแรกสามารถเลื่อนระยะได้ทันที หลังค้นหาแล้วจะติดคูลดาวน์ 10 วินาที';
+  }
+
+  String _spinModeFromIndex(int indexMode) {
+    return indexMode == 0 ? 'DISTANCE' : 'MIDPOINT';
+  }
+
+  String? _spinUserTargetFromIndex(int indexMode, int indexSelected) {
+    if (indexMode != 0) {
+      return null;
+    }
+    return indexSelected == 1 ? 'ME' : 'PARTNER';
+  }
+
+  List<DsSpinWheelItem> get _spinWheelItems {
+    return _dynamicPrizes
+        .map(
+          (place) => DsSpinWheelItem(
+            label: (place['name'] as String?) ?? 'Place',
+            imageProvider: ((place['imageUrl'] as String?)?.isNotEmpty ?? false)
+                ? NetworkImage(place['imageUrl'] as String)
+                : null,
+          ),
+        )
+        .toList();
+  }
+
+  List<Map<String, dynamic>> _mapSpinPlaces(List placesList) {
+    return placesList.map<Map<String, dynamic>>((place) {
+      final map = Map<String, dynamic>.from(place as Map);
+      return {
+        "name": map['name'],
+        "imageUrl": map['imageUrl'],
+        "placeId": map['googlePlaceId'] ?? map['placeId'],
+      };
+    }).toList();
+  }
+
+  Future<void> _precacheSpinPrizeImages(List<Map<String, dynamic>> prizes) async {
+    if (!mounted) {
+      return;
+    }
+
+    await Future.wait(
+      prizes.map((place) async {
+        final imageUrl = place['imageUrl'] as String?;
+        if (imageUrl == null || imageUrl.isEmpty) {
+          return;
+        }
+        try {
+          await precacheImage(NetworkImage(imageUrl), context);
+        } catch (_) {}
+      }),
+    );
+  }
+
+  void _startSpinSearchCooldown() {
+    _spinSearchCooldownTimer?.cancel();
+    final until = DateTime.now().add(const Duration(seconds: 10));
+    setState(() {
+      _spinSearchCooldownUntil = until;
+    });
+    _spinSearchCooldownTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      if (!mounted) {
+        timer.cancel();
+        return;
+      }
+      if (!_isSpinSearchCoolingDown) {
+        timer.cancel();
+        setState(() {
+          _spinSearchCooldownUntil = null;
+        });
+        return;
+      }
+      setState(() {});
+    });
+  }
+
+  void _updateSpinFilters({
+    int? indexMode,
+    int? indexSelected,
+    double? range,
+  }) {
+    if (!_canAdjustSpinFilters) {
+      return;
+    }
+    setState(() {
+      _indexMode = indexMode ?? _indexMode;
+      _indexSelected = indexSelected ?? _indexSelected;
+      _currentRange = range ?? _currentRange;
+    });
+  }
+
+  Future<void> _searchSpinPlaces() async {
+    if (!_isSpinLeader || _isSpinLoading) {
+      return;
+    }
+    if (_isSpinSearchCoolingDown) {
+      Toast.show(
+        context,
+        type: ToastType.info,
+        title: 'รอก่อนนะ',
+        message: 'สามารถปรับระยะและค้นหาสถานที่เดตใหม่ได้ทุก 10 วินาที',
+      );
+      return;
+    }
+    await _prepareBeforeSpin(
+      _currentRange,
+      _spinModeFromIndex(_indexMode),
+      _spinUserTargetFromIndex(_indexMode, _indexSelected),
+      true,
+    );
+  }
+
+  Future<void> _handleSpinModalClose() async {
+    if (_isSpinLeader) {
+      await ref.read(dateRecommendProvider).closeRemoteModal(widget.roomId!);
+      if (!mounted) {
+        return;
+      }
+      _clearWheelState();
+      return;
+    }
+
+    setState(() {
+      _showWheelModal = false;
     });
   }
 
@@ -1810,6 +1999,13 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
 
   /// จัดการการกด spinwheel
   void _handleSpinwheelTap() async {
+    if (_hasActiveSpinSession) {
+      setState(() {
+        _showWheelModal = true;
+      });
+      return;
+    }
+
     if (!_canSpin) {
       // อยู่ใน cooldown - แสดง message
       if (_cooldownDays == 0) {
@@ -1850,21 +2046,30 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
       return;
     }
 
-    await _prepareBeforeSpin(20, "MIDPOINT", "", false);
-    // ผ่านทุกเงื่อนไข - เปิด modal
     setState(() {
       _leaderId = _currentUserId;
+      _isSpinSessionActive = true;
       _showWheelModal = true;
     });
+    final loaded = await _prepareBeforeSpin(20, "MIDPOINT", null, false);
+    if (!loaded || !mounted) {
+      _clearWheelState();
+      return;
+    }
   }
 
-  Future<void> _prepareBeforeSpin(
+  Future<bool> _prepareBeforeSpin(
     double range,
     String? mode,
     String? userTarget,
     bool refresh,
   ) async {
     final service = ref.read(dateRecommendProvider);
+    if (mounted) {
+      setState(() {
+        _isSpinLoading = true;
+      });
+    }
 
     try {
       final recommendations = await service.getRecommendations(
@@ -1874,18 +2079,33 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
         userTarget: userTarget,
         forceRefresh: refresh,
       );
-      if (!mounted) return;
+      final mappedPrizes = recommendations.places.map((place) {
+        return {
+          "name": place.name,
+          "imageUrl": place.imageUrl,
+          "placeId": place.googlePlaceId,
+        };
+      }).toList();
+      await _precacheSpinPrizeImages(mappedPrizes);
+      if (!mounted) return false;
       setState(() {
-        _dynamicPrizes = recommendations.places.map((place) {
-          return {
-            "name": place.name,
-            "imageUrl": place.imageUrl,
-            "placeId": place.googlePlaceId,
-          };
-        }).toList();
+        _dynamicPrizes = mappedPrizes;
+        _storedSpinRange = range;
+        _storedSpinIndexMode = mode == 'DISTANCE' ? 0 : 1;
+        _storedSpinIndexSelected = mode == 'DISTANCE'
+            ? (userTarget == 'ME' ? 1 : 0)
+            : _indexSelected;
+        _currentRange = range;
+        _indexMode = _storedSpinIndexMode;
+        _indexSelected = _storedSpinIndexSelected;
+        _isSpinLoading = false;
       });
+      if (refresh) {
+        _startSpinSearchCooldown();
+      }
+      return true;
     } catch (e) {
-      if (!mounted) return;
+      if (!mounted) return false;
 
       Toast.show(
         context,
@@ -1894,8 +2114,10 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
         message: e.toString().replaceAll('Exception: ', ''),
         durationSeconds: 3,
       );
-      _clearWheelState();
-      await ref.read(dateRecommendProvider).closeRemoteModal(widget.roomId!);
+      setState(() {
+        _isSpinLoading = false;
+      });
+      return false;
     }
   }
 
@@ -3059,6 +3281,7 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
     _chatSocketService = null;
     _scrollController.removeListener(_handleScroll);
     _markReadDebounce?.cancel();
+    _spinSearchCooldownTimer?.cancel();
     _exitRoomOnce();
     _messageController.dispose();
     _scrollController.dispose();
@@ -3084,11 +3307,10 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
         body: GestureDetector(
           behavior: HitTestBehavior.translucent,
           onTap: _dismissKeyboard,
-          child: SafeArea(
-            child: Stack(
-              // ✅ ใช้ Stack เพื่อวาง Layer ของวงล้อทับส่วนแชท
-              children: [
-                Column(
+          child: Stack(
+            children: [
+              SafeArea(
+                child: Column(
                   children: [
                     DsAppSecondaryHeader(
                       variant: _mapDsHeaderVariant(),
@@ -3419,250 +3641,222 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
                     ),
                   ],
                 ),
+              ),
 
-                //ปุ่มเทสเกม
-                // Positioned(
-                //   top: 100, // ปรับตำแหน่งแนวตั้ง (ให้หลบ Header)
-                //   right: 0, // ชิดขวา
-                //   child: Container(
-                //     decoration: const BoxDecoration(
-                //       color: Colors.red, // สีแดงเด่นๆ ให้รู้ว่าเป็นปุ่ม Test
-                //       borderRadius: BorderRadius.only(
-                //         topLeft: Radius.circular(20),
-                //         bottomLeft: Radius.circular(20),
-                //       ),
-                //     ),
-                //     child: IconButton(
-                //       icon: const Icon(
-                //         Icons.videogame_asset,
-                //         color: Colors.white,
-                //       ),
-                //       onPressed: () async {
-                //         // ✅ แบบที่ถูก: ยิงไปบอก Server ให้ Server สั่งเปิดเกมพร้อมกัน
-                //         final roomId = widget.roomId;
-                //         // ⚠️ เปลี่ยน IP เป็น IP เครื่องคอมคุณ
-                //         final url = Uri.parse(
-                //           'http://cp25ssi2.sit.kmutt.ac.th:8080/api/v1/test/trigger-game/$roomId',
-                //         );
-                //         try {
-                //           print("Shooting trigger to $url");
-                //           await http.post(url);
-                //         } catch (e) {
-                //           print("Error triggering game: $e");
-                //         }
-                //       },
-                //     ),
-                //   ),
-                // ),
-                if (_showWheelModal) ...[
-                  // 1. ฉากหลังสีเทาจาง (Dim background)
+              //ปุ่มเทสเกม
+              // Positioned(
+              //   top: 100, // ปรับตำแหน่งแนวตั้ง (ให้หลบ Header)
+              //   right: 0, // ชิดขวา
+              //   child: Container(
+              //     decoration: const BoxDecoration(
+              //       color: Colors.red, // สีแดงเด่นๆ ให้รู้ว่าเป็นปุ่ม Test
+              //       borderRadius: BorderRadius.only(
+              //         topLeft: Radius.circular(20),
+              //         bottomLeft: Radius.circular(20),
+              //       ),
+              //     ),
+              //     child: IconButton(
+              //       icon: const Icon(
+              //         Icons.videogame_asset,
+              //         color: Colors.white,
+              //       ),
+              //       onPressed: () async {
+              //         // ✅ แบบที่ถูก: ยิงไปบอก Server ให้ Server สั่งเปิดเกมพร้อมกัน
+              //         final roomId = widget.roomId;
+              //         // ⚠️ เปลี่ยน IP เป็น IP เครื่องคอมคุณ
+              //         final url = Uri.parse(
+              //           'http://cp25ssi2.sit.kmutt.ac.th:8080/api/v1/test/trigger-game/$roomId',
+              //         );
+              //         try {
+              //           print("Shooting trigger to $url");
+              //           await http.post(url);
+              //         } catch (e) {
+              //           print("Error triggering game: $e");
+              //         }
+              //       },
+              //     ),
+              //   ),
+              // ),
+              if (_showWheelModal) ...[
                   Positioned.fill(
                     child: GestureDetector(
-                      onTap: () async {
-                        if (_currentUserId == _leaderId) {
-                          await ref
-                              .read(dateRecommendProvider)
-                              .closeRemoteModal(widget.roomId!);
-                          _clearWheelState();
-                        } else {
-                          Toast.show(
-                            context,
-                            type: ToastType.warning,
-                            title: "ไม่สามารถปิดได้",
-                            message: "กรุณารอคู่ของคุณจัดการวงล้อ",
-                          );
-                        }
-                      },
-                      child: Container(color: Colors.black.withOpacity(0.5)),
+                      behavior: HitTestBehavior.opaque,
+                      onTap: () {},
+                      child: BackdropFilter(
+                        filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
+                        child: Container(
+                          color: AppColors.overlay.withValues(alpha: 0.18),
+                        ),
+                      ),
                     ),
                   ),
-
-                  // 2. ตัว SpinDateComponent
-                  // ✅ ใช้ Positioned.fill เพื่อกำหนดขอบเขตพื้นที่ที่เหลือจาก Header
                   Positioned.fill(
-                    top: 0, // เริ่มต้นที่ขอบล่างของ Header
                     child: Align(
-                      alignment:
-                          Alignment.center, // จัดกลางใน "พื้นที่ที่เหลือ"
+                      alignment: Alignment.center,
                       child: SingleChildScrollView(
-                        // ✅ กันบั๊กกรณีจอเตี้ยเกินไปหรือ Content ยาวเกินจอ
                         child: Padding(
                           padding: const EdgeInsets.symmetric(
                             horizontal: 20,
                             vertical: 20,
-                          ), // ✅ เพิ่ม vertical padding กันติดขอบ
-                          child: Container(
-                            decoration: BoxDecoration(
-                              color: Colors.white,
-                              borderRadius: BorderRadius.circular(24),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: Colors.black.withOpacity(0.2),
-                                  blurRadius: 20,
-                                  offset: const Offset(0, 10),
-                                ),
-                              ],
-                            ),
-                            child: ClipRRect(
-                              borderRadius: BorderRadius.circular(24),
-                              child: Column(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  SpinDateComponent(
-                                    key: ValueKey(
-                                      '${_leaderId}_${_indexMode}_$_indexSelected',
-                                    ),
-                                    currentRange: _currentRange,
-                                    indexMode: _indexMode,
-                                    indexSelected: _indexSelected,
-                                    winningIndex: winningIndex,
-                                    isLeader: _currentUserId == _leaderId,
-                                    onTriggerSpin: () async {
-                                      await ref
-                                          .read(dateRecommendProvider)
-                                          .triggerSpin(widget.roomId!);
-                                    },
-                                    onCloseModal: () async {
-                                      if (_currentUserId == _leaderId) {
-                                        setState(() => _showWheelModal = false);
-                                        await ref
-                                            .read(dateRecommendProvider)
-                                            .closeRemoteModal(widget.roomId!);
-                                      } else {
-                                        Toast.show(
-                                          context,
-                                          type: ToastType.warning,
-                                          title: "ไม่สามารถปิดได้",
-                                          message:
-                                              "กรุณารอคู่ของคุณจัดการวงล้อ",
-                                        );
-                                      }
-                                    },
-                                    onSpinComplete: _onSpinComplete,
-                                    firstPersonName: _chatUserName,
-                                    secondPersonName: nickname,
-                                    prizes: _dynamicPrizes,
-                                    onFilterChanged:
-                                        (
-                                          mode,
-                                          target,
-                                          radius,
-                                          isRefresh,
-                                        ) async {
-                                          if (_currentUserId != _leaderId) {
-                                            Toast.show(
-                                              context,
-                                              type: ToastType.warning,
-                                              title: "สิทธิ์ถูกจำกัด",
-                                              message:
-                                                  "เฉพาะหัวหน้าห้องเท่านั้นที่เปลี่ยนโหมดได้",
-                                            );
-                                            return; // 🛑 หยุดการทำงาน ไม่ให้สั่ง setState หรือยิง API
-                                          }
-
-                                          setState(() {
-                                            _indexMode = (mode == 'DISTANCE')
-                                                ? 0
-                                                : 1;
-                                            _indexSelected =
-                                                (target == nickname) ? 1 : 0;
-                                          });
-                                          if (isRefresh) {
-                                            await _prepareBeforeSpin(
-                                              radius,
-                                              mode,
-                                              target,
-                                              isRefresh,
-                                            );
-                                            setState(() {
-                                              _lastSpinTime = DateTime.now();
-                                            });
-                                          } else {
-                                            _prepareBeforeSpin(
-                                              radius,
-                                              mode,
-                                              target,
-                                              isRefresh,
-                                            );
-                                          }
-                                        },
-                                  ),
-                                ],
+                          ),
+                          child: ConstrainedBox(
+                            constraints: const BoxConstraints(maxWidth: 340),
+                            child: DsSpinWheelCard(
+                              key: ValueKey(
+                                '${_leaderId}_${_indexMode}_$_indexSelected',
                               ),
+                              width: 340,
+                              items: _spinWheelItems,
+                              userALabel: _chatUserName,
+                              userBLabel: nickname,
+                              initialVariant: _indexMode == 1
+                                  ? DsSpinWheelVariant.pair
+                                  : DsSpinWheelVariant.single,
+                              initialReferenceIndex: _indexSelected,
+                              initialDistanceKm: _currentRange,
+                              externalWinningIndex: winningIndex,
+                              isLoading: _isSpinLoading,
+                              isInteractive: _isSpinLeader,
+                              enableFilterControls:
+                                  _isSpinLeader && _canAdjustSpinFilters,
+                              enablePrimaryAction:
+                                  _isSpinLeader &&
+                                  !_isSpinLoading &&
+                                  (!_hasSpinSearchChanges ||
+                                      !_isSpinSearchCoolingDown),
+                              enableResetAction:
+                                  _isSpinLeader &&
+                                  !_isSpinLoading &&
+                                  _dynamicPrizes.isNotEmpty,
+                              showResetAction: _isSpinLeader,
+                              actionLabel: _spinPrimaryActionLabel,
+                              statusMessage: _spinStatusMessage,
+                              onClose: _handleSpinModalClose,
+                              onReset: () async {
+                                if (_hasSpinSearchChanges) {
+                                  Toast.show(
+                                    context,
+                                    type: ToastType.info,
+                                    title: 'ค้นหาสถานที่ก่อน',
+                                    message:
+                                        'ปรับระยะแล้ว ต้องค้นหาสถานที่เดตก่อนจึงจะสุ่มจากชุดใหม่ได้',
+                                  );
+                                  return;
+                                }
+                                await ref
+                                    .read(dateRecommendProvider)
+                                    .triggerSpin(widget.roomId!);
+                              },
+                              onSpinRequested: () async {
+                                if (_hasSpinSearchChanges) {
+                                  await _searchSpinPlaces();
+                                  return;
+                                }
+                                await ref
+                                    .read(dateRecommendProvider)
+                                    .triggerSpin(widget.roomId!);
+                              },
+                              onSpinComplete: (result) {
+                                _onSpinComplete({
+                                  'name': result.label,
+                                  ...?_dynamicPrizes
+                                      .cast<Map<String, dynamic>?>()
+                                      .firstWhere(
+                                        (place) => place?['name'] == result.label,
+                                        orElse: () => null,
+                                      ),
+                                });
+                              },
+                              onDistanceChanged: (value) async {
+                                if (!mounted) {
+                                  return;
+                                }
+                                setState(() {
+                                  _currentRange = value;
+                                });
+                              },
+                              onVariantChanged: (variant) async {
+                                _updateSpinFilters(
+                                  indexMode:
+                                      variant == DsSpinWheelVariant.pair ? 1 : 0,
+                                );
+                              },
+                              onReferenceChanged: (index) async {
+                                _updateSpinFilters(indexSelected: index);
+                              },
                             ),
                           ),
                         ),
                       ),
                     ),
                   ),
-                ],
-                UnlockDateModal(
-                  isVisible: _showUnlockDate,
-                  onConfirm: () {
+              ],
+              UnlockDateModal(
+                isVisible: _showUnlockDate,
+                onConfirm: () {
+                  setState(() {
+                    _showUnlockDate = false;
+                  });
+                },
+              ),
+
+              // === Calendar Modal (เหมือน SpinWheel overlay) ===
+              if (_showCalendarModal) ...[
+                CalendarModal(
+                  isVisible: _showCalendarModal,
+                  placeName: _calendarPlaceName,
+                  placeCountText: 'คุณมี 1 สถานที่เดต!!',
+                  hasUnsavedChanges: _calendarHasUnsavedChanges,
+                  isReadOnly: _calendarIsEditMode && _isCalendarViewOnly,
+                  initialMonth: () {
+                    final dt = _calendarIsEditMode
+                        ? (_existingAppointment?.dateTime?.toLocal() ??
+                              DateTime.now())
+                        : DateTime.now();
+                    return DateTime(dt.year, dt.month, 1);
+                  }(),
+                  initialTime: _calendarIsEditMode
+                      ? () {
+                          final dt =
+                              _existingAppointment?.dateTime?.toLocal() ??
+                              DateTime.now();
+                          return TimeOfDay.fromDateTime(dt);
+                        }()
+                      : null,
+                  initialSelectedDate: _calendarIsEditMode
+                      ? _existingAppointment?.dateTime?.toLocal()
+                      : null,
+                  isEditMode: _calendarIsEditMode,
+                  onDirtyChanged: (dirty) {
+                    if (!mounted) return;
                     setState(() {
-                      _showUnlockDate = false;
+                      _calendarHasUnsavedChanges = dirty;
                     });
                   },
-                ),
-
-                // === Calendar Modal (เหมือน SpinWheel overlay) ===
-                if (_showCalendarModal) ...[
-                  CalendarModal(
-                    isVisible: _showCalendarModal,
-                    placeName: _calendarPlaceName,
-                    placeCountText: 'คุณมี 1 สถานที่เดต!!',
-                    hasUnsavedChanges: _calendarHasUnsavedChanges,
-                    isReadOnly: _calendarIsEditMode && _isCalendarViewOnly,
-                    initialMonth: () {
-                      final dt = _calendarIsEditMode
-                          ? (_existingAppointment?.dateTime?.toLocal() ??
-                                DateTime.now())
-                          : DateTime.now();
-                      return DateTime(dt.year, dt.month, 1);
-                    }(),
-                    initialTime: _calendarIsEditMode
-                        ? () {
-                            final dt =
-                                _existingAppointment?.dateTime?.toLocal() ??
-                                DateTime.now();
-                            return TimeOfDay.fromDateTime(dt);
-                          }()
-                        : null,
-                    initialSelectedDate: _calendarIsEditMode
-                        ? _existingAppointment?.dateTime?.toLocal()
-                        : null,
-                    isEditMode: _calendarIsEditMode,
-                    onDirtyChanged: (dirty) {
-                      if (!mounted) return;
-                      setState(() {
-                        _calendarHasUnsavedChanges = dirty;
-                      });
-                    },
-                    onClose: (hasUnsavedChanges) {
-                      if (hasUnsavedChanges) {
-                        _showCancelEditConfirmDialog();
-                      } else {
-                        _closeCalendar();
-                      }
-                    },
-                    onTrash: () {
-                      final id = _existingAppointment?.appointmentId;
-                      if (id != null) _showDeleteConfirmDialog(id);
-                    },
-                    onSave: (date, time) async {
+                  onClose: (hasUnsavedChanges) {
+                    if (hasUnsavedChanges) {
+                      _showCancelEditConfirmDialog();
+                    } else {
                       _closeCalendar();
-                      await _saveAppointment(
-                        date: date,
-                        isEditMode: _calendarIsEditMode,
-                        existingId: _existingAppointment?.appointmentId,
-                        placeId: _calendarPlaceId,
-                        placeName: _calendarPlaceName,
-                      );
-                    },
-                  ),
-                ],
+                    }
+                  },
+                  onTrash: () {
+                    final id = _existingAppointment?.appointmentId;
+                    if (id != null) _showDeleteConfirmDialog(id);
+                  },
+                  onSave: (date, time) async {
+                    _closeCalendar();
+                    await _saveAppointment(
+                      date: date,
+                      isEditMode: _calendarIsEditMode,
+                      existingId: _existingAppointment?.appointmentId,
+                      placeId: _calendarPlaceId,
+                      placeName: _calendarPlaceName,
+                    );
+                  },
+                ),
               ],
-            ),
+            ],
           ),
         ),
       ),
