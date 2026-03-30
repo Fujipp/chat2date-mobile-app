@@ -9,14 +9,10 @@ class CustomBottomNavBar extends StatefulWidget {
     super.key,
     this.selectedIndex = 0,
     this.onTap,
-    this.delayedIndices = const {0, 2, 3},
-    this.tapAnimationDuration = const Duration(milliseconds: 300),
   });
 
   final int selectedIndex;
   final Function(int)? onTap;
-  final Set<int> delayedIndices;
-  final Duration tapAnimationDuration;
 
   @override
   State<CustomBottomNavBar> createState() => _CustomBottomNavBarState();
@@ -24,7 +20,6 @@ class CustomBottomNavBar extends StatefulWidget {
 
 class _CustomBottomNavBarState extends State<CustomBottomNavBar> {
   late int _selectedIndex;
-  bool _isNavigating = false;
 
   static const List<_BottomNavItemData> _items = [
     _BottomNavItemData(
@@ -64,24 +59,11 @@ class _CustomBottomNavBarState extends State<CustomBottomNavBar> {
   }
 
   void _handleTap(int index) {
-    if (_isNavigating) return;
-
     setState(() {
       _selectedIndex = index;
     });
 
-    final bool shouldDelay = widget.delayedIndices.contains(index);
     if (widget.onTap == null) return;
-
-    if (shouldDelay) {
-      _isNavigating = true;
-      Future.delayed(widget.tapAnimationDuration, () {
-        if (!mounted) return;
-        _isNavigating = false;
-        widget.onTap!(index);
-      });
-      return;
-    }
 
     widget.onTap!(index);
   }

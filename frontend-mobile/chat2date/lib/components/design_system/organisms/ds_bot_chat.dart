@@ -119,7 +119,7 @@ class _DsBotChatState extends State<DsBotChat> {
   String get _resolvedTitle {
     if (widget.title != null) return widget.title!;
     return switch (_effectiveType) {
-      DsBotChatType.minigame || DsBotChatType.minigameFail => 'กลับไปเล่นใหม่อีกรอบ',
+      DsBotChatType.minigame || DsBotChatType.minigameFail => 'Guessing Time',
       DsBotChatType.ask || DsBotChatType.askAnswer => 'สุ่มได้สถานที่ : อควาเรียมบางแสน',
       DsBotChatType.askSuccess => 'สำเร็จ!',
       DsBotChatType.askFail => 'เสียใจด้วย!',
@@ -134,7 +134,7 @@ class _DsBotChatState extends State<DsBotChat> {
     if (widget.description != null) return widget.description!;
     return switch (_effectiveType) {
       DsBotChatType.minigame || DsBotChatType.minigameFail =>
-        'หมายเหตุ: เมื่อกดเริ่มแล้วจะไม่สามารถกลับ\nมาเล่นอีกรอบได้ควรคุยหรือรอคู่ของคุณก่อน',
+        'เมื่อครบ 2 คนกดเริ่ม เกมจะพาเข้าสู่คำถามทันที\nตอบให้ตรงกันเพื่อไปต่อยังรอบนัดเดต',
       DsBotChatType.ask || DsBotChatType.askAnswer => 'คุณอยากไปเที่ยวหรือไม่',
       DsBotChatType.askSuccess => 'กรุณากรอกวันที่ออกเดตของคุณในปฏิทิน',
       DsBotChatType.askFail => 'คุณทั้ง 2 คนความคิดเห็นไม่ตรงกัน',
@@ -147,7 +147,7 @@ class _DsBotChatState extends State<DsBotChat> {
       return _remainingLabel;
     }
     if (_effectiveType == DsBotChatType.minigameFail) {
-      return 'หมดเวลาแล้ว';
+      return widget.onActionPressed != null ? 'พร้อมเริ่มเกมรอบใหม่' : 'หมดเวลาแล้ว';
     }
     if (_effectiveType == DsBotChatType.ask || _effectiveType == DsBotChatType.askAnswer) {
       return 'ตอบแล้ว ${widget.answeredCount}/${widget.totalCount}';
@@ -253,7 +253,9 @@ class _DsBotChatState extends State<DsBotChat> {
           _isCenteredResult ? CrossAxisAlignment.center : CrossAxisAlignment.start,
       children: [
         if (widget.illustrationImage != null &&
-            (_effectiveType == DsBotChatType.ask ||
+            (_effectiveType == DsBotChatType.minigame ||
+                _effectiveType == DsBotChatType.minigameFail ||
+                _effectiveType == DsBotChatType.ask ||
                 _effectiveType == DsBotChatType.askAnswer)) ...[
           Center(
             child: Container(
@@ -311,12 +313,10 @@ class _DsBotChatState extends State<DsBotChat> {
             alignment: Alignment.center,
             child: DsButton(
               label: widget.actionLabel,
-              onPressed: _effectiveType == DsBotChatType.minigame
-                  ? widget.onActionPressed ?? () {}
-                  : null,
+              onPressed: widget.onActionPressed,
               variant: DsButtonVariant.primary,
               width: 231,
-              visualOverride: _effectiveType == DsBotChatType.minigameFail
+              visualOverride: widget.onActionPressed == null
                   ? DsButtonVisualState.disabled
                   : null,
             ),

@@ -1,6 +1,8 @@
-import 'package:chat2date/models/dto/game_dto.dart';
+import 'package:chat2date/core/theme/app_assets.dart';
 import 'package:chat2date/core/theme/app_colors.dart';
+import 'package:chat2date/models/dto/game_dto.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 
 class QuestionView extends StatefulWidget {
   final int currentQuestionIndex;
@@ -21,6 +23,8 @@ class QuestionView extends StatefulWidget {
 }
 
 class _QuestionViewState extends State<QuestionView> {
+  static const _answerFeedbackDuration = Duration(milliseconds: 280);
+
   bool _isAnswered = false;
   String? _selectedOption;
 
@@ -32,7 +36,8 @@ class _QuestionViewState extends State<QuestionView> {
       _selectedOption = option;
     });
 
-    Future.delayed(const Duration(milliseconds: 1500), () {
+    Future.delayed(const Duration(milliseconds: 1200), () {
+      if (!mounted) return;
       widget.onAnswer(option);
     });
   }
@@ -53,210 +58,263 @@ class _QuestionViewState extends State<QuestionView> {
     final questionNumber = widget.currentQuestionIndex + 1;
 
     return Scaffold(
-      backgroundColor: AppColors.surface, 
+      backgroundColor: AppColors.background,
       body: SafeArea(
-        child: Column(
-          children: [
-            const SizedBox(height: 20),
-            
-            // --- Header & Progress Bar ---
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 24),
-              child: Row(
-                children: [
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                    decoration: BoxDecoration(
-                      color: AppColors.brandPrimary200,
-                      borderRadius: BorderRadius.circular(20),
-                    ),
-                    child: Text(
-                      'ข้อที่ $questionNumber/${widget.totalQuestions}',
-                      style: const TextStyle(
-                        color: AppColors.brandOnPrimary,
-                        fontSize: 14,
-                        fontWeight: FontWeight.bold,
-                        fontFamily: 'Inter',
-                      ),
-                    ),
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(16, 20, 16, 30),
+          child: Column(
+            children: [
+              const Spacer(flex: 2),
+              AnimatedSwitcher(
+                duration: _answerFeedbackDuration,
+                switchInCurve: Curves.easeOutCubic,
+                switchOutCurve: Curves.easeInCubic,
+                transitionBuilder: (child, animation) {
+                  final slide = Tween<Offset>(
+                    begin: const Offset(0.06, 0),
+                    end: Offset.zero,
+                  ).animate(animation);
+                  return FadeTransition(
+                    opacity: animation,
+                    child: SlideTransition(position: slide, child: child),
+                  );
+                },
+                child: Container(
+                  key: ValueKey(widget.questionData.questionId),
+                  width: double.infinity,
+                  padding: const EdgeInsets.fromLTRB(19, 22, 19, 18),
+                  decoration: BoxDecoration(
+                    color: AppColors.background,
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(color: AppColors.inputBorder),
                   ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: ClipRRect(
-                      borderRadius: BorderRadius.circular(10),
-                      child: LinearProgressIndicator(
-                        value: questionNumber / widget.totalQuestions,
-                        backgroundColor: AppColors.neutral200,
-                        valueColor: const AlwaysStoppedAnimation<Color>(
-                          AppColors.brandPrimary,
+                  child: Column(
+                    children: [
+                      SvgPicture.asset(
+                        AppAssets.questionIllustration,
+                        width: 95,
+                        height: 95,
+                      ),
+                      const SizedBox(height: 12),
+                      Text(
+                        widget.questionData.text,
+                        textAlign: TextAlign.center,
+                        style: const TextStyle(
+                          color: AppColors.textBlack,
+                          fontSize: 16,
+                          fontWeight: FontWeight.w400,
+                          height: 22 / 16,
                         ),
-                        minHeight: 10,
                       ),
-                    ),
+                      AnimatedSwitcher(
+                        duration: _answerFeedbackDuration,
+                        child: !_isAnswered
+                            ? const SizedBox(height: 18)
+                            : Padding(
+                                key: ValueKey<String?>(
+                                  '${widget.questionData.questionId}$_selectedOption',
+                                ),
+                                padding: const EdgeInsets.only(top: 14, bottom: 2),
+                                child: _AnswerStatusChip(
+                                  isCorrect:
+                                      _selectedOption ==
+                                      widget.questionData.correct,
+                                ),
+                              ),
+                      ),
+                      if (!_isAnswered) const SizedBox(height: 18),
+                      for (int index = 0;
+                          index < widget.questionData.options.length;
+                          index++) ...[
+                        _QuestionOptionButton(
+                          label: widget.questionData.options[index],
+                          isAnswered: _isAnswered,
+                          isSelected:
+                              _selectedOption == widget.questionData.options[index],
+                          isCorrect:
+                              widget.questionData.correct ==
+                              widget.questionData.options[index],
+                          onTap: () =>
+                              _handleOptionTap(widget.questionData.options[index]),
+                        ),
+                        if (index != widget.questionData.options.length - 1)
+                          const SizedBox(height: 22),
+                      ],
+                    ],
                   ),
-                ],
-              ),
-            ),
-
-            const SizedBox(height: 30),
-
-            // --- Question Card (กล่องคำถาม) ---
-            Expanded(
-              child: Container(
-                width: double.infinity,
-                margin: const EdgeInsets.symmetric(horizontal: 20),
-                padding: const EdgeInsets.all(24),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: const BorderRadius.vertical(top: Radius.circular(32)),
-                  boxShadow: [
-                    BoxShadow(
-                      color: AppColors.brandAccentStrong.withOpacity(0.1),
-                      blurRadius: 20,
-                      offset: const Offset(0, -5),
-                    ),
-                  ],
-                ),
-                child: Column(
-                  children: [
-                    const Icon(Icons.psychology_alt_rounded, size: 40, color: AppColors.brandPrimary),
-                    const SizedBox(height: 16),
-                    
-                    Text(
-                      widget.questionData.text,
-                      style: const TextStyle(
-                        color: AppColors.textPrimary,
-                        fontSize: 24,
-                        fontFamily: 'Inter',
-                        fontWeight: FontWeight.w700,
-                        height: 1.4,
-                      ),
-                      textAlign: TextAlign.center,
-                    ),
-
-                    const SizedBox(height: 32),
-
-                    // --- Answer Options ---
-                    Expanded(
-                      child: ListView.separated(
-                        itemCount: widget.questionData.options.length,
-                        separatorBuilder: (_, __) => const SizedBox(height: 16),
-                        itemBuilder: (context, index) {
-                          final option = widget.questionData.options[index];
-                          return _CuteAnswerButton(
-                            option: option,
-                            isSelected: _isAnswered && _selectedOption == option,
-                            isCorrect: _isAnswered && widget.questionData.correct == option,
-                            isAnswered: _isAnswered,
-                            onTap: () => _handleOptionTap(option),
-                          );
-                        },
-                      ),
-                    ),
-                  ],
                 ),
               ),
-            ),
-          ],
+              const SizedBox(height: 24),
+              Text(
+                '$questionNumber/${widget.totalQuestions}',
+                style: const TextStyle(
+                  color: AppColors.textSecondary,
+                  fontSize: 14,
+                  fontWeight: FontWeight.w400,
+                  height: 20 / 14,
+                ),
+              ),
+              const SizedBox(height: 14),
+              _QuestionProgressBar(
+                value: questionNumber / widget.totalQuestions,
+              ),
+              const Spacer(flex: 3),
+            ],
+          ),
         ),
       ),
     );
   }
 }
 
-// Widget ปุ่ม: ปรับสีเป็นชมพูน่ารัก 💖
-class _CuteAnswerButton extends StatelessWidget {
-  final String option;
-  final bool isSelected;
-  final bool isCorrect;
-  final bool isAnswered;
-  final VoidCallback onTap;
-
-  const _CuteAnswerButton({
-    required this.option,
+class _QuestionOptionButton extends StatelessWidget {
+  const _QuestionOptionButton({
+    required this.label,
+    required this.isAnswered,
     required this.isSelected,
     required this.isCorrect,
-    required this.isAnswered,
     required this.onTap,
   });
 
+  final String label;
+  final bool isAnswered;
+  final bool isSelected;
+  final bool isCorrect;
+  final VoidCallback onTap;
+
   @override
   Widget build(BuildContext context) {
-    // 🎨 Palette สี
-    const pinkMain = Color(0xFFFF8FB3); // ชมพูหลัก (ตาม Theme surfaceLight)
-    
-    // Default State (ยังไม่ตอบ)
-    Color bgColor = Colors.white;
-    Color borderColor = pinkMain.withOpacity(0.5); // ขอบชมพูอ่อน
-    Color textColor = pinkMain;
-    double borderWidth = 1.5;
-    IconData? icon;
-    List<BoxShadow> shadows = [
-      BoxShadow(
-        color: pinkMain.withOpacity(0.1), // เงาชมพูจางๆ
-        blurRadius: 8,
-        offset: const Offset(0, 4),
-      )
-    ];
+    Color background = AppColors.background;
+    Color border = AppColors.textBlack;
+    Color text = AppColors.textBlack;
+    double scale = 1;
+    double opacity = 1;
+    List<BoxShadow>? boxShadow;
 
     if (isAnswered) {
       if (isCorrect) {
-        // ✅ ถูก: เขียว
-        bgColor = AppColors.success.withOpacity(0.2);
-        borderColor = AppColors.success;
-        textColor = AppColors.successText;
-        icon = Icons.check_circle_rounded;
-        shadows = [];
+        background = const Color(0xFF8BF78D);
+        border = const Color(0xFF3A9440);
+        scale = 1.02;
+        boxShadow = const [
+          BoxShadow(
+            color: Color(0x1A3A9440),
+            blurRadius: 16,
+            offset: Offset(0, 8),
+          ),
+        ];
       } else if (isSelected) {
-        // ❌ ผิด: แดง
-        bgColor = AppColors.error.withOpacity(0.1);
-        borderColor = AppColors.error;
-        textColor = AppColors.error;
-        icon = Icons.cancel_rounded;
-        shadows = [];
+        background = const Color(0xFFFF676C);
+        border = const Color(0xFFD93439);
+        scale = 1.02;
+        boxShadow = const [
+          BoxShadow(
+            color: Color(0x1AD93439),
+            blurRadius: 16,
+            offset: Offset(0, 8),
+          ),
+        ];
       } else {
-        // ⚪ ไม่เกี่ยว: จางลง
-        bgColor = AppColors.neutral50;
-        borderColor = AppColors.neutral200;
-        textColor = AppColors.textMuted;
-        shadows = [];
+        opacity = 0.72;
       }
     }
 
-    return GestureDetector(
-      onTap: onTap,
-      child: AnimatedContainer(
-        // ใช้ easeOutCubic ปลอดภัย ไม่พังแน่นอน
-        duration: const Duration(milliseconds: 300),
-        curve: Curves.easeOutCubic, 
-        margin: EdgeInsets.symmetric(horizontal: isSelected ? 0 : 4),
-        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-        decoration: BoxDecoration(
-          color: bgColor,
-          borderRadius: BorderRadius.circular(24), // มนๆ น่ารัก
-          border: Border.all(color: borderColor, width: borderWidth),
-          boxShadow: shadows,
-        ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Expanded(
-              child: Text(
-                option,
-                style: TextStyle(
-                  color: textColor,
-                  fontSize: 16,
-                  fontFamily: 'Inter',
-                  fontWeight: isSelected || isCorrect ? FontWeight.w700 : FontWeight.w600,
+    return AnimatedOpacity(
+      duration: _QuestionViewState._answerFeedbackDuration,
+      opacity: opacity,
+      child: AnimatedScale(
+        duration: _QuestionViewState._answerFeedbackDuration,
+        curve: Curves.easeOutBack,
+        scale: scale,
+        child: Material(
+          color: Colors.transparent,
+          child: InkWell(
+            onTap: isAnswered ? null : onTap,
+            borderRadius: BorderRadius.circular(22),
+            child: AnimatedContainer(
+              duration: _QuestionViewState._answerFeedbackDuration,
+              curve: Curves.easeOutCubic,
+              width: double.infinity,
+              height: 61,
+              decoration: BoxDecoration(
+                color: background,
+                borderRadius: BorderRadius.circular(22),
+                border: Border.all(color: border, width: 1.5),
+                boxShadow: boxShadow,
+              ),
+              child: Center(
+                child: Text(
+                  label,
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    color: text,
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                    height: 20 / 14,
+                  ),
                 ),
-                textAlign: TextAlign.center,
               ),
             ),
-            if (icon != null) ...[
-              const SizedBox(width: 8),
-              Icon(icon, color: textColor, size: 24),
-            ]
-          ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _AnswerStatusChip extends StatelessWidget {
+  const _AnswerStatusChip({required this.isCorrect});
+
+  final bool isCorrect;
+
+  @override
+  Widget build(BuildContext context) {
+    final background = isCorrect
+        ? const Color(0x1F8BF78D)
+        : const Color(0x1FFF676C);
+    final border = isCorrect
+        ? const Color(0xFF3A9440)
+        : const Color(0xFFD93439);
+    final label = isCorrect ? 'เลือกคำตอบนี้แล้ว' : 'ส่งคำตอบแล้ว';
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+      decoration: BoxDecoration(
+        color: background,
+        borderRadius: BorderRadius.circular(999),
+        border: Border.all(color: border),
+      ),
+      child: Text(
+        label,
+        style: TextStyle(
+          color: border,
+          fontSize: 12,
+          fontWeight: FontWeight.w700,
+          height: 16 / 12,
+        ),
+      ),
+    );
+  }
+}
+
+class _QuestionProgressBar extends StatelessWidget {
+  const _QuestionProgressBar({required this.value});
+
+  final double value;
+
+  @override
+  Widget build(BuildContext context) {
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(999),
+      child: SizedBox(
+        width: 290,
+        child: LinearProgressIndicator(
+          value: value.clamp(0.0, 1.0),
+          backgroundColor: const Color(0xFFE3E3E6),
+          valueColor: const AlwaysStoppedAnimation<Color>(
+            AppColors.brandPrimary,
+          ),
+          minHeight: 10,
         ),
       ),
     );

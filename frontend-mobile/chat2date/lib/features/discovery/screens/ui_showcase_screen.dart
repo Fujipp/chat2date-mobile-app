@@ -1702,7 +1702,6 @@ class _BottomNavShowcase extends StatelessWidget {
           width: 400,
           child: CustomBottomNavBar(
             selectedIndex: selectedIndex,
-            delayedIndices: const {},
             onTap: onTap,
           ),
         ),

@@ -24,7 +24,7 @@ class GuessingGameScreen extends ConsumerStatefulWidget {
 
 class _GuessingGameScreenState extends ConsumerState<GuessingGameScreen> {
   GameSocketService? _socketService;
-  StreamSubscription? _socketSubscription;
+  StreamSubscription<Map<String, dynamic>>? _socketSubscription;
 
   bool _canPop = false;
   bool _isExiting = false;
@@ -43,16 +43,13 @@ class _GuessingGameScreenState extends ConsumerState<GuessingGameScreen> {
   }
 
   void _connectSocket() {
-    final gameState = ref.read(gameProvider);
     final userStore = ref.read(userStoreProvider);
     final User? userObj = userStore['user'] as User?;
     final myUserId = userObj?.userId;
 
     if (myUserId == null) {
-      print("❌ CRITICAL ERROR: UserID is still NULL. Please Re-Login.");
       return;
     }
-
 
     if (widget.roomId != null) {
       _socketService = GameSocketService(
@@ -63,13 +60,9 @@ class _GuessingGameScreenState extends ConsumerState<GuessingGameScreen> {
       _socketService!.connect();
 
       _socketSubscription = _socketService!.gameStream.listen((payload) {
-        print("🎧 Socket Received in Screen: $payload");
-
         final type = payload['type'];
 
         if (type == 'GAME_CANCELLED') {
-          print("🚫 Game Cancelled by partner/server");
-
           if (mounted && !_isExiting) {
             setState(() {
               _isExiting = true;
@@ -126,12 +119,11 @@ class _GuessingGameScreenState extends ConsumerState<GuessingGameScreen> {
 
     return PopScope(
       canPop: _canPop,
-      onPopInvoked: (didPop) {
+      onPopInvokedWithResult: (didPop, _) {
         if (didPop) return;
         quitGame();
       },
       child: Scaffold(
-        // resizeToAvoidBottomInset: false,
         backgroundColor: Colors.white,
         body: _buildCurrentView(gameState),
       ),
@@ -139,25 +131,14 @@ class _GuessingGameScreenState extends ConsumerState<GuessingGameScreen> {
   }
 
   Widget _buildCurrentView(GameState state) {
-    // 1. Loading (ตอนดึงข้อมูลครั้งแรก)
-    print("🎨 Building view:");
-    print("   isLoading: ${state.isLoading}");
-    print("   isGameOver: ${state.isGameOver}");
-    print("   hasUserFinishedAll: ${state.hasUserFinishedAll}");
-    print("   hasStartedGame: ${state.hasStartedGame}");
-
     if (state.isLoading) {
-      print("   → Showing CircularProgressIndicator");
       return const Center(child: CircularProgressIndicator());
     }
 
-    // 2. Error
     if (state.error != null) {
-      print("   → Showing Error");
       return Center(child: Text('Error: ${state.error}'));
     }
 
-    // 3. Result View (เกมจบสมบูรณ์)
     if (state.isGameOver) {
       return ResultView(
         score: state.totalScore,
@@ -172,7 +153,6 @@ class _GuessingGameScreenState extends ConsumerState<GuessingGameScreen> {
       );
     }
 
-    // 4. Waiting View (ยังไม่ได้กดเริ่ม)
     if (!state.hasStartedGame) {
       return WaitingView(
         myAvatarUrl: state.myAvatar,
@@ -188,32 +168,18 @@ class _GuessingGameScreenState extends ConsumerState<GuessingGameScreen> {
       );
     }
 
-    // 5. Loading View (ตอบครบแล้ว แต่รอคู่)
     if (state.hasUserFinishedAll) {
       return LoadingView(
         partnerProgress: state.partnerAnsweredCount,
         totalQuestions: state.questions.length,
         onBothComplete: () async {
-          print("🔄 Loading complete callback triggered");
-
           if (state.gameId != null) {
             try {
               final refreshedData = await ref
                   .read(gameServiceProvider)
                   .getGameInfo(state.gameId!);
-              ref.read(gameProvider.notifier).state = ref
-                  .read(gameProvider)
-                  .copyWith(
-                    isGameOver: refreshedData.status == 'COMPLETED',
-                    totalScore: refreshedData.totalScore,
-                    relationshipScore: refreshedData.relationshipScore,
-                  );
-              print(
-                "🔄 Refreshed state: isGameOver = ${ref.read(gameProvider).isGameOver}",
-              );
+              ref.read(gameProvider.notifier).syncFromGameInfo(refreshedData);
             } catch (e) {
-              print("❌ Refresh failed: $e");
-
               ref.read(gameProvider.notifier).onGameOverBySocket();
             }
           } else {
@@ -223,7 +189,6 @@ class _GuessingGameScreenState extends ConsumerState<GuessingGameScreen> {
       );
     }
 
-    // 6. Question View (กำลังเล่น)
     if (state.questions.isNotEmpty) {
       final currentQ = state.questions[state.currentIndex];
       return QuestionView(

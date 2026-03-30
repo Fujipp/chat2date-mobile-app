@@ -1,5 +1,5 @@
 import 'package:chat2date/core/utils/backend_datetime_parser.dart';
-import 'package:geolocator/geolocator.dart';
+import 'package:flutter/foundation.dart';
 
 /// ประเภทข้อความ Bot ตาม Figma design
 enum BotMessageType {
@@ -129,6 +129,7 @@ class ChatMessage {
     BotMessageType? mappedBotType;
     String? displayTitle;
     String? displayDescription;
+    String? displaySubDescription;
     String? btnText;
     int? answerCount;
 
@@ -136,29 +137,32 @@ class ChatMessage {
       if (typeStr == 'GAME') {
         isBotMessage = true;
         mappedBotType = BotMessageType.minigame;
-        displayTitle = "🎮 Guessing Game";
-
-        displayDescription = message;
+        displayTitle = 'Guessing Time';
+        displayDescription = message.trim().isNotEmpty
+            ? message
+            : 'เมื่อครบ 2 คนกดเริ่ม เกมจะพาเข้าสู่คำถามทันที';
+        displaySubDescription = 'ตอบให้ตรงกันเพื่อไปต่อยังรอบนัดเดต';
 
         // Debug log เพื่อตรวจสอบค่า isRead ที่ได้รับจาก API
-        print(
+        debugPrint(
           '[ChatMessage.fromApi] messageId=${json['messageId']}, senderId=$senderId, currentUserId=$currentUserId, isOwn=$isOwn, rawRead=$rawRead (${rawRead.runtimeType}), messageRead=$messageRead, isSeen=${isOwn && messageRead}',
         );
-        btnText = "เข้าร่วม / เริ่มเกม";
+        btnText = 'ไปที่เกม';
       } else if (typeStr == 'FAIL' &&
           message.contains('ความคิดเห็นที่ไม่ตรงกัน')) {
         isBotMessage = true;
-        displayTitle = "เสียใจด้วย!";
+        displayTitle = 'เสียใจด้วย!';
         displayDescription = message;
         mappedBotType = BotMessageType.askFail;
       } else if (typeStr == 'FAIL') {
         isBotMessage = true;
         mappedBotType = BotMessageType.minigameFail;
-        displayTitle = "⚠️ เกมจบไม่สมบูรณ์";
-
-        displayDescription = message;
-
-        btnText = "เริ่มเกมใหม่";
+        displayTitle = 'Guessing Time';
+        displayDescription = message.trim().isNotEmpty
+            ? message
+            : 'รอบนี้ยังไม่สมบูรณ์ คุณสามารถเริ่มใหม่ได้เมื่อระบบอนุญาต';
+        displaySubDescription = 'ยังไม่สามารถไปยังรอบนัดเดตได้';
+        btnText = 'ดูสถานะเกม';
       } else if (typeStr == 'DATE') {
         isBotMessage = true;
         mappedBotType = BotMessageType.ask;
@@ -202,6 +206,7 @@ class ChatMessage {
       isBot: isBotMessage,
       botType: mappedBotType,
       description: displayDescription,
+      subDescription: displaySubDescription,
       actionButtonText: btnText,
       isActionDisabled: false,
       answeredCount: answerCount,

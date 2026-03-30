@@ -161,6 +161,7 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
   //Game
   GameSocketService? _gameSocketService;
   StreamSubscription? _gameSubscription;
+  bool _didScheduleBootstrap = false;
 
   //Location
   List<String> _emergencyNumbers = [];
@@ -250,9 +251,22 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
       _chatUserImages = [widget.avatarUrl!];
     }
     _scrollController.addListener(_handleScroll);
-    _initUpdateRelationshipBar(false);
-    _initializeChat();
+    _scheduleBootstrap();
+  }
+
+  void _scheduleBootstrap() {
+    if (_didScheduleBootstrap) return;
+    _didScheduleBootstrap = true;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      unawaited(_bootstrapChatScreen());
+    });
+  }
+
+  Future<void> _bootstrapChatScreen() async {
+    unawaited(_initUpdateRelationshipBar(false));
     _initGameSocket();
+    await _initializeChat();
   }
 
   void _handleScroll() {
@@ -293,10 +307,12 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
 
         case 'RETRY_AVAILABLE':
           _addLocalBotMessage(
-            type: BotMessageType.minigameFail,
-            text: "เกมรอบที่แล้วยังไม่จบ/หลุด",
-            description: "คุณสามารถเริ่มเกมใหม่ได้ทันที",
-            actionText: "เริ่มเกมใหม่",
+            type: BotMessageType.minigame,
+            text: 'Guessing Time',
+            description:
+                'เกมรอบก่อนหน้าสิ้นสุดลงแล้ว คุณและคู่เดตสามารถกดเริ่มใหม่เพื่อเล่นรอบถัดไปได้ทันที',
+            subDescription: 'เมื่อครบ 2 คนกดเริ่ม เกมจะเปิดคำถามให้พร้อมกัน',
+            actionText: 'เล่นอีกรอบ',
             isDisabled: false,
             remainingSeconds: statusData.remainingSeconds?.toInt() ?? 0,
             onAction: () {
@@ -308,10 +324,11 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
         // 🟢 กรณีชนะ/จบสมบูรณ์ (ต้องรอหลอดถัดไป)
         case 'COMPLETED_FINISHED':
           _addLocalBotMessage(
-            type: BotMessageType.askSuccess, // หรือ minigameFail แล้วแต่ดีไซน์
-            text: "คุณเล่นเกมรอบนี้สำเร็จแล้ว",
-            description: "กรุณารอสะสมหลอดความสัมพันธ์เพื่อเล่นรอบถัดไป",
-            actionText: "เจอกันรอบหน้า",
+            type: BotMessageType.askSuccess,
+            text: 'Guessing Time',
+            description:
+                'คุณเล่นเกมรอบนี้เสร็จสมบูรณ์แล้ว กรุณารอให้หลอดความสัมพันธ์พร้อมก่อนเริ่มรอบถัดไป',
+            actionText: 'เจอกันรอบหน้า',
             isDisabled: true, // ❌ ปุ่มกดไม่ได้
           );
           break;
@@ -320,15 +337,17 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
         case 'EXPIRED':
           _addLocalBotMessage(
             type: BotMessageType.minigameFail,
-            text: "หมดเวลาการเล่นรอบนี้",
-            description: "คุณพลาดโอกาสในรอบนี้ไปแล้ว",
-            actionText: "ไม่สามารถเล่นได้",
+            text: 'Guessing Time',
+            description:
+                'หมดเวลาของรอบนี้แล้ว คุณพลาดโอกาสของรอบก่อนหน้าไป กรุณารอรอบถัดไปจากระบบ',
+            subDescription: 'ตอนนี้ยังไม่สามารถเข้าเกมได้',
+            actionText: 'หมดเวลาแล้ว',
             isDisabled: true,
           );
           break;
       }
     } catch (e) {
-      print("Error checking game: $e");
+      debugPrint('Error checking game: $e');
     }
   }
 
@@ -370,6 +389,7 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
     required BotMessageType type,
     required String text,
     String? description,
+    String? subDescription,
     String? actionText,
     bool isDisabled = false,
     int? remainingSeconds,
@@ -383,6 +403,7 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
       timestamp: DateTime.now(),
       botType: type,
       description: description,
+      subDescription: subDescription,
       actionButtonText: actionText,
       isActionDisabled: isDisabled,
       remainingSeconds: remainingSeconds,
@@ -437,7 +458,7 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
         if (m.isBot && !(m.isActionDisabled ?? false)) {
           return m.copyWith(
             isActionDisabled: true,
-            actionButtonText: "เริ่มเกมไปแล้ว",
+            actionButtonText: 'กำลังเข้าสู่เกม...',
           );
         }
         return m;
@@ -554,11 +575,13 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
   Future<void> _initializeChat() async {
     await _enterRoomOnce();
     await _loadChatRoomMessages();
-    await _loadChatUserMeta();
-    await _fetchInitialAppointment();
-    await _initConfirmStatus();
-    await _checkSpinWheelCondition();
-    await _checkAndShowReviewModal();
+    await Future.wait<void>([
+      _loadChatUserMeta(),
+      _fetchInitialAppointment(),
+      _initConfirmStatus(),
+      _checkSpinWheelCondition(),
+      _checkAndShowReviewModal(),
+    ]);
     try {
       final numbers = await ref
           .read(emergencyCallServiceProvider)
@@ -682,12 +705,14 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
 
     try {
       final chatService = ref.read(chatServiceProvider);
-      final roomData = await chatService.getChatMessages(roomId);
-      final gameStatus = await ref
-          .read(gameServiceProvider)
-          .checkGameStatus(int.parse(roomId));
+      final results = await Future.wait<dynamic>([
+        chatService.getChatMessages(roomId),
+        ref.read(gameServiceProvider).checkGameStatus(int.parse(roomId)),
+      ]);
       if (!mounted) return;
-      final sortedMessages = [...roomData.messages]
+      final roomData = results[0] as dynamic;
+      final gameStatus = results[1] as dynamic;
+      final sortedMessages = List<ChatMessage>.from(roomData.messages)
         ..sort((a, b) => a.timestamp.compareTo(b.timestamp));
       setState(() {
         _messages = sortedMessages;
@@ -714,10 +739,10 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
         }
       });
       _ensureLatestMessagePinned();
-      await _restoreLatestSpunPlacePreview();
+      unawaited(_restoreLatestSpunPlacePreview());
       _startChatSocket();
-      await _syncAccessStatus();
-      _checkSpinWheelCondition();
+      unawaited(_syncAccessStatus());
+      unawaited(_checkSpinWheelCondition());
     } catch (e) {
       if (!mounted) return;
       setState(() {
@@ -1128,6 +1153,17 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
       }
     }
 
+    return null;
+  }
+
+  ImageProvider<Object>? _botIllustrationProvider(ChatMessage message) {
+    if (message.botType == BotMessageType.ask) {
+      return _botPlaceImageProvider(message);
+    }
+    if (message.botType == BotMessageType.minigame ||
+        message.botType == BotMessageType.minigameFail) {
+      return const AssetImage(AppAssets.botChatIllustration);
+    }
     return null;
   }
 
@@ -3162,7 +3198,7 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
         answeredCount: message.answeredCount ?? 0,
         totalCount: message.totalCount ?? 2,
         createdAt: message.timestamp,
-        illustrationImage: _botPlaceImageProvider(message),
+        illustrationImage: _botIllustrationProvider(message),
         onActionPressed: () async {
           if (message.botType == BotMessageType.ask && isAlreadyActioned) {
             return;

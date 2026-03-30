@@ -15,13 +15,15 @@ class MainTabs extends StatefulWidget {
 
 class _MainTabsState extends State<MainTabs> {
   late int _index;
-  late List<Key> _pageKeys;
+  late final List<Key> _pageKeys;
+  late final List<Widget> _pages;
 
   @override
   void initState() {
     super.initState();
     _index = widget.initialIndex;
     _pageKeys = List<Key>.generate(4, (_) => UniqueKey());
+    _pages = List<Widget>.generate(4, _buildPage);
   }
 
   Widget _buildPage(int i) {
@@ -39,33 +41,30 @@ class _MainTabsState extends State<MainTabs> {
     }
   }
 
-  late final List<Widget> _pages = <Widget>[
-    _buildPage(0),
-    _buildPage(1),
-    _buildPage(2),
-    _buildPage(3),
-  ];
+  void _onTabTap(int i) {
+    if (i == _index) {
+      if (i == 0) return;
+      setState(() {
+        _pageKeys[i] = UniqueKey();
+        _pages[i] = _buildPage(i);
+      });
+    } else {
+      setState(() {
+        _index = i;
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: IndexedStack(index: _index, children: _pages),
+      body: IndexedStack(
+        index: _index,
+        children: _pages,
+      ),
       bottomNavigationBar: CustomBottomNavBar(
         selectedIndex: _index,
-        onTap: (i) {
-          if (i == _index) {
-            if (i == 0) {
-              return;
-            }
-
-            setState(() {
-              _pageKeys[i] = UniqueKey();
-              _pages[i] = _buildPage(i);
-            });
-          } else {
-            setState(() => _index = i);
-          }
-        },
+        onTap: _onTabTap,
       ),
     );
   }

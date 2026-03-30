@@ -1,4 +1,6 @@
-import 'package:chat2date/components/buttons/ds_button.dart';
+import 'package:chat2date/components/design_system/buttons/ds_button.dart';
+import 'package:chat2date/components/design_system/organisms/ds_bot_chat.dart';
+import 'package:chat2date/core/theme/app_colors.dart';
 import 'package:flutter/material.dart';
 
 class ResultView extends StatelessWidget {
@@ -27,81 +29,131 @@ class ResultView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final baseScore = relationshipScore ?? 50;
+    final baseScore = relationshipScore ?? 0;
     final gameBonus = matchedAnswers;
-    final totalScore = baseScore + gameBonus;
+    final totalRelationshipScore = baseScore + gameBonus;
+    final totalPercent = (totalRelationshipScore / 100).clamp(0.0, 1.0);
+    final basePercent = (baseScore / 100).clamp(0.0, 1.0);
+    final hasPositiveResult = gameBonus > 0;
 
-    return SafeArea(
-      child: SingleChildScrollView(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 32.0),
+    return Scaffold(
+      backgroundColor: AppColors.background,
+      body: SafeArea(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.fromLTRB(16, 72, 16, 32),
           child: Column(
             children: [
-              const SizedBox(height: 60),
-
-              // Title
-              SizedBox(
+              const Text(
+                'สรุปผลคำตอบ',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  color: AppColors.textBlack,
+                  fontSize: 16,
+                  fontWeight: FontWeight.w700,
+                  height: 22 / 16,
+                ),
+              ),
+              const SizedBox(height: 2),
+              Text(
+                'คะแนนรวมกับของทั้งคู่ : $score',
+                textAlign: TextAlign.center,
+                style: const TextStyle(
+                  color: AppColors.textSecondary,
+                  fontSize: 14,
+                  fontWeight: FontWeight.w400,
+                  height: 20 / 14,
+                ),
+              ),
+              const SizedBox(height: 14),
+              Align(
+                alignment: Alignment.centerLeft,
+                child: DsBotChat(
+                  width: 310,
+                  type: hasPositiveResult
+                      ? DsBotChatType.askSuccess
+                      : DsBotChatType.askFail,
+                  title: hasPositiveResult
+                      ? 'เยี่ยมมาก!'
+                      : 'ครั้งหน้าต้องได้ดีกว่านี้',
+                  description: hasPositiveResult
+                      ? 'คุณกับคู่เดตตอบตรงกัน $gameBonus ข้อ และได้รับคะแนนความสัมพันธ์เพิ่ม'
+                      : 'รอบนี้คำตอบยังไม่ค่อยตรงกัน ลองคุยกันอีกนิดแล้วกลับมาเล่นใหม่ได้',
+                ),
+              ),
+              const SizedBox(height: 18),
+              Container(
                 width: double.infinity,
+                padding: const EdgeInsets.fromLTRB(20, 14, 20, 14),
+                decoration: BoxDecoration(
+                  color: AppColors.background,
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(color: AppColors.inputBorder),
+                ),
                 child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
-                    const Text(
-                      'สรุปผลคำตอบ',
-                      style: TextStyle(
-                        color: Color(0xFF0F172A),
-                        fontSize: 32,
-                        fontFamily: 'Inter',
-                        fontWeight: FontWeight.w400,
+                    Text(
+                      '+$gameBonus',
+                      style: const TextStyle(
+                        color: AppColors.textBlack,
+                        fontSize: 24,
+                        fontWeight: FontWeight.w700,
+                        height: 32 / 24,
                       ),
+                    ),
+                    const Text(
+                      'คะแนนที่ได้รับ',
+                      style: TextStyle(
+                        color: AppColors.textBlack,
+                        fontSize: 14,
+                        fontWeight: FontWeight.w400,
+                        height: 20 / 14,
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    _ResultProgressBar(
+                      basePercent: basePercent,
+                      totalPercent: totalPercent,
+                      bonusLabel: '+$gameBonus',
                     ),
                     const SizedBox(height: 12),
                     Text(
-                      'คะแนนรวมของทั้งคู่: $totalScore',
+                      'คะแนนความสัมพันธ์ = $totalRelationshipScore คะแนน',
                       style: const TextStyle(
-                        color: Color(0xFF64748B),
-                        fontSize: 20,
-                        fontFamily: 'Inter',
+                        color: AppColors.textBlack,
+                        fontSize: 14,
                         fontWeight: FontWeight.w400,
+                        height: 20 / 14,
                       ),
                     ),
                   ],
                 ),
               ),
-
-              const SizedBox(height: 30),
-
-              // Score display with gradient progress bar
-              _buildScoreProgress(
-                baseScore: baseScore,
-                gameBonus: gameBonus,
-                totalScore: totalScore,
-              ),
-
-              const SizedBox(height: 20),
-
-              // Player scores
+              const SizedBox(height: 22),
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  _buildPlayerScore(
+                  _ResultPlayerScore(
                     label: 'คุณ',
                     score: myScore,
                     avatarUrl: myAvatarUrl,
                   ),
-                  const SizedBox(width: 50),
-                  _buildPlayerScore(
+                  const SizedBox(width: 28),
+                  const Icon(
+                    Icons.favorite_rounded,
+                    color: AppColors.brandPrimary,
+                    size: 24,
+                  ),
+                  const SizedBox(width: 28),
+                  _ResultPlayerScore(
                     label: 'คู่',
                     score: partnerScore,
                     avatarUrl: partnerAvatarUrl,
                   ),
                 ],
               ),
-
-              const SizedBox(height: 50),
-
-              // Finish button
+              const SizedBox(height: 26),
               SizedBox(
-                width: double.infinity,
+                width: 231,
                 child: DsButton(
                   label: 'กลับ',
                   onPressed: onFinish,
@@ -109,265 +161,133 @@ class ResultView extends StatelessWidget {
                   size: DsButtonSize.md,
                 ),
               ),
-
-              const SizedBox(height: 60),
             ],
           ),
         ),
       ),
     );
   }
+}
 
-  Widget _buildScoreProgress({
-    required int baseScore,
-    required int gameBonus,
-    required int totalScore,
-  }) {
-    final maxScore = 100.0;
-    final basePercent = (baseScore / maxScore).clamp(0.0, 1.0);
-    final totalPercent = (totalScore / maxScore).clamp(0.0, 1.0);
+class _ResultProgressBar extends StatelessWidget {
+  const _ResultProgressBar({
+    required this.basePercent,
+    required this.totalPercent,
+    required this.bonusLabel,
+  });
 
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(24),
-      decoration: BoxDecoration(
-        color: const Color(0xFFF8FAFC),
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: const Color(0xFFE2E8F0), width: 1),
-      ),
-      child: Column(
-        children: [
-          // Score number
-          Text(
-            '+$gameBonus',
-            style: const TextStyle(
-              color: Color(0xFF0F172A),
-              fontSize: 48,
-              fontFamily: 'Inter',
-              fontWeight: FontWeight.w700,
-            ),
-          ),
+  final double basePercent;
+  final double totalPercent;
+  final String bonusLabel;
 
-          const SizedBox(height: 8),
+  @override
+  Widget build(BuildContext context) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final totalWidth = constraints.maxWidth;
+        final bonusLeft = (totalWidth * totalPercent - 20).clamp(
+          totalWidth * basePercent,
+          totalWidth - 40,
+        );
 
-          const Text(
-            'คะแนนที่ได้รับ',
-            style: TextStyle(
-              color: Color(0xFF64748B),
-              fontSize: 14,
-              fontFamily: 'Inter',
-              fontWeight: FontWeight.w500,
-            ),
-          ),
-
-          const SizedBox(height: 24),
-
-          // Progress bar
-          LayoutBuilder(
-            builder: (context, constraints) {
-              final barWidth = constraints.maxWidth;
-
-              return Container(
-                height: 24,
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(100),
-                ),
-                child: Stack(
-                  children: [
-                    // Background (gray)
-                    Container(
-                      width: double.infinity,
-                      height: 24,
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFE0E0E0),
-                        borderRadius: BorderRadius.circular(100),
-                      ),
-                    ),
-
-                    // Total progress (green)
-                    FractionallySizedBox(
-                      alignment: Alignment.centerLeft,
-                      widthFactor: totalPercent,
-                      child: Container(
-                        height: 24,
-                        decoration: BoxDecoration(
-                          color: const Color(0xFF98FB98),
-                          borderRadius: BorderRadius.circular(100),
-                        ),
-                      ),
-                    ),
-
-                    // Base score (pink)
-                    FractionallySizedBox(
-                      alignment: Alignment.centerLeft,
-                      widthFactor: basePercent,
-                      child: Container(
-                        height: 24,
-                        decoration: BoxDecoration(
-                          color: const Color(0xFFFF8FB3),
-                          borderRadius: BorderRadius.circular(100),
-                        ),
-                      ),
-                    ),
-
-                    // Score text on the bar
-                    if (gameBonus > 0)
-                      Positioned(
-                        left: (basePercent * barWidth).clamp(
-                          20.0,
-                          barWidth - 40,
-                        ),
-                        top: 0,
-                        bottom: 0,
-                        child: Center(
-                          child: Text(
-                            '+$gameBonus',
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontSize: 12,
-                              fontFamily: 'Inter',
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                        ),
-                      ),
-                  ],
-                ),
-              );
-            },
-          ),
-
-          const SizedBox(height: 16),
-
-          // Score breakdown
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
+        return SizedBox(
+          height: 26,
+          child: Stack(
             children: [
-              _buildScoreInfo(
-                color: const Color(0xFFFF8FB3),
-                label: 'คะแนนความสัมพันธ์',
-                score: baseScore,
-              ),
-              const SizedBox(width: 16),
-              const Text(
-                '+',
-                style: TextStyle(
-                  color: Color(0xFF64748B),
-                  fontSize: 16,
-                  fontWeight: FontWeight.w600,
+              Positioned.fill(
+                child: Container(
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFE3E3E6),
+                    borderRadius: BorderRadius.circular(999),
+                  ),
                 ),
               ),
-              const SizedBox(width: 16),
-              _buildScoreInfo(
-                color: const Color(0xFF98FB98),
-                label: 'เกมนี้',
-                score: gameBonus,
-              ),
-              const SizedBox(width: 16),
-              const Text(
-                '=',
-                style: TextStyle(
-                  color: Color(0xFF64748B),
-                  fontSize: 16,
-                  fontWeight: FontWeight.w600,
+              FractionallySizedBox(
+                widthFactor: totalPercent,
+                child: Container(
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFFFD20A),
+                    borderRadius: BorderRadius.circular(999),
+                  ),
                 ),
               ),
-              const SizedBox(width: 16),
-              Text(
-                '$totalScore คะแนน',
-                style: const TextStyle(
-                  color: Color(0xFF0F172A),
-                  fontSize: 16,
-                  fontFamily: 'Inter',
-                  fontWeight: FontWeight.w700,
+              FractionallySizedBox(
+                widthFactor: basePercent,
+                child: Container(
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF2D2D2D),
+                    borderRadius: BorderRadius.circular(999),
+                  ),
+                ),
+              ),
+              Positioned(
+                left: bonusLeft,
+                top: 0,
+                bottom: 0,
+                child: Center(
+                  child: Text(
+                    bonusLabel,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 14,
+                      fontWeight: FontWeight.w700,
+                      height: 20 / 14,
+                    ),
+                  ),
                 ),
               ),
             ],
           ),
-        ],
-      ),
+        );
+      },
     );
   }
+}
 
-  Widget _buildScoreInfo({
-    required Color color,
-    required String label,
-    required int score,
-  }) {
+class _ResultPlayerScore extends StatelessWidget {
+  const _ResultPlayerScore({
+    required this.label,
+    required this.score,
+    required this.avatarUrl,
+  });
+
+  final String label;
+  final int score;
+  final String avatarUrl;
+
+  @override
+  Widget build(BuildContext context) {
     return Column(
       children: [
-        Container(
-          width: 12,
-          height: 12,
-          decoration: BoxDecoration(color: color, shape: BoxShape.circle),
+        CircleAvatar(
+          radius: 30,
+          backgroundColor: AppColors.inputBorder,
+          backgroundImage: avatarUrl.isNotEmpty ? NetworkImage(avatarUrl) : null,
+          child: avatarUrl.isEmpty
+              ? const Icon(
+                  Icons.person_rounded,
+                  size: 34,
+                  color: AppColors.textSecondary,
+                )
+              : null,
         ),
-        const SizedBox(height: 4),
-        Text(
-          label,
-          style: const TextStyle(
-            color: Color(0xFF64748B),
-            fontSize: 10,
-            fontFamily: 'Inter',
-            fontWeight: FontWeight.w500,
-          ),
-        ),
-        Text(
-          '$score',
-          style: TextStyle(
-            color: color,
-            fontSize: 14,
-            fontFamily: 'Inter',
-            fontWeight: FontWeight.w700,
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildPlayerScore({
-    required String label,
-    required int score,
-    required String avatarUrl,
-  }) {
-    return Column(
-      children: [
-        // Avatar
-        Container(
-          width: 100,
-          height: 100,
-          decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            border: Border.all(color: const Color(0xFFE2E8F0), width: 3),
-            image: DecorationImage(
-              image: NetworkImage(avatarUrl),
-              fit: BoxFit.cover,
-            ),
-          ),
-        ),
-
-        const SizedBox(height: 12),
-
-        // Score
+        const SizedBox(height: 8),
         Text(
           '$score คะแนน',
           style: const TextStyle(
-            color: Color(0xFF0F172A),
-            fontSize: 16,
-            fontFamily: 'Inter',
-            fontWeight: FontWeight.w600,
+            color: AppColors.textBlack,
+            fontSize: 14,
+            fontWeight: FontWeight.w700,
+            height: 20 / 14,
           ),
         ),
-
-        const SizedBox(height: 4),
-
-        // Label
         Text(
           label,
           style: const TextStyle(
-            color: Color(0xFF64748B),
+            color: AppColors.textBlack,
             fontSize: 14,
-            fontFamily: 'Inter',
             fontWeight: FontWeight.w400,
+            height: 20 / 14,
           ),
         ),
       ],

@@ -1,5 +1,6 @@
 import 'package:chat2date/models/dto/game_dto.dart';
 import 'package:chat2date/services/game_service.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 class GameState {
@@ -94,8 +95,8 @@ class GameNotifier extends StateNotifier<GameState> {
   void socketMessage(Map<String, dynamic> payload, String userId) {
     final type = payload['type'];
 
-    print("📩 Socket Message Type: $type");
-    print("📩 Payload: $payload");
+    debugPrint('Game socket type: $type');
+    debugPrint('Game socket payload: $payload');
 
     if (type == 'PLAYER_READY') {
       final List<dynamic> readyPlayerIds = payload['readyPlayerIds'] ?? [];
@@ -116,7 +117,7 @@ class GameNotifier extends StateNotifier<GameState> {
     }
 
     if (type == 'GAME_START') {
-      print("🎮 🎮 🎮 Received GAME_START via Socket!");
+      debugPrint('Game started via socket');
       state = state.copyWith(hasStartedGame: true, isLoading: false);
     }
 
@@ -143,11 +144,9 @@ class GameNotifier extends StateNotifier<GameState> {
             payload['answeredCount'] ?? state.partnerAnsweredCount;
       }
 
-      print("🔢 Updating Scores from Socket:");
-      print("   My Score: $myNewScore");
-      print("   Partner Score: $partnerNewScore");
-      print("   Total Score: ${payload['roomTotalScore']}");
-      print("   Partner Answered Count: $newPartnerAnsweredCount"); 
+      debugPrint(
+        'Score update: my=$myNewScore partner=$partnerNewScore total=${payload['roomTotalScore']} partnerAnswered=$newPartnerAnsweredCount',
+      );
 
       state = state.copyWith(
         totalScore: payload['roomTotalScore'],
@@ -171,12 +170,9 @@ class GameNotifier extends StateNotifier<GameState> {
         throw Exception("Missing roomId or gameId");
       }
 
-      print("📦 API Response:");
-      print("   relationshipScore: ${data.relationshipScore}");
-      print("   myScore: ${data.myScore}");
-      print("   partnerScore: ${data.partnerScore}");
-      print("   totalScore: ${data.totalScore}");
-      print("   status: ${data.status}");
+      debugPrint(
+        'Game init: relationship=${data.relationshipScore} my=${data.myScore} partner=${data.partnerScore} total=${data.totalScore} status=${data.status}',
+      );
 
       int startIndex = data.myAnsweredQuestionIds.length;
       bool shouldStartImmediately = resumeGameId != null || startIndex > 0;
@@ -207,12 +203,22 @@ class GameNotifier extends StateNotifier<GameState> {
       if (state.gameId == null) return;
       await _service.sendPlayerReady(state.gameId!);
     } catch (e) {
-      print("Error sending ready: $e");
+      debugPrint('Error sending ready: $e');
     }
   }
 
   void startGame() {
     state = state.copyWith(hasStartedGame: true);
+  }
+
+  void syncFromGameInfo(GameInfoResponseDto data) {
+    state = state.copyWith(
+      isGameOver: data.status == 'COMPLETED',
+      totalScore: data.totalScore,
+      relationshipScore: data.relationshipScore,
+      myScore: data.myScore,
+      partnerScore: data.partnerScore,
+    );
   }
 
   Future<bool> submitAnswer(String selectedOption) async {
@@ -235,7 +241,7 @@ class GameNotifier extends StateNotifier<GameState> {
 
       return result.isCorrect;
     } catch (e) {
-      print("Error answering: $e");
+      debugPrint('Error answering: $e');
       return false;
     }
   }
