@@ -633,7 +633,9 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
         return;
       }
 
-      final status = await ref.read(chatServiceProvider).getAccessStatus(roomId);
+      final status = await ref
+          .read(chatServiceProvider)
+          .getAccessStatus(roomId);
       final leaderStillPresent = status.roomMember.any(
         (member) => member.userId == leaderId && member.type == 'ENTER',
       );
@@ -2200,7 +2202,7 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
     final appt = _existingAppointment;
     if (appt == null) return;
 
-    setState(() => _isReviewing = true); 
+    setState(() => _isReviewing = true);
     showDialog(
       context: context,
       barrierDismissible: false,
@@ -2668,8 +2670,8 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
   Widget build(BuildContext context) {
     final latestOwnIndex = _findLatestOwnMessageIndex();
     return WillPopScope(
-        if (_isReviewing) return false; 
       onWillPop: () async {
+        if (_isReviewing) return false;
         await _exitRoomOnce();
         return true;
       },
