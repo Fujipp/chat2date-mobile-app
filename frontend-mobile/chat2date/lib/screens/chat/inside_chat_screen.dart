@@ -86,6 +86,7 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
   int _indexSelected = 1;
   String? _leaderId;
   double _currentRange = 20;
+  bool _isSpinSessionActive = false;
 
   // === Appointment / Calendar ===
   Appointment? _existingAppointment;
@@ -804,6 +805,7 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
               payload['leaderId']?.toString() ?? '';
 
           setState(() {
+            _isSpinSessionActive = true;
             _showWheelModal = true;
             _leaderId = leaderIdFromSocket;
 
@@ -929,6 +931,7 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
 
   void _clearWheelState() {
     setState(() {
+      _isSpinSessionActive = false;
       _showWheelModal = false;
       _leaderId = null;
       winningIndex = null;
@@ -1316,6 +1319,13 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
 
   /// จัดการการกด spinwheel
   void _handleSpinwheelTap() async {
+    if (_isSpinSessionActive && _leaderId != null) {
+      setState(() {
+        _showWheelModal = true;
+      });
+      return;
+    }
+
     if (!_canSpin) {
       // อยู่ใน cooldown - แสดง message
       if (_cooldownDays == 0) {
@@ -1360,6 +1370,7 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
     // ผ่านทุกเงื่อนไข - เปิด modal
     setState(() {
       _leaderId = _currentUserId;
+      _isSpinSessionActive = true;
       _showWheelModal = true;
     });
   }
@@ -2956,21 +2967,7 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
                 // 1. ฉากหลังสีเทาจาง (Dim background)
                 Positioned.fill(
                   child: GestureDetector(
-                    onTap: () async {
-                      if (_currentUserId == _leaderId) {
-                        await ref
-                            .read(dateRecommendProvider)
-                            .closeRemoteModal(widget.roomId!);
-                        _clearWheelState();
-                      } else {
-                        Toast.show(
-                          context,
-                          type: ToastType.warning,
-                          title: "ไม่สามารถปิดได้",
-                          message: "กรุณารอคู่ของคุณจัดการวงล้อ",
-                        );
-                      }
-                    },
+                    onTap: () {},
                     child: Container(color: Colors.black.withOpacity(0.5)),
                   ),
                 ),
@@ -3025,13 +3022,9 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
                                       await ref
                                           .read(dateRecommendProvider)
                                           .closeRemoteModal(widget.roomId!);
+                                      _clearWheelState();
                                     } else {
-                                      Toast.show(
-                                        context,
-                                        type: ToastType.warning,
-                                        title: "ไม่สามารถปิดได้",
-                                        message: "กรุณารอคู่ของคุณจัดการวงล้อ",
-                                      );
+                                      setState(() => _showWheelModal = false);
                                     }
                                   },
                                   onSpinComplete: _onSpinComplete,
