@@ -26,6 +26,7 @@ class DsAppSecondaryHeader extends StatelessWidget {
     this.onSecondaryActionTap,
     this.onTertiaryActionTap,
     this.backgroundColor = Colors.white,
+    this.horizontalPadding = const EdgeInsets.symmetric(horizontal: 10),
     this.showBottomBorder = false,
     this.bottomBorderColor = const Color(0x260F172A),
     this.bottomBorderWidth = 1,
@@ -48,6 +49,7 @@ class DsAppSecondaryHeader extends StatelessWidget {
   final VoidCallback? onSecondaryActionTap;
   final VoidCallback? onTertiaryActionTap;
   final Color backgroundColor;
+  final EdgeInsetsGeometry horizontalPadding;
   final bool showBottomBorder;
   final Color bottomBorderColor;
   final double bottomBorderWidth;
@@ -82,26 +84,29 @@ class DsAppSecondaryHeader extends StatelessWidget {
           height: 85,
           width: double.infinity,
           color: backgroundColor,
-          child: Row(
-            children: [
-              SizedBox(
-                width: leadingWidth,
-                child: Align(
-                  alignment: Alignment.centerLeft,
-                  child: leading ?? _buildBackButton(),
-                ),
-              ),
-              if (_showsCenter)
-                Expanded(child: Center(child: _buildCenterContent())),
-              if (trailingWidth > 0)
+          child: Padding(
+            padding: horizontalPadding,
+            child: Row(
+              children: [
                 SizedBox(
-                  width: trailingWidth,
+                  width: leadingWidth,
                   child: Align(
-                    alignment: Alignment.centerRight,
-                    child: trailing ?? _buildActions(),
+                    alignment: Alignment.centerLeft,
+                    child: leading ?? _buildBackButton(),
                   ),
                 ),
-            ],
+                if (_showsCenter)
+                  Expanded(child: Center(child: _buildCenterContent())),
+                if (trailingWidth > 0)
+                  SizedBox(
+                    width: trailingWidth,
+                    child: Align(
+                      alignment: Alignment.centerRight,
+                      child: trailing ?? _buildActions(),
+                    ),
+                  ),
+              ],
+            ),
           ),
         ),
         if (showBottomBorder) ...[
@@ -163,10 +168,18 @@ class DsAppSecondaryHeader extends StatelessWidget {
   Widget _buildBackButton() {
     return _TapTarget(
       onTap: onBackTap,
-      child: SvgPicture.asset(
-        AppAssets.headerSecondaryBack,
+      child: Container(
         width: 40,
         height: 40,
+        decoration: const BoxDecoration(
+          color: AppColors.brandSecondary,
+          shape: BoxShape.circle,
+        ),
+        child: const Icon(
+          Icons.arrow_back_rounded,
+          color: Colors.white,
+          size: 20,
+        ),
       ),
     );
   }

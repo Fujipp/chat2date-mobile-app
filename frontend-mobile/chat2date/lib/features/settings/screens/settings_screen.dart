@@ -57,7 +57,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       title: 'นโยบายความเป็นส่วนตัว',
       subtitle: 'ข้อกำหนดตกลงการใช้',
       icon: Icons.note_alt_rounded,
-      routeName: '/privacy-policy',
+      routeName: '/policy',
     ),
   ];
 

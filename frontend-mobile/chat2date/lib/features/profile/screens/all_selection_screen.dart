@@ -349,15 +349,18 @@ class _TagSelectionScreenState extends State<TagSelectionScreen> {
     return Scaffold(
       backgroundColor: Colors.white,
       body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 20),
-          child: Column(
-            children: [
-              DsAppSecondaryHeader(
-                variant: DsAppSecondaryHeaderVariant.baseText,
-                title: 'Tag',
-                onBackTap: () => Navigator.pop(context, _selected),
-              ),
+        child: Column(
+          children: [
+            DsAppSecondaryHeader(
+              variant: DsAppSecondaryHeaderVariant.baseText,
+              title: 'Tag',
+              onBackTap: () => Navigator.pop(context, _selected),
+            ),
+            Expanded(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 20),
+                child: Column(
+                  children: [
               DsTextField(
                 controller: _searchController,
                 hintText: 'ค้นหา Tag',
@@ -401,8 +404,8 @@ class _TagSelectionScreenState extends State<TagSelectionScreen> {
                     ],
                   ),
                 ),
-              Expanded(
-                child: _filteredTagItems.isEmpty
+                    Expanded(
+                      child: _filteredTagItems.isEmpty
                     ? Center(
                         child: Column(
                           mainAxisAlignment: MainAxisAlignment.center,
@@ -459,9 +462,12 @@ class _TagSelectionScreenState extends State<TagSelectionScreen> {
                           ),
                         ),
                       ),
+                    ),
+                  ],
+                ),
               ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );
@@ -875,15 +881,18 @@ class _LifestylesSelectionScreenState extends State<LifestylesSelectionScreen> {
       child: Scaffold(
         backgroundColor: Colors.white,
         body: SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 20),
-            child: Column(
-              children: [
-                DsAppSecondaryHeader(
-                  variant: DsAppSecondaryHeaderVariant.baseText,
-                  title: 'ไลฟ์สไตล์',
-                  onBackTap: _handleBack,
-                ),
+          child: Column(
+            children: [
+              DsAppSecondaryHeader(
+                variant: DsAppSecondaryHeaderVariant.baseText,
+                title: 'ไลฟ์สไตล์',
+                onBackTap: _handleBack,
+              ),
+              Expanded(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 20),
+                  child: Column(
+                    children: [
                 DsTextField(
                   controller: _searchController,
                   hintText: 'ค้นหาไลฟ์สไตล์',
@@ -893,8 +902,8 @@ class _LifestylesSelectionScreenState extends State<LifestylesSelectionScreen> {
                 const SizedBox(height: 8),
                 _SelectionHelperText(selectedCount: _selected.length),
                 const SizedBox(height: 16),
-                Expanded(
-                  child: _gridItems.isEmpty
+                      Expanded(
+                        child: _gridItems.isEmpty
                     ? _SelectionEmptyState(query: _searchQuery)
                     : ScrollbarTheme(
                         data: ScrollbarThemeData(
@@ -918,10 +927,13 @@ class _LifestylesSelectionScreenState extends State<LifestylesSelectionScreen> {
                           ),
                         ),
                       ),
+                      ),
+                      const SizedBox(height: 20),
+                    ],
+                  ),
                 ),
-                const SizedBox(height: 20),
-              ],
-            ),
+              ),
+            ],
           ),
         ),
       ),
@@ -1092,15 +1104,18 @@ class _InterestsSelectionScreenWidgetState
       child: Scaffold(
         backgroundColor: Colors.white,
         body: SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 20),
-            child: Column(
-              children: [
-                DsAppSecondaryHeader(
-                  variant: DsAppSecondaryHeaderVariant.baseText,
-                  title: 'สิ่งที่สนใจ',
-                  onBackTap: _handleBack,
-                ),
+          child: Column(
+            children: [
+              DsAppSecondaryHeader(
+                variant: DsAppSecondaryHeaderVariant.baseText,
+                title: 'สิ่งที่สนใจ',
+                onBackTap: _handleBack,
+              ),
+              Expanded(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 20),
+                  child: Column(
+                    children: [
                 DsTextField(
                   controller: _searchController,
                   hintText: 'ค้นหาสิ่งที่สนใจ',
@@ -1110,8 +1125,8 @@ class _InterestsSelectionScreenWidgetState
                 const SizedBox(height: 8),
                 _SelectionHelperText(selectedCount: _selected.length),
                 const SizedBox(height: 16),
-                Expanded(
-                  child: _gridItems.isEmpty
+                      Expanded(
+                        child: _gridItems.isEmpty
                     ? _SelectionEmptyState(query: _searchQuery)
                     : ScrollbarTheme(
                         data: ScrollbarThemeData(
@@ -1135,10 +1150,13 @@ class _InterestsSelectionScreenWidgetState
                           ),
                         ),
                       ),
+                      ),
+                      const SizedBox(height: 20),
+                    ],
+                  ),
                 ),
-                const SizedBox(height: 20),
-              ],
-            ),
+              ),
+            ],
           ),
         ),
       ),

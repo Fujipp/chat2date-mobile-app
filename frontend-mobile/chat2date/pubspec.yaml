@@ -139,8 +139,8 @@ flutter_native_splash:
 
   # 🎯 โลโก้ตรงกลาง (ทุก platform)
   # ใช้โลโก้หลักของแอป
-  image: assets/branding/logos/logo_chat2date_splash_150.png
-  # image_dark: assets/branding/logos/logo_chat2date_splash_150.png
+  image: assets/branding/logos/logo_chat2date_splash_source.png
+  # image_dark: assets/branding/logos/logo_chat2date_splash_source.png
 
   # ตำแหน่งรูปบนแต่ละ platform
   android_gravity: center
@@ -163,8 +163,8 @@ flutter_native_splash:
     # *ถ้าไม่กำหนด image ตรงนี้ Android จะใช้ app icon แทน*
     # ระวัง: Android 12 จะ clip เป็นวงกลม
     # แนะนำให้ใช้ไฟล์ PNG พื้นหลังโปร่ง (transparent) เช่น โลโก้เดี่ยว ๆ
-    image: assets/branding/logos/logo_chat2date_splash_150.png
-    # image_dark: assets/branding/logos/logo_chat2date_splash_150.png
+    image: assets/branding/logos/logo_chat2date_splash_source.png
+    # image_dark: assets/branding/logos/logo_chat2date_splash_source.png
 
     # สีพื้นหลังของวงกลมด้านหลังโลโก้ (ถ้าอยากให้มีวงกลม)
     # ถ้าอยากให้โลโก้ลอย ๆ ไม่ต้องตั้งก็ได้
@@ -172,8 +172,8 @@ flutter_native_splash:
     # icon_background_color_dark: "#FFFFFF"
 
     # ถ้าอยากมี branding ล่าง ๆ ให้ใส่ตรงนี้ (ขนาดต้อง 800x320 px)
-    # branding: assets/images/branding.png
-    # branding_dark: assets/images/branding_dark.png
+    branding: assets/branding/logos/logo_chat2date_branding_source.png
+    # branding_dark: assets/branding/logos/logo_chat2date_branding_source.png
 
 
 # ==============================

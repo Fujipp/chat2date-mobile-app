@@ -1,9 +1,14 @@
+import 'package:chat2date/components/common/app_raw_scrollbar.dart';
+import 'package:chat2date/components/design_system/organisms/ds_app_secondary_header.dart';
 import 'package:chat2date/components/inputs/ds_edit_input.dart';
 import 'package:chat2date/components/inputs/ds_text_field/ds_text_field.dart';
 import 'package:chat2date/components/toasts/toast.dart';
+import 'package:chat2date/core/theme/app_colors.dart';
+import 'package:chat2date/core/theme/tokens/typography/body_text_styles.dart';
+import 'package:chat2date/core/theme/tokens/typography/display_text_styles.dart';
 import 'package:chat2date/models/user.dart';
 import 'package:chat2date/services/emergency_service.dart';
-import 'package:chat2date/stores/user_store.dart'; // เพิ่ม import UserStore ของคุณ
+import 'package:chat2date/stores/user_store.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -16,14 +21,22 @@ class AccountSettingsScreen extends ConsumerStatefulWidget {
 }
 
 class _AccountSettingsScreenState extends ConsumerState<AccountSettingsScreen> {
-  bool _isLoading = true;
+  final ScrollController _scrollController = ScrollController();
   final List<String> _phones = ['', '', ''];
+
+  bool _isLoading = true;
   int _rebuildCounter = 0;
 
   @override
   void initState() {
     super.initState();
     _fetchEmergencyContacts();
+  }
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
   }
 
   Future<void> _fetchEmergencyContacts() async {
@@ -37,8 +50,9 @@ class _AccountSettingsScreenState extends ConsumerState<AccountSettingsScreen> {
         if (numbers.length > 2) _phones[2] = _formatPhoneNumber(numbers[2]);
         _isLoading = false;
       });
-    } catch (e) {
+    } catch (_) {
       setState(() => _isLoading = false);
+      if (!mounted) return;
       Toast.show(
         context,
         type: ToastType.error,
@@ -55,8 +69,8 @@ class _AccountSettingsScreenState extends ConsumerState<AccountSettingsScreen> {
     tempPhones[index] = newValue;
 
     final numbersToSend = tempPhones
-        .map((p) => p.replaceAll('-', '').trim())
-        .where((p) => p.isNotEmpty)
+        .map((phone) => phone.replaceAll('-', '').trim())
+        .where((phone) => phone.isNotEmpty)
         .toList();
 
     if (numbersToSend.isEmpty) {
@@ -75,8 +89,8 @@ class _AccountSettingsScreenState extends ConsumerState<AccountSettingsScreen> {
     _phones[index] = newValue;
 
     final filled = _phones
-        .map((p) => p.replaceAll('-', '').trim())
-        .where((p) => p.isNotEmpty)
+        .map((phone) => phone.replaceAll('-', '').trim())
+        .where((phone) => phone.isNotEmpty)
         .toList();
 
     setState(() {
@@ -89,6 +103,7 @@ class _AccountSettingsScreenState extends ConsumerState<AccountSettingsScreen> {
     try {
       final service = ref.read(emergencyCallServiceProvider);
       await service.updateEmergencyCalls(filled);
+      if (!mounted) return;
       Toast.show(
         context,
         type: ToastType.success,
@@ -97,7 +112,8 @@ class _AccountSettingsScreenState extends ConsumerState<AccountSettingsScreen> {
         durationSeconds: 3,
         showCountdown: false,
       );
-    } catch (e) {
+    } catch (_) {
+      if (!mounted) return;
       Toast.show(
         context,
         type: ToastType.error,
@@ -110,144 +126,195 @@ class _AccountSettingsScreenState extends ConsumerState<AccountSettingsScreen> {
   }
 
   String _formatPhoneNumber(String phone) {
-    String cleanPhone = phone.replaceAll(RegExp(r'\D'), '');
+    final cleanPhone = phone.replaceAll(RegExp(r'\D'), '');
 
     if (cleanPhone.length == 10) {
       return '${cleanPhone.substring(0, 3)}-${cleanPhone.substring(3, 6)}-${cleanPhone.substring(6)}';
-    } else if (phone.startsWith('+66') && cleanPhone.length == 11) {
+    }
+
+    if (phone.startsWith('+66') && cleanPhone.length == 11) {
       return '+66 ${cleanPhone.substring(2, 4)}-${cleanPhone.substring(4, 7)}-${cleanPhone.substring(7)}';
     }
 
     return phone;
   }
 
+  String _formatGender(Sex? sex) {
+    switch (sex) {
+      case Sex.MALE:
+        return 'ชาย';
+      case Sex.FEMALE:
+        return 'หญิง';
+      case null:
+        return '';
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final userState = ref.watch(userStoreProvider);
-
     final user = userState['user'] as User?;
 
-    final String phoneNumber = _formatPhoneNumber(user?.phoneNumber ?? '');
-    final String email = user?.email ?? '';
+    final phoneNumber = _formatPhoneNumber(user?.phoneNumber ?? '');
+    final email = user?.email ?? '';
+    final birthDate = user?.birthday?.toIso8601String().split('T').first ?? '';
+    final gender = _formatGender(user?.sex);
 
-    final String dob = user?.birthday?.toIso8601String().split('T').first ?? '';
-
-    final String gender = user?.sex?.name ?? '';
     return Scaffold(
-      backgroundColor: Colors.white,
-      appBar: AppBar(
-        backgroundColor: Colors.white,
-        elevation: 0,
-        leading: Padding(
-          padding: const EdgeInsets.only(left: 16.0),
-          child: InkWell(
-            onTap: () => Navigator.pop(context),
-            child: Container(
-              width: 40,
-              height: 40,
-              decoration: const BoxDecoration(
-                color: Color(0xFF98FB98),
-                shape: BoxShape.circle,
+      backgroundColor: AppColors.background,
+      body: SafeArea(
+        bottom: false,
+        child: Column(
+          children: [
+            DsAppSecondaryHeader(
+              variant: DsAppSecondaryHeaderVariant.baseText,
+              title: 'บัญชี',
+              onBackTap: () => Navigator.pop(context),
+              center: Text(
+                'บัญชี',
+                style: AppDisplayTextStyles.h3.copyWith(
+                  color: AppColors.textBlack,
+                ),
               ),
-              child: const Icon(
-                Icons.arrow_back,
-                color: Colors.white,
-                size: 20,
+              leading: Padding(
+                padding: const EdgeInsets.only(left: 10),
+                child: InkWell(
+                  onTap: () => Navigator.pop(context),
+                  borderRadius: BorderRadius.circular(20),
+                  child: Container(
+                    width: 40,
+                    height: 40,
+                    decoration: const BoxDecoration(
+                      color: AppColors.brandSecondary,
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(
+                      Icons.arrow_back_rounded,
+                      color: Colors.white,
+                      size: 20,
+                    ),
+                  ),
+                ),
               ),
+              trailing: const SizedBox(width: 40, height: 40),
             ),
-          ),
+            Expanded(
+              child: _isLoading
+                  ? const Center(
+                      child: CircularProgressIndicator(
+                        color: AppColors.brandSecondary,
+                      ),
+                    )
+                  : AppRawScrollbar(
+                      controller: _scrollController,
+                      child: SingleChildScrollView(
+                        controller: _scrollController,
+                        padding: const EdgeInsets.fromLTRB(24, 20, 24, 28),
+                        child: Center(
+                          child: ConstrainedBox(
+                            constraints: const BoxConstraints(maxWidth: 295),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                _ReadOnlyField(
+                                  label: 'อีเมล',
+                                  value: email,
+                                  placeholder: 'support.chat2date@gmail.com',
+                                ),
+                                const SizedBox(height: 10),
+                                _ReadOnlyField(
+                                  label: 'หมายเลขโทรศัพท์',
+                                  value: phoneNumber,
+                                  placeholder: '+66 88-888-8888',
+                                ),
+                                const SizedBox(height: 10),
+                                _ReadOnlyField(
+                                  label: 'วันเกิด',
+                                  value: birthDate,
+                                  placeholder: '2000-10-10',
+                                ),
+                                const SizedBox(height: 10),
+                                _ReadOnlyField(
+                                  label: 'เพศ',
+                                  value: gender,
+                                  placeholder: 'ชาย',
+                                ),
+                                const SizedBox(height: 10),
+                                EditInputField(
+                                  key: ValueKey(
+                                    'phone1_${_phones[0]}_$_rebuildCounter',
+                                  ),
+                                  label: 'เบอร์โทรฉุกเฉินลำดับที่ 1',
+                                  placeholder: 'เพิ่มเบอร์โทรศัพท์',
+                                  initialValue: _phones[0],
+                                  keyboardType: TextInputType.phone,
+                                  onSaved: (value) =>
+                                      _saveEmergencyContact(0, value),
+                                ),
+                                const SizedBox(height: 10),
+                                EditInputField(
+                                  key: ValueKey(
+                                    'phone2_${_phones[1]}_$_rebuildCounter',
+                                  ),
+                                  label: 'เบอร์โทรฉุกเฉินลำดับที่ 2',
+                                  placeholder: 'เพิ่มเบอร์โทรศัพท์',
+                                  initialValue: _phones[1],
+                                  keyboardType: TextInputType.phone,
+                                  onSaved: (value) =>
+                                      _saveEmergencyContact(1, value),
+                                ),
+                                const SizedBox(height: 10),
+                                EditInputField(
+                                  key: ValueKey(
+                                    'phone3_${_phones[2]}_$_rebuildCounter',
+                                  ),
+                                  label: 'เบอร์โทรฉุกเฉินลำดับที่ 3',
+                                  placeholder: 'เพิ่มเบอร์โทรศัพท์',
+                                  initialValue: _phones[2],
+                                  keyboardType: TextInputType.phone,
+                                  onSaved: (value) =>
+                                      _saveEmergencyContact(2, value),
+                                ),
+                                const SizedBox(height: 10),
+                                Text(
+                                  'หมายเหตุ : เบอร์โทรศัพท์ที่คุณกรอกจะเป็น เบอร์โทรฉุกเฉินแรก เมื่อกดปุ่ม SOS หากเว้นว่าง ระบบจะโทรไปยัง 191 อัตโนมัติ',
+                                  style: AppBodyTextStyles.overline.copyWith(
+                                    color: AppColors.error,
+                                    height: 14 / 11,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+            ),
+          ],
         ),
-        title: const Text(
-          'Account',
-          style: TextStyle(
-            color: Color(0xFF0F172A),
-            fontSize: 22,
-            fontFamily: 'Inter',
-            fontWeight: FontWeight.w400,
-          ),
-        ),
-        centerTitle: true,
       ),
-      body: _isLoading
-          ? const Center(
-              child: CircularProgressIndicator(color: Color(0xFF98FB98)),
-            )
-          : SingleChildScrollView(
-              child: Padding(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 24.0,
-                  vertical: 20.0,
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    if (phoneNumber.isNotEmpty)
-                      DsTextField(
-                        label: 'หมายเลขโทรศัพท์',
-                        hintText: phoneNumber,
-                        enabled: false,
-                      ),
+    );
+  }
+}
 
-                    if (email.isNotEmpty)
-                      DsTextField(
-                        label: 'อีเมล',
-                        hintText: email,
-                        enabled: false,
-                      ),
+class _ReadOnlyField extends StatelessWidget {
+  const _ReadOnlyField({
+    required this.label,
+    required this.value,
+    required this.placeholder,
+  });
 
-                    if (dob.isNotEmpty)
-                      DsTextField(
-                        label: 'วันเกิด',
-                        hintText: dob,
-                        enabled: false,
-                      ),
+  final String label;
+  final String value;
+  final String placeholder;
 
-                    if (gender.isNotEmpty)
-                      DsTextField(
-                        label: 'เพศ',
-                        hintText: gender,
-                        enabled: false,
-                      ),
-
-                    const SizedBox(height: 16),
-
-                    EditInputField(
-                      key: ValueKey('phone1_${_phones[0]}_$_rebuildCounter'),
-                      label: 'เบอร์ฉุกเฉินลำดับ 1',
-                      placeholder: '099-999-9999',
-                      initialValue: _phones[0],
-                      onSaved: (value) => _saveEmergencyContact(0, value),
-                    ),
-                    const SizedBox(height: 16),
-                    EditInputField(
-                      key: ValueKey('phone2_${_phones[1]}_$_rebuildCounter'),
-                      label: 'เบอร์ฉุกเฉินลำดับ 2',
-                      placeholder: 'เพิ่มเบอร์ที่นี่',
-                      initialValue: _phones[1],
-                      onSaved: (value) => _saveEmergencyContact(1, value),
-                    ),
-                    const SizedBox(height: 16),
-                    EditInputField(
-                      key: ValueKey('phone3_${_phones[2]}_$_rebuildCounter'),
-                      label: 'เบอร์ฉุกเฉินลำดับ 3',
-                      placeholder: 'เพิ่มเบอร์ที่นี่',
-                      initialValue: _phones[2],
-                      onSaved: (value) => _saveEmergencyContact(2, value),
-                    ),
-
-                    const SizedBox(height: 24),
-                    const Text(
-                      'หมายเหตุ: เบอร์ที่คุณกรอกจะเป็น เบอร์โทรฉุกเฉินแรก เมื่อกดปุ่ม SOS หากเว้นว่าง ระบบจะโทรไปยัง 191 อัตโนมัติ',
-                      style: TextStyle(
-                        color: Colors.redAccent,
-                        fontSize: 12,
-                        fontFamily: 'Inter',
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
+  @override
+  Widget build(BuildContext context) {
+    return DsTextField(
+      label: label,
+      hintText: value.isNotEmpty ? value : placeholder,
+      enabled: false,
+      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
     );
   }
 }
