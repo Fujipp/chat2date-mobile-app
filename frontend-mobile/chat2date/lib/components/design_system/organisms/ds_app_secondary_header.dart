@@ -21,6 +21,7 @@ class DsAppSecondaryHeader extends StatelessWidget {
     this.showCalendarAction = true,
     this.showCalendarUnreadDot = false,
     this.onBackTap,
+    this.onCalendarActionTap,
     this.onPrimaryActionTap,
     this.onSecondaryActionTap,
     this.onTertiaryActionTap,
@@ -42,6 +43,7 @@ class DsAppSecondaryHeader extends StatelessWidget {
   final bool showCalendarAction;
   final bool showCalendarUnreadDot;
   final VoidCallback? onBackTap;
+  final VoidCallback? onCalendarActionTap;
   final VoidCallback? onPrimaryActionTap;
   final VoidCallback? onSecondaryActionTap;
   final VoidCallback? onTertiaryActionTap;
@@ -70,7 +72,7 @@ class DsAppSecondaryHeader extends StatelessWidget {
     final double leadingWidth =
         variant == DsAppSecondaryHeaderVariant.base ? 79 : 90;
     final double trailingWidth =
-        variant == DsAppSecondaryHeaderVariant.base ? 0 : 90;
+        variant == DsAppSecondaryHeaderVariant.base ? 0 : 102;
     final double screenWidth = MediaQuery.sizeOf(context).width;
 
     return Column(
@@ -221,13 +223,13 @@ class DsAppSecondaryHeader extends StatelessWidget {
             onTap: onSecondaryActionTap,
             padding: EdgeInsets.zero,
             child: SizedBox(
-              width: 25,
-              height: 25,
+              width: 28,
+              height: 28,
               child: Center(
                 child: SvgPicture.asset(
                   AppAssets.headerSecondaryChat3CenterAction,
-                  width: 25,
-                  height: 25,
+                  width: 28,
+                  height: 28,
                 ),
               ),
             ),
@@ -241,7 +243,7 @@ class DsAppSecondaryHeader extends StatelessWidget {
             onTap: onSecondaryActionTap,
             padding: EdgeInsets.zero,
             child: SizedBox(
-              width: 25,
+              width: 28,
               height: 31,
               child: Stack(
                 clipBehavior: Clip.none,
@@ -249,8 +251,8 @@ class DsAppSecondaryHeader extends StatelessWidget {
                 children: [
                   SvgPicture.asset(
                     AppAssets.headerSecondaryChat4CenterAction,
-                    width: 25,
-                    height: 25,
+                    width: 28,
+                    height: 28,
                   ),
                   Positioned(
                     top: 6,
@@ -293,8 +295,8 @@ class DsAppSecondaryHeader extends StatelessWidget {
 
   Widget _buildCalendarAction() {
     final icon = SizedBox(
-      width: 24,
-      height: 24,
+      width: 28,
+      height: 28,
       child: Stack(
         clipBehavior: Clip.none,
         children: [
@@ -303,8 +305,8 @@ class DsAppSecondaryHeader extends StatelessWidget {
               alignment: Alignment.center,
               child: SvgPicture.asset(
                 AppAssets.headerSecondaryChat4LeftAction,
-                width: 19,
-                height: 21,
+                width: 28,
+                height: 28,
               ),
             ),
           ),
@@ -327,7 +329,7 @@ class DsAppSecondaryHeader extends StatelessWidget {
     );
 
     return _TapTarget(
-      onTap: onPrimaryActionTap,
+      onTap: onCalendarActionTap ?? onPrimaryActionTap,
       padding: EdgeInsets.zero,
       child: icon,
     );
@@ -338,13 +340,14 @@ class DsAppSecondaryHeader extends StatelessWidget {
       onTap: onTap ?? onTertiaryActionTap,
       padding: EdgeInsets.zero,
       child: SizedBox(
-        width: 24,
-        height: 24,
+        width: 28,
+        height: 28,
         child: Center(
           child: SvgPicture.asset(
             AppAssets.reportIcon,
-            width: 25,
-            height: 20,
+            width: 28,
+            height: 28,
+            fit: BoxFit.contain,
           ),
         ),
       ),
@@ -357,27 +360,27 @@ class DsAppSecondaryHeader extends StatelessWidget {
     Widget? right,
   }) {
     return SizedBox(
-      width: 90,
+      width: 102,
       height: 31,
       child: Row(
         mainAxisAlignment: MainAxisAlignment.end,
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
           SizedBox(
-            width: 24,
-            height: 24,
+            width: 28,
+            height: 28,
             child: left == null ? null : Center(child: left),
           ),
           const SizedBox(width: 6),
           SizedBox(
-            width: 25,
+            width: 28,
             height: 31,
             child: middle == null ? null : Center(child: middle),
           ),
           const SizedBox(width: 6),
           SizedBox(
-            width: 24,
-            height: 24,
+            width: 28,
+            height: 28,
             child: right == null ? null : Center(child: right),
           ),
         ],

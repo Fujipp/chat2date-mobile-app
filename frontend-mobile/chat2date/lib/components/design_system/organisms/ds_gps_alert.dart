@@ -10,18 +10,46 @@ import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:http/http.dart' as http;
 import 'package:url_launcher/url_launcher.dart';
 
+const MarkerId _currentMarkerId = MarkerId('current');
+const MarkerId _partnerMarkerId = MarkerId('partner');
+const MarkerId _partnerApproxMarkerId = MarkerId('partner_approx');
 const MarkerId _destinationMarkerId = MarkerId('destination');
 const PolylineId _routePolylineId = PolylineId('route');
+
+LatLngBounds _boundsFromPoints(List<LatLng> points) {
+  assert(points.isNotEmpty);
+  double minLat = points.first.latitude;
+  double maxLat = points.first.latitude;
+  double minLng = points.first.longitude;
+  double maxLng = points.first.longitude;
+
+  for (final point in points.skip(1)) {
+    if (point.latitude < minLat) minLat = point.latitude;
+    if (point.latitude > maxLat) maxLat = point.latitude;
+    if (point.longitude < minLng) minLng = point.longitude;
+    if (point.longitude > maxLng) maxLng = point.longitude;
+  }
+
+  final latPadding = (maxLat - minLat).abs() < 0.0006 ? 0.0018 : 0.0;
+  final lngPadding = (maxLng - minLng).abs() < 0.0006 ? 0.0018 : 0.0;
+
+  return LatLngBounds(
+    southwest: LatLng(minLat - latPadding, minLng - lngPadding),
+    northeast: LatLng(maxLat + latPadding, maxLng + lngPadding),
+  );
+}
 
 // ===================== Full Screen Map Page =====================
 class FullScreenMapPage extends StatefulWidget {
   final String? destinationPlaceId;
   final String googleApiKey;
+  final LatLng? partnerLocation;
 
   const FullScreenMapPage({
     super.key,
     required this.destinationPlaceId,
     required this.googleApiKey,
+    this.partnerLocation,
   });
 
   @override
@@ -32,14 +60,36 @@ class _FullScreenMapPageState extends State<FullScreenMapPage> {
   GoogleMapController? _mapController;
   final Set<Marker> _markers = {};
   Set<Polyline> _polylines = {};
+  Stream<Position>? _positionStream;
+  LatLng? _lastRouteOrigin;
+  DateTime? _lastRouteRefreshedAt;
+  LatLng? _lastDestinationLatLng;
+  bool _isRouteLoading = false;
+  bool _hasAppliedInitialScope = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _positionStream = Geolocator.getPositionStream(
+      locationSettings: const LocationSettings(
+        accuracy: LocationAccuracy.high,
+        distanceFilter: 8,
+      ),
+    );
+  }
 
   Future<void> _drawRoute([LatLng? currentLocation]) async {
-    if (widget.destinationPlaceId == null) return;
+    if (widget.destinationPlaceId == null || _isRouteLoading) return;
 
     final pos = currentLocation == null
         ? await Geolocator.getCurrentPosition()
         : null;
     final originLatLng = currentLocation ?? LatLng(pos!.latitude, pos.longitude);
+    if (!_shouldRefreshRoute(originLatLng)) {
+      _updateCurrentMarkers(originLatLng);
+      return;
+    }
+    _isRouteLoading = true;
     final origin = '${originLatLng.latitude},${originLatLng.longitude}';
     final dest = 'place_id:${widget.destinationPlaceId}';
 
@@ -53,6 +103,10 @@ class _FullScreenMapPageState extends State<FullScreenMapPage> {
 
     final res = await http.get(url);
     final data = json.decode(res.body);
+    if (!mounted) {
+      _isRouteLoading = false;
+      return;
+    }
 
     if (data['status'] == 'OK' && data['routes'].isNotEmpty) {
       final points = _decodePolyline(
@@ -71,43 +125,22 @@ class _FullScreenMapPageState extends State<FullScreenMapPage> {
             width: 4,
           ),
         };
-        _markers
-          ..removeWhere((marker) => marker.markerId == _destinationMarkerId)
-          ..add(
-          Marker(
-            markerId: _destinationMarkerId,
-            position: destLatLng,
-            infoWindow: InfoWindow(
-              title: data['routes'][0]['legs'][0]['end_address'],
-            ),
-          ),
+        _lastDestinationLatLng = destLatLng;
+        _applyMapDecorations(
+          currentLocation: originLatLng,
+          destinationLocation: destLatLng,
+          destinationTitle: data['routes'][0]['legs'][0]['end_address']?.toString(),
         );
       });
-
-      _mapController?.animateCamera(
-        CameraUpdate.newLatLngBounds(
-          LatLngBounds(
-            southwest: LatLng(
-              originLatLng.latitude < destLatLng.latitude
-                  ? originLatLng.latitude
-                  : destLatLng.latitude,
-              originLatLng.longitude < destLatLng.longitude
-                  ? originLatLng.longitude
-                  : destLatLng.longitude,
-            ),
-            northeast: LatLng(
-              originLatLng.latitude > destLatLng.latitude
-                  ? originLatLng.latitude
-                  : destLatLng.latitude,
-              originLatLng.longitude > destLatLng.longitude
-                  ? originLatLng.longitude
-                  : destLatLng.longitude,
-            ),
-          ),
-          80,
-        ),
+      _scopeToRelevantArea(
+        currentLocation: originLatLng,
+        destinationLocation: destLatLng,
+        routePoints: points,
       );
+      _lastRouteOrigin = originLatLng;
+      _lastRouteRefreshedAt = DateTime.now();
     }
+    _isRouteLoading = false;
   }
 
   List<LatLng> _decodePolyline(String encoded) {
@@ -137,36 +170,154 @@ class _FullScreenMapPageState extends State<FullScreenMapPage> {
     return points;
   }
 
+  void _updateCurrentMarkers(LatLng currentLocation) {
+    if (!mounted) return;
+    setState(() {
+      _applyMapDecorations(
+        currentLocation: currentLocation,
+        destinationLocation: _lastDestinationLatLng,
+      );
+    });
+    _scopeToRelevantArea(
+      currentLocation: currentLocation,
+      destinationLocation: _lastDestinationLatLng,
+    );
+  }
+
+  bool _shouldRefreshRoute(LatLng origin) {
+    final lastOrigin = _lastRouteOrigin;
+    final lastAt = _lastRouteRefreshedAt;
+    if (lastOrigin == null || lastAt == null) return true;
+    final movedMeters = Geolocator.distanceBetween(
+      lastOrigin.latitude,
+      lastOrigin.longitude,
+      origin.latitude,
+      origin.longitude,
+    );
+    final elapsed = DateTime.now().difference(lastAt);
+    return movedMeters >= 25 || elapsed >= const Duration(seconds: 15);
+  }
+
+  void _applyMapDecorations({
+    required LatLng currentLocation,
+    LatLng? destinationLocation,
+    String? destinationTitle,
+  }) {
+    _markers
+      ..removeWhere(
+        (marker) => marker.markerId == _currentMarkerId,
+      )
+      ..removeWhere(
+        (marker) => marker.markerId == _destinationMarkerId,
+      )
+      ..removeWhere(
+        (marker) => marker.markerId == _partnerMarkerId,
+      )
+      ..removeWhere(
+        (marker) => marker.markerId == _partnerApproxMarkerId,
+      )
+      ..add(
+        Marker(
+          markerId: _currentMarkerId,
+          position: currentLocation,
+          icon: BitmapDescriptor.defaultMarkerWithHue(
+            BitmapDescriptor.hueRose,
+          ),
+          infoWindow: const InfoWindow(title: 'ตำแหน่งของฉัน'),
+        ),
+      );
+
+    if (destinationLocation != null) {
+      _markers.add(
+        Marker(
+          markerId: _destinationMarkerId,
+          position: destinationLocation,
+          infoWindow: InfoWindow(title: destinationTitle ?? 'สถานที่เดต'),
+        ),
+      );
+    }
+  }
+
+  Future<void> _scopeToRelevantArea({
+    required LatLng currentLocation,
+    LatLng? destinationLocation,
+    List<LatLng>? routePoints,
+    bool force = false,
+  }) async {
+    final controller = _mapController;
+    if (controller == null) return;
+    if (_hasAppliedInitialScope && !force) return;
+
+    final points = <LatLng>[currentLocation];
+    if (routePoints != null && routePoints.isNotEmpty) {
+      points.addAll(routePoints);
+    } else if (destinationLocation != null) {
+      points.add(destinationLocation);
+    }
+
+    if (points.length == 1) {
+      await controller.animateCamera(
+        CameraUpdate.newLatLngZoom(points.first, 15),
+      );
+      _hasAppliedInitialScope = true;
+      return;
+    }
+
+    await controller.animateCamera(
+      CameraUpdate.newLatLngBounds(_boundsFromPoints(points), 56),
+    );
+    _hasAppliedInitialScope = true;
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       body: Stack(
         children: [
-          GoogleMap(
-            initialCameraPosition: const CameraPosition(
-              target: LatLng(0, 0),
-              zoom: 2,
-            ),
-            onMapCreated: (controller) async {
-              _mapController = controller;
+          StreamBuilder<Position>(
+            stream: _positionStream,
+            builder: (context, snapshot) {
+              final currentLocation = snapshot.hasData
+                  ? LatLng(snapshot.data!.latitude, snapshot.data!.longitude)
+                  : const LatLng(0, 0);
 
-              final pos = await Geolocator.getCurrentPosition();
-              final currentLocation = LatLng(pos.latitude, pos.longitude);
-              controller.animateCamera(
-                CameraUpdate.newLatLngZoom(
-                  currentLocation,
-                  15,
-                ),
-              );
-
-              if (widget.destinationPlaceId != null) {
-                _drawRoute(currentLocation);
+              if (snapshot.hasData && _mapController != null) {
+                WidgetsBinding.instance.addPostFrameCallback((_) {
+                  if (widget.destinationPlaceId != null) {
+                    _drawRoute(currentLocation);
+                  } else {
+                    _updateCurrentMarkers(currentLocation);
+                  }
+                });
               }
+
+              return GoogleMap(
+                initialCameraPosition: CameraPosition(
+                  target: currentLocation,
+                  zoom: snapshot.hasData ? 15 : 2,
+                ),
+                onMapCreated: (controller) async {
+                  _mapController = controller;
+
+                  if (snapshot.hasData) {
+                    controller.animateCamera(
+                      CameraUpdate.newLatLngZoom(currentLocation, 15),
+                    );
+                    _hasAppliedInitialScope = false;
+
+                    if (widget.destinationPlaceId != null) {
+                      _drawRoute(currentLocation);
+                    } else {
+                      _updateCurrentMarkers(currentLocation);
+                    }
+                  }
+                },
+                myLocationEnabled: true,
+                myLocationButtonEnabled: true,
+                markers: _markers,
+                polylines: _polylines,
+              );
             },
-            myLocationEnabled: true,
-            myLocationButtonEnabled: true,
-            markers: _markers,
-            polylines: _polylines,
           ),
 
           // Back button (top-left)
@@ -248,6 +399,7 @@ class GpsMapAlert extends StatefulWidget {
     required this.emergencyNumbers,
     required this.destinationPlaceId,
     required this.googleApiKey,
+    this.partnerLocation,
   });
 
   final VoidCallback onLocate;
@@ -256,6 +408,7 @@ class GpsMapAlert extends StatefulWidget {
   final List<String> emergencyNumbers;
   final String? destinationPlaceId;
   final String googleApiKey;
+  final LatLng? partnerLocation;
 
   @override
   State<GpsMapAlert> createState() => _GpsMapAlertState();
@@ -263,10 +416,20 @@ class GpsMapAlert extends StatefulWidget {
 
 class _GpsMapAlertState extends State<GpsMapAlert>
     with WidgetsBindingObserver {
+  LatLng? _lastRouteOrigin;
+  DateTime? _lastRouteRefreshedAt;
+  LatLng? _lastDestinationLatLng;
+  bool _isRouteLoading = false;
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
+    _positionStream = Geolocator.getPositionStream(
+      locationSettings: const LocationSettings(
+        accuracy: LocationAccuracy.high,
+        distanceFilter: 8,
+      ),
+    );
   }
 
   @override
@@ -294,6 +457,7 @@ class _GpsMapAlertState extends State<GpsMapAlert>
       if (isKeyboardUp && _isExpanded) {
         setState(() {
           _isKeyboardVisible = isKeyboardUp;
+          _showMapContent = false;
           _isExpanded = false;
         });
       } else if (isKeyboardUp != _isKeyboardVisible) {
@@ -324,6 +488,7 @@ class _GpsMapAlertState extends State<GpsMapAlert>
   }
 
   bool _isExpanded = false;
+  bool _showMapContent = false;
   bool _hasSosTriggered = false;
   bool _isKeyboardVisible = false;
 
@@ -331,14 +496,20 @@ class _GpsMapAlertState extends State<GpsMapAlert>
   GoogleMapController? _mapController;
   final Set<Marker> _markers = {};
   Set<Polyline> _polylines = {};
+  Stream<Position>? _positionStream;
 
   Future<void> _drawRoute([LatLng? currentLocation]) async {
-    if (widget.destinationPlaceId == null) return;
+    if (widget.destinationPlaceId == null || _isRouteLoading) return;
 
     final pos = currentLocation == null
         ? await Geolocator.getCurrentPosition()
         : null;
     final originLatLng = currentLocation ?? LatLng(pos!.latitude, pos.longitude);
+    if (!_shouldRefreshRoute(originLatLng)) {
+      _updateCurrentMarkers(originLatLng);
+      return;
+    }
+    _isRouteLoading = true;
     final origin = '${originLatLng.latitude},${originLatLng.longitude}';
     final dest = 'place_id:${widget.destinationPlaceId}';
 
@@ -352,6 +523,10 @@ class _GpsMapAlertState extends State<GpsMapAlert>
 
     final res = await http.get(url);
     final data = json.decode(res.body);
+    if (!mounted) {
+      _isRouteLoading = false;
+      return;
+    }
 
     if (data['status'] == 'OK' && data['routes'].isNotEmpty) {
       final points = _decodePolyline(
@@ -370,43 +545,22 @@ class _GpsMapAlertState extends State<GpsMapAlert>
             width: 4,
           ),
         };
-        _markers
-          ..removeWhere((marker) => marker.markerId == _destinationMarkerId)
-          ..add(
-          Marker(
-            markerId: _destinationMarkerId,
-            position: destLatLng,
-            infoWindow: InfoWindow(
-              title: data['routes'][0]['legs'][0]['end_address'],
-            ),
-          ),
+        _lastDestinationLatLng = destLatLng;
+        _applyMapMarkers(
+          currentLocation: originLatLng,
+          destinationLocation: destLatLng,
+          destinationTitle: data['routes'][0]['legs'][0]['end_address']?.toString(),
         );
       });
-
-      _mapController?.animateCamera(
-        CameraUpdate.newLatLngBounds(
-          LatLngBounds(
-            southwest: LatLng(
-              originLatLng.latitude < destLatLng.latitude
-                  ? originLatLng.latitude
-                  : destLatLng.latitude,
-              originLatLng.longitude < destLatLng.longitude
-                  ? originLatLng.longitude
-                  : destLatLng.longitude,
-            ),
-            northeast: LatLng(
-              originLatLng.latitude > destLatLng.latitude
-                  ? originLatLng.latitude
-                  : destLatLng.latitude,
-              originLatLng.longitude > destLatLng.longitude
-                  ? originLatLng.longitude
-                  : destLatLng.longitude,
-            ),
-          ),
-          80,
-        ),
+      _scopeModalMap(
+        currentLocation: originLatLng,
+        destinationLocation: destLatLng,
+        routePoints: points,
       );
+      _lastRouteOrigin = originLatLng;
+      _lastRouteRefreshedAt = DateTime.now();
     }
+    _isRouteLoading = false;
   }
 
   List<LatLng> _decodePolyline(String encoded) {
@@ -434,6 +588,117 @@ class _GpsMapAlertState extends State<GpsMapAlert>
       points.add(LatLng(lat / 1e5, lng / 1e5));
     }
     return points;
+  }
+
+  void _updateCurrentMarkers(LatLng currentLocation) {
+    if (!mounted) return;
+    setState(() {
+      _applyMapMarkers(
+        currentLocation: currentLocation,
+        destinationLocation: _lastDestinationLatLng,
+      );
+    });
+    _scopeModalMap(
+      currentLocation: currentLocation,
+      destinationLocation: _lastDestinationLatLng,
+    );
+  }
+
+  // Kept as a compatibility hook for stale post-frame callbacks after hot reload.
+  // ignore: unused_element
+  void _maybeFollowCurrentLocation(LatLng currentLocation) {
+    _scopeModalMap(
+      currentLocation: currentLocation,
+      destinationLocation: _lastDestinationLatLng,
+    );
+  }
+
+  bool _shouldRefreshRoute(LatLng origin) {
+    final lastOrigin = _lastRouteOrigin;
+    final lastAt = _lastRouteRefreshedAt;
+    if (lastOrigin == null || lastAt == null) return true;
+    final movedMeters = Geolocator.distanceBetween(
+      lastOrigin.latitude,
+      lastOrigin.longitude,
+      origin.latitude,
+      origin.longitude,
+    );
+    final elapsed = DateTime.now().difference(lastAt);
+    return movedMeters >= 25 || elapsed >= const Duration(seconds: 15);
+  }
+
+  void _applyMapMarkers({
+    required LatLng currentLocation,
+    LatLng? destinationLocation,
+    String? destinationTitle,
+  }) {
+    _markers
+      ..removeWhere((marker) => marker.markerId == _currentMarkerId)
+      ..removeWhere((marker) => marker.markerId == _destinationMarkerId)
+      ..removeWhere((marker) => marker.markerId == _partnerMarkerId)
+      ..add(
+        Marker(
+          markerId: _currentMarkerId,
+          position: currentLocation,
+          icon: BitmapDescriptor.defaultMarkerWithHue(
+            BitmapDescriptor.hueRose,
+          ),
+          infoWindow: const InfoWindow(title: 'ตำแหน่งของฉัน'),
+        ),
+      );
+
+    if (destinationLocation != null) {
+      _markers.add(
+        Marker(
+          markerId: _destinationMarkerId,
+          position: destinationLocation,
+          infoWindow: InfoWindow(title: destinationTitle ?? 'สถานที่เดต'),
+        ),
+      );
+    }
+
+    if (widget.partnerLocation != null) {
+      _markers.add(
+        Marker(
+          markerId: _partnerMarkerId,
+          position: widget.partnerLocation!,
+          icon: BitmapDescriptor.defaultMarkerWithHue(
+            BitmapDescriptor.hueAzure,
+          ),
+          infoWindow: const InfoWindow(title: 'คู่เดตของคุณ'),
+        ),
+      );
+    }
+  }
+
+  Future<void> _scopeModalMap({
+    required LatLng currentLocation,
+    LatLng? destinationLocation,
+    List<LatLng>? routePoints,
+  }) async {
+    final controller = _mapController;
+    if (controller == null) return;
+
+    final points = <LatLng>[currentLocation];
+    if (routePoints != null && routePoints.isNotEmpty) {
+      points.addAll(routePoints);
+    } else if (destinationLocation != null) {
+      points.add(destinationLocation);
+    }
+    if (widget.partnerLocation != null) {
+      points.add(widget.partnerLocation!);
+    }
+
+    if (points.length == 1) {
+      await controller.animateCamera(
+        CameraUpdate.newLatLngZoom(points.first, 15),
+      );
+      return;
+    }
+
+    await controller.animateCamera(
+      CameraUpdate.newLatLngBounds(_boundsFromPoints(points), 42),
+    );
   }
 
   List<String> get _emergencyTexts {
@@ -471,7 +736,18 @@ class _GpsMapAlertState extends State<GpsMapAlert>
       if (!mounted) return;
       setState(() {
         _isExpanded = !_isExpanded;
+        if (!_isExpanded) {
+          _showMapContent = false;
+        }
       });
+      if (_isExpanded) {
+        Future.delayed(const Duration(milliseconds: 110), () {
+          if (!mounted || !_isExpanded) return;
+          setState(() {
+            _showMapContent = true;
+          });
+        });
+      }
     });
   }
 
@@ -484,6 +760,7 @@ class _GpsMapAlertState extends State<GpsMapAlert>
         pageBuilder: (_, __, ___) => FullScreenMapPage(
           destinationPlaceId: widget.destinationPlaceId,
           googleApiKey: widget.googleApiKey,
+          partnerLocation: widget.partnerLocation,
         ),
         transitionsBuilder: (_, animation, __, child) {
           final curve = CurvedAnimation(
@@ -607,10 +884,9 @@ class _GpsMapAlertState extends State<GpsMapAlert>
   @override
   Widget build(BuildContext context) {
     final borderColor = _isExpanded
-        ? AppColors.textBlack.withValues(alpha: 0.1)
+        ? AppColors.textBlack.withValues(alpha: 0.08)
         : AppColors.inputBorder;
-    final expandedMapHeight = (MediaQuery.sizeOf(context).height * 0.46)
-        .clamp(260.0, 420.0);
+    const expandedMapHeight = 223.0;
 
     return ClipRRect(
       borderRadius: BorderRadius.circular(16),
@@ -620,114 +896,125 @@ class _GpsMapAlertState extends State<GpsMapAlert>
           border: Border.all(color: borderColor),
           borderRadius: BorderRadius.circular(16),
         ),
-        child: AnimatedSize(
-          duration: _isKeyboardVisible
-              ? Duration.zero
-              : const Duration(milliseconds: 220),
-          curve: Curves.easeOutCubic,
-          alignment: Alignment.topCenter,
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              InkWell(
-                onTap: _toggleExpansion,
-                child: SizedBox(
-                  height: 40,
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 20),
-                    child: Stack(
-                      alignment: Alignment.center,
-                      children: [
-                        const Center(
-                          child: Text(
-                            'LOCATION',
-                            textAlign: TextAlign.center,
-                            style: TextStyle(
-                              fontFamily: 'Inter',
-                              color: AppColors.textBlack,
-                              fontSize: 16,
-                              fontWeight: FontWeight.w700,
-                              height: 1.25,
-                            ),
-                          ),
-                        ),
-                        Align(
-                          alignment: Alignment.centerRight,
-                          child: Icon(
-                            _isExpanded
-                                ? Icons.keyboard_arrow_up_rounded
-                                : Icons.keyboard_arrow_down_rounded,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            GestureDetector(
+              behavior: HitTestBehavior.opaque,
+              onTap: _toggleExpansion,
+              child: SizedBox(
+                height: 40,
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 20),
+                  child: Stack(
+                    alignment: Alignment.center,
+                    children: [
+                      const Center(
+                        child: Text(
+                          'LOCATION',
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            fontFamily: 'Inter',
                             color: AppColors.textBlack,
-                            size: 20,
+                            fontSize: 16,
+                            fontWeight: FontWeight.w700,
+                            height: 1.25,
                           ),
                         ),
-                      ],
-                    ),
+                      ),
+                      Align(
+                        alignment: Alignment.centerRight,
+                        child: Icon(
+                          _isExpanded
+                              ? Icons.keyboard_arrow_up_rounded
+                              : Icons.keyboard_arrow_down_rounded,
+                          color: AppColors.textBlack,
+                          size: 20,
+                        ),
+                      ),
+                    ],
                   ),
                 ),
               ),
-              ClipRect(
-                child: AnimatedContainer(
-                  duration: _isKeyboardVisible
-                      ? Duration.zero
-                      : const Duration(milliseconds: 360),
-                  curve: Curves.easeOutCubic,
-                  height: _isExpanded ? expandedMapHeight : 0,
-                  width: double.infinity,
-                  child: AnimatedOpacity(
-                    duration: _isKeyboardVisible
-                        ? Duration.zero
-                        : const Duration(milliseconds: 220),
-                    curve: Curves.easeOut,
-                    opacity: _isExpanded ? 1 : 0,
-                    child: Stack(
-                      fit: StackFit.expand,
-                      children: [
-                        GoogleMap(
-                          initialCameraPosition: const CameraPosition(
-                            target: LatLng(0, 0),
-                            zoom: 2,
-                          ),
-                          onMapCreated: (controller) async {
-                            _mapController = controller;
-                            final pos = await Geolocator.getCurrentPosition();
-                            final currentLocation = LatLng(
-                              pos.latitude,
-                              pos.longitude,
-                            );
-                            controller.animateCamera(
-                              CameraUpdate.newLatLngZoom(
-                                currentLocation,
-                                15,
-                              ),
-                            );
-                            if (widget.destinationPlaceId != null) {
-                              _drawRoute(currentLocation);
-                            }
-                          },
-                          myLocationEnabled: true,
-                          myLocationButtonEnabled: false,
-                          zoomControlsEnabled: false,
-                          markers: _markers,
-                          polylines: _polylines,
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
+            ),
+            ClipRect(
+              child: AnimatedContainer(
+                duration: _isKeyboardVisible
+                    ? Duration.zero
+                    : const Duration(milliseconds: 360),
+                curve: Curves.easeOutCubic,
+                height: _isExpanded ? expandedMapHeight : 0,
+                width: double.infinity,
+                child: !_showMapContent
+                    ? const SizedBox.shrink()
+                    : StreamBuilder<Position>(
+                        stream: _positionStream,
+                        builder: (context, snapshot) {
+                          final currentLocation = snapshot.hasData
+                              ? LatLng(
+                                  snapshot.data!.latitude,
+                                  snapshot.data!.longitude,
+                                )
+                              : const LatLng(0, 0);
+
+                          if (snapshot.hasData && _mapController != null) {
+                            WidgetsBinding.instance.addPostFrameCallback((_) {
+                              if (widget.destinationPlaceId != null) {
+                                _drawRoute(currentLocation);
+                              } else {
+                                _updateCurrentMarkers(currentLocation);
+                              }
+                            });
+                          }
+
+                          return GoogleMap(
+                            initialCameraPosition: CameraPosition(
+                              target: currentLocation,
+                              zoom: snapshot.hasData ? 15 : 2,
+                            ),
+                            onMapCreated: (controller) async {
+                              _mapController = controller;
+                              if (snapshot.hasData) {
+                                controller.animateCamera(
+                                  CameraUpdate.newLatLngZoom(
+                                    currentLocation,
+                                    15,
+                                  ),
+                                );
+                                if (widget.destinationPlaceId != null) {
+                                  _drawRoute(currentLocation);
+                                } else {
+                                  _updateCurrentMarkers(currentLocation);
+                                }
+                              }
+                            },
+                            myLocationEnabled: true,
+                            myLocationButtonEnabled: false,
+                            zoomControlsEnabled: false,
+                            scrollGesturesEnabled: false,
+                            zoomGesturesEnabled: false,
+                            rotateGesturesEnabled: false,
+                            tiltGesturesEnabled: false,
+                            compassEnabled: false,
+                            mapToolbarEnabled: false,
+                            markers: _markers,
+                            polylines: _polylines,
+                          );
+                        },
+                      ),
               ),
-              if (_isExpanded && _emergencyStep > 0) _buildInstructionText(),
-              Padding(
-                padding: EdgeInsets.fromLTRB(
-                  20,
-                  _isExpanded ? 12 : 10,
-                  20,
-                  10,
-                ),
-                child: _buildActionButtons(),
+            ),
+            if (_isExpanded && _emergencyStep > 0) _buildInstructionText(),
+            Padding(
+              padding: EdgeInsets.fromLTRB(
+                20,
+                _isExpanded ? 12 : 10,
+                20,
+                10,
               ),
-            ],
-          ),
+              child: _buildActionButtons(),
+            ),
+          ],
         ),
       ),
     );

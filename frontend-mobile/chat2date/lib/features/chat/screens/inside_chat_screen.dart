@@ -3007,33 +3007,117 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
 
   //Real time
   void _showEmergencyNumberSuggestionDialog() {
-    showDialog(
-      context: context,
+    DsActionModal.show(
+      context,
       barrierDismissible: true,
-      builder: (ctx) => Dialog(
-        backgroundColor: Colors.transparent,
-        insetPadding: const EdgeInsets.symmetric(horizontal: 24),
-        child: ModalComponent(
-          svgPath: 'assets/icons/ui/icon_warning.svg',
-          heightSvg: 68,
-          widthSvg: 77,
-          topic: 'เพื่อความปลอดภัยของคุณ',
-          description:
-              'คุณยังไม่ได้กรอกเบอร์โทรฉุกเฉิน\n'
-              'หากเกิดเหตุฉุกเฉิน ระบบจะแสดงปุ่มโทรหา 191\n\n'
-              'ต้องการเพิ่มเบอร์คนใกล้ชิดเพื่อกดโทรได้ทันทีไหม?',
-          choice: true,
-          firstChoiceText: 'ไม่ต้องการ',
-          secondChoiceText: 'เพิ่มเบอร์',
-          spaceTop: 15,
-          spaceBottom: 15,
-          onFirstChoice: () => Navigator.pop(ctx),
-          onSecondChoice: () {
-            Navigator.pop(ctx);
-            Navigator.pushNamed(context, '/account-settings');
-          },
+      child: DsChoiceModal(
+        title: 'เพื่อความปลอดภัยของคุณ',
+        description:
+            'คุณยังไม่ได้กรอกเบอร์โทรฉุกเฉิน\n'
+            'หากเกิดเหตุฉุกเฉิน ระบบจะแสดงปุ่มโทรหา 191\n\n'
+            'ต้องการเพิ่มเบอร์คนใกล้ชิดเพื่อกดโทรได้ทันทีไหม?',
+        negativeLabel: 'ไม่ต้องการ',
+        positiveLabel: 'เพิ่มเบอร์',
+        minHeight: 280,
+        topVisual: SvgPicture.asset(
+          'assets/icons/ui/icon_warning.svg',
+          width: 77,
+          height: 68,
         ),
+        onNegativePressed: () => Navigator.of(context).pop(),
+        onPositivePressed: () {
+          Navigator.of(context).pop();
+          Navigator.pushNamed(context, '/account-settings');
+        },
       ),
+    );
+  }
+
+  bool _shouldShowGpsOverlay() {
+    final appointment = _existingAppointment;
+    final appointmentTime = appointment?.dateTime?.toLocal();
+    if (appointmentTime == null) return false;
+    final now = DateTime.now();
+    final dateStartTime = appointmentTime.subtract(const Duration(hours: 2));
+    final dateEndTime = appointmentTime.add(const Duration(hours: 3));
+    return now.isAfter(dateStartTime) && now.isBefore(dateEndTime);
+  }
+
+  void _maybeShowEmergencySuggestionForGps() {
+    if (_emergencyNumbers.isNotEmpty ||
+        !_isEmergencyLoaded ||
+        _hasShownEmergencySuggestion ||
+        !mounted) {
+      return;
+    }
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted || _hasShownEmergencySuggestion) return;
+      _hasShownEmergencySuggestion = true;
+      _showEmergencyNumberSuggestionDialog();
+    });
+  }
+
+  Widget _buildGpsOverlayWidget() {
+    return GpsMapAlert(
+      emergencyNumbers: _emergencyNumbers,
+      destinationPlaceId: _existingAppointment?.placeId,
+      googleApiKey: dotenv.env['GOOGLE_API_KEY'] ?? '',
+      onLocate: () {
+        ref.read(locationServiceProvider).tryUpdateLocationSilently();
+      },
+      onShareLocation: () async {
+        try {
+          final pos = await Geolocator.getCurrentPosition();
+
+          final shareUrl = await ref.read(locationServiceProvider).shareLocation(
+            latitude: pos.latitude,
+            longitude: pos.longitude,
+          );
+
+          if (shareUrl.isNotEmpty) {
+            await Share.share(
+              'ฉันกำลังไปเดตนะ! นี่คือตำแหน่งล่าสุดของฉันตอนนี้นะ:\n$shareUrl',
+            );
+          }
+        } catch (e) {
+          if (mounted) {
+            Toast.show(
+              context,
+              type: ToastType.error,
+              title: 'ข้อผิดพลาด',
+              message: 'ไม่สามารถแชร์โลเคชันได้',
+              durationSeconds: 3,
+              showCountdown: false,
+            );
+          }
+        }
+      },
+      onSosTriggered: (calledNumber) async {
+        try {
+          final pos = await Geolocator.getCurrentPosition(
+            desiredAccuracy: LocationAccuracy.high,
+          );
+          if (calledNumber == '191') return;
+
+          await ref.read(sosServiceProvider).triggerSos(
+            appointmentId: _existingAppointment!.appointmentId,
+            latitude: pos.latitude,
+            longitude: pos.longitude,
+            calledNumber: calledNumber,
+          );
+        } catch (e) {
+          if (mounted) {
+            Toast.show(
+              context,
+              type: ToastType.error,
+              title: 'ผิดพลาด',
+              message: 'ไม่สามารถส่งข้อมูล SOS ได้',
+              durationSeconds: 3,
+              showCountdown: false,
+            );
+          }
+        }
+      },
     );
   }
 
@@ -3305,6 +3389,11 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
   @override
   Widget build(BuildContext context) {
     final latestOwnIndex = _findLatestOwnMessageIndex();
+    final showGpsOverlay = _shouldShowGpsOverlay();
+    final gpsOverlayTop = MediaQuery.paddingOf(context).top + 120;
+    if (showGpsOverlay) {
+      _maybeShowEmergencySuggestionForGps();
+    }
     return WillPopScope(
       onWillPop: () async {
         await _exitRoomOnce();
@@ -3344,6 +3433,11 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
                           : (_shouldShowCalendarIcon
                                 ? _handleCalendarTap
                                 : null),
+                      onCalendarActionTap: _isChatDisabled
+                          ? null
+                          : (_shouldShowCalendarIcon
+                                ? _handleCalendarTap
+                                : null),
                       onSecondaryActionTap:
                           (_headerVariant == ChatHeaderVariant.chat2)
                           ? _handleSpinwheelTap
@@ -3363,128 +3457,8 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
                             padding: const EdgeInsets.symmetric(horizontal: 19),
                             child: _buildRelationshipBar(),
                           ),
-                          const SizedBox(height: 12),
-                          if (_existingAppointment != null &&
-                              _existingAppointment!.dateTime != null)
-                            Builder(
-                              builder: (context) {
-                                final now = DateTime.now();
-                                final appointmentTime = _existingAppointment!
-                                    .dateTime!
-                                    .toLocal();
-
-                                final dateStartTime = appointmentTime.subtract(
-                                  const Duration(hours: 2),
-                                );
-                                final dateEndTime = appointmentTime.add(
-                                  const Duration(hours: 3),
-                                );
-
-                                // เช็กว่าเลยเวลานัดมาแล้ว AND ยังไม่หมดเวลาเดต
-                                if (now.isAfter(dateStartTime) &&
-                                    now.isBefore(dateEndTime)) {
-                                  WidgetsBinding.instance.addPostFrameCallback((
-                                    _,
-                                  ) {
-                                    if (_emergencyNumbers.isEmpty &&
-                                        mounted &&
-                                        !_hasShownEmergencySuggestion &&
-                                        _isEmergencyLoaded) {
-                                      _hasShownEmergencySuggestion = true;
-                                      _showEmergencyNumberSuggestionDialog();
-                                    }
-                                  });
-                                  return Padding(
-                                    padding: const EdgeInsets.symmetric(
-                                      horizontal: 16,
-                                    ),
-                                    child: GpsMapAlert(
-                                      emergencyNumbers: _emergencyNumbers,
-                                      destinationPlaceId:
-                                          _existingAppointment?.placeId,
-                                      googleApiKey:
-                                          dotenv.env['GOOGLE_API_KEY'] ?? '',
-                                      onLocate: () {
-                                        Toast.show(
-                                          context,
-                                          type: ToastType.info,
-                                          title: 'อัปเดตตำแหน่ง',
-                                          message: 'กำลังดึงพิกัดล่าสุด...',
-                                          durationSeconds: 2,
-                                          showCountdown: false,
-                                        );
-                                      },
-                                      onShareLocation: () async {
-                                        try {
-                                          final pos =
-                                              await Geolocator.getCurrentPosition();
-
-                                          final shareUrl = await ref
-                                              .read(locationServiceProvider)
-                                              .shareLocation(
-                                                latitude: pos.latitude,
-                                                longitude: pos.longitude,
-                                              );
-
-                                          if (shareUrl.isNotEmpty) {
-                                            await Share.share(
-                                              'ฉันกำลังไปเดตนะ! นี่คือตำแหน่งล่าสุดของฉันตอนนี้นะ:\n$shareUrl',
-                                            );
-                                          }
-                                        } catch (e) {
-                                          if (mounted) {
-                                            Toast.show(
-                                              context,
-                                              type: ToastType.error,
-                                              title: 'ข้อผิดพลาด',
-                                              message:
-                                                  'ไม่สามารถแชร์โลเคชันได้',
-                                              durationSeconds: 3,
-                                              showCountdown: false,
-                                            );
-                                          }
-                                        }
-                                      },
-                                      onSosTriggered: (calledNumber) async {
-                                        try {
-                                          final pos =
-                                              await Geolocator.getCurrentPosition(
-                                                desiredAccuracy:
-                                                    LocationAccuracy.high,
-                                              );
-                                          if (calledNumber == '191') return;
-
-                                          await ref
-                                              .read(sosServiceProvider)
-                                              .triggerSos(
-                                                appointmentId:
-                                                    _existingAppointment!
-                                                        .appointmentId,
-                                                latitude: pos.latitude,
-                                                longitude: pos.longitude,
-                                                calledNumber: calledNumber,
-                                              );
-                                        } catch (e) {
-                                          if (mounted) {
-                                            Toast.show(
-                                              context,
-                                              type: ToastType.error,
-                                              title: 'ผิดพลาด',
-                                              message:
-                                                  'ไม่สามารถส่งข้อมูล SOS ได้',
-                                              durationSeconds: 3,
-                                              showCountdown: false,
-                                            );
-                                          }
-                                        }
-                                      },
-                                    ),
-                                  );
-                                }
-                                return const SizedBox.shrink();
-                              },
-                            ),
-                          const SizedBox(height: 6),
+                          const SizedBox(height: 8),
+                          const SizedBox(height: 4),
                           Expanded(
                             child: _isLoadingMessages
                                 ? const Center(
@@ -3523,9 +3497,9 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
                                   )
                                 : ListView.builder(
                                     controller: _scrollController,
-                                    padding: const EdgeInsets.fromLTRB(
+                                    padding: EdgeInsets.fromLTRB(
                                       20,
-                                      12,
+                                      showGpsOverlay ? 128 : 12,
                                       20,
                                       24,
                                     ),
@@ -3669,6 +3643,21 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
               //     ),
               //   ),
               // ),
+              if (showGpsOverlay)
+                Positioned(
+                  top: gpsOverlayTop,
+                  left: 0,
+                  right: 0,
+                  child: IgnorePointer(
+                    ignoring: false,
+                    child: Center(
+                      child: SizedBox(
+                        width: 333,
+                        child: _buildGpsOverlayWidget(),
+                      ),
+                    ),
+                  ),
+                ),
               if (_showWheelModal) ...[
                   Positioned.fill(
                     child: GestureDetector(
