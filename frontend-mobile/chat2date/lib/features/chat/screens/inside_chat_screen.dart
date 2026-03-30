@@ -2,10 +2,10 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:ui';
 
-import 'package:chat2date/components/buttons/ds_button.dart';
 import 'package:chat2date/components/calendar/calendar_modal.dart';
 import 'package:chat2date/components/chat/chat_text_component.dart';
 import 'package:chat2date/components/common/modal_component.dart';
+import 'package:chat2date/components/design_system/feedback/index.dart';
 import 'package:chat2date/components/layout/header.dart';
 import 'package:chat2date/components/modal/feature_guide_modal.dart';
 import 'package:chat2date/components/modal/relationship_mission_modal.dart';
@@ -16,7 +16,6 @@ import 'package:chat2date/components/design_system/organisms/ds_app_secondary_he
 import 'package:chat2date/components/design_system/organisms/ds_bot_chat.dart';
 import 'package:chat2date/components/design_system/organisms/ds_gps_alert.dart';
 import 'package:chat2date/components/design_system/organisms/ds_spin_wheel_card.dart';
-import 'package:chat2date/components/toasts/toast.dart';
 import 'package:chat2date/core/theme/app_assets.dart';
 import 'package:chat2date/models/appointment.dart';
 import 'package:chat2date/models/chat_access_status.dart';
@@ -76,6 +75,7 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
   int _heartCount = 0; // 0 = ซ่อน, 1-2 = แสดง, 3 = rainbow
   bool _showWheelModal = false;
   bool _showUnlockDate = false;
+  bool _hasSeenCalendarUnlockIntro = false;
   bool firstTime = true;
   int talkCount = 0;
   int _steakDays = 0;
@@ -469,14 +469,11 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
   }
 
   Future<void> _initUpdateRelationshipBar(bool onUpdate) async {
-    int oldHeartCount = 10;
-
     if (onUpdate) {
       final chatService = ref.read(chatServiceProvider);
       final roomData = await chatService.updateRelationshipBar(widget.roomId!);
       if (!mounted) return;
       setState(() {
-        oldHeartCount = _heartCount;
         if (roomData!.score >= 400) {
           _heartCount = 3; // ตันที่ 3 ดวง
           _currentPercent = 1.0; // ตันที่ 100% (1.0)
@@ -489,11 +486,6 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
         _dailyMessagesCount = roomData.dailyMessageCount;
       });
 
-      if (oldHeartCount == 0 && _heartCount >= 1) {
-        FocusScope.of(context).unfocus();
-        await Future.delayed(const Duration(milliseconds: 300));
-        _triggerUnlockDate();
-      }
     } else {
       final chatService = ref.read(chatServiceProvider);
       final roomData =
@@ -512,12 +504,6 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
         _isFirstMessageBonus = roomData.isFirstMessageBonus;
         _dailyMessagesCount = roomData.dailyMessageCount;
       });
-
-      if (oldHeartCount == 0 && _heartCount >= 1) {
-        FocusScope.of(context).unfocus();
-        await Future.delayed(const Duration(milliseconds: 300));
-        _triggerUnlockDate();
-      }
 
       return;
     }
@@ -819,7 +805,6 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
   }
 
   void _startChatSocket() {
-    int oldHeartCount = 10;
     final roomId = widget.roomId;
     if (roomId == null || roomId.isEmpty) return;
     if (_chatSocketService != null) return;
@@ -848,7 +833,6 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
     _relationshipSubscription = service.relationshipStream.listen((data) {
       if (!mounted) return;
       setState(() {
-        oldHeartCount = _heartCount;
         if (data['score'] >= 400) {
           _heartCount = 3; // ตันที่ 3 ดวง
           _currentPercent = 1.0; // ตันที่ 100% (1.0)
@@ -861,10 +845,6 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
         _isFirstMessageBonus = data['isFirstMessageBonus'] ?? false;
       });
 
-      // เช็คเงื่อนไขปลดล็อกฟีเจอร์ใหม่ (เช่น หัวใจดวงแรก)
-      if (oldHeartCount == 0 && _heartCount >= 1) {
-        _triggerUnlockDate();
-      }
     });
 
     _chatSocketService?.spinStream.listen((payload) async {
@@ -1302,6 +1282,11 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
     return 'calendar_seen_appointment_${userId}_$roomId';
   }
 
+  String _calendarUnlockIntroPrefsKey(String roomId) {
+    final userId = _currentUserId ?? 'guest';
+    return 'calendar_unlock_intro_${userId}_$roomId';
+  }
+
   String _appointmentCalendarSignature(Appointment appointment) {
     final updatedAt = appointment.updatedAt?.toUtc().toIso8601String() ?? '';
     return '${appointment.appointmentId}:${appointment.status}:$updatedAt';
@@ -1356,10 +1341,12 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
 
       final prefs = await SharedPreferences.getInstance();
       final prefsKey = _calendarSeenPrefsKey(roomId);
+      final unlockPrefsKey = _calendarUnlockIntroPrefsKey(roomId);
       final signature = latestAppointment == null
           ? null
           : _appointmentCalendarSignature(latestAppointment);
       final savedSignature = prefs.getString(prefsKey);
+      final hasSeenUnlockIntro = prefs.getBool(unlockPrefsKey) ?? false;
 
       if (markAsSeen) {
         if (signature == null) {
@@ -1374,7 +1361,14 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
         _existingAppointment = latestAppointment;
         _calendarHasUnreadUpdate =
             signature != null && signature != savedSignature && !markAsSeen;
+        _hasSeenCalendarUnlockIntro = hasSeenUnlockIntro;
       });
+
+      if (latestAppointment != null &&
+          !hasSeenUnlockIntro &&
+          !_showUnlockDate) {
+        _triggerUnlockDate();
+      }
     } catch (e) {
       debugPrint('Error refreshing appointment state: $e');
     }
@@ -1402,7 +1396,8 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
     return active.isNotEmpty ? active.first : null;
   }
 
-  bool get _shouldShowCalendarIcon => _existingAppointment != null;
+  bool get _shouldShowCalendarIcon =>
+      _existingAppointment != null && _hasSeenCalendarUnlockIntro;
 
   bool get _isCalendarViewOnly {
     final appointment = _existingAppointment;
@@ -2341,156 +2336,46 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
   /// State 2: success dialog หลังบันทึก
   void _showSaveSuccessDialog(Appointment appointment) {
     final dt = appointment.dateTime?.toLocal();
-    String dateStr;
-    if (dt != null) {
-      final thaiMonths = [
-        'มกราคม',
-        'กุมภาพันธ์',
-        'มีนาคม',
-        'เมษายน',
-        'พฤษภาคม',
-        'มิถุนายน',
-        'กรกฎาคม',
-        'สิงหาคม',
-        'กันยายน',
-        'ตุลาคม',
-        'พฤศจิกายน',
-        'ธันวาคม',
-      ];
-      final hour = dt.hour;
-      final amPm = hour < 12 ? 'AM' : 'PM';
-      final hour12 = hour % 12 == 0 ? 12 : hour % 12;
-      final minute = dt.minute.toString().padLeft(2, '0');
-      dateStr =
-          '${dt.day} ${thaiMonths[dt.month - 1]} ${dt.year} $hour12:$minute $amPm';
-    } else {
-      dateStr = 'ยังไม่ได้ระบุวันที่';
-    }
-
-    showDialog(
-      context: context,
-      barrierDismissible: true,
-      builder: (ctx) => Dialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        child: Padding(
-          padding: const EdgeInsets.all(28),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Container(
-                width: 72,
-                height: 72,
-                decoration: BoxDecoration(
-                  color: const Color(0xFFE8F5E9),
-                  shape: BoxShape.circle,
-                ),
-                child: const Icon(
-                  Icons.check_circle,
-                  color: Color(0xFF4CAF50),
-                  size: 48,
-                ),
-              ),
-              const SizedBox(height: 16),
-              const Text(
-                'บันทึกเสร็จสิ้น',
-                style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.w700,
-                  fontFamily: 'Inter',
-                  color: Color(0xFF0F172A),
-                ),
-              ),
-              const SizedBox(height: 8),
-              Text(
-                dateStr,
-                textAlign: TextAlign.center,
-                style: const TextStyle(
-                  fontSize: 14,
-                  color: Color(0xFF64748B),
-                  fontFamily: 'Inter',
-                ),
-              ),
-              const SizedBox(height: 6),
-              const Text(
-                'ระบบจะแจ้งเตือนก่อนวันนัด 1 วัน',
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  fontSize: 12,
-                  color: Color(0xFF94A3B8),
-                  fontFamily: 'Inter',
-                ),
-              ),
-              const SizedBox(height: 24),
-              DsButton(
-                label: 'ตกลง',
-                variant: DsButtonVariant.primary,
-                size: DsButtonSize.md,
-                onPressed: () => Navigator.pop(ctx),
-              ),
-            ],
-          ),
-        ),
-      ),
+    DsCalendarStatusModal.show(
+      context,
+      title: 'บันทึกเสร็จสิ้น',
+      message: dt == null
+          ? 'ยังไม่ได้ระบุวันที่และเวลา'
+          : 'วันและเวลาออกเดตของคุณคือ ${_formatCalendarModalDate(dt)}\nเราจะแจ้งเตือนคุณอีกครั้งล่วงหน้าก่อนวันนัด 1 วัน',
     );
   }
 
   /// State 6: ยืนยันก่อนยกเลิกการแก้ไข (close X ใน edit mode)
   void _showCancelEditConfirmDialog() {
-    showDialog(
-      context: context,
-      barrierDismissible: true,
-      builder: (ctx) => Dialog(
-        backgroundColor: Colors.transparent,
-        insetPadding: const EdgeInsets.symmetric(horizontal: 24),
-        child: ModalComponent(
-          svgPath: 'assets/icons/ui/icon_warning.svg',
-          heightSvg: 68,
-          widthSvg: 77,
-          topic: 'ยกเลิกการแก้ไข',
-          description:
-              'ต้องการยกเลิกวันออกเดตใช่หรือไม่\nข้อมูลที่เลือกจะสูญหาย',
-          choice: true,
-          firstChoiceText: 'ออกจากหน้า',
-          secondChoiceText: 'กลับไปแก้ต่อ',
-          onFirstChoice: () {
-            Navigator.pop(ctx);
-            _closeCalendar();
-          },
-          onSecondChoice: () => Navigator.pop(ctx),
-        ),
-      ),
+    DsCalendarDecisionModal.show(
+      context,
+      title: 'ละทิ้งการแก้ไขหรือไม่',
+      description: 'การเปลี่ยนแปลงที่คุณแก้ไขไว้จะไม่ถูกบันทึก',
+      negativeLabel: 'ยกเลิก',
+      positiveLabel: 'ละทิ้ง',
+      onNegativePressed: () => Navigator.of(context, rootNavigator: true).pop(),
+      onPositivePressed: () {
+        Navigator.of(context, rootNavigator: true).pop();
+        _closeCalendar();
+      },
     );
   }
 
   /// State 7: ยืนยันยกเลิกนัดหมาย
   void _showDeleteConfirmDialog(int appointmentId) {
-    showDialog(
-      context: context,
-      barrierDismissible: true,
-      builder: (ctx) => Dialog(
-        backgroundColor: Colors.transparent,
-        insetPadding: const EdgeInsets.symmetric(horizontal: 24),
-        child: ModalComponent(
-          svgPath: 'assets/icons/ui/icon_warning.svg',
-          heightSvg: 68,
-          widthSvg: 77,
-          topic: 'ยืนยันที่จะยกเลิกวันเดตหรือไม่',
-          subDescription: true,
-          headingSubDescriptionText:
-              'หากยืนยันการลบ คุณจะต้องรอ Cooldown ก่อนจึงจะสามารถนัดหมายครั้งถัดไปได้',
-          headingSubDescriptionColor: Colors.red,
-          headingSubDescriptionWeight: FontWeight.w500,
-          choice: true,
-          firstChoiceText: 'ยืนยันการลบ',
-          secondChoiceText: 'ยกเลิก',
-          onFirstChoice: () {
-            Navigator.pop(ctx);
-            _closeCalendar();
-            _deleteAppointment(appointmentId);
-          },
-          onSecondChoice: () => Navigator.pop(ctx),
-        ),
-      ),
+    DsCalendarDecisionModal.show(
+      context,
+      title: 'ยืนยันที่จะลบนัดเดตหรือไม่',
+      description:
+          'การลบนัดเดต สถานที่เดตวันนั้นจะหายไปด้วย\nคุณจะต้อง สุ่มเดตใหม่ หากต้องการเดตอีกครั้ง',
+      negativeLabel: 'ยกเลิก',
+      positiveLabel: 'ยืนยัน',
+      onNegativePressed: () => Navigator.of(context, rootNavigator: true).pop(),
+      onPositivePressed: () {
+        Navigator.of(context, rootNavigator: true).pop();
+        _closeCalendar();
+        _deleteAppointment(appointmentId);
+      },
     );
   }
 
@@ -2518,61 +2403,33 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
 
   /// State 8: แสดง success dialog หลังยกเลิก
   void _showDeleteSuccessDialog() {
-    showDialog(
-      context: context,
-      barrierDismissible: true,
-      builder: (ctx) => Dialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        child: Padding(
-          padding: const EdgeInsets.all(28),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Container(
-                width: 72,
-                height: 72,
-                decoration: const BoxDecoration(
-                  color: Color(0xFFE8F5E9),
-                  shape: BoxShape.circle,
-                ),
-                child: const Icon(
-                  Icons.check_circle,
-                  color: Color(0xFF4CAF50),
-                  size: 48,
-                ),
-              ),
-              const SizedBox(height: 16),
-              const Text(
-                'ลบสำเร็จแล้ว',
-                style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.w700,
-                  fontFamily: 'Inter',
-                  color: Color(0xFF0F172A),
-                ),
-              ),
-              const SizedBox(height: 8),
-              const Text(
-                'ยกเลิกวันเดตเรียบร้อยแล้ว\nนัดหมายนี้ถูกปรับเป็นยกเลิกแล้ว',
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  fontSize: 14,
-                  color: Color(0xFF64748B),
-                  fontFamily: 'Inter',
-                ),
-              ),
-              const SizedBox(height: 24),
-              DsButton(
-                label: 'ตกลง',
-                variant: DsButtonVariant.primary,
-                size: DsButtonSize.md,
-                onPressed: () => Navigator.pop(ctx),
-              ),
-            ],
-          ),
-        ),
-      ),
+    DsCalendarStatusModal.show(
+      context,
+      title: 'ลบเสร็จสิ้น',
+      message:
+          'สถานที่เดตคุณลบเรียบร้อย\nหากต้องการเดตอีกครั้ง กรุณาสุ่มเดตใหม่',
     );
+  }
+
+  String _formatCalendarModalDate(DateTime dt) {
+    const thaiMonths = [
+      'มกราคม',
+      'กุมภาพันธ์',
+      'มีนาคม',
+      'เมษายน',
+      'พฤษภาคม',
+      'มิถุนายน',
+      'กรกฎาคม',
+      'สิงหาคม',
+      'กันยายน',
+      'ตุลาคม',
+      'พฤศจิกายน',
+      'ธันวาคม',
+    ];
+
+    final hour = dt.hour.toString().padLeft(2, '0');
+    final minute = dt.minute.toString().padLeft(2, '0');
+    return '${dt.day} ${thaiMonths[dt.month - 1]} ${dt.year}\nเวลา $hour.$minute น.';
   }
 
   Future<void> _checkSpinWheelCondition() async {
@@ -2747,20 +2604,27 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
   }
 
   void _triggerUnlockDate() async {
+    if (_showUnlockDate || _hasSeenCalendarUnlockIntro) {
+      return;
+    }
     FocusScope.of(context).unfocus();
     await Future.delayed(const Duration(milliseconds: 300));
+    if (!mounted) return;
     setState(() {
       _showUnlockDate = true;
-      _headerVariant = ChatHeaderVariant.chat2;
     });
+  }
 
-    // นับถอยหลัง 5 วินาทีแล้วปิด
-    Future.delayed(const Duration(seconds: 3), () {
-      if (mounted) {
-        setState(() {
-          _showUnlockDate = false;
-        });
-      }
+  Future<void> _confirmCalendarUnlockIntro() async {
+    final roomId = widget.roomId;
+    if (roomId == null || roomId.isEmpty) return;
+
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(_calendarUnlockIntroPrefsKey(roomId), true);
+    if (!mounted) return;
+    setState(() {
+      _hasSeenCalendarUnlockIntro = true;
+      _showUnlockDate = false;
     });
   }
 
@@ -3919,11 +3783,7 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
               ],
               UnlockDateModal(
                 isVisible: _showUnlockDate,
-                onConfirm: () {
-                  setState(() {
-                    _showUnlockDate = false;
-                  });
-                },
+                onConfirm: _confirmCalendarUnlockIntro,
               ),
 
               // === Calendar Modal (เหมือน SpinWheel overlay) ===

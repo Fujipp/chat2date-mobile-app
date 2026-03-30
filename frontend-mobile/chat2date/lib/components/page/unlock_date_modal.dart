@@ -1,18 +1,22 @@
 import 'dart:ui';
+
+import 'package:chat2date/components/design_system/buttons/index.dart';
+import 'package:chat2date/core/theme/app_assets.dart';
+import 'package:chat2date/core/theme/app_colors.dart';
+import 'package:chat2date/core/theme/tokens/typography/body_text_styles.dart';
+import 'package:chat2date/core/theme/tokens/typography/display_text_styles.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
-// อย่าลืม import ไฟล์ AppColors ของคุณด้วยนะครับ
-import 'package:chat2date/core/theme/app_colors.dart'; 
 
 class UnlockDateModal extends StatelessWidget {
-  final bool isVisible;
-  final VoidCallback onConfirm;
-
   const UnlockDateModal({
     super.key,
     required this.isVisible,
     required this.onConfirm,
   });
+
+  final bool isVisible;
+  final VoidCallback onConfirm;
 
   @override
   Widget build(BuildContext context) {
@@ -20,202 +24,131 @@ class UnlockDateModal extends StatelessWidget {
 
     return Stack(
       children: [
-        // 1. Full Screen Blur Background
         Positioned.fill(
-          child: BackdropFilter(
-            filter: ImageFilter.blur(sigmaX: 15.0, sigmaY: 15.0),
-            child: Container(
-              decoration: BoxDecoration(
-                color: AppColors.info.withOpacity(0.1),
+          child: GestureDetector(
+            behavior: HitTestBehavior.opaque,
+            onTap: () {},
+            child: BackdropFilter(
+              filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
+              child: ColoredBox(
+                color: AppColors.overlay.withValues(alpha: 0.18),
               ),
             ),
           ),
         ),
-
-        // 2. Animated Content
         Positioned.fill(
           child: TweenAnimationBuilder<double>(
             tween: Tween(begin: 0.0, end: 1.0),
-            duration: const Duration(milliseconds: 800),
-            curve: Curves.elasticOut,
+            duration: const Duration(milliseconds: 220),
+            curve: Curves.easeOutCubic,
             builder: (context, value, child) {
-              return Transform.scale(scale: value, child: child);
+              return Opacity(
+                opacity: value,
+                child: Transform.scale(
+                  scale: 0.96 + (0.04 * value),
+                  child: child,
+                ),
+              );
             },
-            child: Center(
-              child: _buildMainCard(context),
-            ),
+            child: Center(child: _buildMainCard()),
           ),
         ),
       ],
     );
   }
 
-  Widget _buildMainCard(BuildContext context) {
+  Widget _buildMainCard() {
     return Container(
-      width: MediaQuery.of(context).size.width * 0.88,
+      width: 310,
       decoration: BoxDecoration(
-        color: AppColors.background.withOpacity(0.95),
-        borderRadius: BorderRadius.circular(45),
-        boxShadow: [
-          BoxShadow(
-            color: AppColors.brandPrimary.withOpacity(0.2),
-            blurRadius: 40,
-            offset: const Offset(0, 20),
-          ),
-        ],
+        color: AppColors.background,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppColors.inputBorder),
       ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          _buildTopDecoration(),
+          ClipRRect(
+            borderRadius: const BorderRadius.only(
+              topLeft: Radius.circular(16),
+              topRight: Radius.circular(16),
+            ),
+            child: SizedBox(
+              height: 64,
+              child: Stack(
+                children: [
+                  Positioned(
+                    top: -22,
+                    left: -18,
+                    child: Container(
+                      width: 79,
+                      height: 79,
+                      decoration: const BoxDecoration(
+                        color: AppColors.brandPrimary,
+                        shape: BoxShape.circle,
+                      ),
+                    ),
+                  ),
+                  Positioned(
+                    top: -22,
+                    right: -18,
+                    child: Container(
+                      width: 79,
+                      height: 79,
+                      decoration: const BoxDecoration(
+                        color: AppColors.brandPrimary,
+                        shape: BoxShape.circle,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
           Padding(
-            padding: const EdgeInsets.fromLTRB(32, 0, 32, 40),
+            padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
             child: Column(
+              mainAxisSize: MainAxisSize.min,
               children: [
-                _buildIconSection(),
-                const SizedBox(height: 32),
-                const Text(
-                  'Unlock Your Date!',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    fontSize: 24,
-                    fontWeight: FontWeight.bold,
-                    color: AppColors.textPrimary,
+                SizedBox(
+                  width: 74,
+                  height: 82,
+                  child: Center(
+                    child: SvgPicture.asset(
+                      AppAssets.headerSecondaryChat4LeftAction,
+                      width: 74,
+                      height: 74,
+                      fit: BoxFit.contain,
+                    ),
                   ),
                 ),
-                const SizedBox(height: 12),
-                const Text(
-                  'เตรียมตัวไปสร้างเดตสุดพิเศษ\nกับคู่ของคุณกัน!',
+                const SizedBox(height: 6),
+                Text(
+                  'Unlock Your Calendar',
                   textAlign: TextAlign.center,
-                  style: TextStyle(
-                    fontSize: 16,
-                    color: AppColors.textSecondary,
-                    height: 1.5,
+                  style: AppDisplayTextStyles.subtitleBold.copyWith(
+                    color: AppColors.textBlack,
                   ),
                 ),
-                const SizedBox(height: 32),
-                _buildConfirmButton(),
+                const SizedBox(height: 6),
+                Text(
+                  'เตรียมตัวไปสร้างเดตสุดพิเศษ\nกับคู่ของคุณกัน',
+                  textAlign: TextAlign.center,
+                  style: AppBodyTextStyles.bodySmall.copyWith(
+                    color: AppColors.textSupport,
+                  ),
+                ),
+                const SizedBox(height: 20),
+                DsButton(
+                  label: 'ไปเดตกันเลย',
+                  variant: DsButtonVariant.primary,
+                  width: 231,
+                  onPressed: onConfirm,
+                ),
               ],
             ),
           ),
         ],
-      ),
-    );
-  }
-
-  Widget _buildTopDecoration() {
-    return ClipRRect(
-      borderRadius: const BorderRadius.only(
-        topLeft: Radius.circular(45),
-        topRight: Radius.circular(45),
-      ),
-      child: SizedBox(
-        height: 100,
-        child: Stack(
-          children: [
-            Positioned(
-              top: -50, left: -20,
-              child: CircleAvatar(radius: 60, backgroundColor: AppColors.info.withOpacity(0.3)),
-            ),
-            Positioned(
-              top: -20, right: -10,
-              child: CircleAvatar(radius: 40, backgroundColor: AppColors.brandPrimary200.withOpacity(0.5)),
-            ),
-            const Center(
-              child: Text(
-                "IT'S DATE TIME!",
-                style: TextStyle(
-                  color: AppColors.brandPrimary700,
-                  fontWeight: FontWeight.w900,
-                  letterSpacing: 2,
-                  fontSize: 14,
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildIconSection() {
-    return Stack(
-      alignment: Alignment.center,
-      children: [
-        Container(
-          width: 140, height: 140,
-          decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            gradient: RadialGradient(
-              colors: [
-                AppColors.brandPrimary200.withOpacity(0.6),
-                AppColors.background.withOpacity(0.0),
-              ],
-            ),
-          ),
-        ),
-        Container(
-          width: 100, height: 100,
-          decoration: BoxDecoration(
-            gradient: const LinearGradient(
-              colors: [AppColors.brandPrimary, AppColors.brandPrimary700],
-              begin: Alignment.topLeft, end: Alignment.bottomRight,
-            ),
-            shape: BoxShape.circle,
-            boxShadow: [
-              BoxShadow(
-                color: AppColors.brandPrimary.withOpacity(0.4),
-                blurRadius: 15, offset: const Offset(0, 10),
-              ),
-            ],
-          ),
-          padding: const EdgeInsets.all(5),
-          child: SvgPicture.asset('assets/icons/ui/icon_spinwheel.svg', fit: BoxFit.contain),
-        ),
-        Positioned(
-          top: 5, right: 5,
-          child: SvgPicture.asset('assets/icons/ui/HEART_STATUS_BAR.svg', width: 28),
-        ),
-        Positioned(
-          bottom: 0, left: 10,
-          child: Container(
-            padding: const EdgeInsets.all(8),
-            decoration: const BoxDecoration(color: AppColors.textPrimary, shape: BoxShape.circle),
-            child: SvgPicture.asset(
-              'assets/icons/ui/icon_unlock.svg',
-              width: 20, color: AppColors.warning,
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildConfirmButton() {
-    return Container(
-      width: double.infinity,
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(20),
-        gradient: const LinearGradient(colors: [AppColors.btnPrimary, AppColors.btnHoverPrimary]),
-        boxShadow: [
-          BoxShadow(
-            color: AppColors.btnPrimary.withOpacity(0.3),
-            blurRadius: 15, offset: const Offset(0, 8),
-          ),
-        ],
-      ),
-      child: ElevatedButton(
-        onPressed: onConfirm,
-        style: ElevatedButton.styleFrom(
-          backgroundColor: Colors.transparent,
-          shadowColor: Colors.transparent,
-          padding: const EdgeInsets.symmetric(vertical: 16),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        ),
-        child: const Text(
-          'ไปเดตกันเลย!',
-          style: TextStyle(color: AppColors.btnTextPrimary, fontSize: 18, fontWeight: FontWeight.bold),
-        ),
       ),
     );
   }

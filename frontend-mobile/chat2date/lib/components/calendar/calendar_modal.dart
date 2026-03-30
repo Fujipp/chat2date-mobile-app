@@ -1,5 +1,6 @@
 import 'dart:ui';
-import 'package:chat2date/components/calendar/calendar_card.dart';
+import 'package:chat2date/components/design_system/organisms/calendar/calendar_card.dart';
+import 'package:chat2date/core/theme/app_colors.dart';
 import 'package:flutter/material.dart';
 
 /// CalendarModal — แสดง CalendarCard เป็น Stack overlay
@@ -54,20 +55,20 @@ class CalendarModal extends StatelessWidget {
 
     return Stack(
       children: [
-        // 1. Backdrop สีเข้มจาง (กดเพื่อปิด)
         Positioned.fill(
           child: GestureDetector(
+            behavior: HitTestBehavior.opaque,
             onTap: () => onClose?.call(hasUnsavedChanges),
             child: BackdropFilter(
-              filter: ImageFilter.blur(sigmaX: 2, sigmaY: 2),
-              child: Container(color: Colors.black.withOpacity(0.45)),
+              filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
+              child: ColoredBox(
+                color: AppColors.overlay.withValues(alpha: 0.18),
+              ),
             ),
           ),
         ),
 
-        // 2. CalendarCard ตรงกลาง (เหมือน SpinWheel)
         Positioned.fill(
-          top: 85, // เริ่มต้นต่ำกว่า Header (85px)
           child: Align(
             alignment: Alignment.center,
             child: SingleChildScrollView(
@@ -79,17 +80,11 @@ class CalendarModal extends StatelessWidget {
                 child: Container(
                   decoration: BoxDecoration(
                     color: Colors.white,
-                    borderRadius: BorderRadius.circular(24),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withOpacity(0.2),
-                        blurRadius: 20,
-                        offset: const Offset(0, 10),
-                      ),
-                    ],
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(color: AppColors.inputBorder),
                   ),
                   child: ClipRRect(
-                    borderRadius: BorderRadius.circular(24),
+                    borderRadius: BorderRadius.circular(16),
                     child: CalendarCard(
                       initialMonth: initialMonth,
                       initialTime: initialTime,

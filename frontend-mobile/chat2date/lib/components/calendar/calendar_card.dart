@@ -568,13 +568,13 @@ class _CalendarCardState extends State<CalendarCard> {
               SizedBox(
                 width: 310,
                 child: Text(
-                  widget.placeCountText,
+                  'สถานที่เดต : ${widget.placeName}',
                   textAlign: TextAlign.center,
                   style: const TextStyle(
                     fontFamily: 'Inter',
                     color: AppColors.textPrimary,
                     fontSize: 12,
-                    fontWeight: FontWeight.w400,
+                    fontWeight: FontWeight.w500,
                     height: 1.67,
                   ),
                 ),
@@ -582,7 +582,7 @@ class _CalendarCardState extends State<CalendarCard> {
               SizedBox(
                 width: 310,
                 child: Text(
-                  widget.placeName,
+                  _selectedDateTimeSummary,
                   textAlign: TextAlign.center,
                   style: const TextStyle(
                     fontFamily: 'Inter',
@@ -593,21 +593,6 @@ class _CalendarCardState extends State<CalendarCard> {
                   ),
                 ),
               ),
-              if (widget.showAutoDateSummary)
-                SizedBox(
-                  width: 310,
-                  child: Text(
-                    _selectedDateTimeSummary,
-                    textAlign: TextAlign.center,
-                    style: const TextStyle(
-                      fontFamily: 'Inter',
-                      color: AppColors.textSupport,
-                      fontSize: 12,
-                      fontWeight: FontWeight.w500,
-                      height: 1.67,
-                    ),
-                  ),
-                ),
               const SizedBox(height: 12),
 
               // —— ปุ่มบันทึก (ใช้ DsButton เพื่อให้ active/disabled เหมือนทั้ง project) ———

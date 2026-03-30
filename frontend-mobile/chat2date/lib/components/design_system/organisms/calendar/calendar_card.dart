@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:chat2date/components/buttons/ds_button.dart';
-import 'package:chat2date/components/common/modal_component.dart';
+import 'package:chat2date/components/design_system/feedback/index.dart';
 import 'package:chat2date/core/theme/app_colors.dart';
 import 'calendar_utils.dart';
 import 'calendar_day_cell.dart';
@@ -568,13 +568,13 @@ class _CalendarCardState extends State<CalendarCard> {
               SizedBox(
                 width: 310,
                 child: Text(
-                  widget.placeCountText,
+                  'สถานที่เดต : ${widget.placeName}',
                   textAlign: TextAlign.center,
                   style: const TextStyle(
                     fontFamily: 'Inter',
                     color: AppColors.textPrimary,
                     fontSize: 12,
-                    fontWeight: FontWeight.w400,
+                    fontWeight: FontWeight.w500,
                     height: 1.67,
                   ),
                 ),
@@ -582,7 +582,7 @@ class _CalendarCardState extends State<CalendarCard> {
               SizedBox(
                 width: 310,
                 child: Text(
-                  widget.placeName,
+                  _selectedDateTimeSummary,
                   textAlign: TextAlign.center,
                   style: const TextStyle(
                     fontFamily: 'Inter',
@@ -593,21 +593,6 @@ class _CalendarCardState extends State<CalendarCard> {
                   ),
                 ),
               ),
-              if (widget.showAutoDateSummary)
-                SizedBox(
-                  width: 310,
-                  child: Text(
-                    _selectedDateTimeSummary,
-                    textAlign: TextAlign.center,
-                    style: const TextStyle(
-                      fontFamily: 'Inter',
-                      color: AppColors.textSupport,
-                      fontSize: 12,
-                      fontWeight: FontWeight.w500,
-                      height: 1.67,
-                    ),
-                  ),
-                ),
               const SizedBox(height: 12),
 
               // —— ปุ่มบันทึก (ใช้ DsButton เพื่อให้ active/disabled เหมือนทั้ง project) ———
@@ -648,28 +633,17 @@ class _CalendarCardState extends State<CalendarCard> {
   }
 
   void _showSaveConfirmDialog(DateTime date, TimeOfDay time) {
-    showDialog(
-      context: context,
-      barrierDismissible: true,
-      builder: (ctx) => Dialog(
-        backgroundColor: Colors.transparent,
-        insetPadding: const EdgeInsets.symmetric(horizontal: 24),
-        child: ModalComponent(
-          svgPath: 'assets/icons/ui/icon_warning.svg',
-          heightSvg: 68,
-          widthSvg: 77,
-          topic: 'ยืนยันการเปลี่ยนวันเดต',
-          description: 'ต้องการบันทึกการเปลี่ยนแปลงวันเดตนี้ใช่หรือไม่',
-          choice: true,
-          firstChoiceText: 'ยกเลิก',
-          secondChoiceText: 'ยืนยัน',
-          onFirstChoice: () => Navigator.pop(ctx),
-          onSecondChoice: () {
-            Navigator.pop(ctx);
-            widget.onSave?.call(date, time);
-          },
-        ),
-      ),
+    DsCalendarDecisionModal.show(
+      context,
+      title: 'ยืนยันที่จะแก้ไขนัดเดตหรือไม่',
+      description: 'หากแก้ไข วันเดตเดิมจะถูกยกเลิกทันที',
+      negativeLabel: 'ยกเลิก',
+      positiveLabel: 'ยืนยัน',
+      onNegativePressed: () => Navigator.of(context, rootNavigator: true).pop(),
+      onPositivePressed: () {
+        Navigator.of(context, rootNavigator: true).pop();
+        widget.onSave?.call(date, time);
+      },
     );
   }
 
