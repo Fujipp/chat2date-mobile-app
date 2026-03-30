@@ -18,6 +18,8 @@ class DsAppSecondaryHeader extends StatelessWidget {
     this.center,
     this.trailing,
     this.cooldownText = '7',
+    this.showCalendarAction = true,
+    this.showCalendarUnreadDot = false,
     this.onBackTap,
     this.onPrimaryActionTap,
     this.onSecondaryActionTap,
@@ -37,6 +39,8 @@ class DsAppSecondaryHeader extends StatelessWidget {
   final Widget? center;
   final Widget? trailing;
   final String cooldownText;
+  final bool showCalendarAction;
+  final bool showCalendarUnreadDot;
   final VoidCallback? onBackTap;
   final VoidCallback? onPrimaryActionTap;
   final VoidCallback? onSecondaryActionTap;
@@ -219,16 +223,41 @@ class DsAppSecondaryHeader extends StatelessWidget {
         return Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            _TapTarget(
-              onTap: onPrimaryActionTap,
-              padding: EdgeInsets.zero,
-              child: SvgPicture.asset(
-                AppAssets.headerSecondaryChat4LeftAction,
-                width: 19,
-                height: 21.11,
+            if (showCalendarAction) ...[
+              _TapTarget(
+                onTap: onPrimaryActionTap,
+                padding: EdgeInsets.zero,
+                child: SizedBox(
+                  width: 19,
+                  height: 21.11,
+                  child: Stack(
+                    clipBehavior: Clip.none,
+                    alignment: Alignment.center,
+                    children: [
+                      SvgPicture.asset(
+                        AppAssets.headerSecondaryChat4LeftAction,
+                        width: 19,
+                        height: 21.11,
+                      ),
+                      if (showCalendarUnreadDot)
+                        Positioned(
+                          top: -3,
+                          right: -3,
+                          child: Container(
+                            width: 8,
+                            height: 8,
+                            decoration: const BoxDecoration(
+                              color: AppColors.brandPrimary,
+                              shape: BoxShape.circle,
+                            ),
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
               ),
-            ),
-            const SizedBox(width: 10),
+              const SizedBox(width: 10),
+            ],
             _TapTarget(
               onTap: onSecondaryActionTap,
               padding: EdgeInsets.zero,
@@ -254,16 +283,41 @@ class DsAppSecondaryHeader extends StatelessWidget {
         return Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            _TapTarget(
-              onTap: onPrimaryActionTap,
-              padding: EdgeInsets.zero,
-              child: SvgPicture.asset(
-                AppAssets.headerSecondaryChat4LeftAction,
-                width: 19,
-                height: 21.11,
+            if (showCalendarAction) ...[
+              _TapTarget(
+                onTap: onPrimaryActionTap,
+                padding: EdgeInsets.zero,
+                child: SizedBox(
+                  width: 19,
+                  height: 21.11,
+                  child: Stack(
+                    clipBehavior: Clip.none,
+                    alignment: Alignment.center,
+                    children: [
+                      SvgPicture.asset(
+                        AppAssets.headerSecondaryChat4LeftAction,
+                        width: 19,
+                        height: 21.11,
+                      ),
+                      if (showCalendarUnreadDot)
+                        Positioned(
+                          top: -3,
+                          right: -3,
+                          child: Container(
+                            width: 8,
+                            height: 8,
+                            decoration: const BoxDecoration(
+                              color: AppColors.brandPrimary,
+                              shape: BoxShape.circle,
+                            ),
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
               ),
-            ),
-            const SizedBox(width: 10),
+              const SizedBox(width: 10),
+            ],
             _TapTarget(
               onTap: onSecondaryActionTap,
               padding: EdgeInsets.zero,

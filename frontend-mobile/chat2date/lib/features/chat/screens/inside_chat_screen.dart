@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:ui';
 
 import 'package:chat2date/components/buttons/ds_button.dart';
 import 'package:chat2date/components/calendar/calendar_modal.dart';
@@ -516,7 +517,6 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
   @override
   void didChangeMetrics() {
     super.didChangeMetrics();
-    // Scroll to bottom when keyboard opens
     final bottomInset = WidgetsBinding
         .instance
         .platformDispatcher
@@ -525,12 +525,7 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
         .viewInsets
         .bottom;
     if (bottomInset > 0) {
-      // Keyboard is visible - scroll to bottom after a short delay
-      Future.delayed(const Duration(milliseconds: 100), () {
-        if (mounted && _scrollController.hasClients) {
-          _scrollToBottom();
-        }
-      });
+      _lockToBottomForKeyboard();
     }
   }
 
@@ -591,7 +586,9 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
     if (targetUserId == null || targetUserId.isEmpty) return;
 
     try {
-      final user = await ref.read(userServiceProvider).fetchUserById(targetUserId);
+      final user = await ref
+          .read(userServiceProvider)
+          .fetchUserById(targetUserId);
       if (!mounted || user == null) return;
 
       setState(() {
@@ -611,8 +608,9 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
     return age >= 0 ? age : null;
   }
 
-  String get _chatDisplayName =>
-      _chatUserAge == null ? _chatUserName : '$_chatUserName (${_chatUserAge!})';
+  String get _chatDisplayName => _chatUserAge == null
+      ? _chatUserName
+      : '$_chatUserName (${_chatUserAge!})';
 
   Future<void> _initConfirmStatus() async {
     try {
@@ -1239,7 +1237,8 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
     required BuildContext bubbleContext,
     required int messageIndex,
   }) async {
-    final overlay = Overlay.of(context).context.findRenderObject() as RenderBox?;
+    final overlay =
+        Overlay.of(context).context.findRenderObject() as RenderBox?;
     final bubbleRenderBox = bubbleContext.findRenderObject() as RenderBox?;
     if (overlay == null || bubbleRenderBox == null) return;
 
@@ -1248,10 +1247,7 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
       ancestor: overlay,
     );
     final bubbleRect = bubbleTopLeft & bubbleRenderBox.size;
-    final anchorPoint = Offset(
-      bubbleRect.center.dx,
-      bubbleRect.top - 8,
-    );
+    final anchorPoint = Offset(bubbleRect.center.dx, bubbleRect.top - 8);
 
     if (mounted) {
       setState(() {
@@ -1262,18 +1258,12 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
     final selected = await showMenu<String>(
       context: context,
       position: RelativeRect.fromRect(
-        Rect.fromCenter(
-          center: anchorPoint,
-          width: 1,
-          height: 1,
-        ),
+        Rect.fromCenter(center: anchorPoint, width: 1, height: 1),
         Offset.zero & overlay.size,
       ),
       color: const Color(0xFF2C2C2E),
       elevation: 6,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
-      ),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       items: const [
         PopupMenuItem<String>(
           value: 'copy',
@@ -1436,10 +1426,7 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
     required Widget child,
     VoidCallback? onTap,
   }) {
-    return _ChatHeaderTapTarget(
-      onTap: onTap,
-      child: child,
-    );
+    return _ChatHeaderTapTarget(onTap: onTap, child: child);
   }
 
   Widget _buildCalendarActionIcon() {
@@ -1468,6 +1455,47 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
                 ),
               ),
             ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSpinCooldownActionIcon(int cooldownValue) {
+    return SizedBox(
+      width: 25,
+      height: 31,
+      child: Stack(
+        clipBehavior: Clip.none,
+        alignment: Alignment.center,
+        children: [
+          Positioned(
+            top: 5,
+            child: SvgPicture.asset(
+              AppAssets.spinwheelIcon,
+              width: 25,
+              height: 25,
+            ),
+          ),
+          Positioned(
+            top: 13,
+            left: cooldownValue < 0 ? 10 : 9,
+            child: SizedBox(
+              width: 7,
+              height: 10,
+              child: Center(
+                child: Text(
+                  '$cooldownValue',
+                  style: const TextStyle(
+                    color: Color(0xFF6B7280),
+                    fontSize: 10,
+                    fontWeight: FontWeight.w700,
+                    height: 1,
+                    fontFamily: 'Inter',
+                  ),
+                ),
+              ),
+            ),
+          ),
         ],
       ),
     );
@@ -1557,52 +1585,7 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
               onTap: _headerVariant == ChatHeaderVariant.chat3
                   ? _handleSpinwheelTap
                   : null,
-              child: SizedBox(
-                width: 25,
-                height: 31,
-                child: Stack(
-                  clipBehavior: Clip.none,
-                  alignment: Alignment.center,
-                  children: [
-                    SvgPicture.asset(
-                      AppAssets.headerSecondaryChat4CenterAction,
-                      width: 25,
-                      height: 25,
-                    ),
-                    Positioned(
-                      top: -2,
-                      child: SvgPicture.asset(
-                        AppAssets.headerSecondaryChat4CenterBadge,
-                        width: 7,
-                        height: 10,
-                      ),
-                    ),
-                    Positioned(
-                      top: 6,
-                      child: Container(
-                        width: 18,
-                        height: 18,
-                        decoration: const BoxDecoration(
-                          color: AppColors.divider,
-                          shape: BoxShape.circle,
-                        ),
-                        alignment: Alignment.center,
-                        child: Text(
-                          '$cooldownValue',
-                          textAlign: TextAlign.center,
-                          style: const TextStyle(
-                            fontSize: 11,
-                            fontFamily: 'Inter',
-                            fontWeight: FontWeight.w400,
-                            height: 14 / 11,
-                            color: AppColors.textBlack,
-                          ),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
+              child: _buildSpinCooldownActionIcon(cooldownValue),
             ),
             const SizedBox(width: 10),
             _buildHeaderActionButton(
@@ -1656,6 +1639,45 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
         );
       },
     );
+  }
+
+  void _openReportScreen() {
+    Navigator.pushReplacementNamed(
+      context,
+      '/report',
+      arguments: {
+        'roomId': widget.roomId,
+        'targetUserId': _chatUserId,
+        'userName': _chatUserName,
+        'avatarUrl': _chatUserAvatar,
+      },
+    );
+  }
+
+  void _dismissKeyboard() {
+    final currentFocus = FocusScope.of(context);
+    if (!currentFocus.hasPrimaryFocus && currentFocus.focusedChild != null) {
+      currentFocus.unfocus();
+    }
+  }
+
+  void _keepLatestMessageVisible({bool animated = true}) {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      _scrollToBottom(animated: animated);
+    });
+  }
+
+  void _lockToBottomForKeyboard() {
+    _keepLatestMessageVisible(animated: false);
+    Future.delayed(const Duration(milliseconds: 1), () {
+      if (!mounted) return;
+      _keepLatestMessageVisible(animated: false);
+    });
+    Future.delayed(const Duration(milliseconds: 40), () {
+      if (!mounted) return;
+      _keepLatestMessageVisible(animated: false);
+    });
   }
 
   String _formatChatTimestamp(DateTime time) {
@@ -2245,11 +2267,7 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
           return;
         }
         if (_canSpin) {
-          if (_cooldownDays == 0) {
-            _headerVariant = ChatHeaderVariant.chat3;
-          } else {
-            _headerVariant = ChatHeaderVariant.chat2;
-          }
+          _headerVariant = ChatHeaderVariant.chat2;
         } else {
           _headerVariant = ChatHeaderVariant.chat4;
         }
@@ -2985,10 +3003,37 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
     final fetchUser = await userService.getUser(userObj!.userId);
 
     if (fetchUser?.isTutorial == false) {
-      await showDialog(
+      await showGeneralDialog(
         context: context,
         barrierDismissible: false,
-        builder: (context) => const FeatureGuideModal(),
+        barrierLabel: 'feature-guide',
+        barrierColor: Colors.transparent,
+        pageBuilder: (context, _, __) => Stack(
+          children: [
+            Positioned.fill(
+              child: BackdropFilter(
+                filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+                child: ColoredBox(
+                  color: AppColors.overlay.withValues(alpha: 0.7),
+                ),
+              ),
+            ),
+            const FeatureGuideModal(),
+          ],
+        ),
+        transitionBuilder: (context, animation, secondaryAnimation, child) {
+          final curved = CurvedAnimation(
+            parent: animation,
+            curve: Curves.easeOutCubic,
+          );
+          return FadeTransition(
+            opacity: curved,
+            child: ScaleTransition(
+              scale: Tween<double>(begin: 0.96, end: 1).animate(curved),
+              child: child,
+            ),
+          );
+        },
       );
       try {
         final user = User(
@@ -3036,550 +3081,588 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
       child: Scaffold(
         backgroundColor: AppColors.background,
 
-        body: SafeArea(
-          child: Stack(
-            // ✅ ใช้ Stack เพื่อวาง Layer ของวงล้อทับส่วนแชท
-            children: [
-              Column(
-                children: [
-                  DsAppSecondaryHeader(
-                    variant: _mapDsHeaderVariant(),
-                    center: _buildChatHeaderCenter(),
-                    trailing: _buildChatHeaderTrailing(),
-                    showBottomBorder: false,
-                    onBackTap: () async {
-                      await _exitRoomOnce();
-                      if (!mounted) return;
-                      Navigator.maybePop(context);
-                    },
-                  ),
-
-                  // --- ส่วนแชททั้งหมด (ScoreRow + ListView + Input) ---
-                  Expanded(
-                    child: Column(
-                      children: [
-                        const SizedBox(height: 6),
-
-                        Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 19),
-                          child: _buildRelationshipBar(),
-                        ),
-                        const SizedBox(height: 12),
-                        if (_existingAppointment != null &&
-                            _existingAppointment!.dateTime != null)
-                          Builder(
-                            builder: (context) {
-                              final now = DateTime.now();
-                              final appointmentTime = _existingAppointment!
-                                  .dateTime!
-                                  .toLocal();
-
-                              final dateStartTime = appointmentTime.subtract(
-                                const Duration(hours: 2),
-                              );
-                              final dateEndTime = appointmentTime.add(
-                                const Duration(hours: 3),
-                              );
-
-                              // เช็กว่าเลยเวลานัดมาแล้ว AND ยังไม่หมดเวลาเดต
-                              if (now.isAfter(dateStartTime) &&
-                                  now.isBefore(dateEndTime)) {
-                                WidgetsBinding.instance.addPostFrameCallback((
-                                  _,
-                                ) {
-                                  if (_emergencyNumbers.isEmpty &&
-                                      mounted &&
-                                      !_hasShownEmergencySuggestion &&
-                                      _isEmergencyLoaded) {
-                                    _hasShownEmergencySuggestion = true;
-                                    _showEmergencyNumberSuggestionDialog();
-                                  }
-                                });
-                                return Padding(
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 16,
-                                  ),
-                                  child: GpsMapAlert(
-                                    emergencyNumbers: _emergencyNumbers,
-                                    destinationPlaceId:
-                                        _existingAppointment?.placeId,
-                                    googleApiKey:
-                                        dotenv.env['GOOGLE_API_KEY'] ?? '',
-                                    onLocate: () {
-                                      Toast.show(
-                                        context,
-                                        type: ToastType.info,
-                                        title: 'อัปเดตตำแหน่ง',
-                                        message: 'กำลังดึงพิกัดล่าสุด...',
-                                        durationSeconds: 2,
-                                        showCountdown: false,
-                                      );
-                                    },
-                                    onShareLocation: () async {
-                                      try {
-                                        final pos =
-                                            await Geolocator.getCurrentPosition();
-
-                                        final shareUrl = await ref
-                                            .read(locationServiceProvider)
-                                            .shareLocation(
-                                              latitude: pos.latitude,
-                                              longitude: pos.longitude,
-                                            );
-
-                                        if (shareUrl.isNotEmpty) {
-                                          await Share.share(
-                                            'ฉันกำลังไปเดตนะ! นี่คือตำแหน่งล่าสุดของฉันตอนนี้นะ:\n$shareUrl',
-                                          );
-                                        }
-                                      } catch (e) {
-                                        if (mounted) {
-                                          Toast.show(
-                                            context,
-                                            type: ToastType.error,
-                                            title: 'ข้อผิดพลาด',
-                                            message: 'ไม่สามารถแชร์โลเคชันได้',
-                                            durationSeconds: 3,
-                                            showCountdown: false,
-                                          );
-                                        }
-                                      }
-                                    },
-                                    onSosTriggered: (calledNumber) async {
-                                      try {
-                                        final pos =
-                                            await Geolocator.getCurrentPosition(
-                                              desiredAccuracy:
-                                                  LocationAccuracy.high,
-                                            );
-                                        if (calledNumber == '191') return;
-
-                                        await ref
-                                            .read(sosServiceProvider)
-                                            .triggerSos(
-                                              appointmentId:
-                                                  _existingAppointment!
-                                                      .appointmentId,
-                                              latitude: pos.latitude,
-                                              longitude: pos.longitude,
-                                              calledNumber: calledNumber,
-                                            );
-                                      } catch (e) {
-                                        if (mounted) {
-                                          Toast.show(
-                                            context,
-                                            type: ToastType.error,
-                                            title: 'ผิดพลาด',
-                                            message:
-                                                'ไม่สามารถส่งข้อมูล SOS ได้',
-                                            durationSeconds: 3,
-                                            showCountdown: false,
-                                          );
-                                        }
-                                      }
-                                    },
-                                  ),
-                                );
-                              }
-                              return const SizedBox.shrink();
-                            },
-                          ),
-                        const SizedBox(height: 6),
-                        Expanded(
-                          child: _isLoadingMessages
-                              ? const Center(child: CircularProgressIndicator())
-                              : _messageError != null
-                              ? Center(
-                                  child: Column(
-                                    mainAxisAlignment: MainAxisAlignment.center,
-                                    children: [
-                                      Text(
-                                        _messageError!,
-                                        style: const TextStyle(
-                                          color: Colors.red,
-                                        ),
-                                        textAlign: TextAlign.center,
-                                      ),
-                                      const SizedBox(height: 16),
-                                      ElevatedButton(
-                                        onPressed: _loadChatRoomMessages,
-                                        child: const Text('ลองใหม่'),
-                                      ),
-                                    ],
-                                  ),
-                                )
-                              : _messages.isEmpty
-                              ? const Center(
-                                  child: Text(
-                                    'ยังไม่มีข้อความ',
-                                    style: TextStyle(
-                                      color: Colors.grey,
-                                      fontSize: 16,
-                                    ),
-                                  ),
-                                )
-                              : ListView.builder(
-                                  controller: _scrollController,
-                                  padding: const EdgeInsets.fromLTRB(
-                                    20,
-                                    12,
-                                    20,
-                                    12,
-                                  ),
-                                  itemCount:
-                                      _messages.length +
-                                      (_isLoadingMore ? 1 : 0),
-                                  itemBuilder: (context, index) {
-                                    final int offset = _isLoadingMore ? 1 : 0;
-                                    if (_isLoadingMore && index == 0) {
-                                      return const Padding(
-                                        padding: EdgeInsets.only(bottom: 12),
-                                        child: Center(
-                                          child: CircularProgressIndicator(),
-                                        ),
-                                      );
-                                    }
-
-                                    final messageIndex = index - offset;
-                                    final message = _messages[messageIndex];
-                                    final bool isGroupedWithNext =
-                                        messageIndex < _messages.length - 1 &&
-                                        _messages[messageIndex + 1].isOwn ==
-                                            message.isOwn &&
-                                        !_messages[messageIndex + 1].isBot &&
-                                        !message.isBot;
-                                    final double bottomGap = isGroupedWithNext
-                                        ? 10
-                                        : 12;
-                                    final bool showTimestamp =
-                                        _shouldShowTimestamp(messageIndex);
-
-                                    return Column(
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.stretch,
-                                      children: [
-                                        if (showTimestamp)
-                                          Padding(
-                                            padding: const EdgeInsets.only(
-                                              bottom: 8,
-                                            ),
-                                            child: Center(
-                                              child: _buildChatTimestamp(
-                                                message.timestamp,
-                                              ),
-                                            ),
-                                          ),
-                                        Padding(
-                                          padding: EdgeInsets.only(
-                                            bottom: bottomGap,
-                                          ),
-                                          child: _buildMessageWidget(
-                                            message,
-                                            messageIndex,
-                                            latestOwnIndex: latestOwnIndex,
-                                          ),
-                                        ),
-                                      ],
-                                    );
-                                  },
-                                ),
-                        ),
-                        if (_isChatDisabled)
-                          Container(
-                            width: double.infinity,
-                            padding: const EdgeInsets.symmetric(
-                              vertical: 12,
-                              horizontal: 16,
-                            ),
-                            decoration: BoxDecoration(
-                              color: Colors.grey.shade200,
-                              border: Border(
-                                top: BorderSide(color: Colors.grey.shade300),
-                              ),
-                            ),
-                            child: Row(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Icon(
-                                  Icons.block,
-                                  color: Colors.grey.shade600,
-                                  size: 18,
-                                ),
-                                const SizedBox(width: 8),
-                                Text(
-                                  'ไม่สามารถส่งข้อความได้เนื่องจากมีการรายงาน',
-                                  style: TextStyle(
-                                    color: Colors.grey.shade600,
-                                    fontSize: 14,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          )
-                        else
-                          Padding(
-                            padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-                            child: DsChatMessageInput(
-                              width: double.infinity,
-                              enabled: !_isSending && (widget.roomId?.isNotEmpty ?? false),
-                              hintText: 'เขียนข้อความ',
-                              disabledText: 'ไม่สามารถส่งข้อความได้เนื่องจากมีการรายงาน',
-                            controller: _messageController,
-                              onChanged: (value) => setState(
-                                () => _hasText = value.trim().isNotEmpty,
-                              ),
-                              onSend: _hasText &&
-                                      !_isSending &&
-                                      (widget.roomId?.isNotEmpty ?? false)
-                                  ? () => _sendMessage()
-                                  : null,
-                            ),
-                          ),
-                      ],
+        body: GestureDetector(
+          behavior: HitTestBehavior.translucent,
+          onTap: _dismissKeyboard,
+          child: SafeArea(
+            child: Stack(
+              // ✅ ใช้ Stack เพื่อวาง Layer ของวงล้อทับส่วนแชท
+              children: [
+                Column(
+                  children: [
+                    DsAppSecondaryHeader(
+                      variant: _mapDsHeaderVariant(),
+                      center: _buildChatHeaderCenter(),
+                      cooldownText: '${_cooldownDays.clamp(1, 9)}',
+                      showCalendarAction: _shouldShowCalendarIcon,
+                      showCalendarUnreadDot: _calendarHasUnreadUpdate,
+                      showBottomBorder: false,
+                      onBackTap: () async {
+                        await _exitRoomOnce();
+                        if (!mounted) return;
+                        Navigator.maybePop(context);
+                      },
+                      onPrimaryActionTap:
+                          _headerVariant == ChatHeaderVariant.chat1
+                          ? (_isChatDisabled ? null : _openReportScreen)
+                          : (_shouldShowCalendarIcon
+                                ? _handleCalendarTap
+                                : null),
+                      onSecondaryActionTap:
+                          (_headerVariant == ChatHeaderVariant.chat2)
+                          ? _handleSpinwheelTap
+                          : null,
+                      onTertiaryActionTap: _isChatDisabled
+                          ? null
+                          : _openReportScreen,
                     ),
-                  ),
-                ],
-              ),
 
-              //ปุ่มเทสเกม
-              // Positioned(
-              //   top: 100, // ปรับตำแหน่งแนวตั้ง (ให้หลบ Header)
-              //   right: 0, // ชิดขวา
-              //   child: Container(
-              //     decoration: const BoxDecoration(
-              //       color: Colors.red, // สีแดงเด่นๆ ให้รู้ว่าเป็นปุ่ม Test
-              //       borderRadius: BorderRadius.only(
-              //         topLeft: Radius.circular(20),
-              //         bottomLeft: Radius.circular(20),
-              //       ),
-              //     ),
-              //     child: IconButton(
-              //       icon: const Icon(
-              //         Icons.videogame_asset,
-              //         color: Colors.white,
-              //       ),
-              //       onPressed: () async {
-              //         // ✅ แบบที่ถูก: ยิงไปบอก Server ให้ Server สั่งเปิดเกมพร้อมกัน
-              //         final roomId = widget.roomId;
-              //         // ⚠️ เปลี่ยน IP เป็น IP เครื่องคอมคุณ
-              //         final url = Uri.parse(
-              //           'http://cp25ssi2.sit.kmutt.ac.th:8080/api/v1/test/trigger-game/$roomId',
-              //         );
-              //         try {
-              //           print("Shooting trigger to $url");
-              //           await http.post(url);
-              //         } catch (e) {
-              //           print("Error triggering game: $e");
-              //         }
-              //       },
-              //     ),
-              //   ),
-              // ),
-              if (_showWheelModal) ...[
-                // 1. ฉากหลังสีเทาจาง (Dim background)
-                Positioned.fill(
-                  child: GestureDetector(
-                    onTap: () async {
-                      if (_currentUserId == _leaderId) {
-                        await ref
-                            .read(dateRecommendProvider)
-                            .closeRemoteModal(widget.roomId!);
-                        _clearWheelState();
-                      } else {
-                        Toast.show(
-                          context,
-                          type: ToastType.warning,
-                          title: "ไม่สามารถปิดได้",
-                          message: "กรุณารอคู่ของคุณจัดการวงล้อ",
-                        );
-                      }
-                    },
-                    child: Container(color: Colors.black.withOpacity(0.5)),
-                  ),
-                ),
+                    // --- ส่วนแชททั้งหมด (ScoreRow + ListView + Input) ---
+                    Expanded(
+                      child: Column(
+                        children: [
+                          const SizedBox(height: 6),
 
-                // 2. ตัว SpinDateComponent
-                // ✅ ใช้ Positioned.fill เพื่อกำหนดขอบเขตพื้นที่ที่เหลือจาก Header
-                Positioned.fill(
-                  top: 0, // เริ่มต้นที่ขอบล่างของ Header
-                  child: Align(
-                    alignment: Alignment.center, // จัดกลางใน "พื้นที่ที่เหลือ"
-                    child: SingleChildScrollView(
-                      // ✅ กันบั๊กกรณีจอเตี้ยเกินไปหรือ Content ยาวเกินจอ
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 20,
-                          vertical: 20,
-                        ), // ✅ เพิ่ม vertical padding กันติดขอบ
-                        child: Container(
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            borderRadius: BorderRadius.circular(24),
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.black.withOpacity(0.2),
-                                blurRadius: 20,
-                                offset: const Offset(0, 10),
-                              ),
-                            ],
+                          Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 19),
+                            child: _buildRelationshipBar(),
                           ),
-                          child: ClipRRect(
-                            borderRadius: BorderRadius.circular(24),
-                            child: Column(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                SpinDateComponent(
-                                  key: ValueKey(
-                                    '${_leaderId}_${_indexMode}_$_indexSelected',
-                                  ),
-                                  currentRange: _currentRange,
-                                  indexMode: _indexMode,
-                                  indexSelected: _indexSelected,
-                                  winningIndex: winningIndex,
-                                  isLeader: _currentUserId == _leaderId,
-                                  onTriggerSpin: () async {
-                                    await ref
-                                        .read(dateRecommendProvider)
-                                        .triggerSpin(widget.roomId!);
-                                  },
-                                  onCloseModal: () async {
-                                    if (_currentUserId == _leaderId) {
-                                      setState(() => _showWheelModal = false);
-                                      await ref
-                                          .read(dateRecommendProvider)
-                                          .closeRemoteModal(widget.roomId!);
-                                    } else {
-                                      Toast.show(
-                                        context,
-                                        type: ToastType.warning,
-                                        title: "ไม่สามารถปิดได้",
-                                        message: "กรุณารอคู่ของคุณจัดการวงล้อ",
-                                      );
-                                    }
-                                  },
-                                  onSpinComplete: _onSpinComplete,
-                                  firstPersonName: _chatUserName,
-                                  secondPersonName: nickname,
-                                  prizes: _dynamicPrizes,
-                                  onFilterChanged:
-                                      (mode, target, radius, isRefresh) async {
-                                        if (_currentUserId != _leaderId) {
-                                          Toast.show(
-                                            context,
-                                            type: ToastType.warning,
-                                            title: "สิทธิ์ถูกจำกัด",
-                                            message:
-                                                "เฉพาะหัวหน้าห้องเท่านั้นที่เปลี่ยนโหมดได้",
-                                          );
-                                          return; // 🛑 หยุดการทำงาน ไม่ให้สั่ง setState หรือยิง API
-                                        }
+                          const SizedBox(height: 12),
+                          if (_existingAppointment != null &&
+                              _existingAppointment!.dateTime != null)
+                            Builder(
+                              builder: (context) {
+                                final now = DateTime.now();
+                                final appointmentTime = _existingAppointment!
+                                    .dateTime!
+                                    .toLocal();
 
-                                        setState(() {
-                                          _indexMode = (mode == 'DISTANCE')
-                                              ? 0
-                                              : 1;
-                                          _indexSelected = (target == nickname)
-                                              ? 1
-                                              : 0;
-                                        });
-                                        if (isRefresh) {
-                                          await _prepareBeforeSpin(
-                                            radius,
-                                            mode,
-                                            target,
-                                            isRefresh,
-                                          );
-                                          setState(() {
-                                            _lastSpinTime = DateTime.now();
-                                          });
-                                        } else {
-                                          _prepareBeforeSpin(
-                                            radius,
-                                            mode,
-                                            target,
-                                            isRefresh,
-                                          );
+                                final dateStartTime = appointmentTime.subtract(
+                                  const Duration(hours: 2),
+                                );
+                                final dateEndTime = appointmentTime.add(
+                                  const Duration(hours: 3),
+                                );
+
+                                // เช็กว่าเลยเวลานัดมาแล้ว AND ยังไม่หมดเวลาเดต
+                                if (now.isAfter(dateStartTime) &&
+                                    now.isBefore(dateEndTime)) {
+                                  WidgetsBinding.instance.addPostFrameCallback((
+                                    _,
+                                  ) {
+                                    if (_emergencyNumbers.isEmpty &&
+                                        mounted &&
+                                        !_hasShownEmergencySuggestion &&
+                                        _isEmergencyLoaded) {
+                                      _hasShownEmergencySuggestion = true;
+                                      _showEmergencyNumberSuggestionDialog();
+                                    }
+                                  });
+                                  return Padding(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 16,
+                                    ),
+                                    child: GpsMapAlert(
+                                      emergencyNumbers: _emergencyNumbers,
+                                      destinationPlaceId:
+                                          _existingAppointment?.placeId,
+                                      googleApiKey:
+                                          dotenv.env['GOOGLE_API_KEY'] ?? '',
+                                      onLocate: () {
+                                        Toast.show(
+                                          context,
+                                          type: ToastType.info,
+                                          title: 'อัปเดตตำแหน่ง',
+                                          message: 'กำลังดึงพิกัดล่าสุด...',
+                                          durationSeconds: 2,
+                                          showCountdown: false,
+                                        );
+                                      },
+                                      onShareLocation: () async {
+                                        try {
+                                          final pos =
+                                              await Geolocator.getCurrentPosition();
+
+                                          final shareUrl = await ref
+                                              .read(locationServiceProvider)
+                                              .shareLocation(
+                                                latitude: pos.latitude,
+                                                longitude: pos.longitude,
+                                              );
+
+                                          if (shareUrl.isNotEmpty) {
+                                            await Share.share(
+                                              'ฉันกำลังไปเดตนะ! นี่คือตำแหน่งล่าสุดของฉันตอนนี้นะ:\n$shareUrl',
+                                            );
+                                          }
+                                        } catch (e) {
+                                          if (mounted) {
+                                            Toast.show(
+                                              context,
+                                              type: ToastType.error,
+                                              title: 'ข้อผิดพลาด',
+                                              message:
+                                                  'ไม่สามารถแชร์โลเคชันได้',
+                                              durationSeconds: 3,
+                                              showCountdown: false,
+                                            );
+                                          }
                                         }
                                       },
+                                      onSosTriggered: (calledNumber) async {
+                                        try {
+                                          final pos =
+                                              await Geolocator.getCurrentPosition(
+                                                desiredAccuracy:
+                                                    LocationAccuracy.high,
+                                              );
+                                          if (calledNumber == '191') return;
+
+                                          await ref
+                                              .read(sosServiceProvider)
+                                              .triggerSos(
+                                                appointmentId:
+                                                    _existingAppointment!
+                                                        .appointmentId,
+                                                latitude: pos.latitude,
+                                                longitude: pos.longitude,
+                                                calledNumber: calledNumber,
+                                              );
+                                        } catch (e) {
+                                          if (mounted) {
+                                            Toast.show(
+                                              context,
+                                              type: ToastType.error,
+                                              title: 'ผิดพลาด',
+                                              message:
+                                                  'ไม่สามารถส่งข้อมูล SOS ได้',
+                                              durationSeconds: 3,
+                                              showCountdown: false,
+                                            );
+                                          }
+                                        }
+                                      },
+                                    ),
+                                  );
+                                }
+                                return const SizedBox.shrink();
+                              },
+                            ),
+                          const SizedBox(height: 6),
+                          Expanded(
+                            child: _isLoadingMessages
+                                ? const Center(
+                                    child: CircularProgressIndicator(),
+                                  )
+                                : _messageError != null
+                                ? Center(
+                                    child: Column(
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.center,
+                                      children: [
+                                        Text(
+                                          _messageError!,
+                                          style: const TextStyle(
+                                            color: Colors.red,
+                                          ),
+                                          textAlign: TextAlign.center,
+                                        ),
+                                        const SizedBox(height: 16),
+                                        ElevatedButton(
+                                          onPressed: _loadChatRoomMessages,
+                                          child: const Text('ลองใหม่'),
+                                        ),
+                                      ],
+                                    ),
+                                  )
+                                : _messages.isEmpty
+                                ? const Center(
+                                    child: Text(
+                                      'ยังไม่มีข้อความ',
+                                      style: TextStyle(
+                                        color: Colors.grey,
+                                        fontSize: 16,
+                                      ),
+                                    ),
+                                  )
+                                : ListView.builder(
+                                    controller: _scrollController,
+                                    padding: const EdgeInsets.fromLTRB(
+                                      20,
+                                      12,
+                                      20,
+                                      12,
+                                    ),
+                                    itemCount:
+                                        _messages.length +
+                                        (_isLoadingMore ? 1 : 0),
+                                    itemBuilder: (context, index) {
+                                      final int offset = _isLoadingMore ? 1 : 0;
+                                      if (_isLoadingMore && index == 0) {
+                                        return const Padding(
+                                          padding: EdgeInsets.only(bottom: 12),
+                                          child: Center(
+                                            child: CircularProgressIndicator(),
+                                          ),
+                                        );
+                                      }
+
+                                      final messageIndex = index - offset;
+                                      final message = _messages[messageIndex];
+                                      final bool isGroupedWithNext =
+                                          messageIndex < _messages.length - 1 &&
+                                          _messages[messageIndex + 1].isOwn ==
+                                              message.isOwn &&
+                                          !_messages[messageIndex + 1].isBot &&
+                                          !message.isBot;
+                                      final double bottomGap = isGroupedWithNext
+                                          ? 10
+                                          : 12;
+                                      final bool showTimestamp =
+                                          _shouldShowTimestamp(messageIndex);
+
+                                      return Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.stretch,
+                                        children: [
+                                          if (showTimestamp)
+                                            Padding(
+                                              padding: const EdgeInsets.only(
+                                                bottom: 8,
+                                              ),
+                                              child: Center(
+                                                child: _buildChatTimestamp(
+                                                  message.timestamp,
+                                                ),
+                                              ),
+                                            ),
+                                          Padding(
+                                            padding: EdgeInsets.only(
+                                              bottom: bottomGap,
+                                            ),
+                                            child: _buildMessageWidget(
+                                              message,
+                                              messageIndex,
+                                              latestOwnIndex: latestOwnIndex,
+                                            ),
+                                          ),
+                                        ],
+                                      );
+                                    },
+                                  ),
+                          ),
+                          if (_isChatDisabled)
+                            Container(
+                              width: double.infinity,
+                              padding: const EdgeInsets.symmetric(
+                                vertical: 12,
+                                horizontal: 16,
+                              ),
+                              decoration: BoxDecoration(
+                                color: Colors.grey.shade200,
+                                border: Border(
+                                  top: BorderSide(color: Colors.grey.shade300),
+                                ),
+                              ),
+                              child: Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Icon(
+                                    Icons.block,
+                                    color: Colors.grey.shade600,
+                                    size: 18,
+                                  ),
+                                  const SizedBox(width: 8),
+                                  Text(
+                                    'ไม่สามารถส่งข้อความได้เนื่องจากมีการรายงาน',
+                                    style: TextStyle(
+                                      color: Colors.grey.shade600,
+                                      fontSize: 14,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            )
+                          else
+                            Padding(
+                              padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+                              child: DsChatMessageInput(
+                                width: double.infinity,
+                                enabled:
+                                    !_isSending &&
+                                    (widget.roomId?.isNotEmpty ?? false),
+                                hintText: 'เขียนข้อความ',
+                                disabledText:
+                                    'ไม่สามารถส่งข้อความได้เนื่องจากมีการรายงาน',
+                                controller: _messageController,
+                                onFocusChanged: (hasFocus) {
+                                  if (hasFocus) {
+                                    _lockToBottomForKeyboard();
+                                  }
+                                },
+                                onChanged: (value) {
+                                  setState(
+                                    () => _hasText = value.trim().isNotEmpty,
+                                  );
+                                  _keepLatestMessageVisible(animated: false);
+                                },
+                                onSend:
+                                    _hasText &&
+                                        !_isSending &&
+                                        (widget.roomId?.isNotEmpty ?? false)
+                                    ? () => _sendMessage()
+                                    : null,
+                              ),
+                            ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+
+                //ปุ่มเทสเกม
+                // Positioned(
+                //   top: 100, // ปรับตำแหน่งแนวตั้ง (ให้หลบ Header)
+                //   right: 0, // ชิดขวา
+                //   child: Container(
+                //     decoration: const BoxDecoration(
+                //       color: Colors.red, // สีแดงเด่นๆ ให้รู้ว่าเป็นปุ่ม Test
+                //       borderRadius: BorderRadius.only(
+                //         topLeft: Radius.circular(20),
+                //         bottomLeft: Radius.circular(20),
+                //       ),
+                //     ),
+                //     child: IconButton(
+                //       icon: const Icon(
+                //         Icons.videogame_asset,
+                //         color: Colors.white,
+                //       ),
+                //       onPressed: () async {
+                //         // ✅ แบบที่ถูก: ยิงไปบอก Server ให้ Server สั่งเปิดเกมพร้อมกัน
+                //         final roomId = widget.roomId;
+                //         // ⚠️ เปลี่ยน IP เป็น IP เครื่องคอมคุณ
+                //         final url = Uri.parse(
+                //           'http://cp25ssi2.sit.kmutt.ac.th:8080/api/v1/test/trigger-game/$roomId',
+                //         );
+                //         try {
+                //           print("Shooting trigger to $url");
+                //           await http.post(url);
+                //         } catch (e) {
+                //           print("Error triggering game: $e");
+                //         }
+                //       },
+                //     ),
+                //   ),
+                // ),
+                if (_showWheelModal) ...[
+                  // 1. ฉากหลังสีเทาจาง (Dim background)
+                  Positioned.fill(
+                    child: GestureDetector(
+                      onTap: () async {
+                        if (_currentUserId == _leaderId) {
+                          await ref
+                              .read(dateRecommendProvider)
+                              .closeRemoteModal(widget.roomId!);
+                          _clearWheelState();
+                        } else {
+                          Toast.show(
+                            context,
+                            type: ToastType.warning,
+                            title: "ไม่สามารถปิดได้",
+                            message: "กรุณารอคู่ของคุณจัดการวงล้อ",
+                          );
+                        }
+                      },
+                      child: Container(color: Colors.black.withOpacity(0.5)),
+                    ),
+                  ),
+
+                  // 2. ตัว SpinDateComponent
+                  // ✅ ใช้ Positioned.fill เพื่อกำหนดขอบเขตพื้นที่ที่เหลือจาก Header
+                  Positioned.fill(
+                    top: 0, // เริ่มต้นที่ขอบล่างของ Header
+                    child: Align(
+                      alignment:
+                          Alignment.center, // จัดกลางใน "พื้นที่ที่เหลือ"
+                      child: SingleChildScrollView(
+                        // ✅ กันบั๊กกรณีจอเตี้ยเกินไปหรือ Content ยาวเกินจอ
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 20,
+                            vertical: 20,
+                          ), // ✅ เพิ่ม vertical padding กันติดขอบ
+                          child: Container(
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              borderRadius: BorderRadius.circular(24),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.black.withOpacity(0.2),
+                                  blurRadius: 20,
+                                  offset: const Offset(0, 10),
                                 ),
                               ],
+                            ),
+                            child: ClipRRect(
+                              borderRadius: BorderRadius.circular(24),
+                              child: Column(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  SpinDateComponent(
+                                    key: ValueKey(
+                                      '${_leaderId}_${_indexMode}_$_indexSelected',
+                                    ),
+                                    currentRange: _currentRange,
+                                    indexMode: _indexMode,
+                                    indexSelected: _indexSelected,
+                                    winningIndex: winningIndex,
+                                    isLeader: _currentUserId == _leaderId,
+                                    onTriggerSpin: () async {
+                                      await ref
+                                          .read(dateRecommendProvider)
+                                          .triggerSpin(widget.roomId!);
+                                    },
+                                    onCloseModal: () async {
+                                      if (_currentUserId == _leaderId) {
+                                        setState(() => _showWheelModal = false);
+                                        await ref
+                                            .read(dateRecommendProvider)
+                                            .closeRemoteModal(widget.roomId!);
+                                      } else {
+                                        Toast.show(
+                                          context,
+                                          type: ToastType.warning,
+                                          title: "ไม่สามารถปิดได้",
+                                          message:
+                                              "กรุณารอคู่ของคุณจัดการวงล้อ",
+                                        );
+                                      }
+                                    },
+                                    onSpinComplete: _onSpinComplete,
+                                    firstPersonName: _chatUserName,
+                                    secondPersonName: nickname,
+                                    prizes: _dynamicPrizes,
+                                    onFilterChanged:
+                                        (
+                                          mode,
+                                          target,
+                                          radius,
+                                          isRefresh,
+                                        ) async {
+                                          if (_currentUserId != _leaderId) {
+                                            Toast.show(
+                                              context,
+                                              type: ToastType.warning,
+                                              title: "สิทธิ์ถูกจำกัด",
+                                              message:
+                                                  "เฉพาะหัวหน้าห้องเท่านั้นที่เปลี่ยนโหมดได้",
+                                            );
+                                            return; // 🛑 หยุดการทำงาน ไม่ให้สั่ง setState หรือยิง API
+                                          }
+
+                                          setState(() {
+                                            _indexMode = (mode == 'DISTANCE')
+                                                ? 0
+                                                : 1;
+                                            _indexSelected =
+                                                (target == nickname) ? 1 : 0;
+                                          });
+                                          if (isRefresh) {
+                                            await _prepareBeforeSpin(
+                                              radius,
+                                              mode,
+                                              target,
+                                              isRefresh,
+                                            );
+                                            setState(() {
+                                              _lastSpinTime = DateTime.now();
+                                            });
+                                          } else {
+                                            _prepareBeforeSpin(
+                                              radius,
+                                              mode,
+                                              target,
+                                              isRefresh,
+                                            );
+                                          }
+                                        },
+                                  ),
+                                ],
+                              ),
                             ),
                           ),
                         ),
                       ),
                     ),
                   ),
-                ),
-              ],
-              UnlockDateModal(
-                isVisible: _showUnlockDate,
-                onConfirm: () {
-                  setState(() {
-                    _showUnlockDate = false;
-                  });
-                },
-              ),
-
-              // === Calendar Modal (เหมือน SpinWheel overlay) ===
-              if (_showCalendarModal) ...[
-                CalendarModal(
-                  isVisible: _showCalendarModal,
-                  placeName: _calendarPlaceName,
-                  placeCountText: 'คุณมี 1 สถานที่เดต!!',
-                  hasUnsavedChanges: _calendarHasUnsavedChanges,
-                  isReadOnly: _calendarIsEditMode && _isCalendarViewOnly,
-                  initialMonth: () {
-                    final dt = _calendarIsEditMode
-                        ? (_existingAppointment?.dateTime?.toLocal() ??
-                              DateTime.now())
-                        : DateTime.now();
-                    return DateTime(dt.year, dt.month, 1);
-                  }(),
-                  // ★ แก้: เปิดใหม่ (new) = null ไม่มีเวลา default
-                  //         edit mode = เวลาที่นัดไว้
-                  initialTime: _calendarIsEditMode
-                      ? () {
-                          final dt =
-                              _existingAppointment?.dateTime?.toLocal() ??
-                              DateTime.now();
-                          return TimeOfDay.fromDateTime(dt);
-                        }()
-                      : null,
-                  // ★ ใหม่: pre-select เฉพาะ edit mode เท่านั้น
-                  initialSelectedDate: _calendarIsEditMode
-                      ? _existingAppointment?.dateTime?.toLocal()
-                      : null,
-                  isEditMode: _calendarIsEditMode,
-                  onDirtyChanged: (dirty) {
-                    if (!mounted) return;
+                ],
+                UnlockDateModal(
+                  isVisible: _showUnlockDate,
+                  onConfirm: () {
                     setState(() {
-                      _calendarHasUnsavedChanges = dirty;
+                      _showUnlockDate = false;
                     });
                   },
-                  onClose: (hasUnsavedChanges) {
-                    if (hasUnsavedChanges) {
-                      _showCancelEditConfirmDialog();
-                    } else {
-                      _closeCalendar();
-                    }
-                  },
-                  onTrash: () {
-                    final id = _existingAppointment?.appointmentId;
-                    if (id != null) _showDeleteConfirmDialog(id);
-                  },
-                  onSave: (date, time) async {
-                    _closeCalendar();
-                    await _saveAppointment(
-                      date: date,
-                      isEditMode: _calendarIsEditMode,
-                      existingId: _existingAppointment?.appointmentId,
-                      placeId: _calendarPlaceId,
-                      placeName: _calendarPlaceName,
-                    );
-                  },
                 ),
+
+                // === Calendar Modal (เหมือน SpinWheel overlay) ===
+                if (_showCalendarModal) ...[
+                  CalendarModal(
+                    isVisible: _showCalendarModal,
+                    placeName: _calendarPlaceName,
+                    placeCountText: 'คุณมี 1 สถานที่เดต!!',
+                    hasUnsavedChanges: _calendarHasUnsavedChanges,
+                    isReadOnly: _calendarIsEditMode && _isCalendarViewOnly,
+                    initialMonth: () {
+                      final dt = _calendarIsEditMode
+                          ? (_existingAppointment?.dateTime?.toLocal() ??
+                                DateTime.now())
+                          : DateTime.now();
+                      return DateTime(dt.year, dt.month, 1);
+                    }(),
+                    initialTime: _calendarIsEditMode
+                        ? () {
+                            final dt =
+                                _existingAppointment?.dateTime?.toLocal() ??
+                                DateTime.now();
+                            return TimeOfDay.fromDateTime(dt);
+                          }()
+                        : null,
+                    initialSelectedDate: _calendarIsEditMode
+                        ? _existingAppointment?.dateTime?.toLocal()
+                        : null,
+                    isEditMode: _calendarIsEditMode,
+                    onDirtyChanged: (dirty) {
+                      if (!mounted) return;
+                      setState(() {
+                        _calendarHasUnsavedChanges = dirty;
+                      });
+                    },
+                    onClose: (hasUnsavedChanges) {
+                      if (hasUnsavedChanges) {
+                        _showCancelEditConfirmDialog();
+                      } else {
+                        _closeCalendar();
+                      }
+                    },
+                    onTrash: () {
+                      final id = _existingAppointment?.appointmentId;
+                      if (id != null) _showDeleteConfirmDialog(id);
+                    },
+                    onSave: (date, time) async {
+                      _closeCalendar();
+                      await _saveAppointment(
+                        date: date,
+                        isEditMode: _calendarIsEditMode,
+                        existingId: _existingAppointment?.appointmentId,
+                        placeId: _calendarPlaceId,
+                        placeName: _calendarPlaceName,
+                      );
+                    },
+                  ),
+                ],
               ],
-            ],
+            ),
           ),
         ),
       ),
@@ -3588,10 +3671,7 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
 }
 
 class _ChatHeaderTapTarget extends StatefulWidget {
-  const _ChatHeaderTapTarget({
-    required this.child,
-    this.onTap,
-  });
+  const _ChatHeaderTapTarget({required this.child, this.onTap});
 
   final Widget child;
   final VoidCallback? onTap;
@@ -3625,10 +3705,7 @@ class _ChatHeaderTapTargetState extends State<_ChatHeaderTapTarget> {
           duration: const Duration(milliseconds: 140),
           curve: Curves.easeOutCubic,
           offset: _pressed ? const Offset(0, -0.06) : Offset.zero,
-          child: Padding(
-            padding: const EdgeInsets.all(4),
-            child: widget.child,
-          ),
+          child: Padding(padding: const EdgeInsets.all(4), child: widget.child),
         ),
       ),
     );
@@ -3735,7 +3812,10 @@ class _ChatUserGalleryDialogState extends State<_ChatUserGalleryDialog> {
                         ),
                         IconButton(
                           onPressed: () => Navigator.of(context).pop(),
-                          icon: const Icon(Icons.close_rounded, color: Colors.white),
+                          icon: const Icon(
+                            Icons.close_rounded,
+                            color: Colors.white,
+                          ),
                         ),
                       ],
                     ),
@@ -3759,7 +3839,9 @@ class _ChatUserGalleryDialogState extends State<_ChatUserGalleryDialog> {
                                       minScale: 1,
                                       maxScale: 3,
                                       child: SizedBox.expand(
-                                        child: _buildImage(widget.images[index]),
+                                        child: _buildImage(
+                                          widget.images[index],
+                                        ),
                                       ),
                                     ),
                                   ),

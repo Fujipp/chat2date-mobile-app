@@ -2,6 +2,8 @@ import 'package:chat2date/app/app.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
+import 'package:flutter/scheduler.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -39,8 +41,25 @@ Future<void> main() async {
 
   // Setup FCM message handlers
   _setupFcmHandlers();
+  _forceDisableDebugPaint();
 
   runApp(const ProviderScope(child: MyApp()));
+}
+
+void _forceDisableDebugPaint() {
+  assert(() {
+    void disableFlags(Duration _) {
+      debugPaintBaselinesEnabled = false;
+      debugPaintSizeEnabled = false;
+      debugPaintPointersEnabled = false;
+      debugRepaintRainbowEnabled = false;
+      debugPaintLayerBordersEnabled = false;
+      SchedulerBinding.instance.scheduleFrameCallback(disableFlags);
+    }
+
+    disableFlags(Duration.zero);
+    return true;
+  }());
 }
 
 void _setupFcmHandlers() {

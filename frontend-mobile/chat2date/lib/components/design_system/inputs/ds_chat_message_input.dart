@@ -1,6 +1,9 @@
+import 'dart:math' as math;
+
 import 'package:chat2date/core/theme/app_assets.dart';
 import 'package:chat2date/core/theme/app_colors.dart';
 import 'package:chat2date/core/theme/tokens/typography/body_text_styles.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 
@@ -12,6 +15,7 @@ class DsChatMessageInput extends StatefulWidget {
     this.disabledText = 'ไม่สามารถส่งข้อความได้เนื่องจากมีการรายงาน',
     this.enabled = true,
     this.onChanged,
+    this.onFocusChanged,
     this.onSend,
     this.autofocus = false,
     this.width = 390,
@@ -22,6 +26,7 @@ class DsChatMessageInput extends StatefulWidget {
   final String disabledText;
   final bool enabled;
   final ValueChanged<String>? onChanged;
+  final ValueChanged<bool>? onFocusChanged;
   final VoidCallback? onSend;
   final bool autofocus;
   final double width;
@@ -31,11 +36,14 @@ class DsChatMessageInput extends StatefulWidget {
 }
 
 class _DsChatMessageInputState extends State<DsChatMessageInput> {
+  static final TextSelectionControls _iosSelectionControls =
+      _BrandCupertinoTextSelectionControls();
   late TextEditingController _internalController;
   final FocusNode _focusNode = FocusNode();
   bool _sendPressed = false;
 
-  TextEditingController get _controller => widget.controller ?? _internalController;
+  TextEditingController get _controller =>
+      widget.controller ?? _internalController;
   bool get _hasText => _controller.text.trim().isNotEmpty;
   bool get _showSend => widget.enabled && _hasText;
 
@@ -76,6 +84,7 @@ class _DsChatMessageInputState extends State<DsChatMessageInput> {
     if (mounted) {
       setState(() {});
     }
+    widget.onFocusChanged?.call(_focusNode.hasFocus);
   }
 
   @override
@@ -112,15 +121,26 @@ class _DsChatMessageInputState extends State<DsChatMessageInput> {
 
   @override
   Widget build(BuildContext context) {
-    final borderColor = widget.enabled && _focusNode.hasFocus
+    final isFocused = widget.enabled && _focusNode.hasFocus;
+    final borderColor = isFocused
         ? AppColors.brandPrimary
         : AppColors.inputBorder;
-    final fillColor = widget.enabled ? AppColors.background : AppColors.inputDisabledBg;
-    final textColor = widget.enabled ? AppColors.textBlack : AppColors.textDisabled;
-    final hintColor = widget.enabled ? AppColors.textPlaceholder : AppColors.textDisabled;
-    final horizontalPadding = widget.enabled
-        ? (_showSend ? 6.0 : 16.0)
-        : 6.0;
+    final fillColor = widget.enabled
+        ? AppColors.background
+        : AppColors.inputDisabledBg;
+    final textColor = widget.enabled
+        ? AppColors.textBlack
+        : AppColors.textDisabled;
+    final hintColor = widget.enabled
+        ? AppColors.textPlaceholder
+        : AppColors.textDisabled;
+    final sendButtonColor = isFocused
+        ? AppColors.brandPrimary.withValues(alpha: 0.14)
+        : AppColors.brandPrimary;
+    final sendButtonBorderColor = isFocused
+        ? AppColors.brandPrimary
+        : Colors.transparent;
+    final horizontalPadding = widget.enabled ? (_showSend ? 6.0 : 16.0) : 6.0;
 
     return SizedBox(
       width: widget.width,
@@ -164,34 +184,50 @@ class _DsChatMessageInputState extends State<DsChatMessageInput> {
                   children: [
                     Expanded(
                       child: widget.enabled
-                          ? TextField(
-                              controller: _controller,
-                              focusNode: _focusNode,
-                              enabled: true,
-                              autofocus: widget.autofocus,
-                              onChanged: widget.onChanged,
-                              minLines: 1,
-                              maxLines: 5,
-                              maxLength: 2000,
-                              keyboardType: TextInputType.multiline,
-                              textInputAction: TextInputAction.newline,
-                              style: bodyStyle,
-                              cursorColor: AppColors.brandPrimary,
-                              scrollPhysics: const BouncingScrollPhysics(),
-                              decoration: InputDecoration(
-                                isCollapsed: true,
-                                isDense: true,
-                                filled: false,
-                                counterText: '',
-                                border: InputBorder.none,
-                                enabledBorder: InputBorder.none,
-                                focusedBorder: InputBorder.none,
-                                disabledBorder: InputBorder.none,
-                                errorBorder: InputBorder.none,
-                                focusedErrorBorder: InputBorder.none,
-                                hintText: widget.hintText,
-                                hintStyle: AppBodyTextStyles.body.copyWith(
-                                  color: hintColor,
+                          ? Theme(
+                              data: Theme.of(context).copyWith(
+                                textSelectionTheme: TextSelectionThemeData(
+                                  cursorColor: AppColors.brandPrimary,
+                                  selectionColor: AppColors.brandPrimary
+                                      .withValues(alpha: 0.28),
+                                  selectionHandleColor: AppColors.brandPrimary,
+                                ),
+                              ),
+                              child: TextFormField(
+                                controller: _controller,
+                                focusNode: _focusNode,
+                                enabled: true,
+                                autofocus: widget.autofocus,
+                                onChanged: widget.onChanged,
+                                onTap: () => widget.onFocusChanged?.call(true),
+                                minLines: 1,
+                                maxLines: 5,
+                                maxLength: 2000,
+                                keyboardType: TextInputType.multiline,
+                                textInputAction: TextInputAction.newline,
+                                style: bodyStyle,
+                                cursorColor: AppColors.brandPrimary,
+                                selectionControls:
+                                    Theme.of(context).platform ==
+                                        TargetPlatform.iOS
+                                    ? _iosSelectionControls
+                                    : null,
+                                scrollPhysics: const BouncingScrollPhysics(),
+                                decoration: InputDecoration(
+                                  isCollapsed: true,
+                                  isDense: true,
+                                  filled: false,
+                                  counterText: '',
+                                  border: InputBorder.none,
+                                  enabledBorder: InputBorder.none,
+                                  focusedBorder: InputBorder.none,
+                                  disabledBorder: InputBorder.none,
+                                  errorBorder: InputBorder.none,
+                                  focusedErrorBorder: InputBorder.none,
+                                  hintText: widget.hintText,
+                                  hintStyle: AppBodyTextStyles.body.copyWith(
+                                    color: hintColor,
+                                  ),
                                 ),
                               ),
                             )
@@ -214,7 +250,9 @@ class _DsChatMessageInputState extends State<DsChatMessageInput> {
                         child: AnimatedSlide(
                           duration: const Duration(milliseconds: 120),
                           curve: Curves.easeOut,
-                          offset: _sendPressed ? const Offset(0, -0.06) : Offset.zero,
+                          offset: _sendPressed
+                              ? const Offset(0, -0.06)
+                              : Offset.zero,
                           child: AnimatedScale(
                             duration: const Duration(milliseconds: 120),
                             curve: Curves.easeOut,
@@ -222,9 +260,12 @@ class _DsChatMessageInputState extends State<DsChatMessageInput> {
                             child: Container(
                               width: 32,
                               height: 32,
-                              decoration: const BoxDecoration(
-                                color: AppColors.brandPrimary,
+                              decoration: BoxDecoration(
+                                color: sendButtonColor,
                                 shape: BoxShape.circle,
+                                border: Border.all(
+                                  color: sendButtonBorderColor,
+                                ),
                               ),
                               child: Center(
                                 child: SvgPicture.asset(
@@ -247,5 +288,91 @@ class _DsChatMessageInputState extends State<DsChatMessageInput> {
         },
       ),
     );
+  }
+}
+
+class _BrandCupertinoTextSelectionControls
+    extends CupertinoTextSelectionControls {
+  @override
+  Widget buildHandle(
+    BuildContext context,
+    TextSelectionHandleType type,
+    double textLineHeight, [
+    VoidCallback? onTap,
+  ]) {
+    final Size desiredSize;
+    final Widget handle;
+
+    final Widget customPaint = const CustomPaint(
+      painter: _BrandCupertinoTextSelectionHandlePainter(
+        AppColors.brandPrimary,
+      ),
+    );
+
+    switch (type) {
+      case TextSelectionHandleType.left:
+        desiredSize = getHandleSize(textLineHeight);
+        handle = SizedBox.fromSize(size: desiredSize, child: customPaint);
+        return handle;
+      case TextSelectionHandleType.right:
+        desiredSize = getHandleSize(textLineHeight);
+        handle = SizedBox.fromSize(size: desiredSize, child: customPaint);
+        return Transform(
+          transform: Matrix4.identity()
+            ..translateByDouble(
+              desiredSize.width / 2,
+              desiredSize.height / 2,
+              0,
+              1,
+            )
+            ..rotateZ(math.pi)
+            ..translateByDouble(
+              -desiredSize.width / 2,
+              -desiredSize.height / 2,
+              0,
+              1,
+            ),
+          child: handle,
+        );
+      case TextSelectionHandleType.collapsed:
+        return SizedBox.fromSize(size: getHandleSize(textLineHeight));
+    }
+  }
+}
+
+class _BrandCupertinoTextSelectionHandlePainter extends CustomPainter {
+  const _BrandCupertinoTextSelectionHandlePainter(this.color);
+
+  final Color color;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    const double selectionHandleRadius = 6;
+    const double selectionHandleOverlap = 1.5;
+    const double halfStrokeWidth = 1.0;
+
+    final paint = Paint()..color = color;
+    final circle = Rect.fromCircle(
+      center: const Offset(selectionHandleRadius, selectionHandleRadius),
+      radius: selectionHandleRadius,
+    );
+    final line = Rect.fromPoints(
+      const Offset(
+        selectionHandleRadius - halfStrokeWidth,
+        2 * selectionHandleRadius - selectionHandleOverlap,
+      ),
+      Offset(selectionHandleRadius + halfStrokeWidth, size.height),
+    );
+
+    final path = Path()
+      ..addOval(circle)
+      ..addRect(line);
+
+    canvas.drawPath(path, paint);
+  }
+
+  @override
+  bool shouldRepaint(covariant _BrandCupertinoTextSelectionHandlePainter old) {
+    return old.color != color;
   }
 }
