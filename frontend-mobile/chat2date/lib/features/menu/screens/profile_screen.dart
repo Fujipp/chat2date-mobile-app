@@ -87,7 +87,8 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
   void initState() {
     super.initState();
     _nicknameCtrl.addListener(_refresh);
-    _loadInitialData();
+    _hydrateFromStoreIfAvailable();
+    _loadInitialData(silent: true);
   }
 
   @override
@@ -107,7 +108,26 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     if (mounted) setState(() {});
   }
 
-  Future<void> _loadInitialData() async {
+  Future<void> _hydrateFromStoreIfAvailable() async {
+    final userStore = ref.read(userStoreProvider) as Map<String, dynamic>?;
+    final profile = userStore?['profile'] as Map<String, dynamic>?;
+    final user = userStore?['user'] as User?;
+    final prefs = userStore?['preferences'] as Map<String, dynamic>?;
+
+    if (profile == null || user == null) return;
+
+    final orderedUrls = await _loadSavedPhotoOrder(
+      user.userId,
+      _extractPhotoUrls(profile['photos']),
+    );
+    final hydratedProfile = Map<String, dynamic>.from(profile)
+      ..['photos'] = jsonEncode({'urls': orderedUrls});
+
+    if (!mounted) return;
+    _setDataFromStore(hydratedProfile, user, prefs: prefs);
+  }
+
+  Future<void> _loadInitialData({bool silent = false}) async {
     final userStore = ref.read(userStoreProvider) as Map<String, dynamic>?;
     final currentUser = userStore?['user'] as User?;
     final userService = ref.read(userServiceProvider);
@@ -140,6 +160,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     final profileWithSavedOrder = Map<String, dynamic>.from(profile)
       ..['photos'] = jsonEncode({'urls': orderedUrls});
 
+    if (!mounted) return;
     _setDataFromStore(profileWithSavedOrder, user, prefs: prefs);
   }
 
@@ -481,7 +502,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
 
       await userService.getProfile();
       await userService.getUser(currentUser.userId);
-      await _loadInitialData();
+      await _loadInitialData(silent: true);
 
       if (!mounted) return;
       Toast.show(

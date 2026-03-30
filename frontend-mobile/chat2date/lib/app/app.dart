@@ -38,7 +38,7 @@ class MyApp extends ConsumerWidget {
           },
           navigatorKey: navigatorKey,
           initialRoute: initialRoute,
-          routes: buildAppRoutes(),
+          onGenerateRoute: buildAppRoute,
         ),
       ),
     );

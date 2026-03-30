@@ -15,6 +15,7 @@ import 'package:chat2date/models/user.dart';
 import 'package:chat2date/services/chat_list_socket_service.dart';
 import 'package:chat2date/services/chat_service.dart';
 import 'package:chat2date/services/match_socket_service.dart';
+import 'package:chat2date/stores/chat_list_cache_store.dart';
 import 'package:chat2date/stores/user_store.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -57,7 +58,8 @@ class _ChatListScreenState extends ConsumerState<ChatListScreen>
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
-    _loadData();
+    _hydrateFromCache();
+    _loadData(silent: _chatRooms.isNotEmpty || _matches.isNotEmpty);
     _initChatListSocket();
     _initMatchSocket();
   }
@@ -77,8 +79,30 @@ class _ChatListScreenState extends ConsumerState<ChatListScreen>
   void didChangeAppLifecycleState(AppLifecycleState state) {
     super.didChangeAppLifecycleState(state);
     if (state == AppLifecycleState.resumed) {
-      _loadData();
+      _loadData(silent: true);
     }
+  }
+
+  void _hydrateFromCache() {
+    final cache = ref.read(chatListCacheProvider);
+    if (cache.chatRooms.isEmpty && cache.matches.isEmpty) return;
+
+    setState(() {
+      _chatRooms = List<ChatRoom>.from(cache.chatRooms);
+      _matches = List<Match>.from(cache.matches);
+      _isLoadingChats = false;
+      _isLoadingMatches = false;
+      _chatError = null;
+      _matchError = null;
+    });
+  }
+
+  void _syncChatRoomsCache() {
+    ref.read(chatListCacheProvider.notifier).setChatRooms(_chatRooms);
+  }
+
+  void _syncMatchesCache() {
+    ref.read(chatListCacheProvider.notifier).setMatches(_matches);
   }
 
   void _initChatListSocket() {
@@ -139,28 +163,35 @@ class _ChatListScreenState extends ConsumerState<ChatListScreen>
           _clearedUnreadRoomIds.remove(event.roomId);
         }
       } else if (event.unreadCount > 0) {
-        _loadChatRooms();
+        _loadChatRooms(silent: true);
       }
     });
+    _syncChatRoomsCache();
   }
 
-  Future<void> _loadData() async {
-    await Future.wait([_loadChatRooms(), _loadMatches()]);
+  Future<void> _loadData({bool silent = false}) async {
+    await Future.wait([
+      _loadChatRooms(silent: silent),
+      _loadMatches(silent: silent),
+    ]);
   }
 
-  Future<void> _loadChatRooms() async {
-    setState(() {
-      _isLoadingChats = true;
-      _chatError = null;
-    });
+  Future<void> _loadChatRooms({bool silent = false}) async {
+    if (!silent || _chatRooms.isEmpty) {
+      setState(() {
+        _isLoadingChats = true;
+        _chatError = null;
+      });
+    }
 
     try {
       pendingNotis = [];
       final chatService = ref.read(chatServiceProvider);
       final rooms = await chatService.getChatRooms();
+      final filteredRooms = rooms.where((room) => room.type != 'new').toList();
       if (!mounted) return;
       setState(() {
-        _chatRooms = rooms.where((room) => room.type != 'new').toList();
+        _chatRooms = filteredRooms;
         final syncedRoomIds = _chatRooms
             .where((room) => room.unreadCount == 0)
             .map((room) => room.roomId)
@@ -168,35 +199,45 @@ class _ChatListScreenState extends ConsumerState<ChatListScreen>
         _clearedUnreadRoomIds.removeWhere(syncedRoomIds.contains);
         _isLoadingChats = false;
       });
+      _syncChatRoomsCache();
     } catch (e) {
       if (!mounted) return;
       setState(() {
-        _chatError = e.toString().replaceAll('Exception: ', '');
+        if (_chatRooms.isEmpty) {
+          _chatError = e.toString().replaceAll('Exception: ', '');
+        }
         _isLoadingChats = false;
       });
     }
   }
 
-  Future<void> _loadMatches() async {
-    setState(() {
-      _isLoadingMatches = true;
-      _matchError = null;
-    });
+  Future<void> _loadMatches({bool silent = false}) async {
+    if (!silent || _matches.isEmpty) {
+      setState(() {
+        _isLoadingMatches = true;
+        _matchError = null;
+      });
+    }
 
     try {
       pendingNotis = [];
       final chatService = ref.read(chatServiceProvider);
       final matches = await chatService.getMatches();
+      final filteredMatches =
+          matches.where((match) => match.type == 'new').toList();
 
       if (!mounted) return;
       setState(() {
-        _matches = matches.where((match) => match.type == 'new').toList();
+        _matches = filteredMatches;
         _isLoadingMatches = false;
       });
+      _syncMatchesCache();
     } catch (e) {
       if (!mounted) return;
       setState(() {
-        _matchError = e.toString().replaceAll('Exception: ', '');
+        if (_matches.isEmpty) {
+          _matchError = e.toString().replaceAll('Exception: ', '');
+        }
         _isLoadingMatches = false;
       });
     }
@@ -307,6 +348,8 @@ class _ChatListScreenState extends ConsumerState<ChatListScreen>
             _chatRooms.removeWhere((room) => room.roomId == noti['roomId']);
             _matches.removeWhere((match) => match.matchId == noti['roomId']);
           });
+          _syncChatRoomsCache();
+          _syncMatchesCache();
         }
       } catch (_) {}
     }
@@ -509,7 +552,7 @@ class _ChatListScreenState extends ConsumerState<ChatListScreen>
       error: _chatError,
       isEmpty: _chatRooms.isEmpty,
       onRetry: _loadChatRooms,
-      onRefresh: _loadChatRooms,
+      onRefresh: () => _loadChatRooms(silent: true),
       emptyTitle: 'ยังไม่มีแชท',
       emptySubtitle: 'เมื่อเริ่มคุยกับคู่เดต รายการแชทจะขึ้นที่นี่',
       itemCount: _chatRooms.length,
@@ -553,7 +596,7 @@ class _ChatListScreenState extends ConsumerState<ChatListScreen>
       error: _matchError,
       isEmpty: _matches.isEmpty,
       onRetry: _loadMatches,
-      onRefresh: _loadMatches,
+      onRefresh: () => _loadMatches(silent: true),
       emptyTitle: 'ยังไม่มีแมทช์',
       emptySubtitle: 'เมื่อมีคู่เดตใหม่ รายการแมทช์จะขึ้นที่นี่',
       itemCount: _matches.length,

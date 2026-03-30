@@ -22,7 +22,7 @@ import 'package:chat2date/features/settings/screens/widgets/contact_screen.dart'
 import 'package:flutter/material.dart';
 
 /// Route แรกที่เข้ามา
-const String initialRoute = '/auth';
+const String initialRoute = '/guessingGame';
 
 /// สร้าง route map ทั้งหมดของแอป
 Map<String, WidgetBuilder> buildAppRoutes() {
@@ -53,17 +53,6 @@ Map<String, WidgetBuilder> buildAppRoutes() {
 
     // ─── Chat ────────────────────────────────────────
     '/chatList': (context) => const ChatListScreen(),
-    '/chat': (context) {
-      final args =
-          ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>?;
-      return InsideChatScreen(
-        roomId: args?['roomId'],
-        targetUserId: args?['targetUserId'],
-        userName: args?['userName'],
-        avatarUrl: args?['avatarUrl'],
-      );
-    },
-
     // ─── Game ────────────────────────────────────────
     '/guessingGame': (context) {
       final args =
@@ -100,4 +89,65 @@ Map<String, WidgetBuilder> buildAppRoutes() {
     '/test': (context) => const ComponentTestScreen(),
     '/ui': (context) => const UiShowcaseScreen(),
   };
+}
+
+Route<dynamic>? buildAppRoute(RouteSettings settings) {
+  const slideRoutes = <String>{
+    '/chat',
+    '/account-settings',
+    '/matchPreference',
+    '/about',
+    '/contact',
+    '/policy',
+  };
+
+  if (slideRoutes.contains(settings.name)) {
+    final args = settings.arguments as Map<String, dynamic>?;
+    return PageRouteBuilder(
+      settings: settings,
+      transitionDuration: const Duration(milliseconds: 260),
+      reverseTransitionDuration: const Duration(milliseconds: 260),
+      pageBuilder: (context, animation, secondaryAnimation) {
+        switch (settings.name) {
+          case '/chat':
+            return InsideChatScreen(
+              roomId: args?['roomId'],
+              targetUserId: args?['targetUserId'],
+              userName: args?['userName'],
+              avatarUrl: args?['avatarUrl'],
+            );
+          case '/account-settings':
+            return const AccountSettingsScreen();
+          case '/matchPreference':
+            return MatchPreferenceScreen();
+          case '/about':
+            return const AboutScreen();
+          case '/contact':
+            return const ContactScreen();
+          case '/policy':
+            return const PolicyPage();
+        }
+        return const SizedBox.shrink();
+      },
+      transitionsBuilder: (context, animation, secondaryAnimation, child) {
+        final curved = CurvedAnimation(
+          parent: animation,
+          curve: Curves.easeOutCubic,
+          reverseCurve: Curves.easeInCubic,
+        );
+        final offsetTween = Tween<Offset>(
+          begin: const Offset(1, 0),
+          end: Offset.zero,
+        );
+        return SlideTransition(
+          position: offsetTween.animate(curved),
+          child: child,
+        );
+      },
+    );
+  }
+
+  final builder = buildAppRoutes()[settings.name];
+  if (builder == null) return null;
+  return MaterialPageRoute<void>(settings: settings, builder: builder);
 }
