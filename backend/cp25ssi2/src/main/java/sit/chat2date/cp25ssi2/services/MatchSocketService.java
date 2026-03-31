@@ -56,7 +56,7 @@ public class MatchSocketService {
             List<String> urls = photoDTO.getUrls() == null ? Collections.emptyList() : photoDTO.getUrls();
             return urls.isEmpty() ? null : urls.getFirst();
         } catch (Exception e) {
-            System.out.println("[MatchSocket] Failed to parse photo for " + userId + " : " + e.getMessage());
+            // Failed to parse photo
             return null;
         }
     }

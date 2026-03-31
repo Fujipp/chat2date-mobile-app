@@ -49,7 +49,7 @@ public class FaceVerificationClient {
                 return (Boolean) result.getOrDefault("matched", false);
             }
         } catch (Exception e) {
-            System.err.println("Face Verification Error: " + e.getMessage());
+            // Face verification error
         }
         return false;
     }

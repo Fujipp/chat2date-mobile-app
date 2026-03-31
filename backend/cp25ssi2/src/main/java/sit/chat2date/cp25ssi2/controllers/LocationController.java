@@ -8,6 +8,10 @@ import sit.chat2date.cp25ssi2.services.UserLocationService;
 
 import java.util.Map;
 
+/**
+ * REST controller for user location updates.
+ * Used for real-time location tracking during dates.
+ */
 @RestController
 @RequestMapping("/location")
 @RequiredArgsConstructor
@@ -15,6 +19,7 @@ public class LocationController {
 
     private final UserLocationService userLocationService;
 
+    /** POST /location/update — Update the current user's GPS location. */
     @PostMapping("/update")
     public ResponseEntity<Map<String, Object>> updateLocation(
             @RequestHeader("Authorization") String accessToken,

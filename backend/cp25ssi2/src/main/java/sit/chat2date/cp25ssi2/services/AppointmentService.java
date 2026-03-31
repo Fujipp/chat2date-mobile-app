@@ -21,6 +21,7 @@ import sit.chat2date.cp25ssi2.repositories.AppointmentRepository;
 import sit.chat2date.cp25ssi2.repositories.MatchRepository;
 import sit.chat2date.cp25ssi2.repositories.PlaceRepository;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.List;
@@ -76,8 +77,8 @@ public class AppointmentService {
                         .placeId(request.getPlaceId())
                         .placeName(request.getPlaceName())
                         // latitude / longitude are required by DB; default 0 when not provided
-                        .latitude(java.math.BigDecimal.ZERO)
-                        .longitude(java.math.BigDecimal.ZERO)
+                        .latitude(BigDecimal.ZERO)
+                        .longitude(BigDecimal.ZERO)
                         .build());
 
         // Always keep placeName up-to-date
@@ -239,7 +240,7 @@ public class AppointmentService {
                 payload.put("updatedAt", appointment.getUpdatedAt());
                 chatSocketService.broadcastAppointmentChange(String.valueOf(appointment.getMatch().getId()), payload);
             } catch (Exception e) {
-                System.out.println("[AppointmentSocket] Failed to broadcast appointment change: " + e.getMessage());
+                // Failed to broadcast appointment change
             }
         };
 

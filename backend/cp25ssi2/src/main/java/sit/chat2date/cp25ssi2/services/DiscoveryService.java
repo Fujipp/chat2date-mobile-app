@@ -1,64 +1,56 @@
 package sit.chat2date.cp25ssi2.services;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import org.springframework.beans.factory.annotation.Autowired;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import sit.chat2date.cp25ssi2.dto.DiscoveryResponse;
 import sit.chat2date.cp25ssi2.dto.FeedbackResponse;
-import sit.chat2date.cp25ssi2.dto.UserSummaryDTO;
+import sit.chat2date.cp25ssi2.dto.PhotoDTO;
 import sit.chat2date.cp25ssi2.entities.Action;
 import sit.chat2date.cp25ssi2.entities.Match;
+import sit.chat2date.cp25ssi2.entities.PreferenceMatch;
 import sit.chat2date.cp25ssi2.entities.User;
-import sit.chat2date.cp25ssi2.dto.*;
-import sit.chat2date.cp25ssi2.entities.*;
+import sit.chat2date.cp25ssi2.entities.UserLocation;
 import sit.chat2date.cp25ssi2.enums.ActionType;
 import sit.chat2date.cp25ssi2.exceptions.BadRequestException;
 import sit.chat2date.cp25ssi2.exceptions.NotFoundException;
 import sit.chat2date.cp25ssi2.exceptions.ServiceException;
-import sit.chat2date.cp25ssi2.repositories.*;
+import sit.chat2date.cp25ssi2.repositories.ActionRepository;
+import sit.chat2date.cp25ssi2.repositories.InterestRepository;
+import sit.chat2date.cp25ssi2.repositories.LifeStyleRepository;
+import sit.chat2date.cp25ssi2.repositories.MatchRepository;
+import sit.chat2date.cp25ssi2.repositories.PreferenceMatchRepository;
+import sit.chat2date.cp25ssi2.repositories.TagRepository;
+import sit.chat2date.cp25ssi2.repositories.TravelStyleRepository;
+import sit.chat2date.cp25ssi2.repositories.UserLocationRepository;
+import sit.chat2date.cp25ssi2.repositories.UserPhotoRepository;
+import sit.chat2date.cp25ssi2.repositories.UserRepository;
 import sit.chat2date.cp25ssi2.utils.CompatibilityCalculator;
 
 import java.time.LocalDate;
 import java.time.Period;
-import java.util.*;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.List;
 import java.util.stream.Collectors;
 
 @Service
+@RequiredArgsConstructor
 public class DiscoveryService {
-    @Autowired
-    private UserRepository userRepository;
 
-    @Autowired
-    private ActionRepository actionRepository;
-
-    @Autowired
-    private MatchRepository matchRepository;
-
-    @Autowired
-    private TravelStyleRepository travelStyleRepository;
-
-    @Autowired
-    private LifeStyleRepository lifestyleRepository;
-
-    @Autowired
-    private InterestRepository interestRepository;
-
-    @Autowired
-    private PreferenceMatchRepository preferenceRepository;
-
-    @Autowired
-    private UserLocationRepository locationRepository;
-    @Autowired
-    private CompatibilityCalculator compatibilityCalculator;
-    @Autowired
-    private UserPhotoRepository userPhotoRepository;
-    @Autowired
-    private TagRepository tagRepository;
-
-    @Autowired
-    private NotificationService notificationService;
-
-    @Autowired
-    private MatchSocketService matchSocketService;
+    private final UserRepository userRepository;
+    private final ActionRepository actionRepository;
+    private final MatchRepository matchRepository;
+    private final TravelStyleRepository travelStyleRepository;
+    private final LifeStyleRepository lifestyleRepository;
+    private final InterestRepository interestRepository;
+    private final PreferenceMatchRepository preferenceRepository;
+    private final UserLocationRepository locationRepository;
+    private final CompatibilityCalculator compatibilityCalculator;
+    private final UserPhotoRepository userPhotoRepository;
+    private final TagRepository tagRepository;
+    private final NotificationService notificationService;
+    private final MatchSocketService matchSocketService;
 
     public List<DiscoveryResponse> getCandidates(
             String userId,
@@ -161,8 +153,7 @@ public class DiscoveryService {
             ObjectMapper objectMapper = new ObjectMapper();
             PhotoDTO photoDTO = objectMapper.readValue(jsonString, PhotoDTO.class);
             return photoDTO.getUrls();
-        } catch (Exception e) { // JsonProcessingException
-            e.printStackTrace();
+        } catch (Exception e) {
             return Collections.emptyList();
         }
     }
@@ -300,7 +291,7 @@ public class DiscoveryService {
                             currentUserAvatar);
                     matchSocketService.broadcastMatch(currentUser, targetUser, matchId);
                 } catch (Exception e) {
-                    System.out.println("[Discovery] Failed to send match notifications: " + e.getMessage());
+                    // Failed to send match notifications
                 }
 
                 // 5.3 ส่ง response ว่า match แล้ว 🎉

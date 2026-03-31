@@ -83,7 +83,7 @@ public class ReportService {
                     reportEvidenceRepository.save(evidence);
                 } catch (Exception e) {
                     // Log error but don't fail the report
-                    System.err.println("Failed to save evidence: " + e.getMessage());
+                    // Failed to save evidence
                 }
             }
         }

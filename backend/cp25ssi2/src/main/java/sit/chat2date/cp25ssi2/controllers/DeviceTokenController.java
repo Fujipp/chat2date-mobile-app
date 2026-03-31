@@ -8,6 +8,10 @@ import sit.chat2date.cp25ssi2.services.DeviceTokenService;
 
 import java.util.Map;
 
+/**
+ * REST controller for FCM device token management.
+ * Handles registering and removing push notification tokens.
+ */
 @RestController
 @RequestMapping("/device-tokens")
 @RequiredArgsConstructor
@@ -15,18 +19,17 @@ public class DeviceTokenController {
 
     private final DeviceTokenService deviceTokenService;
 
+    /** POST /device-tokens/register — Register a new FCM device token. Returns 201 Created. */
     @PostMapping("/register")
     public ResponseEntity<?> register(@RequestBody DeviceTokenRequest request) {
         deviceTokenService.registerToken(request);
         return ResponseEntity.status(201).body(Map.of("status", "CREATED"));
     }
 
+    /** POST /device-tokens/remove — Remove a registered FCM device token. */
     @PostMapping("/remove")
-    public ResponseEntity<?> remove(@RequestBody DeviceTokenRequest request) {
+    public ResponseEntity<?> removeToken(@RequestBody DeviceTokenRequest request) {
         deviceTokenService.removeToken(request);
         return ResponseEntity.ok(Map.of("status", "OK"));
     }
-
-    // class เล็ก ๆ เอาไว้ห่อ response เฉย ๆ
-    public record SimpleResponse(String message) { }
 }

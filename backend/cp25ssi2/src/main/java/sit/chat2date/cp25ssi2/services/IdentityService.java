@@ -1,6 +1,6 @@
 package sit.chat2date.cp25ssi2.services;
 
-import org.springframework.beans.factory.annotation.Autowired;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 import sit.chat2date.cp25ssi2.clients.CloudinaryClient;
@@ -14,25 +14,25 @@ import sit.chat2date.cp25ssi2.repositories.UserRepository;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URL;
-import java.util.*;
-import java.util.concurrent.*;
+import java.util.ArrayList;
+import java.util.Base64;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 import java.util.stream.Collectors;
 
 @Service
+@RequiredArgsConstructor
 public class IdentityService {
 
-    @Autowired
-    private FaceVerificationClient faceVerificationClient;
-
-    @Autowired
-    private CloudinaryClient cloudinaryService;
-
-    @Autowired
-    private UserRepository userRepository;
-
-    @Autowired
-    private UserPhotoRepository userPhotoRepository;
-
+    private final FaceVerificationClient faceVerificationClient;
+    private final CloudinaryClient cloudinaryService;
+    private final UserRepository userRepository;
+    private final UserPhotoRepository userPhotoRepository;
     private final ExecutorService executorService = Executors.newFixedThreadPool(10);
 
     // Thread Pool สำหรับทำงานแบบ Parallel (ปรับขนาดตามเซิร์ฟเวอร์)
@@ -90,7 +90,6 @@ public class IdentityService {
                         byte[] profileBytes = file.getBytes();
                         return faceVerificationClient.verify(idCardBytes, profileBytes);
                     } catch (Exception e) {
-                        System.err.println("Error verifying image: " + file.getOriginalFilename());
                         return false;
                     }
                 }, executorService))
@@ -126,7 +125,7 @@ public class IdentityService {
             });
 
         } catch (Exception e) {
-            System.err.println("Error in parallel verification: " + e.getMessage());
+            // Error in parallel verification
             return false;
         }
     }

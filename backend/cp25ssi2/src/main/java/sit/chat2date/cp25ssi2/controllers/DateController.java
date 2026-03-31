@@ -7,13 +7,17 @@ import sit.chat2date.cp25ssi2.services.UserLocationService;
 
 import java.util.Map;
 
+/**
+ * REST controller for date-related location sharing.
+ */
 @RestController
 @RequestMapping("/dates")
 @RequiredArgsConstructor
 public class DateController {
+
     private final UserLocationService userLocationService;
 
-    //Real time location
+    /** POST /dates/share-location — Share real-time location during a date. */
     @PostMapping("/share-location")
     public ResponseEntity<?> shareLocation(
             @RequestHeader(value = "Authorization", required = false) String accessToken,

@@ -10,7 +10,7 @@ import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
-import org.springframework.beans.factory.annotation.Autowired;
+import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
@@ -31,14 +31,12 @@ import java.util.List;
 import java.util.Optional;
 
 @Component
+@RequiredArgsConstructor
 public class JwtAuthFilter extends OncePerRequestFilter {
-    @Autowired
-    private UserRepository userRepository;
 
-    @Autowired
-    private JwtTokenUtil jwtTokenUtil;
-    @Autowired
-    private MatchRepository matchRepository;
+    private final UserRepository userRepository;
+    private final JwtTokenUtil jwtTokenUtil;
+    private final MatchRepository matchRepository;
 
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain) throws ServletException, IOException, java.io.IOException {
@@ -54,7 +52,9 @@ public class JwtAuthFilter extends OncePerRequestFilter {
                 path.startsWith("/api/v1/preferences") ||
                 path.equals("/api/v1/users/phone") ||
                 path.startsWith("/api/v1/test") ||
-                path.matches("/api/v1/users/[^/]+/restore")) {
+                path.matches("/api/v1/users/[^/]+/restore") ||
+                path.startsWith("/swagger-ui") ||
+                path.startsWith("/v3/api-docs")) {
             filterChain.doFilter(request, response);
             return;
         }

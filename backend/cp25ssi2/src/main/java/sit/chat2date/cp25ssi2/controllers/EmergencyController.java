@@ -1,19 +1,20 @@
 package sit.chat2date.cp25ssi2.controllers;
 
-import org.springframework.beans.factory.annotation.Autowired;
+import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-
+import sit.chat2date.cp25ssi2.dto.EmergencyCallRequest;
 import sit.chat2date.cp25ssi2.services.SosIncidentService;
+
 import java.util.List;
 import java.util.Map;
 
 @RestController
 @RequestMapping("/users")
+@RequiredArgsConstructor
 public class EmergencyController {
 
-    @Autowired
-    private SosIncidentService sosIncidentService;
+    private final SosIncidentService sosIncidentService;
 
     @GetMapping("/emergency-calls")
     public ResponseEntity<?> getEmergencyCall(
@@ -27,7 +28,7 @@ public class EmergencyController {
     @PutMapping("/emergency-calls")
     public ResponseEntity<?> updateEmergencyCalls(
             @RequestAttribute("userId") String userId,
-            @RequestBody sit.chat2date.cp25ssi2.dto.EmergencyCallRequest req) {
+            @RequestBody EmergencyCallRequest req) {
 
         sosIncidentService.updateEmergencyContacts(userId, req.getPhoneNumbers());
 

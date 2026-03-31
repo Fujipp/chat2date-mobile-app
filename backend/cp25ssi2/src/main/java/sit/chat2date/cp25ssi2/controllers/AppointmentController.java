@@ -11,10 +11,15 @@ import sit.chat2date.cp25ssi2.dto.AppointmentRequest;
 import sit.chat2date.cp25ssi2.dto.AppointmentResponse;
 import sit.chat2date.cp25ssi2.dto.AppointmentUpdateRequest;
 import sit.chat2date.cp25ssi2.entities.User;
+import sit.chat2date.cp25ssi2.exceptions.UnauthorizedAccessException;
 import sit.chat2date.cp25ssi2.services.AppointmentService;
 
 import java.util.Optional;
 
+/**
+ * REST controller for date appointments.
+ * Manages creating, reading, updating, and cancelling appointments between matched users.
+ */
 @RestController
 @RequestMapping("/dates/appointments")
 @RequiredArgsConstructor
@@ -22,66 +27,57 @@ public class AppointmentController {
 
     private final AppointmentService appointmentService;
 
-    /**
-     * POST /api/v1/dates/appointments
-     * Header: accessToken (JWT)
-     * Body: { roomId, placeId, placeName, dateTime }
-     * Response: 201 Created
-     */
+    // ────────────────────────────────────────────────────────────────────────
+    // CRUD
+    // ────────────────────────────────────────────────────────────────────────
+
+    /** POST /dates/appointments — Create a new appointment for a chat room. Returns 201 Created. */
     @PostMapping
     public ResponseEntity<AppointmentResponse> createAppointment(
             @AuthenticationPrincipal Optional<User> userOpt,
             @Valid @RequestBody AppointmentRequest request) {
 
-        User user = userOpt.orElseThrow(() -> new RuntimeException("User not found"));
-        AppointmentResponse response = appointmentService.createAppointment(user.getUserId(), request);
-        return ResponseEntity.status(HttpStatus.CREATED).body(response);
+        User user = getAuthenticatedUser(userOpt);
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(appointmentService.createAppointment(user.getUserId(), request));
     }
 
-    /**
-     * GET /api/v1/dates/appointments/{roomId}
-     * Header: accessToken (JWT)
-     * Response: 200 OK — list of appointments for the room
-     */
+    /** GET /dates/appointments/{roomId} — List all appointments for a room. */
     @GetMapping("/{roomId}")
-    public ResponseEntity<AppointmentListResponse> getAppointmentsByRoomId(
+    public ResponseEntity<AppointmentListResponse> getAppointmentsByRoom(
             @AuthenticationPrincipal Optional<User> userOpt,
             @PathVariable Integer roomId) {
 
-        User user = userOpt.orElseThrow(() -> new RuntimeException("User not found"));
-        AppointmentListResponse response = appointmentService.getAppointmentsByRoomId(user.getUserId(), roomId);
-        return ResponseEntity.ok(response);
+        User user = getAuthenticatedUser(userOpt);
+        return ResponseEntity.ok(appointmentService.getAppointmentsByRoomId(user.getUserId(), roomId));
     }
 
-    /**
-     * PUT /api/v1/dates/appointments/{appointmentId}
-     * Header: accessToken (JWT)
-     * Body: { dateTime }
-     * Response: 200 OK
-     */
+    /** PUT /dates/appointments/{appointmentId} — Update the date/time of an existing appointment. */
     @PutMapping("/{appointmentId}")
     public ResponseEntity<AppointmentResponse> updateAppointment(
             @AuthenticationPrincipal Optional<User> userOpt,
             @PathVariable Integer appointmentId,
             @Valid @RequestBody AppointmentUpdateRequest request) {
 
-        User user = userOpt.orElseThrow(() -> new RuntimeException("User not found"));
-        AppointmentResponse response = appointmentService.updateAppointment(user.getUserId(), appointmentId, request);
-        return ResponseEntity.ok(response);
+        User user = getAuthenticatedUser(userOpt);
+        return ResponseEntity.ok(appointmentService.updateAppointment(user.getUserId(), appointmentId, request));
     }
 
-    /**
-     * DELETE /api/v1/dates/appointments/{appointmentId}
-     * Header: accessToken (JWT)
-     * Response: 200 OK
-     */
+    /** DELETE /dates/appointments/{appointmentId} — Cancel (soft-delete) an appointment. */
     @DeleteMapping("/{appointmentId}")
-    public ResponseEntity<AppointmentResponse> deleteAppointment(
+    public ResponseEntity<AppointmentResponse> cancelAppointment(
             @AuthenticationPrincipal Optional<User> userOpt,
             @PathVariable Integer appointmentId) {
 
-        User user = userOpt.orElseThrow(() -> new RuntimeException("User not found"));
-        AppointmentResponse response = appointmentService.deleteAppointment(user.getUserId(), appointmentId);
-        return ResponseEntity.ok(response);
+        User user = getAuthenticatedUser(userOpt);
+        return ResponseEntity.ok(appointmentService.deleteAppointment(user.getUserId(), appointmentId));
+    }
+
+    // ────────────────────────────────────────────────────────────────────────
+    // Helpers
+    // ────────────────────────────────────────────────────────────────────────
+
+    private User getAuthenticatedUser(Optional<User> userOpt) {
+        return userOpt.orElseThrow(() -> new UnauthorizedAccessException("User not found"));
     }
 }

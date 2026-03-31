@@ -6,13 +6,23 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
-import sit.chat2date.cp25ssi2.dto.*;
+import sit.chat2date.cp25ssi2.dto.ChatAccessRequest;
+import sit.chat2date.cp25ssi2.dto.ChatAccessStatusResponse;
+import sit.chat2date.cp25ssi2.dto.ChatRoomDetailResponse;
+import sit.chat2date.cp25ssi2.dto.ChatRoomListResponse;
+import sit.chat2date.cp25ssi2.dto.SendMessageRequest;
+import sit.chat2date.cp25ssi2.dto.SendMessageResponse;
 import sit.chat2date.cp25ssi2.entities.User;
+import sit.chat2date.cp25ssi2.exceptions.UnauthorizedAccessException;
 import sit.chat2date.cp25ssi2.services.ChatAccessService;
 import sit.chat2date.cp25ssi2.services.ChatService;
 
 import java.util.Optional;
 
+/**
+ * REST controller for chat functionality.
+ * Handles chat rooms, messages, and room access (enter/exit) tracking.
+ */
 @RestController
 @RequestMapping("/chats")
 @RequiredArgsConstructor
@@ -21,75 +31,76 @@ public class ChatController {
     private final ChatService chatService;
     private final ChatAccessService chatAccessService;
 
-    /**
-     * GET /api/v1/chats/rooms - Get all chat rooms for current user
-     */
+    // ────────────────────────────────────────────────────────────────────────
+    // Chat Rooms & Messages
+    // ────────────────────────────────────────────────────────────────────────
+
+    /** GET /chats/rooms — List all chat rooms for the authenticated user. */
     @GetMapping("/rooms")
-    public ResponseEntity<ChatRoomListResponse> getAllChatRooms(
+    public ResponseEntity<ChatRoomListResponse> getChatRooms(
             @AuthenticationPrincipal Optional<User> userOpt) {
-        User user = userOpt.orElseThrow(() -> new RuntimeException("User not found"));
-        ChatRoomListResponse response = chatService.getAllChatRooms(user.getUserId());
-        return ResponseEntity.ok(response);
+        User user = getAuthenticatedUser(userOpt);
+        return ResponseEntity.ok(chatService.getAllChatRooms(user.getUserId()));
     }
 
-    /**
-     * GET /api/v1/chats/{roomId} - Get chat messages for a room with pagination
-     */
+    /** GET /chats/{roomId} — Get paginated messages for a specific room. */
     @GetMapping("/{roomId}")
-    public ResponseEntity<ChatRoomDetailResponse> getChatMessages(
+    public ResponseEntity<ChatRoomDetailResponse> getMessages(
             @AuthenticationPrincipal Optional<User> userOpt,
             @PathVariable String roomId,
             @RequestParam(defaultValue = "0") Integer paginate) {
-        User user = userOpt.orElseThrow(() -> new RuntimeException("User not found"));
-        ChatRoomDetailResponse response = chatService.getChatMessages(user.getUserId(), roomId, paginate);
-        return ResponseEntity.ok(response);
+        User user = getAuthenticatedUser(userOpt);
+        return ResponseEntity.ok(chatService.getChatMessages(user.getUserId(), roomId, paginate));
     }
 
-    /**
-     * POST /api/v1/chats/send - Send a message
-     */
+    /** POST /chats/send — Send a new message. Returns 201 Created. */
     @PostMapping("/send")
     public ResponseEntity<SendMessageResponse> sendMessage(
             @AuthenticationPrincipal Optional<User> userOpt,
             @Valid @RequestBody SendMessageRequest request) {
-        User user = userOpt.orElseThrow(() -> new RuntimeException("User not found"));
-        SendMessageResponse response = chatService.sendMessage(user.getUserId(), request);
-        return ResponseEntity.status(HttpStatus.CREATED).body(response);
+        User user = getAuthenticatedUser(userOpt);
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(chatService.sendMessage(user.getUserId(), request));
     }
 
-    /**
-     * POST /api/v1/chats/access - Enter a room (update read status)
-     */
+    // ────────────────────────────────────────────────────────────────────────
+    // Room Access (Enter / Exit)
+    // ────────────────────────────────────────────────────────────────────────
+
+    /** POST /chats/access — Enter a room (marks messages as read). */
     @PostMapping("/access")
     public ResponseEntity<Void> enterRoom(
             @AuthenticationPrincipal Optional<User> userOpt,
             @Valid @RequestBody ChatAccessRequest request) {
-        User user = userOpt.orElseThrow(() -> new RuntimeException("User not found"));
+        User user = getAuthenticatedUser(userOpt);
         chatAccessService.enterRoom(user.getUserId(), request);
         return ResponseEntity.status(HttpStatus.CREATED).build();
     }
 
-    /**
-     * PUT /api/v1/chats/access - Exit a room
-     */
+    /** PUT /chats/access — Exit a room. */
     @PutMapping("/access")
     public ResponseEntity<Void> exitRoom(
             @AuthenticationPrincipal Optional<User> userOpt,
             @Valid @RequestBody ChatAccessRequest request) {
-        User user = userOpt.orElseThrow(() -> new RuntimeException("User not found"));
+        User user = getAuthenticatedUser(userOpt);
         chatAccessService.exitRoom(user.getUserId(), request);
         return ResponseEntity.ok().build();
     }
 
-    /**
-     * GET /api/v1/chats/access/{roomId} - Get room member access status
-     */
+    /** GET /chats/access/{roomId} — Get online/offline status of room members. */
     @GetMapping("/access/{roomId}")
     public ResponseEntity<ChatAccessStatusResponse> getRoomAccessStatus(
             @AuthenticationPrincipal Optional<User> userOpt,
             @PathVariable String roomId) {
-        userOpt.orElseThrow(() -> new RuntimeException("User not found"));
-        ChatAccessStatusResponse response = chatAccessService.getRoomAccessStatus(roomId);
-        return ResponseEntity.ok(response);
+        getAuthenticatedUser(userOpt);
+        return ResponseEntity.ok(chatAccessService.getRoomAccessStatus(roomId));
+    }
+
+    // ────────────────────────────────────────────────────────────────────────
+    // Helpers
+    // ────────────────────────────────────────────────────────────────────────
+
+    private User getAuthenticatedUser(Optional<User> userOpt) {
+        return userOpt.orElseThrow(() -> new UnauthorizedAccessException("User not found"));
     }
 }

@@ -40,7 +40,6 @@ public class NotificationService {
         // ดึง FCM token ของ user คนที่จะได้รับแจ้งเตือน
         List<String> tokens = deviceTokenService.getTokensForUser(receiverUserId);
         if (tokens == null || tokens.isEmpty()) {
-            System.out.println("[FCM] No device token for user " + receiverUserId);
             return;
         }
 
@@ -60,10 +59,9 @@ public class NotificationService {
                     .build();
 
             try {
-                String msgId = FirebaseMessaging.getInstance().send(message);
-                System.out.println("[FCM] Sent MATCH to " + receiverUserId + " msgId=" + msgId);
+                FirebaseMessaging.getInstance().send(message);
             } catch (FirebaseMessagingException e) {
-                System.out.println("[FCM] Failed to send MATCH to " + receiverUserId + " : " + e.getMessage());
+                // Failed to send MATCH notification
             }
         }
     }
@@ -73,7 +71,6 @@ public class NotificationService {
             String messagePreview, Integer roomId, String senderUserId, String senderAvatarUrl) {
         List<String> tokens = deviceTokenService.getTokensForUser(receiverUserId);
         if (tokens == null || tokens.isEmpty()) {
-            System.out.println("[FCM] No device token for user " + receiverUserId);
             return;
         }
 
@@ -98,10 +95,9 @@ public class NotificationService {
                     .build();
 
             try {
-                String msgId = FirebaseMessaging.getInstance().send(message);
-                System.out.println("[FCM] Sent CHAT_MESSAGE to " + receiverUserId + " msgId=" + msgId);
+                FirebaseMessaging.getInstance().send(message);
             } catch (FirebaseMessagingException e) {
-                System.out.println("[FCM] Failed to send CHAT_MESSAGE to " + receiverUserId + " : " + e.getMessage());
+                // Failed to send CHAT_MESSAGE notification
             }
         }
     }
@@ -111,7 +107,6 @@ public class NotificationService {
             Integer roomId, String placeName, LocalDateTime appointmentDateTimeUtc) {
         List<String> tokens = deviceTokenService.getTokensForUser(receiverUserId);
         if (tokens == null || tokens.isEmpty()) {
-            System.out.println("[FCM] No device token for user " + receiverUserId);
             return;
         }
 
@@ -132,10 +127,9 @@ public class NotificationService {
                     .build();
 
             try {
-                String msgId = FirebaseMessaging.getInstance().send(message);
-                System.out.println("[FCM] Sent APPOINTMENT_REMINDER to " + receiverUserId + " msgId=" + msgId);
+                FirebaseMessaging.getInstance().send(message);
             } catch (FirebaseMessagingException e) {
-                System.out.println("[FCM] Failed to send APPOINTMENT_REMINDER to " + receiverUserId + " : " + e.getMessage());
+                // Failed to send APPOINTMENT_REMINDER notification
             }
         }
     }

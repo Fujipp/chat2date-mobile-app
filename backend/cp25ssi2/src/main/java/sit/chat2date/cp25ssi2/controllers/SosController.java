@@ -9,6 +9,10 @@ import sit.chat2date.cp25ssi2.services.SosIncidentService;
 
 import java.util.Map;
 
+/**
+ * REST controller for SOS emergency incidents.
+ * Allows users to trigger an emergency alert to administrators.
+ */
 @RestController
 @RequestMapping("/sos")
 @RequiredArgsConstructor
@@ -16,6 +20,7 @@ public class SosController {
 
     private final SosIncidentService sosIncidentService;
 
+    /** POST /sos/incidents — Trigger an SOS emergency alert. Returns 201 Created. */
     @PostMapping("/incidents")
     public ResponseEntity<?> triggerSos(
             @RequestAttribute("userId") String userId,

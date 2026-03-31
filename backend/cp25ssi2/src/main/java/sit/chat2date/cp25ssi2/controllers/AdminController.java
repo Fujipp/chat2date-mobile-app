@@ -1,7 +1,6 @@
 package sit.chat2date.cp25ssi2.controllers;
 
 import lombok.RequiredArgsConstructor;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -15,78 +14,72 @@ import sit.chat2date.cp25ssi2.enums.ReportStatus;
 import sit.chat2date.cp25ssi2.services.AdminReportService;
 import sit.chat2date.cp25ssi2.services.JwtTokenUtil;
 
-import java.util.HashMap;
 import java.util.Map;
 
+/**
+ * REST controller for admin-only operations.
+ * All endpoints require ADMIN role.
+ */
 @RestController
 @RequestMapping("/admin")
 @RequiredArgsConstructor
+@PreAuthorize("hasRole('ADMIN')")
 public class AdminController {
 
-    @Autowired
-    JwtTokenUtil jwtTokenUtil;
-
+    private final JwtTokenUtil jwtTokenUtil;
     private final AdminReportService adminReportService;
 
-    @PreAuthorize("hasRole('ADMIN')")
-    @PostMapping("/request-refresh")
-    public Map<String, Object> requestRefreshToken(@RequestBody Map<String, String> requestBody) {
-        String identifier = requestBody.get("identifier");
-        String jwtRefreshToken = jwtTokenUtil.generateRefreshToken(identifier);
+    // ────────────────────────────────────────────────────────────────────────
+    // Token
+    // ────────────────────────────────────────────────────────────────────────
 
-        Map<String, Object> response = new HashMap<>();
-        response.put("refreshToken", jwtRefreshToken);
-        return response;
+    /** POST /admin/request-refresh — Generate a new refresh token for a given identifier. */
+    @PostMapping("/request-refresh")
+    public Map<String, Object> generateRefreshToken(@RequestBody Map<String, String> requestBody) {
+        String identifier = requestBody.get("identifier");
+        String refreshToken = jwtTokenUtil.generateRefreshToken(identifier);
+        return Map.of("refreshToken", refreshToken);
     }
 
-    /**
-     * GET /admin/reports - Get all reports with pagination and filtering
-     */
-    @PreAuthorize("hasRole('ADMIN')")
+    // ────────────────────────────────────────────────────────────────────────
+    // Report Management
+    // ────────────────────────────────────────────────────────────────────────
+
+    /** GET /admin/reports — List all reports with pagination and optional status filter. */
     @GetMapping("/reports")
-    public ResponseEntity<Page<Report>> getAllReports(
+    public ResponseEntity<Page<Report>> getReports(
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size,
             @RequestParam(required = false) ReportStatus status,
             @RequestParam(defaultValue = "createdAt") String sortBy,
             @RequestParam(defaultValue = "DESC") String sortDirection) {
 
-        Sort.Direction direction = sortDirection.equalsIgnoreCase("ASC") ? Sort.Direction.ASC : Sort.Direction.DESC;
+        Sort.Direction direction = sortDirection.equalsIgnoreCase("ASC")
+                ? Sort.Direction.ASC
+                : Sort.Direction.DESC;
         Pageable pageable = PageRequest.of(page, size, Sort.by(direction, sortBy));
 
-        Page<Report> reports = adminReportService.getAllReports(status, pageable);
-        return ResponseEntity.ok(reports);
+        return ResponseEntity.ok(adminReportService.getAllReports(status, pageable));
     }
 
-    /**
-     * GET /admin/reports/{id} - Get report details with evidence and user info
-     */
-    @PreAuthorize("hasRole('ADMIN')")
+    /** GET /admin/reports/{id} — Get detailed report info including evidence and user data. */
     @GetMapping("/reports/{id}")
-    public ResponseEntity<ReportDetailResponse> getReportById(@PathVariable Integer id) {
-        ReportDetailResponse report = adminReportService.getReportById(id);
-        return ResponseEntity.ok(report);
+    public ResponseEntity<ReportDetailResponse> getReportDetail(@PathVariable Integer id) {
+        return ResponseEntity.ok(adminReportService.getReportById(id));
     }
 
-    /**
-     * PUT /admin/reports/{id}/status - Update report status
-     */
-    @PreAuthorize("hasRole('ADMIN')")
+    /** PUT /admin/reports/{id}/status — Resolve or dismiss a report, optionally deducting behavior points. */
     @PutMapping("/reports/{id}/status")
     public ResponseEntity<Report> updateReportStatus(
             @PathVariable Integer id,
             @RequestBody Map<String, String> body) {
 
-        String statusStr = body.get("status");
-        Object pointsObj = body.get("decreasePoint");
-        int decreasePoint = 0;
+        ReportStatus newStatus = ReportStatus.valueOf(body.get("status").toUpperCase());
+        int decreasePoint = body.containsKey("decreasePoint")
+                ? Integer.parseInt(body.get("decreasePoint"))
+                : 0;
 
-        if (pointsObj != null) {
-            decreasePoint = Integer.parseInt(String.valueOf(pointsObj));
-        }
-        ReportStatus status = ReportStatus.valueOf(statusStr.toUpperCase());
-
-        Report updatedReport = adminReportService.updateReportStatus(id, status, decreasePoint);
-        return ResponseEntity.ok(updatedReport);
+        Report updated = adminReportService.updateReportStatus(id, newStatus, decreasePoint);
+        return ResponseEntity.ok(updated);
     }
 }

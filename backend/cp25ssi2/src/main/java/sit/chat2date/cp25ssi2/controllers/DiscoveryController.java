@@ -2,23 +2,31 @@ package sit.chat2date.cp25ssi2.controllers;
 
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
+import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
-import sit.chat2date.cp25ssi2.dto.*;
-import sit.chat2date.cp25ssi2.services.DiscoveryService; // <<== ใช้ services
+import sit.chat2date.cp25ssi2.dto.DiscoveryResponse;
+import sit.chat2date.cp25ssi2.dto.FeedbackRequest;
+import sit.chat2date.cp25ssi2.dto.FeedbackResponse;
+import sit.chat2date.cp25ssi2.services.DiscoveryService;
 
 import java.util.List;
+
+/**
+ * REST controller for user discovery (swiping).
+ * Provides candidate profiles and handles like/dislike feedback.
+ */
 @RestController
 @RequestMapping("/discovery")
 @Validated
+@RequiredArgsConstructor
 public class DiscoveryController {
 
     private final DiscoveryService discoveryService;
-    public DiscoveryController(DiscoveryService discoveryService) { this.discoveryService = discoveryService; }
 
+    /** GET /discovery — Get candidate profiles within distance range for the given user. */
     @GetMapping("")
     public ResponseEntity<List<DiscoveryResponse>> getDiscovery(
             @RequestParam(required = false, defaultValue = "0") @Min(0) int minDistance,
@@ -29,15 +37,12 @@ public class DiscoveryController {
         return ResponseEntity.ok(responses);
     }
 
+    /** POST /discovery/feedback — Submit like/dislike feedback on a candidate. Returns 201 Created. */
     @PostMapping("/feedback")
-    public ResponseEntity<FeedbackResponse> feedback(
+    public ResponseEntity<FeedbackResponse> submitFeedback(
             @RequestParam @NotBlank String userId,
             @RequestBody FeedbackRequest body
     ) {
-        System.out.println("[Controller] /discovery/feedback userId=" + userId
-                + " targetUserId=" + body.getTargetUserId()
-                + " action=" + body.getAction());
-
         FeedbackResponse result = discoveryService.submitFeedback(
                 userId,
                 body.getTargetUserId(),
@@ -46,6 +51,4 @@ public class DiscoveryController {
 
         return ResponseEntity.status(HttpStatus.CREATED).body(result);
     }
-
-
 }

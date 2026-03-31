@@ -6,38 +6,41 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 import sit.chat2date.cp25ssi2.dto.MatchListResponse;
 import sit.chat2date.cp25ssi2.entities.User;
+import sit.chat2date.cp25ssi2.exceptions.UnauthorizedAccessException;
 import sit.chat2date.cp25ssi2.services.MatchService;
 
 import java.util.Optional;
 
+/**
+ * REST controller for match management.
+ * Handles listing matched users and unmatching.
+ */
 @RestController
-@RequestMapping("")
 @RequiredArgsConstructor
 public class MatchController {
 
     private final MatchService matchService;
 
-    /**
-     * GET /api/v1/matches - Get all matches for current user
-     */
+    /** GET /matches — List all matches for the authenticated user. */
     @GetMapping("/matches")
-    public ResponseEntity<MatchListResponse> getAllMatches(
+    public ResponseEntity<MatchListResponse> getMatches(
             @AuthenticationPrincipal Optional<User> userOpt) {
-        User user = userOpt.orElseThrow(() -> new RuntimeException("User not found"));
-        MatchListResponse response = matchService.getAllMatches(user.getUserId());
-        return ResponseEntity.ok(response);
+        User user = getAuthenticatedUser(userOpt);
+        return ResponseEntity.ok(matchService.getAllMatches(user.getUserId()));
     }
 
-    /**
-     * DELETE /api/v1/unmatch - Unmatch with a user (soft delete)
-     */
+    /** DELETE /unmatch — Unmatch with a partner (soft-delete the match). */
     @DeleteMapping("/unmatch")
     public ResponseEntity<Void> unmatch(
             @AuthenticationPrincipal Optional<User> userOpt,
             @RequestParam String roomId,
             @RequestParam String partnerId) {
-        User user = userOpt.orElseThrow(() -> new RuntimeException("User not found"));
+        User user = getAuthenticatedUser(userOpt);
         matchService.unmatch(user.getUserId(), roomId, partnerId);
         return ResponseEntity.ok().build();
+    }
+
+    private User getAuthenticatedUser(Optional<User> userOpt) {
+        return userOpt.orElseThrow(() -> new UnauthorizedAccessException("User not found"));
     }
 }

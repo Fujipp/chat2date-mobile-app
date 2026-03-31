@@ -3,66 +3,93 @@ package sit.chat2date.cp25ssi2.services;
 import com.auth0.jwt.JWT;
 import com.auth0.jwt.interfaces.DecodedJWT;
 import jakarta.transaction.Transactional;
+import lombok.RequiredArgsConstructor;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.BeanWrapper;
 import org.springframework.beans.BeanWrapperImpl;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
-import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.server.ResponseStatusException;
 import sit.chat2date.cp25ssi2.dto.PreferenceMatchUserDTO;
 import sit.chat2date.cp25ssi2.dto.PreferenceUserDTO;
 import sit.chat2date.cp25ssi2.dto.PreferenceUserProfileDTO;
-import sit.chat2date.cp25ssi2.entities.*;
+import sit.chat2date.cp25ssi2.entities.PreferenceMatch;
+import sit.chat2date.cp25ssi2.entities.User;
+import sit.chat2date.cp25ssi2.entities.UserHasInterest;
+import sit.chat2date.cp25ssi2.entities.UserHasInterestId;
+import sit.chat2date.cp25ssi2.entities.UserHasLifestyle;
+import sit.chat2date.cp25ssi2.entities.UserHasLifestyleId;
+import sit.chat2date.cp25ssi2.entities.UserHasTag;
+import sit.chat2date.cp25ssi2.entities.UserHasTagId;
+import sit.chat2date.cp25ssi2.entities.UserHasTravelstyle;
+import sit.chat2date.cp25ssi2.entities.UserHasTravelstyleId;
 import sit.chat2date.cp25ssi2.enums.PreferenceGender;
 import sit.chat2date.cp25ssi2.enums.PreferenceLevel;
 import sit.chat2date.cp25ssi2.enums.Role;
 import sit.chat2date.cp25ssi2.exceptions.NotFoundException;
 import sit.chat2date.cp25ssi2.exceptions.PreconditionFailedException;
-import sit.chat2date.cp25ssi2.repositories.*;
+import sit.chat2date.cp25ssi2.repositories.InterestRepository;
+import sit.chat2date.cp25ssi2.repositories.LifeStyleRepository;
+import sit.chat2date.cp25ssi2.repositories.PreferenceMatchRepository;
+import sit.chat2date.cp25ssi2.repositories.TagRepository;
+import sit.chat2date.cp25ssi2.repositories.TravelStyleRepository;
+import sit.chat2date.cp25ssi2.repositories.UserHasInterestRepository;
+import sit.chat2date.cp25ssi2.repositories.UserHasLifestyleRepository;
+import sit.chat2date.cp25ssi2.repositories.UserHasTagRepository;
+import sit.chat2date.cp25ssi2.repositories.UserHasTravelstyleRepository;
+import sit.chat2date.cp25ssi2.repositories.UserPhotoRepository;
+import sit.chat2date.cp25ssi2.repositories.UserRepository;
 
+import java.beans.PropertyDescriptor;
+import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.function.BiFunction;
 import java.util.function.Consumer;
 
 @Service
+@RequiredArgsConstructor
 public class UserService {
 
-    @Autowired
-    private UserRepository userRepository;
-    @Autowired
-    private InterestRepository interestRepository;
-    @Autowired
-    private UserHasInterestRepository userHasInterestRepository;
-    @Autowired
-    private TagRepository tagRepository;
-    @Autowired
-    private UserHasTagRepository userHasTagRepository;
-    @Autowired
-    private LifeStyleRepository lifeStyleRepository;
-    @Autowired
-    private UserHasLifestyleRepository userHasLifestyleRepository;
-    @Autowired
-    private TravelStyleRepository travelStyleRepository;
-    @Autowired
-    private UserHasTravelstyleRepository userHasTravelstyleRepository;
-    @Autowired
-    private PreferenceMatchRepository preferenceMatchRepository;
-    @Autowired
-    private UserPhotoRepository userPhotoRepository;
+    private final UserRepository userRepository;
+    private final InterestRepository interestRepository;
+    private final UserHasInterestRepository userHasInterestRepository;
+    private final TagRepository tagRepository;
+    private final UserHasTagRepository userHasTagRepository;
+    private final LifeStyleRepository lifeStyleRepository;
+    private final UserHasLifestyleRepository userHasLifestyleRepository;
+    private final TravelStyleRepository travelStyleRepository;
+    private final UserHasTravelstyleRepository userHasTravelstyleRepository;
+    private final PreferenceMatchRepository preferenceMatchRepository;
+    private final UserPhotoRepository userPhotoRepository;
 
+    // ────────────────────────────────────────────────────────────────────────
+    // CRUD
+    // ────────────────────────────────────────────────────────────────────────
+
+    /** Return every user (admin-only). */
+    public List<User> getAllUsers() {
+        return userRepository.findAll();
+    }
+
+    /** Find a single user by ID or throw 404. */
+    public User getUserById(String userId) {
+        return userRepository.findByUserId(userId)
+                .orElseThrow(() -> new NotFoundException("User not found"));
+    }
+
+    /** Create and persist a new user. */
     public User createUser(User user) {
         return userRepository.save(user);
     }
 
-    public ResponseEntity<User> updateUserById(String id, @RequestBody User user) {
+    public ResponseEntity<User> updateUserById(String id, User user) {
         User userById = userRepository.findByUserId(id).orElseThrow(() -> new NotFoundException("User id: " + id + " not found"));
         if (!user.getVersion().equals(userById.getVersion())) {
             throw new PreconditionFailedException("version", "mismatch");
@@ -139,7 +166,7 @@ public class UserService {
         // เช็คว่าไม่เกิน 30 วัน
         LocalDateTime deletedAt = user.getDeletedAt();
         LocalDateTime now = LocalDateTime.now();
-        long daysPassed = java.time.Duration.between(deletedAt, now).toDays();
+        long daysPassed = Duration.between(deletedAt, now).toDays();
 
         if (daysPassed > 30) {
             throw new ResponseStatusException(
@@ -157,10 +184,42 @@ public class UserService {
     }
 
     /**
-     * 🗑️ Scheduled Job: ลบบัญชีที่เกิน 30 วันแล้วจริงๆ (Hard Delete)
-     * รันทุก 24 ชั่วโมง
+     * Check the soft-delete status of a user account.
+     * Returns a map with isDeleted, deletedAt, daysRemaining, canRestore.
      */
-    @Scheduled(cron = "0 0 2 * * ?") // ทุกวันเวลา 2:00 AM
+    public Map<String, Object> getDeletionStatus(String userId) {
+        User user = getUserById(userId);
+
+        if (Boolean.TRUE.equals(user.getDeleteFlag())) {
+            long daysRemaining = 30 - Duration
+                    .between(user.getDeletedAt(), LocalDateTime.now())
+                    .toDays();
+
+            return Map.of(
+                    "isDeleted", true,
+                    "deletedAt", user.getDeletedAt(),
+                    "daysRemaining", daysRemaining > 0 ? daysRemaining : 0,
+                    "canRestore", daysRemaining > 0
+            );
+        }
+
+        return Map.of("isDeleted", false);
+    }
+
+    /**
+     * Check whether a phone number is already registered.
+     * @return true if the phone number exists in the system
+     */
+    public boolean isPhoneRegistered(String phoneNumber) {
+        return userRepository.findByPhoneNumber(phoneNumber).isPresent();
+    }
+
+    // ────────────────────────────────────────────────────────────────────────
+    // Scheduled Jobs
+    // ────────────────────────────────────────────────────────────────────────
+
+    /** Hard-delete accounts that have been soft-deleted for more than 30 days. Runs daily at 2:00 AM. */
+    @Scheduled(cron = "0 0 2 * * ?")
     public void permanentlyDeleteExpiredAccounts() {
         LocalDateTime thirtyDaysAgo = LocalDateTime.now().minusDays(30);
 
@@ -169,17 +228,17 @@ public class UserService {
 
         if (!expiredUsers.isEmpty()) {
             userRepository.deleteAll(expiredUsers);
-            System.out.println("✅ Permanently deleted " + expiredUsers.size() + " expired accounts");
+            // Permanently deleted expired accounts
         }
     }
 
     //ไว้สำหรับmap ส่วนไหนnull ก็ไม่ต้องแก้ไข ถ้าส่วนไหนไม่null จะต้องแก้ไข ยกเว้นพวก boolean หรือ enum จะต้องมา set เอง
     public static String[] getNullPropertyNames(Object source) {
         final BeanWrapper src = new BeanWrapperImpl(source);
-        java.beans.PropertyDescriptor[] pds = src.getPropertyDescriptors();
+        PropertyDescriptor[] pds = src.getPropertyDescriptors();
 
         Set<String> emptyNames = new HashSet<>();
-        for (java.beans.PropertyDescriptor pd : pds) {
+        for (PropertyDescriptor pd : pds) {
             Object srcValue = src.getPropertyValue(pd.getName());
             if (srcValue == null) emptyNames.add(pd.getName());
         }
@@ -464,6 +523,4 @@ public class UserService {
 
         return dto;
     }
-
-
 }

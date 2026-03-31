@@ -8,7 +8,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.AllArgsConstructor;
 import lombok.Data;
-import org.springframework.beans.factory.annotation.Autowired;
+import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.http.*;
@@ -40,41 +40,23 @@ import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 @Service
+@RequiredArgsConstructor
 public class DateRecommendService {
 
-    @Autowired
-    private SimpMessagingTemplate messagingTemplate;
-
-    @Autowired
-    private UserRepository userRepository;
-
-    @Autowired
-    private MatchRepository matchRepository;
-
-    @Autowired
-    private UserLocationRepository userLocationRepository;
-
-    @Autowired
-    private PlaceRepository placeRepository;
-
-    @Autowired
-    private StringRedisTemplate redis;
-    @Autowired
-    private ObjectMapper objectMapper;
-    @Autowired
-    private RestTemplate restTemplate;
-    @Autowired
-    private PlaceConfirmationRepository placeConfirmationRepository;
-    @Autowired
-    private AppointmentRepository appointmentRepository;
-    @Autowired
-    private ChatService chatService;
-    @Autowired
-    private MessageRepository messageRepository;
-    @Autowired
-    private RelationshipStatsRepository relationshipStatsRepository;
-    @Autowired
-    private AppointmentService appointmentService;
+    private final SimpMessagingTemplate messagingTemplate;
+    private final UserRepository userRepository;
+    private final MatchRepository matchRepository;
+    private final UserLocationRepository userLocationRepository;
+    private final PlaceRepository placeRepository;
+    private final StringRedisTemplate redis;
+    private final ObjectMapper objectMapper;
+    private final RestTemplate restTemplate;
+    private final PlaceConfirmationRepository placeConfirmationRepository;
+    private final AppointmentRepository appointmentRepository;
+    private final ChatService chatService;
+    private final MessageRepository messageRepository;
+    private final RelationshipStatsRepository relationshipStatsRepository;
+    private final AppointmentService appointmentService;
 
     @Value("${google.map.id}")
     private String googleId;

@@ -45,7 +45,7 @@ public class GameService {
     @Autowired
     private ChatService chatService;
 
-    private final Map<String, Set<String>> readyPlayers = new java.util.concurrent.ConcurrentHashMap<>();
+    private final Map<String, Set<String>> readyPlayers = new ConcurrentHashMap<>();
     private final Map<String, Object> roomLocks = new ConcurrentHashMap<>();
 
     private void notifyWaitingStart(String roomId) {
@@ -55,8 +55,6 @@ public class GameService {
     }
 
     public GameStartResponse createGame(Integer roomId, String userId) {
-        System.out.println("Processing Game for Room ID: " + roomId);
-
         Object lock = roomLocks.computeIfAbsent(roomId.toString(), k -> new Object());
 
         synchronized (lock) {
@@ -96,7 +94,6 @@ public class GameService {
                 if (totalAnswers == 0) {
                     return buildGameResponse(existingSession.get(), userId, match);
                 } else {
-                    System.out.println("⚠️ Overwriting FAILED session: " + existingSession.get().getGameId());
                     GameSessions oldSession = existingSession.get();
                     oldSession.setStatus(GameSessionStatus.FAILED);
                     gameSessionRepository.save(oldSession);
@@ -326,7 +323,6 @@ public class GameService {
         boolean isGameTrulyOver = totalAnswersInGame >= (totalQuestions * 2);
 
         if (isGameTrulyOver && session.getStatus() != GameSessionStatus.COMPLETED) {
-            System.out.println("🏁 All players finished! Closing game session.");
             session.setStatus(GameSessionStatus.COMPLETED);
             gameSessionRepository.save(session);
 
@@ -491,7 +487,6 @@ public class GameService {
     public void checkAndTriggerGame(Integer roomId) {
         Optional<RelationshipStats> statsOpt = relationshipStatsRepository.findByRoomId(roomId);
         if (statsOpt.isEmpty()) {
-            System.out.println("⛔ No relationship stats found for roomId: " + roomId);
             return;
         }
 
@@ -502,17 +497,12 @@ public class GameService {
                 GameSessionStatus.ACTIVE
         );
         if (hasActiveGame) {
-            System.out.println("⛔ Game already active");
             return;
         }
-
-        System.out.println("=== LEVEL TRIGGER CHECK ===");
-        System.out.println("RoomId: " + roomId + " | Score: " + currentScore);
 
         int targetScore = calculateTargetScore(currentScore);
 
         if (targetScore == 0) {
-            System.out.println("⛔ Score below 25, no trigger");
             return;
         }
 
@@ -522,7 +512,6 @@ public class GameService {
                 .anyMatch(s -> s.getTargetScore() != null && s.getTargetScore().equals(targetScore));
 
         if (alreadyAutoTriggeredInThisLevel) {
-            System.out.println("⛔ Already auto-triggered game for score level " + targetScore);
             return;
         }
 
@@ -532,15 +521,13 @@ public class GameService {
         if (isUserOnline(roomId, match.getUserId1().getUserId())
                 && isUserOnline(roomId, match.getUserId2().getUserId())) {
 
-            System.out.println("🚀 AUTO TRIGGER GAME at score level " + targetScore);
-
             Map<String, Object> payload = new HashMap<>();
             payload.put("type", "GAME_START");
             payload.put("level", targetScore);
 
             messagingTemplate.convertAndSend("/topic/games/" + roomId, payload);
         } else {
-            System.out.println("⛔ One or both users are offline");
+            // One or both users are offline
         }
     }
 
@@ -569,7 +556,7 @@ public class GameService {
                             MessageType.FAIL
                     );
                 } catch (Exception e) {
-                    System.err.println("Error saving timeout message: " + e.getMessage());
+                    // Error saving timeout message
                 }
 
                 LocalDateTime unlockTime = currentSession.getCreatedAt().plusHours(24);

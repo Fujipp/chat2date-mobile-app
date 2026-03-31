@@ -14,13 +14,21 @@ import sit.chat2date.cp25ssi2.services.ContactMessageService;
 import java.util.List;
 import java.util.Map;
 
+/**
+ * REST controller for contact messages.
+ * Users can send contact messages; admins can list and reply.
+ */
 @RestController
 @RequiredArgsConstructor
 public class ContactMessageController {
 
     private final ContactMessageService contactMessageService;
 
+    // ────────────────────────────────────────────────────────────────────────
     // User
+    // ────────────────────────────────────────────────────────────────────────
+
+    /** POST /contact — Send a contact message to the support team. Returns 201 Created. */
     @PostMapping("/contact")
     public ResponseEntity<?> sendContactMessage(
             @RequestAttribute("userId") String userId,
@@ -33,14 +41,19 @@ public class ContactMessageController {
         ));
     }
 
+    // ────────────────────────────────────────────────────────────────────────
     // Admin
+    // ────────────────────────────────────────────────────────────────────────
+
+    /** GET /admin/contact — List all contact messages (admin-only). */
     @GetMapping("/admin/contact")
     public ResponseEntity<List<ContactMessageResponse>> getAllContactMessages() {
         return ResponseEntity.ok(contactMessageService.getAllContactMessages());
     }
 
+    /** POST /admin/contact/{contactId}/reply — Reply to a contact message (admin-only). */
     @PostMapping("/admin/contact/{contactId}/reply")
-    public ResponseEntity<?> replyContactMessage(
+    public ResponseEntity<?> replyToContactMessage(
             @PathVariable Integer contactId,
             @Valid @RequestBody ContactReplyRequest req) {
 

@@ -1,13 +1,11 @@
 package sit.chat2date.cp25ssi2.controllers;
 
 import lombok.RequiredArgsConstructor;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.web.bind.annotation.*;
 import sit.chat2date.cp25ssi2.entities.RelationshipStats;
-import sit.chat2date.cp25ssi2.repositories.RelationshipStatsRepository;
 import sit.chat2date.cp25ssi2.services.RelationshipStatsService;
 
 import java.util.Map;
@@ -17,9 +15,8 @@ import java.util.Optional;
 @RequestMapping("/relationship")
 @RequiredArgsConstructor
 public class RelationshipStatsController {
-    @Autowired
-    private RelationshipStatsService relationshipStatsService;
 
+    private final RelationshipStatsService relationshipStatsService;
     private final SimpMessagingTemplate simpMessagingTemplate;
 
     @GetMapping("/{roomId}")

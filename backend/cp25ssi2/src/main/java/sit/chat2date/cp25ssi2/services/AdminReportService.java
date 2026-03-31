@@ -23,7 +23,10 @@ import sit.chat2date.cp25ssi2.repositories.UserRepository;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.Period;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 @Service
 @RequiredArgsConstructor
@@ -77,7 +80,7 @@ public class AdminReportService {
                 }
             } catch (Exception e) {
                 // Log error but continue
-                System.err.println("Failed to parse evidence URL: " + e.getMessage());
+                // Failed to parse evidence URL
             }
         }
 

@@ -9,6 +9,10 @@ import sit.chat2date.cp25ssi2.services.PostTripReviewService;
 
 import java.util.Map;
 
+/**
+ * REST controller for post-trip date reviews.
+ * Users can check review status and submit reviews after a date appointment.
+ */
 @RestController
 @RequestMapping("/dates/reviews")
 @RequiredArgsConstructor
@@ -16,6 +20,7 @@ public class DateReviewController {
 
     private final PostTripReviewService reviewService;
 
+    /** GET /dates/reviews/{appointmentId} — Check if the user has already reviewed this appointment. */
     @GetMapping("/{appointmentId}")
     public ResponseEntity<?> checkReview(
             @RequestAttribute("userId") String userId,
@@ -28,6 +33,7 @@ public class DateReviewController {
         ));
     }
 
+    /** POST /dates/reviews/{appointmentId} — Submit a post-trip review. Returns 201 Created. */
     @PostMapping("/{appointmentId}")
     public ResponseEntity<?> submitReview(
             @RequestAttribute("userId") String userId,

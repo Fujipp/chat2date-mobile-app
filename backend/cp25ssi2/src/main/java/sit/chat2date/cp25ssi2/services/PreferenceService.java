@@ -1,27 +1,27 @@
 package sit.chat2date.cp25ssi2.services;
 
-import org.springframework.beans.factory.annotation.Autowired;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import sit.chat2date.cp25ssi2.dto.PreferenceDTO;
 import sit.chat2date.cp25ssi2.entities.Interest;
 import sit.chat2date.cp25ssi2.entities.LifeStyle;
 import sit.chat2date.cp25ssi2.entities.Tag;
 import sit.chat2date.cp25ssi2.entities.TravelStyle;
-import sit.chat2date.cp25ssi2.repositories.*;
+import sit.chat2date.cp25ssi2.repositories.InterestRepository;
+import sit.chat2date.cp25ssi2.repositories.LifeStyleRepository;
+import sit.chat2date.cp25ssi2.repositories.TagRepository;
+import sit.chat2date.cp25ssi2.repositories.TravelStyleRepository;
 
 import java.util.Comparator;
 
 @Service
+@RequiredArgsConstructor
 public class PreferenceService {
 
-    @Autowired
-    private TravelStyleRepository travelStyleRepository;
-    @Autowired
-    private LifeStyleRepository lifeStyleRepository;
-    @Autowired
-    private TagRepository tagRepository;
-    @Autowired
-    private InterestRepository interestRepository;
+    private final TravelStyleRepository travelStyleRepository;
+    private final LifeStyleRepository lifeStyleRepository;
+    private final TagRepository tagRepository;
+    private final InterestRepository interestRepository;
 
     public PreferenceDTO allPreferece() {
         return PreferenceDTO.builder().

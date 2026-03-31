@@ -1,125 +1,129 @@
 package sit.chat2date.cp25ssi2.controllers;
 
 import jakarta.validation.Valid;
-import org.springframework.beans.factory.annotation.Autowired;
+import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
-import org.springframework.web.server.ResponseStatusException;
 import sit.chat2date.cp25ssi2.dto.PreferenceMatchUserDTO;
 import sit.chat2date.cp25ssi2.dto.PreferenceUserDTO;
 import sit.chat2date.cp25ssi2.dto.PreferenceUserProfileDTO;
 import sit.chat2date.cp25ssi2.entities.User;
-import sit.chat2date.cp25ssi2.exceptions.NotFoundException;
-import sit.chat2date.cp25ssi2.repositories.UserRepository;
 import sit.chat2date.cp25ssi2.services.IdentityService;
-import sit.chat2date.cp25ssi2.services.SosIncidentService;
 import sit.chat2date.cp25ssi2.services.UserService;
 
 import java.io.IOException;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 
+/**
+ * REST controller for user management.
+ * Handles CRUD operations, account lifecycle (delete/restore),
+ * preferences, and photo management.
+ */
 @RestController
 @RequestMapping("/users")
+@RequiredArgsConstructor
 public class UserController {
 
-    @Autowired
-    private UserRepository userRepository;
-    @Autowired
-    private UserService userService;
-    @Autowired
-    private IdentityService identityService;
+    private final UserService userService;
+    private final IdentityService identityService;
 
+    // ────────────────────────────────────────────────────────────────────────
+    // User CRUD
+    // ────────────────────────────────────────────────────────────────────────
 
+    /** GET /users — List all users (admin-only). */
     @GetMapping("")
     public List<User> getAllUsers() {
-        return userRepository.findAll();
+        return userService.getAllUsers();
     }
 
+    /** GET /users/{id} — Get a single user by ID. */
     @GetMapping("/{id}")
     public User getUserById(@PathVariable String id) {
-        return userRepository.findByUserId(id).orElseThrow(() -> new NotFoundException("User not found"));
+        return userService.getUserById(id);
     }
 
-    @PutMapping("/{id}")
-    public ResponseEntity<User> updateUserById(@PathVariable String id, @Valid @RequestBody User user) {
-        return userService.updateUserById(id, user);
-    }
-
+    /** POST /users — Create a new user. */
     @PostMapping("")
     public ResponseEntity<User> createUser(@RequestBody User user) {
         User created = userService.createUser(user);
-        return ResponseEntity.status(201).body(created);
+        return ResponseEntity.status(HttpStatus.CREATED).body(created);
     }
 
+    /** PUT /users/{id} — Update an existing user (requires version for optimistic locking). */
+    @PutMapping("/{id}")
+    public ResponseEntity<User> updateUser(
+            @PathVariable String id,
+            @Valid @RequestBody User user) {
+        return userService.updateUserById(id, user);
+    }
+
+    /** DELETE /users/{id} — Delete a user (admin = hard delete, user = soft delete). */
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deleteUser(@PathVariable String id) {
         return userService.deleteUser(id);
     }
 
-    /**
-     * กู้คืนบัญชีที่ถูกลบปลอม (ภายใน 30 วัน)
-     */
+    // ────────────────────────────────────────────────────────────────────────
+    // Account Lifecycle (Soft Delete / Restore)
+    // ────────────────────────────────────────────────────────────────────────
+
+    /** POST /users/{id}/restore — Restore a soft-deleted account (within 30 days). */
     @PostMapping("/{id}/restore")
     public ResponseEntity<User> restoreUser(@PathVariable String id) {
         return userService.restoreUser(id);
     }
-    /**
-     * เช็คสถานะบัญชี (ว่าถูกลบปลอมหรือไม่)
-     */
+
+    /** GET /users/{id}/deletion-status — Check whether an account is soft-deleted and how long until permanent deletion. */
     @GetMapping("/{id}/deletion-status")
-    public ResponseEntity<?> checkDeletionStatus(@PathVariable String id) {
-        User user = userRepository.findByUserId(id).orElseThrow(() -> new NotFoundException("User not found"));
-
-        if (user.getDeleteFlag()) {
-            long daysRemaining = 30 - java.time.Duration
-                    .between(user.getDeletedAt(), java.time.LocalDateTime.now())
-                    .toDays();
-
-            return ResponseEntity.ok(Map.of(
-                    "isDeleted", true,
-                    "deletedAt", user.getDeletedAt(),
-                    "daysRemaining", daysRemaining > 0 ? daysRemaining : 0,
-                    "canRestore", daysRemaining > 0
-            ));
-        }
-
-        return ResponseEntity.ok(Map.of("isDeleted", false));
+    public ResponseEntity<Map<String, Object>> getDeletionStatus(@PathVariable String id) {
+        return ResponseEntity.ok(userService.getDeletionStatus(id));
     }
 
+    // ────────────────────────────────────────────────────────────────────────
+    // Preferences
+    // ────────────────────────────────────────────────────────────────────────
+
+    /** POST /users/preference — Save user preferences (interests, tags, lifestyles, travel styles). */
     @PostMapping("/preference")
-    public ResponseEntity<PreferenceUserDTO> createUserPreference(@RequestHeader("Authorization") String accessToken, @RequestBody PreferenceUserDTO preferenceUser) {
+    public ResponseEntity<PreferenceUserDTO> savePreference(
+            @RequestHeader("Authorization") String accessToken,
+            @RequestBody PreferenceUserDTO preferenceUser) {
         return userService.createUserPreference(accessToken, preferenceUser);
     }
 
-    @PostMapping("/phone")
-    public boolean checkPhone(@RequestBody Map<String, String> requestBody) {
-        String phoneNumber = requestBody.get("phoneNumber");
-        User user = userRepository.findByPhoneNumber(phoneNumber).orElseThrow(() -> new NotFoundException("User not found"));
-        return user != null;
-    }
-
+    /** POST /users/preferenceMatch — Save match preferences (gender, age range, distance). */
     @PostMapping("/preferenceMatch")
-    public ResponseEntity<PreferenceMatchUserDTO> createUserPreferenceMatch(@RequestHeader("Authorization") String accessToken, @RequestBody PreferenceMatchUserDTO preferenceUser) {
+    public ResponseEntity<PreferenceMatchUserDTO> saveMatchPreference(
+            @RequestHeader("Authorization") String accessToken,
+            @RequestBody PreferenceMatchUserDTO preferenceUser) {
         return userService.createUserPreferenceMatch(accessToken, preferenceUser);
     }
 
+    // ────────────────────────────────────────────────────────────────────────
+    // Profile & Phone
+    // ────────────────────────────────────────────────────────────────────────
+
+    /** GET /users/{id}/profile — Get full user profile with preferences and photos. */
     @GetMapping("/{id}/profile")
     public PreferenceUserProfileDTO getUserProfile(@PathVariable String id) {
         return userService.getUserProfile(id);
     }
 
+    /** POST /users/phone — Check if a phone number is already registered. */
+    @PostMapping("/phone")
+    public boolean checkPhoneRegistered(@RequestBody Map<String, String> requestBody) {
+        return userService.isPhoneRegistered(requestBody.get("phoneNumber"));
+    }
+
+    /** DELETE /users/{id}/photo — Delete user photos by URLs. */
     @DeleteMapping("/{id}/photo")
-    public ResponseEntity<Void> deletePhoto(
+    public ResponseEntity<Void> deletePhotos(
             @PathVariable String id,
-            @RequestParam List<String> imageUrl
-    ) throws IOException {
+            @RequestParam List<String> imageUrl) throws IOException {
         identityService.deleteUserPhoto(id, imageUrl);
         return ResponseEntity.noContent().build();
     }
-
-
 }

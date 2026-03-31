@@ -54,10 +54,9 @@ public class JwtTokenUtil implements Serializable {
         this.key = Keys.hmacShaKeyFor(secret_key.getBytes(StandardCharsets.UTF_8));
         this.refreshKey = Keys.hmacShaKeyFor(refresh_secret_key.getBytes(StandardCharsets.UTF_8));
 
-        this.jwt_token_time_millis = jwt_token_time * 60L * 60L * 1000L; // 1 hr = 3600000
+        this.jwt_token_time_millis = jwt_token_time * 60L * 60L * 1000L;
         this.jwt_refresh_token_time_millis = jwt_refresh_token_time * 60L * 60L * 1000L;
     }
-
 
     public String getSubjectFromToken(String token) {
         return getClaimFromToken(token, Claims::getSubject);
@@ -181,7 +180,6 @@ public class JwtTokenUtil implements Serializable {
                 .getBody();
         return claimsResolver.apply(claims);
     }
-
 
     public String getSubjectFromRefreshToken(String token) {
         return getClaimFromRefreshToken(token, Claims::getSubject);

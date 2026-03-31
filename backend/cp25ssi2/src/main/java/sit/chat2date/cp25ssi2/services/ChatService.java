@@ -241,7 +241,7 @@ public class ChatService {
                     partnerId, senderNickname, request.getMessage(), roomId, userId,
                     senderAvatarUrl);
         } catch (Exception e) {
-            System.out.println("[Chat] Failed to send notification: " + e.getMessage());
+            // Failed to send notification
         }
 
         return response;
@@ -269,7 +269,7 @@ public class ChatService {
             throw e;
         } catch (Exception e) {
             // Redis error - allow request to proceed (fail open)
-            System.err.println("Rate limit check failed: " + e.getMessage());
+            // Rate limit check failed - allow request to proceed
         }
     }
 

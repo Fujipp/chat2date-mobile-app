@@ -1,89 +1,98 @@
 package sit.chat2date.cp25ssi2.controllers;
 
-import java.util.HashMap;
-import java.util.Map;
-
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-
 import org.springframework.web.server.ResponseStatusException;
 import sit.chat2date.cp25ssi2.clients.ThSMSClient;
-import sit.chat2date.cp25ssi2.dto.*;
+import sit.chat2date.cp25ssi2.dto.AuthenticationResponse;
+import sit.chat2date.cp25ssi2.dto.GoogleLoginRequest;
+import sit.chat2date.cp25ssi2.dto.LogoutRequest;
+import sit.chat2date.cp25ssi2.dto.OtpSendRequest;
+import sit.chat2date.cp25ssi2.dto.OtpValidateRequest;
+import sit.chat2date.cp25ssi2.dto.RefreshTokenRequest;
+import sit.chat2date.cp25ssi2.dto.RefreshTokenResponse;
 import sit.chat2date.cp25ssi2.services.AuthService;
 import sit.chat2date.cp25ssi2.services.JwtTokenUtil;
 import sit.chat2date.cp25ssi2.services.TokenBlacklistService;
 
+import java.util.Map;
+
+/**
+ * REST controller for authentication.
+ * Handles Google login, OTP, token management, admin login, and logout.
+ */
 @RestController
 @RequestMapping("/auth")
 @RequiredArgsConstructor
 public class AuthController {
 
-    @Autowired
     private final AuthService authService;
-    private final ThSMSClient client;
-    @Autowired
-    private JwtTokenUtil jwtTokenUtil;
-    @Autowired
-    private TokenBlacklistService tokenBlacklistService;
+    private final ThSMSClient thSMSClient;
+    private final JwtTokenUtil jwtTokenUtil;
+    private final TokenBlacklistService tokenBlacklistService;
 
     @Value("${admin.password}")
     private String adminPassword;
 
+    // ────────────────────────────────────────────────────────────────────────
+    // Google Authentication
+    // ────────────────────────────────────────────────────────────────────────
+
+    /** POST /auth/google — Authenticate with a Google ID token. */
     @PostMapping("/google")
-    public ResponseEntity<AuthenticationResponse> authenticateWithGoogle(
-            @RequestBody GoogleLoginRequest request
-    ) {
-        AuthenticationResponse response = authService.verifyGoogleToken(request.getIdToken());
-        return ResponseEntity.ok(response);
+    public ResponseEntity<AuthenticationResponse> loginWithGoogle(@RequestBody GoogleLoginRequest request) {
+        return ResponseEntity.ok(authService.verifyGoogleToken(request.getIdToken()));
     }
 
+    // ────────────────────────────────────────────────────────────────────────
+    // OTP (Phone Authentication)
+    // ────────────────────────────────────────────────────────────────────────
+
+    /** POST /auth/request-otp — Send an OTP code to the given phone number. */
     @PostMapping("/request-otp")
-    public Map<String, Object> send(@RequestBody OtpSendRequest body) {
-        String result = client.send(body.getPhoneNumber(), body.getRefCode(), body.getDeviceId());
-
-        // ส่งกลับไปให้ Frontend เพื่อบอกว่า "ส่งรหัสไปที่เบอร์นี้แล้วนะ"
-        return Map.of(
-                "phoneNumber", body.getPhoneNumber()
-        );
+    public Map<String, Object> requestOtp(@RequestBody OtpSendRequest body) {
+        thSMSClient.send(body.getPhoneNumber(), body.getRefCode(), body.getDeviceId());
+        return Map.of("phoneNumber", body.getPhoneNumber());
     }
 
+    /** POST /auth/verify-otp — Validate an OTP code and return JWT tokens. */
     @PostMapping("/verify-otp")
-    public Map<String, Object> validate(@RequestBody OtpValidateRequest body) {
-        // client.validate จะทำการ: ดึงจาก Redis มาเทียบ -> ถ้าผ่านก็สร้าง JWT/User
-        return client.validate(// ส่งไปเฉยๆ ตามโครงสร้างเดิม (หรือส่ง null ก็ได้)
-                body.getOtpCode(),
-                body.getPhoneNumber(),
-                body.isOnLogin()
-        );
+    public Map<String, Object> verifyOtp(@RequestBody OtpValidateRequest body) {
+        return thSMSClient.validate(body.getOtpCode(), body.getPhoneNumber(), body.isOnLogin());
     }
 
+    // ────────────────────────────────────────────────────────────────────────
+    // Token Management
+    // ────────────────────────────────────────────────────────────────────────
+
+    /** POST /auth/request-token — Generate an access token for a given identifier. */
     @PostMapping("/request-token")
-    public Map<String, Object> requestToken(@RequestBody Map<String, String> requestBody) {
-        String identifier = requestBody.get("identifier");
-        String jwtToken = jwtTokenUtil.generateToken(identifier);
-
-        Map<String, Object> response = new HashMap<>();
-        response.put("token", jwtToken);
-        return response;
+    public Map<String, Object> requestAccessToken(@RequestBody Map<String, String> requestBody) {
+        String token = jwtTokenUtil.generateToken(requestBody.get("identifier"));
+        return Map.of("token", token);
     }
 
+    /** POST /auth/refresh-token — Exchange a valid refresh token for a new access token. */
     @PostMapping("/refresh-token")
-    public ResponseEntity<RefreshTokenResponse> refreshToken(@RequestBody RefreshTokenRequest request) {
-        String refreshToken = request.getRefreshToken();
-        jwtTokenUtil.validateRefreshToken(refreshToken);
+    public ResponseEntity<RefreshTokenResponse> refreshAccessToken(@RequestBody RefreshTokenRequest request) {
+        jwtTokenUtil.validateRefreshToken(request.getRefreshToken());
 
-        String subject = jwtTokenUtil.getSubjectFromRefreshToken(refreshToken);
+        String subject = jwtTokenUtil.getSubjectFromRefreshToken(request.getRefreshToken());
         String newAccessToken = jwtTokenUtil.generateToken(subject);
 
         return ResponseEntity.ok(new RefreshTokenResponse(newAccessToken));
     }
 
+    // ────────────────────────────────────────────────────────────────────────
+    // Admin Login
+    // ────────────────────────────────────────────────────────────────────────
+
+    /** POST /auth/admin-login — Authenticate admin with identifier + password, return access + refresh tokens. */
     @PostMapping("/admin-login")
-    public Map<String, Object> adminLogin(@RequestBody Map<String, String> requestBody) {
+    public Map<String, Object> loginAsAdmin(@RequestBody Map<String, String> requestBody) {
         String identifier = requestBody.get("identifier");
         String password = requestBody.get("password");
 
@@ -91,51 +100,47 @@ public class AuthController {
             throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Incorrect password");
         }
 
-        String jwtToken = jwtTokenUtil.generateToken(identifier);
-        String jwtRefreshToken = jwtTokenUtil.generateRefreshToken(identifier);
-
-        Map<String, Object> response = new HashMap<>();
-        response.put("token", jwtToken);
-        response.put("refreshToken", jwtRefreshToken);
-        return response;
+        return Map.of(
+                "token", jwtTokenUtil.generateToken(identifier),
+                "refreshToken", jwtTokenUtil.generateRefreshToken(identifier)
+        );
     }
 
+    // ────────────────────────────────────────────────────────────────────────
+    // Logout
+    // ────────────────────────────────────────────────────────────────────────
+
+    /** POST /auth/logout — Blacklist access and refresh tokens to log out from all devices. */
     @PostMapping("/logout")
-    public ResponseEntity<Map<String, String>> logoutAll(
+    public ResponseEntity<Map<String, String>> logout(
             @RequestHeader("Authorization") String authHeader,
-            @RequestBody LogoutRequest request
-    ) {
+            @RequestBody LogoutRequest request) {
         try {
-            String accessToken = null;
-            if (authHeader != null && authHeader.startsWith("Bearer ")) {
-                accessToken = authHeader.substring(7);
-            }
+            String accessToken = extractBearerToken(authHeader);
 
             if (accessToken != null) {
                 tokenBlacklistService.blacklistToken(accessToken);
             }
-
             if (request.getRefreshToken() != null) {
-                System.out.println(request.getRefreshToken());
-
                 tokenBlacklistService.blacklistRefreshToken(request.getRefreshToken());
-
             }
 
-            return ResponseEntity.ok(Map.of(
-                    "message", "Logged out from all devices successfully",
-                    "status", "success"
-            ));
+            return ResponseEntity.ok(Map.of("message", "Logged out successfully", "status", "success"));
 
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body(Map.of(
-                            "message", "Logout all failed: " + e.getMessage(),
-                            "status", "error"
-                    ));
+                    .body(Map.of("message", "Logout failed: " + e.getMessage(), "status", "error"));
         }
     }
 
+    // ────────────────────────────────────────────────────────────────────────
+    // Helpers
+    // ────────────────────────────────────────────────────────────────────────
 
+    private String extractBearerToken(String authHeader) {
+        if (authHeader != null && authHeader.startsWith("Bearer ")) {
+            return authHeader.substring(7);
+        }
+        return null;
+    }
 }
-

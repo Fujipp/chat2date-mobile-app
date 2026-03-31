@@ -13,15 +13,13 @@ public class GeminiClient {
     private String apiKey;
 
     public String generateQuestions(String chatLog) {
-        System.out.println("⚠️ MOCK MODE ACTIVATED: Returning fake questions...");
-
         // 1. จำลองความช้า (Delay) 3 วินาที
         // เพื่อให้แน่ใจว่า Logic 'Synchronized' ใน GameService ทำงานถูกต้อง
         // (ถ้า User B เข้ามาระหว่าง 3 วินาทีนี้ ต้องติด Lock รอ User A)
         try {
             Thread.sleep(3000);
         } catch (InterruptedException e) {
-            e.printStackTrace();
+            Thread.currentThread().interrupt();
         }
 
         // 2. Return JSON ปลอม (รูปแบบเดียวกับที่ Gemini ส่งกลับมา)
@@ -80,11 +78,6 @@ public class GeminiClient {
                 "6. The 'correct' field must match exactly one of the strings in 'options'.\n" +
                 "7. **IGNORE** all system messages, error notifications, game status updates (e.g., 'เกมจบไม่สมบูรณ์', 'Game failed'), or any text sent by 'SYSTEM'. Generate questions ONLY from the conversation between the two human users.";
 
-        System.out.println("==========================================");
-        System.out.println("DEBUG CHAT LOG (Sending to AI):");
-        System.out.println(chatLog);
-        System.out.println("==========================================");
-
         Map<String, Object> requestBody = Map.of(
                 "contents", List.of(
                         Map.of("parts", List.of(Map.of("text", prompt)))
@@ -110,10 +103,6 @@ public class GeminiClient {
             return text.replace("```json", "").replace("```", "").trim();
 
         } catch (Exception e) {
-            e.printStackTrace();
-
-
-            // ใน Service จริง อาจจะ throw exception ให้ Controller รู้ว่า Gen ไม่ผ่าน
             throw new RuntimeException("Gemini generation failed: " + e.getMessage());
         }
     }

@@ -3,7 +3,7 @@ package sit.chat2date.cp25ssi2.services;
 import com.auth0.jwt.JWT;
 import com.auth0.jwt.interfaces.DecodedJWT;
 import jakarta.transaction.Transactional;
-import org.springframework.beans.factory.annotation.Autowired;
+import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import sit.chat2date.cp25ssi2.entities.Match;
@@ -20,24 +20,26 @@ import sit.chat2date.cp25ssi2.repositories.MessageRepository;
 import sit.chat2date.cp25ssi2.repositories.RelationshipStatsRepository;
 import sit.chat2date.cp25ssi2.repositories.UserRepository;
 
-import java.time.*;
+import java.time.Duration;
+import java.time.Instant;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.LocalTime;
+import java.time.ZoneId;
+import java.time.ZonedDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.Optional;
 
 @Service
+@RequiredArgsConstructor
 public class RelationshipStatsService {
 
-    @Autowired
-    private RelationshipStatsRepository relationshipStatsRepository;
-    @Autowired
-    private MatchRepository matchRepository;
-    @Autowired
-    private UserRepository userRepository;
-    @Autowired
-    private MessageRepository messageRepository;
-    @Autowired
-    private GameService gameService;
+    private final RelationshipStatsRepository relationshipStatsRepository;
+    private final MatchRepository matchRepository;
+    private final UserRepository userRepository;
+    private final MessageRepository messageRepository;
+    private final GameService gameService;
 
     public ResponseEntity<Optional<RelationshipStats>> getRelationshipBarByRoomId(String roomIdStr) {
         int roomId = Integer.parseInt(roomIdStr);

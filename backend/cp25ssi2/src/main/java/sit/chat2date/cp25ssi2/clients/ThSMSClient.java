@@ -6,7 +6,6 @@ import java.util.*;
 import java.util.concurrent.TimeUnit;
 
 import lombok.RequiredArgsConstructor;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.http.*;
@@ -31,13 +30,11 @@ public class ThSMSClient {
     private final JwtTokenUtil jwtTokenUtil;
     private final UserRepository userRepository;
     private final UserFactory userFactory;
-    @Autowired
-    private StringRedisTemplate redis;
+    private final StringRedisTemplate redis;
+    private final RestTemplate restTemplate;
 
     @Value("${thsms.apiToken}")
     String apiToken;
-    @Autowired
-    private RestTemplate restTemplate;
 
     private HttpHeaders headersJson() {
         HttpHeaders h = new HttpHeaders();

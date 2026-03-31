@@ -34,12 +34,10 @@ public class TokenBlacklistService {
         }
     }
 
-
     public void blacklistRefreshToken(String refreshToken) {
         try {
             Date expirationDate = jwtTokenUtil.getClaimFromRefreshToken(refreshToken, claims -> claims.getExpiration());
             long ttl = expirationDate.getTime() - System.currentTimeMillis();
-            System.out.println("Blacklist refresh token: " + refreshToken + " TTL: " + ttl);
 
             if (ttl > 0) {
                 String key = BLACKLIST_PREFIX + "refresh:" + refreshToken;

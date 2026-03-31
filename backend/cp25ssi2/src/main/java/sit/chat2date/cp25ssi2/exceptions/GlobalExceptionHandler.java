@@ -3,25 +3,28 @@ package sit.chat2date.cp25ssi2.exceptions;
 import com.fasterxml.jackson.databind.exc.InvalidFormatException;
 import io.jsonwebtoken.ExpiredJwtException;
 import jakarta.servlet.http.HttpServletRequest;
-import org.apache.tomcat.websocket.AuthenticationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
-import org.springframework.web.bind.annotation.ResponseStatus;
-import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.context.request.WebRequest;
 import org.springframework.web.server.ResponseStatusException;
 import sit.chat2date.cp25ssi2.services.AuthService;
 
 import java.security.SignatureException;
-import java.util.HashMap;
-import java.util.Map;
 
+/**
+ * Global exception handler for the entire application.
+ * All handlers return a consistent {@link ErrorResponse} JSON body.
+ */
 @ControllerAdvice
 public class GlobalExceptionHandler {
+
+    // ────────────────────────────────────────────────────────────────────────
+    // Helper
+    // ────────────────────────────────────────────────────────────────────────
 
     private ResponseEntity<ErrorResponse> build(HttpStatus status, String message, String instance) {
         ErrorResponse body = new ErrorResponse(status.value(), message, instance);
@@ -29,177 +32,169 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(status).body(body);
     }
 
+    // ────────────────────────────────────────────────────────────────────────
+    // 400 Bad Request
+    // ────────────────────────────────────────────────────────────────────────
+
     @ExceptionHandler(BadRequestException.class)
     public ResponseEntity<ErrorResponse> handleBadRequest(BadRequestException ex, HttpServletRequest req) {
         return build(HttpStatus.BAD_REQUEST, ex.getMessage(), req.getRequestURI());
     }
 
-    @ExceptionHandler(NotFoundException.class)
-    public ResponseEntity<ErrorResponse> handleNotFound(NotFoundException ex, HttpServletRequest req) {
-        return build(HttpStatus.NOT_FOUND, ex.getMessage(), req.getRequestURI());
-    }
-
-    @ExceptionHandler(TooManyRequestException.class)
-    public ResponseEntity<ErrorResponse> handleTooManyRequest(TooManyRequestException ex, HttpServletRequest req) {
-        return build(HttpStatus.TOO_MANY_REQUESTS, ex.getMessage(), req.getRequestURI());
-    }
-
-    @ExceptionHandler(PreconditionFailedException.class)
-    @ResponseStatus(HttpStatus.PRECONDITION_FAILED)
-    public ResponseEntity<ErrorResponse> handlePreconditionFailed(Exception e, WebRequest request) {
-        ErrorResponse error = new ErrorResponse(HttpStatus.PRECONDITION_FAILED.value(), "Version data mismatch",
-                request.getDescription(false));
-        return ResponseEntity.status(HttpStatus.PRECONDITION_FAILED).body(error);
-    }
-
-    // validation จาก @Valid/@Min เป็นต้น
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<ErrorResponse> handleValidation(MethodArgumentNotValidException ex, HttpServletRequest req) {
-        ErrorResponse body = new ErrorResponse(HttpStatus.BAD_REQUEST.value(), "Validation failed",
-                req.getRequestURI());
+        ErrorResponse body = new ErrorResponse(HttpStatus.BAD_REQUEST.value(), "Validation failed", req.getRequestURI());
         body.setTitle(HttpStatus.BAD_REQUEST.getReasonPhrase());
         ex.getBindingResult().getFieldErrors()
                 .forEach(err -> body.addValidationError(err.getField(), err.getDefaultMessage()));
         return ResponseEntity.badRequest().body(body);
     }
 
-    @ExceptionHandler(ServiceException.class)
-    public ResponseEntity<ErrorResponse> handleService(ServiceException ex, HttpServletRequest req) {
-        return build(HttpStatus.INTERNAL_SERVER_ERROR, ex.getMessage(), req.getRequestURI());
+    @ExceptionHandler(HttpMessageNotReadableException.class)
+    public ResponseEntity<ErrorResponse> handleMalformedJson(HttpMessageNotReadableException ex, HttpServletRequest req) {
+        String message = "Malformed JSON request or invalid value";
+        if (ex.getCause() instanceof InvalidFormatException cause && cause.getTargetType().isEnum()) {
+            message = "Invalid enum value '" + cause.getValue() + "' for field '" + cause.getPath().get(0).getFieldName() + "'";
+        }
+        return build(HttpStatus.BAD_REQUEST, message, req.getRequestURI());
     }
 
-    @ExceptionHandler(Exception.class)
-    public ResponseEntity<ErrorResponse> handleOthers(Exception ex, HttpServletRequest req) {
-        return build(HttpStatus.INTERNAL_SERVER_ERROR, "Unexpected error", req.getRequestURI());
-    }
+    // ────────────────────────────────────────────────────────────────────────
+    // 401 Unauthorized
+    // ────────────────────────────────────────────────────────────────────────
 
     @ExceptionHandler(UnauthorizedAccessException.class)
-    public ResponseEntity<Object> handleUserAuthenException(UnauthorizedAccessException ex, WebRequest request) {
-        ErrorResponse errorResponse = new ErrorResponse(HttpStatus.UNAUTHORIZED.value(),
-                "UnAuthen", request.getDescription(false));
-        return new ResponseEntity<>(errorResponse, HttpStatus.UNAUTHORIZED);
-    }
-
-    @ExceptionHandler(HttpMessageNotReadableException.class)
-    public ResponseEntity<ErrorResponse> handleEnumParsingError(HttpMessageNotReadableException ex,
-            HttpServletRequest request) {
-        String message = "Malformed JSON request or invalid value";
-
-        if (ex.getCause() instanceof InvalidFormatException cause &&
-                cause.getTargetType().isEnum()) {
-            message = "Invalid enum value '" + cause.getValue() + "' for field '"
-                    + cause.getPath().get(0).getFieldName() + "'";
-        }
-
-        ErrorResponse errorResponse = new ErrorResponse(
-                HttpStatus.BAD_REQUEST.value(),
-                message,
-                request.getRequestURI());
-        errorResponse.setTitle(HttpStatus.BAD_REQUEST.getReasonPhrase());
-
-        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errorResponse);
-    }
-
-    @ExceptionHandler(ForbiddenAccessException.class)
-    @ResponseStatus(HttpStatus.FORBIDDEN)
-    public ResponseEntity<ErrorResponse> handleForbiddenAccessException(ForbiddenAccessException ex,
-            WebRequest request) {
-        ErrorResponse errorResponse = new ErrorResponse(
-                HttpStatus.FORBIDDEN.value(),
-                ex.getMessage(),
-                request.getDescription(false));
-        return new ResponseEntity<>(errorResponse, HttpStatus.FORBIDDEN);
+    public ResponseEntity<ErrorResponse> handleUnauthorized(UnauthorizedAccessException ex, HttpServletRequest req) {
+        return build(HttpStatus.UNAUTHORIZED, ex.getMessage(), req.getRequestURI());
     }
 
     @ExceptionHandler(RefreshTokenExpiredException.class)
-    public ResponseEntity<Map<String, Object>> handleRefreshExpired(RefreshTokenExpiredException ex,
-            WebRequest request) {
-        Map<String, Object> body = Map.of(
-                "status", HttpStatus.UNAUTHORIZED.value(),
-                "error", "Unauthorized",
-                "message", ex.getMessage(),
-                "path", request.getDescription(false).substring(4));
-        return new ResponseEntity<>(body, HttpStatus.UNAUTHORIZED);
+    public ResponseEntity<ErrorResponse> handleRefreshExpired(RefreshTokenExpiredException ex, HttpServletRequest req) {
+        return build(HttpStatus.UNAUTHORIZED, ex.getMessage(), req.getRequestURI());
     }
 
     @ExceptionHandler(ExpiredJwtException.class)
-    public ResponseEntity<Map<String, Object>> handleExpiredJwtException(ExpiredJwtException ex, WebRequest request) {
-        Map<String, Object> body = Map.of(
-                "status", HttpStatus.UNAUTHORIZED.value(),
-                "error", "Unauthorized",
-                "message", "Access token has expired",
-                "path", request.getDescription(false).substring(4));
-        return new ResponseEntity<>(body, HttpStatus.UNAUTHORIZED);
+    public ResponseEntity<ErrorResponse> handleExpiredJwt(ExpiredJwtException ex, HttpServletRequest req) {
+        return build(HttpStatus.UNAUTHORIZED, "Access token has expired", req.getRequestURI());
     }
 
     @ExceptionHandler(SignatureException.class)
-    public ResponseEntity<Map<String, Object>> handleSignatureException(SignatureException ex, WebRequest request) {
-        Map<String, Object> body = Map.of(
-                "status", HttpStatus.UNAUTHORIZED.value(),
-                "error", "Unauthorized",
-                "message", "Invalid token signature",
-                "path", request.getDescription(false).substring(4));
-        return new ResponseEntity<>(body, HttpStatus.UNAUTHORIZED);
-    }
-
-    @ExceptionHandler(ResponseStatusException.class)
-    public ResponseEntity<Map<String, Object>> handleResponseStatusException(ResponseStatusException ex) {
-        Map<String, Object> body = new HashMap<>();
-        body.put("status", ex.getStatusCode().value());
-        body.put("message", ex.getReason());
-        body.put("instance", "api/v1/auth/google");
-        return new ResponseEntity<>(body, ex.getStatusCode());
-    }
-
-    @ExceptionHandler(UnprocessableEntityException.class)
-    @ResponseStatus(HttpStatus.UNPROCESSABLE_ENTITY)
-    public ResponseEntity<ErrorResponse> handleUnprocessableEntityException(UnprocessableEntityException ex,
-            WebRequest request) {
-        ErrorResponse error = new ErrorResponse(HttpStatus.UNPROCESSABLE_ENTITY.value(),
-                "Smsmkt: data validation failed", request.getDescription(false));
-        return ResponseEntity.status(HttpStatus.UNPROCESSABLE_ENTITY).body(error);
+    public ResponseEntity<ErrorResponse> handleSignatureException(SignatureException ex, HttpServletRequest req) {
+        return build(HttpStatus.UNAUTHORIZED, "Invalid token signature", req.getRequestURI());
     }
 
     @ExceptionHandler(IllegalArgumentException.class)
-    public ResponseEntity<Map<String, Object>> handleIllegalArgumentException(
-            IllegalArgumentException ex,
-            WebRequest request) {
-        Map<String, Object> body = Map.of(
-                "status", HttpStatus.UNAUTHORIZED.value(),
-                "error", "Unauthorized",
-                "message", ex.getMessage(),
-                "path", request.getDescription(false).substring(4));
-        return new ResponseEntity<>(body, HttpStatus.UNAUTHORIZED);
+    public ResponseEntity<ErrorResponse> handleIllegalArgument(IllegalArgumentException ex, HttpServletRequest req) {
+        return build(HttpStatus.UNAUTHORIZED, ex.getMessage(), req.getRequestURI());
+    }
+
+    // ────────────────────────────────────────────────────────────────────────
+    // 403 Forbidden
+    // ────────────────────────────────────────────────────────────────────────
+
+    @ExceptionHandler(ForbiddenAccessException.class)
+    public ResponseEntity<ErrorResponse> handleForbidden(ForbiddenAccessException ex, HttpServletRequest req) {
+        return build(HttpStatus.FORBIDDEN, ex.getMessage(), req.getRequestURI());
     }
 
     @ExceptionHandler(AuthService.AccountDeletedException.class)
-    public ResponseEntity<Map<String, Object>> handleAccountDeletedException(
-            AuthService.AccountDeletedException ex) {
-        return ResponseEntity
-                .status(HttpStatus.FORBIDDEN)
-                .body(ex.getDetails());
+    public ResponseEntity<ErrorResponse> handleAccountDeleted(AuthService.AccountDeletedException ex, HttpServletRequest req) {
+        return build(HttpStatus.FORBIDDEN, ex.getMessage(), req.getRequestURI());
     }
+
+    // ────────────────────────────────────────────────────────────────────────
+    // 404 Not Found
+    // ────────────────────────────────────────────────────────────────────────
+
+    @ExceptionHandler(NotFoundException.class)
+    public ResponseEntity<ErrorResponse> handleNotFound(NotFoundException ex, HttpServletRequest req) {
+        return build(HttpStatus.NOT_FOUND, ex.getMessage(), req.getRequestURI());
+    }
+
+    // ────────────────────────────────────────────────────────────────────────
+    // 409 Conflict
+    // ────────────────────────────────────────────────────────────────────────
 
     @ExceptionHandler(ConflictException.class)
     public ResponseEntity<ErrorResponse> handleConflict(ConflictException ex, HttpServletRequest req) {
         return build(HttpStatus.CONFLICT, ex.getMessage(), req.getRequestURI());
     }
 
+    // ────────────────────────────────────────────────────────────────────────
+    // 412 Precondition Failed
+    // ────────────────────────────────────────────────────────────────────────
+
+    @ExceptionHandler(PreconditionFailedException.class)
+    public ResponseEntity<ErrorResponse> handlePreconditionFailed(PreconditionFailedException ex, HttpServletRequest req) {
+        return build(HttpStatus.PRECONDITION_FAILED, "Version data mismatch", req.getRequestURI());
+    }
+
+    // ────────────────────────────────────────────────────────────────────────
+    // 413 Payload Too Large
+    // ────────────────────────────────────────────────────────────────────────
+
     @ExceptionHandler(PayloadTooLargeException.class)
     public ResponseEntity<ErrorResponse> handlePayloadTooLarge(PayloadTooLargeException ex, HttpServletRequest req) {
         return build(HttpStatus.PAYLOAD_TOO_LARGE, ex.getMessage(), req.getRequestURI());
     }
 
+    // ────────────────────────────────────────────────────────────────────────
+    // 415 Unsupported Media Type
+    // ────────────────────────────────────────────────────────────────────────
+
     @ExceptionHandler(UnsupportedMediaTypeException.class)
-    public ResponseEntity<ErrorResponse> handleUnsupportedMediaType(UnsupportedMediaTypeException ex,
-            HttpServletRequest req) {
+    public ResponseEntity<ErrorResponse> handleUnsupportedMediaType(UnsupportedMediaTypeException ex, HttpServletRequest req) {
         return build(HttpStatus.UNSUPPORTED_MEDIA_TYPE, ex.getMessage(), req.getRequestURI());
     }
 
+    // ────────────────────────────────────────────────────────────────────────
+    // 422 Unprocessable Entity
+    // ────────────────────────────────────────────────────────────────────────
+
+    @ExceptionHandler(UnprocessableEntityException.class)
+    public ResponseEntity<ErrorResponse> handleUnprocessableEntity(UnprocessableEntityException ex, HttpServletRequest req) {
+        return build(HttpStatus.UNPROCESSABLE_ENTITY, ex.getMessage(), req.getRequestURI());
+    }
+
+    // ────────────────────────────────────────────────────────────────────────
+    // 423 Locked
+    // ────────────────────────────────────────────────────────────────────────
+
     @ExceptionHandler(LockedException.class)
     public ResponseEntity<ErrorResponse> handleLocked(LockedException ex, HttpServletRequest req) {
-        // ใช้ method build ที่คุณมีอยู่แล้วเพื่อให้ format เหมือนกันทั้งโปรเจกต์
         return build(HttpStatus.LOCKED, ex.getMessage(), req.getRequestURI());
     }
 
+    // ────────────────────────────────────────────────────────────────────────
+    // 429 Too Many Requests
+    // ────────────────────────────────────────────────────────────────────────
+
+    @ExceptionHandler(TooManyRequestException.class)
+    public ResponseEntity<ErrorResponse> handleTooManyRequests(TooManyRequestException ex, HttpServletRequest req) {
+        return build(HttpStatus.TOO_MANY_REQUESTS, ex.getMessage(), req.getRequestURI());
+    }
+
+    // ────────────────────────────────────────────────────────────────────────
+    // Spring ResponseStatusException (catch-all for @ResponseStatus)
+    // ────────────────────────────────────────────────────────────────────────
+
+    @ExceptionHandler(ResponseStatusException.class)
+    public ResponseEntity<ErrorResponse> handleResponseStatusException(ResponseStatusException ex, HttpServletRequest req) {
+        HttpStatus status = HttpStatus.valueOf(ex.getStatusCode().value());
+        return build(status, ex.getReason(), req.getRequestURI());
+    }
+
+    // ────────────────────────────────────────────────────────────────────────
+    // 500 Internal Server Error (fallbacks)
+    // ────────────────────────────────────────────────────────────────────────
+
+    @ExceptionHandler(ServiceException.class)
+    public ResponseEntity<ErrorResponse> handleServiceException(ServiceException ex, HttpServletRequest req) {
+        return build(HttpStatus.INTERNAL_SERVER_ERROR, ex.getMessage(), req.getRequestURI());
+    }
+
+    @ExceptionHandler(Exception.class)
+    public ResponseEntity<ErrorResponse> handleUnexpected(Exception ex, HttpServletRequest req) {
+        return build(HttpStatus.INTERNAL_SERVER_ERROR, "Unexpected error: " + ex.getMessage(), req.getRequestURI());
+    }
 }
