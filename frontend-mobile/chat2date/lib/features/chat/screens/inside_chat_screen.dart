@@ -36,6 +36,7 @@ import 'package:chat2date/services/location_service.dart';
 import 'package:chat2date/services/review_service.dart';
 import 'package:chat2date/services/sos_service.dart';
 import 'package:chat2date/services/user_service.dart';
+import 'package:chat2date/stores/chat_room_cache_store.dart';
 import 'package:chat2date/stores/game_store.dart';
 import 'package:chat2date/stores/user_store.dart';
 import 'package:chat2date/core/theme/app_colors.dart';
@@ -117,6 +118,7 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
   bool _calendarIsEditMode = false;
   bool _calendarHasUnsavedChanges = false;
   bool _isLoadingMessages = true;
+  bool _isInitialViewportReady = false;
   bool _isLoadingMore = false;
   bool _hasMoreMessages = true;
   int _currentPage = 0;
@@ -251,7 +253,52 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
       _chatUserImages = [widget.avatarUrl!];
     }
     _scrollController.addListener(_handleScroll);
+    _hydrateFromRoomCache();
     _scheduleBootstrap();
+  }
+
+  void _hydrateFromRoomCache() {
+    final roomId = widget.roomId;
+    if (roomId == null || roomId.isEmpty) return;
+    final cache = ref.read(chatRoomCacheProvider)[roomId];
+    if (cache == null || cache.messages.isEmpty) return;
+
+    _messages = List<ChatMessage>.from(cache.messages)
+      ..sort((a, b) => a.timestamp.compareTo(b.timestamp));
+    _messageIds
+      ..clear()
+      ..addAll(_messages.map((message) => message.id));
+    _relationshipScore = cache.relationshipScore;
+    _isChatDisabled = cache.isChatDisabled;
+    _isLoadingMessages = false;
+    _isInitialViewportReady = true;
+
+    if ((widget.userName == null || widget.userName!.isEmpty) &&
+        cache.partnerName != null &&
+        cache.partnerName!.isNotEmpty) {
+      _chatUserName = cache.partnerName!;
+    }
+    if (widget.avatarUrl == null && cache.partnerImages.isNotEmpty) {
+      _chatUserAvatar = cache.partnerImages.first;
+    }
+    if (cache.partnerImages.isNotEmpty) {
+      _chatUserImages = List<String>.from(cache.partnerImages);
+    }
+  }
+
+  void _syncCurrentRoomCache() {
+    final roomId = widget.roomId;
+    if (roomId == null || roomId.isEmpty) return;
+    ref.read(chatRoomCacheProvider.notifier).setRoom(
+      ChatRoomCacheEntry(
+        roomId: roomId,
+        messages: List<ChatMessage>.from(_messages),
+        partnerName: _chatUserName,
+        partnerImages: List<String>.from(_chatUserImages),
+        relationshipScore: _relationshipScore,
+        isChatDisabled: _isChatDisabled,
+      ),
+    );
   }
 
   void _scheduleBootstrap() {
@@ -271,7 +318,8 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
 
   void _handleScroll() {
     if (!_scrollController.hasClients) return;
-    if (_scrollController.position.pixels <= 80) {
+    if (_scrollController.position.pixels >=
+        _scrollController.position.maxScrollExtent - 80) {
       _loadMoreMessages();
     }
   }
@@ -695,8 +743,10 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
       return;
     }
 
+    final hasExistingMessages = _messages.isNotEmpty;
     setState(() {
-      _isLoadingMessages = true;
+      _isLoadingMessages = !hasExistingMessages;
+      _isInitialViewportReady = hasExistingMessages;
       _isLoadingMore = false;
       _messageError = null;
       _currentPage = 0;
@@ -721,6 +771,7 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
           gameStatus.gameStatus,
         );
         _isLoadingMessages = false;
+        _isInitialViewportReady = true;
         _messageIds
           ..clear()
           ..addAll(sortedMessages.map((message) => message.id));
@@ -738,7 +789,7 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
           _chatUserImages = roomData.partnerImages;
         }
       });
-      _ensureLatestMessagePinned();
+      _syncCurrentRoomCache();
       unawaited(_restoreLatestSpunPlacePreview());
       _startChatSocket();
       unawaited(_syncAccessStatus());
@@ -984,6 +1035,7 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
 
       _messages.sort((a, b) => a.timestamp.compareTo(b.timestamp));
     });
+    _syncCurrentRoomCache();
     _ensureLatestMessagePinned();
     // If the incoming message is from the other person (not ours),
     // mark it as read since we're currently viewing the chat.
@@ -1001,7 +1053,7 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
 
   void _scrollToBottom({bool animated = true}) {
     if (!_scrollController.hasClients) return;
-    final position = _scrollController.position.maxScrollExtent;
+    final position = _scrollController.position.minScrollExtent;
     if (animated) {
       _scrollController.animateTo(
         position,
@@ -1308,6 +1360,7 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
         setState(() {
           _messages = updated;
         });
+        _syncCurrentRoomCache();
       }
     } catch (_) {}
   }
@@ -2554,6 +2607,7 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
         }
         _isSending = false;
       });
+      _syncCurrentRoomCache();
       _scrollToBottom();
       _initUpdateRelationshipBar(true);
     } catch (e) {
@@ -2798,11 +2852,7 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
     if (_isReviewModalShown) return;
 
     final appt = _existingAppointment;
-    if (appt == null ||
-        appt.dateTime == null ||
-        !DateTime.now().isAfter(
-          appt.dateTime!.toLocal().add(const Duration(hours: 3)),
-        )) {
+    if (appt == null || appt.dateTime == null) {
       return;
     }
 
@@ -3551,10 +3601,17 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
                                       ),
                                     ),
                                   )
+                                : !_isInitialViewportReady
+                                ? const Center(
+                                    child: CircularProgressIndicator(
+                                      color: AppColors.brandPrimary,
+                                    ),
+                                  )
                                 : AppRawScrollbar(
                                     controller: _scrollController,
                                     child: ListView.builder(
                                       controller: _scrollController,
+                                      reverse: true,
                                       padding: EdgeInsets.fromLTRB(
                                         20,
                                         showGpsOverlay ? 128 : 12,
@@ -3565,8 +3622,8 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
                                           _messages.length +
                                           (_isLoadingMore ? 1 : 0),
                                       itemBuilder: (context, index) {
-                                      final int offset = _isLoadingMore ? 1 : 0;
-                                      if (_isLoadingMore && index == 0) {
+                                      if (_isLoadingMore &&
+                                          index == _messages.length) {
                                         return const Padding(
                                           padding: EdgeInsets.only(bottom: 12),
                                           child: Center(
@@ -3575,13 +3632,14 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
                                         );
                                       }
 
-                                      final messageIndex = index - offset;
+                                      final messageIndex =
+                                          _messages.length - 1 - index;
                                       final message = _messages[messageIndex];
                                       final bool isGroupedWithNext =
-                                          messageIndex < _messages.length - 1 &&
-                                          _messages[messageIndex + 1].isOwn ==
+                                          messageIndex > 0 &&
+                                          _messages[messageIndex - 1].isOwn ==
                                               message.isOwn &&
-                                          !_messages[messageIndex + 1].isBot &&
+                                          !_messages[messageIndex - 1].isBot &&
                                           !message.isBot;
                                       final double bottomGap = isGroupedWithNext
                                           ? 10

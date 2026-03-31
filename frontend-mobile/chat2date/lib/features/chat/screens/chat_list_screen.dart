@@ -419,14 +419,8 @@ class _ChatListScreenState extends ConsumerState<ChatListScreen>
     required String? avatarUrl,
   }) async {
     final chatService = ref.read(chatServiceProvider);
-    try {
-      await chatService.updateRelationshipBar(roomId);
-    } catch (_) {}
-
-    await _checkAndShowNotifications(roomId, partnerName);
-
     if (!mounted) return;
-    await Navigator.pushNamed(
+    final navigation = Navigator.pushNamed(
       context,
       '/chat',
       arguments: {
@@ -436,6 +430,15 @@ class _ChatListScreenState extends ConsumerState<ChatListScreen>
         'avatarUrl': avatarUrl,
       },
     );
+
+    unawaited(() async {
+      try {
+        await chatService.updateRelationshipBar(roomId);
+      } catch (_) {}
+    }());
+    unawaited(_checkAndShowNotifications(roomId, partnerName));
+
+    await navigation;
   }
 
   Widget _buildListBody({

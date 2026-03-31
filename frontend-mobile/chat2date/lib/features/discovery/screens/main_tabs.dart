@@ -43,7 +43,7 @@ class _MainTabsState extends State<MainTabs> {
 
   void _onTabTap(int i) {
     if (i == _index) {
-      if (i == 0) return;
+      if (i == 0 || i == 2) return;
       setState(() {
         _pageKeys[i] = UniqueKey();
         _pages[i] = _buildPage(i);
