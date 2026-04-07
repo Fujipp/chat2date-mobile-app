@@ -4,6 +4,46 @@
 -- 
 USE `chat2date`;
 
+-- 1. ปิดการตรวจสอบ Foreign Key ชั่วคราว (สำคัญมาก ไม่งั้นจะลบตารางที่มีความสัมพันธ์ไม่ได้)
+SET FOREIGN_KEY_CHECKS = 0;
+
+-- 2. ล้างตารางที่เป็น "ตารางลูก" (Mapping/Access Logs/Messages) ก่อน
+TRUNCATE TABLE `chat2date`.`user_has_interest`;
+TRUNCATE TABLE `chat2date`.`user_has_lifestyle`;
+TRUNCATE TABLE `chat2date`.`user_has_tag`;
+TRUNCATE TABLE `chat2date`.`user_has_travelstyle`;
+TRUNCATE TABLE `chat2date`.`messages`;
+TRUNCATE TABLE `chat2date`.`chat_access_logs`;
+TRUNCATE TABLE `chat2date`.`game_answers`;
+TRUNCATE TABLE `chat2date`.`game_questions`;
+TRUNCATE TABLE `chat2date`.`post_trip_reviews`;
+TRUNCATE TABLE `chat2date`.`sos_incidents`;
+TRUNCATE TABLE `chat2date`.`appointments`;
+TRUNCATE TABLE `chat2date`.`place_confirmations`;
+
+-- 3. ล้างตารางหลักที่มี AUTO_INCREMENT เพื่อให้เริ่มนับ 1 ใหม่
+TRUNCATE TABLE `chat2date`.`interest`;
+TRUNCATE TABLE `chat2date`.`lifestyle`;
+TRUNCATE TABLE `chat2date`.`tag`;
+TRUNCATE TABLE `chat2date`.`travelstyle`;
+TRUNCATE TABLE `chat2date`.`action`;
+TRUNCATE TABLE `chat2date`.`match`;
+TRUNCATE TABLE `chat2date`.`contact_messages`;
+TRUNCATE TABLE `chat2date`.`devicetoken`;
+TRUNCATE TABLE `chat2date`.`emergencycontact`;
+TRUNCATE TABLE `chat2date`.`preferencematch`;
+TRUNCATE TABLE `chat2date`.`reports`;
+TRUNCATE TABLE `chat2date`.`report_evidences`;
+TRUNCATE TABLE `chat2date`.`swipe_quota`;
+TRUNCATE TABLE `chat2date`.`userlocation`;
+TRUNCATE TABLE `chat2date`.`userphoto`;
+
+-- 4. ล้างตาราง User (ถ้าต้องการให้ UUID เริ่มใหม่ด้วยการ Insert ใหม่ทั้งหมด)
+TRUNCATE TABLE `chat2date`.`user`;
+
+-- 5. เปิดการตรวจสอบ Foreign Key กลับมาเหมือนเดิม
+SET FOREIGN_KEY_CHECKS = 1;
+
 -- 
 -- 2.
 -- INSERT DATA INTO LOOKUP TABLES (Independent Data)
@@ -455,11 +495,11 @@ INSERT INTO `emergencycontact` (`telephoneNumber`, `userId`) VALUES
 
 -- Preference Match (1-to-1 relation)
 INSERT INTO `preferencematch` (`interestedGender`, `interestedTravelStyle`, `interestedLifeStyle`, `interestedInterest`, `interestedAgeMin`, `interestedAgeMax`, `interestedDistanceMin`, `interestedDistanceMax`, `userId`) VALUES
-('UNRELATED', 'SAME', 'NEARLY', 'NEARLY', 25, 35, 0, 50, 1),
-('UNRELATED', 'NEARLY', 'SAME', 'NEARLY', 28, 40, 0, 100, 2);
+('BOTH', 'SAME', 'NEARLY', 'NEARLY', 25, 35, 0, 50, 1),
+('BOTH', 'NEARLY', 'SAME', 'NEARLY', 28, 40, 0, 100, 2);
 
 -- Temp User Location (1-to-1 relation)
-INSERT INTO `tempuserlocation` (`latitude`, `longtitude`, `accuracy`, `timestamp`, `userId`) VALUES
+INSERT INTO `userlocation` (`latitude`, `longitude`, `accuracy`, `timestamp`, `userId`) VALUES
 (13.76300000, 99.58000000, 50.00, NOW(), 1), -- Bangkok (แก้ longitude < 100)
 (18.78800000, 98.98300000, 50.00, NOW(), 2); -- Chiang Mai
 
@@ -573,11 +613,8 @@ ON DUPLICATE KEY UPDATE
 `totalScore` = VALUES(`totalScore`),
 `status` = VALUES(`status`);
 
-INSERT INTO `game_questions` (`questionId`, `gameId`, `question`, `options`, `correctAnswer`, `userSelectedOption`, `isCorrect`) VALUES
-('q_seed_1', 'game_seed_1', 'Which place would you prefer for a first date?', '[\"Cafe\",\"Park\",\"Museum\",\"Beach\"]', 'Cafe', 'Park', FALSE)
-ON DUPLICATE KEY UPDATE
-`userSelectedOption` = VALUES(`userSelectedOption`),
-`isCorrect` = VALUES(`isCorrect`);
+INSERT INTO `game_questions` (`questionId`, `gameId`, `question`, `options`, `correctAnswer`) VALUES
+('q_seed_1', 'game_seed_1', 'Which place would you prefer for a first date?', '[\"Cafe\",\"Park\",\"Museum\",\"Beach\"]', 'Cafe');
 
 INSERT INTO `reports` (`reporterId`, `targetUserId`, `reason`, `anotherReason`, `description`, `status`, `isNotified`)
 SELECT @chat_user1, @report_target, 'spam', NULL, 'Test report for spam messages', 'PENDING', FALSE

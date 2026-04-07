@@ -889,7 +889,6 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
           final String leaderIdFromSocket =
               payload['leaderId']?.toString() ?? '';
 
-
           if (!_isSpinSessionActive || _currentUserId == leaderIdFromSocket) {
             _showWheelModal = true;
           }
@@ -2119,7 +2118,6 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
 
   //review & emergency suggestion
   bool _isResultModalShown = false;
-  bool _isReviewing = false;
   bool _hasShownBadEnding = false;
   bool _hasShownEmergencySuggestion = false;
   bool _isEmergencyLoaded = false;
@@ -2133,6 +2131,8 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
     }
 
     if (type == 'REVIEW_RESULT') {
+      final targetAppt = _existingAppointment;
+
       await _fetchInitialAppointment();
       final outcome = payload['outcome'] as String?;
 
@@ -2156,17 +2156,27 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
       await Future.delayed(const Duration(milliseconds: 150));
       if (!mounted) return;
 
+      if (targetAppt == null &&
+          (outcome == 'ONE_SIDED' || outcome == 'BOTH_UNSATISFIED')) {
+        debugPrint(
+          "Error: Target Appointment is null, cannot show resolution modal.",
+        );
+        return;
+      }
+
       switch (outcome) {
         case 'BOTH_SATISFIED':
           _showGoodEndingModal();
           break;
         case 'ONE_SIDED':
-          _showOneSidedModal(appt: _existingAppointment!);
+          _showOneSidedModal(appt: targetAppt!); 
           break;
         case 'BOTH_UNSATISFIED':
           if (!_hasShownBadEnding) {
             _hasShownBadEnding = true;
-            _showBadEndingModal(appt: _existingAppointment!);
+            _showBadEndingModal(
+              appt: targetAppt!,
+            ); 
           } else {
             _isResultModalShown = false;
           }
@@ -2230,7 +2240,6 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
     final appt = _existingAppointment;
     if (appt == null) return;
 
-    setState(() => _isReviewing = true);
     showDialog(
       context: context,
       barrierDismissible: false,
@@ -2258,13 +2267,11 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
               'หากฝ่ายใดฝ่ายหนึ่งเลือก unmatch หรือ พอแค่นี้ จะจบทันที',
           onFirstChoice: () async {
             Navigator.pop(ctx);
-            setState(() => _isReviewing = false);
             setState(() => _myReviewSatisfied = false);
             await _submitReview(appt: appt, isSatisfied: false);
           },
           onSecondChoice: () async {
             Navigator.pop(ctx);
-            setState(() => _isReviewing = false);
             setState(() => _myReviewSatisfied = true);
             await _submitReview(appt: appt, isSatisfied: true);
           },
@@ -2699,7 +2706,6 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
     final latestOwnIndex = _findLatestOwnMessageIndex();
     return WillPopScope(
       onWillPop: () async {
-        if (_isReviewing) return false;
         await _exitRoomOnce();
         return true;
       },
