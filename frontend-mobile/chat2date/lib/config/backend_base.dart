@@ -22,7 +22,7 @@ class ApiBase {
   static const String _localWsUrlAndroid = 'ws://$_localIp:8080';
 
   // URLs สำหรับ Server จริง
-  static const String _serverUrl = 'http://cp25ssi2.sit.kmutt.ac.th:8080/api/v1';
+  static const String _serverUrl = 'https://cp25ssi2.sit.kmutt.ac.th/api/v1';
   static const String _serverWsUrl = 'ws://cp25ssi2.sit.kmutt.ac.th:8080';
 
   // อนุญาต override จาก --dart-define=API_BASE=http://...
