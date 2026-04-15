@@ -41,8 +41,12 @@ resolve_flutter() {
   local candidates=(
     "$FLUTTER_ROOT/bin/flutter"
     "$HOME/flutter/bin/flutter"
+    "$HOME/flutter-sdk/bin/flutter"
     "$HOME/development/flutter/bin/flutter"
+    "$HOME/development/sdk/flutter/bin/flutter"
     "$HOME/Development/flutter/bin/flutter"
+    "$HOME/Development/Flutter/flutter/bin/flutter"
+    "$HOME/Development/sdk/flutter/bin/flutter"
     "$HOME/fvm/default/bin/flutter"
     "$HOME/.fvm/default/bin/flutter"
     "/opt/flutter/bin/flutter"
