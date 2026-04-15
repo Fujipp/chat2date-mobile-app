@@ -186,7 +186,6 @@ class _DsOtpFieldState extends State<DsOtpField> {
                     child: TextField(
                       controller: _controller,
                       focusNode: _focusNode,
-                      autofocus: widget.autoFocus,
                       keyboardType: TextInputType.number,
                       textInputAction: TextInputAction.done,
                       obscureText: false,
@@ -243,8 +242,6 @@ class _DsOtpFieldState extends State<DsOtpField> {
                         setState(() {});
                         _notify(text);
                       },
-                      onTapOutside: (_) => _focusNode.unfocus(),
-                      onSubmitted: (_) => _focusNode.unfocus(),
                     ),
                   ),
                   GestureDetector(

@@ -26,7 +26,8 @@ class ResponsiveContainer extends StatelessWidget {
     this.crossAxisAlignment = CrossAxisAlignment.center,
     this.backgroundColor,
     this.shrinkWrap = false,
-    this.useMaxWidth = false, required SingleChildScrollView child,
+    this.useMaxWidth = false,
+    required SingleChildScrollView child,
   });
 
   /// Preset: Standard Screen Layout (responsive)
@@ -399,6 +400,7 @@ class TagSelection extends StatefulWidget {
   final List<int> initialSelected;
   final TagShape shape;
   final bool forceGridMode;
+  final bool readOnly;
   final Function(List<int>)? onChanged;
 
   const TagSelection({
@@ -407,7 +409,8 @@ class TagSelection extends StatefulWidget {
     this.initialSelected = const [],
     this.shape = TagShape.rounded,
     this.forceGridMode = true,
-    this.onChanged
+    this.readOnly = false,
+    this.onChanged,
   });
 
   @override
@@ -421,6 +424,15 @@ class _TagSelectionState extends State<TagSelection> {
   void initState() {
     super.initState();
     _selected = List.from(widget.initialSelected);
+  }
+
+  @override
+  void didUpdateWidget(covariant TagSelection oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.initialSelected != oldWidget.initialSelected ||
+        widget.items != oldWidget.items) {
+      _selected = List.from(widget.initialSelected);
+    }
   }
 
   @override
@@ -451,16 +463,18 @@ class _TagSelectionState extends State<TagSelection> {
             return SizedBox(
               width: currentSizedBoxWidth,
               child: GestureDetector(
-                onTap: () {
-                  setState(() {
-                    if (isSelected) {
-                      _selected.remove(index);
-                    } else {
-                      _selected.add(index);
-                    }
-                  });
-                  widget.onChanged?.call(List.from(_selected));
-                },
+                onTap: widget.readOnly
+                    ? null
+                    : () {
+                        setState(() {
+                          if (isSelected) {
+                            _selected.remove(index);
+                          } else {
+                            _selected.add(index);
+                          }
+                        });
+                        widget.onChanged?.call(List.from(_selected));
+                      },
                 child: Container(
                   padding: widget.shape == TagShape.rounded
                       ? const EdgeInsets.symmetric(horizontal: 16, vertical: 8)

@@ -49,7 +49,7 @@ class UserService {
 
     final data = jsonDecode(response.body);
     final currentUser = User.fromJson(data);
-    
+
     // ดึง accessToken ล่าสุดจาก store (เผื่อถูก refresh ไปแล้ว)
     final accessToken = ref.read(userStoreProvider.notifier).accessToken ?? '';
     final userStoreNotifier = ref.read(userStoreProvider.notifier);
@@ -72,11 +72,11 @@ class UserService {
 
     final data = jsonDecode(response.body);
     final updatedUser = User.fromJson(data);
-    
+
     final accessToken = ref.read(userStoreProvider.notifier).accessToken ?? '';
     final userStoreNotifier = ref.read(userStoreProvider.notifier);
     userStoreNotifier.setUser(updatedUser, accessToken);
-    
+
     return updatedUser;
   }
 
@@ -197,7 +197,7 @@ class UserService {
     final userStore = ref.read(userStoreProvider) as Map<String, dynamic>?;
     final user = userStore?['user'] as User?;
     final client = ref.read(authenticatedClientProvider);
-    
+
     if (user == null) throw Exception('User not logged in');
     final userId = user.userId;
 
@@ -215,6 +215,22 @@ class UserService {
     }
 
     // error อื่นที่ไม่คาดคิด
+    throw Exception(
+      'Failed with status ${response.statusCode}: ${response.body}',
+    );
+  }
+
+  Future<Map<String, dynamic>> fetchProfileById(String userId) async {
+    final client = ref.read(authenticatedClientProvider);
+
+    final response = await client.get(
+      Uri.parse('${ApiBase.baseUrl}/users/$userId/profile'),
+    );
+
+    if (response.statusCode == 200) {
+      return jsonDecode(response.body) ?? {};
+    }
+
     throw Exception(
       'Failed with status ${response.statusCode}: ${response.body}',
     );

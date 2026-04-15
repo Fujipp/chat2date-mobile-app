@@ -34,5 +34,9 @@ public class ChatRoomDetailResponse {
     public static class PartnerInfo {
         private String senderName;
         private List<String> senderImage;
+        private List<Integer> interests;
+        private List<Integer> lifeStyles;
+        private List<Integer> travelStyles;
+        private Double distance;
     }
 }

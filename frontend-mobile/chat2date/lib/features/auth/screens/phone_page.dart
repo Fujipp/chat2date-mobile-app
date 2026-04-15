@@ -14,11 +14,21 @@ class PhonePage extends StatefulWidget {
 
 class _PhonePageState extends State<PhonePage> {
   final _phoneCtrl = TextEditingController();
+  final _phoneFocusNode = FocusNode();
   bool _loading = false;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) _phoneFocusNode.requestFocus();
+    });
+  }
 
   @override
   void dispose() {
     _phoneCtrl.dispose();
+    _phoneFocusNode.dispose();
     super.dispose();
   }
 
@@ -38,7 +48,6 @@ class _PhonePageState extends State<PhonePage> {
 
   Future<void> _submit(bool onLogin) async {
     if (_loading) return;
-    FocusScope.of(context).unfocus();
 
     final phone = _normalizePhone(_phoneCtrl.text);
     if (!_isValidThaiMobile(phone)) {
@@ -107,9 +116,7 @@ class _PhonePageState extends State<PhonePage> {
     final arguments = ModalRoute.of(context)?.settings.arguments;
     final bool loginOtp = arguments is bool ? arguments : false;
 
-    return GestureDetector(
-      onTap: () => FocusScope.of(context).unfocus(),
-      child: Scaffold(
+    return Scaffold(
         backgroundColor: Colors.white,
         resizeToAvoidBottomInset: true,
         body: SafeArea(
@@ -138,6 +145,7 @@ class _PhonePageState extends State<PhonePage> {
                     label: 'เบอร์โทรศัพท์',
                     hintText: '+66',
                     controller: _phoneCtrl,
+                    focusNode: _phoneFocusNode,
                     keyboardType: TextInputType.phone,
                     onChanged: (v) {
                       if (v.length > 10) {
@@ -172,7 +180,6 @@ class _PhonePageState extends State<PhonePage> {
             ),
           ),
         ),
-      ),
     );
   }
 }

@@ -6,6 +6,8 @@ class ChatRoomMessages {
   final bool isChatDisabled; // NEW: true if report exists between users
   final String? partnerName;
   final List<String> partnerImages;
+  final Map<String, dynamic> partnerProfile;
+  final double? partnerDistance;
   final int? relationshipScore;
   final List<ChatMessage> messages;
 
@@ -15,6 +17,8 @@ class ChatRoomMessages {
     required this.isChatDisabled,
     required this.partnerName,
     required this.partnerImages,
+    required this.partnerProfile,
+    required this.partnerDistance,
     required this.relationshipScore,
     required this.messages,
   });
@@ -29,11 +33,25 @@ class ChatRoomMessages {
     final roomId = room['roomId']?.toString() ?? '';
 
     final partner = (json['partner'] as Map<String, dynamic>?) ?? {};
+    final partnerProfile = <String, dynamic>{
+      ...partner,
+      ..._mapFromAny(json['partnerProfile']),
+      ..._mapFromAny(room['partnerProfile']),
+    };
     final partnerName = partner['senderName']?.toString();
-    final partnerImages = (partner['senderImage'] as List<dynamic>?)
+    final partnerImages =
+        (partner['senderImage'] as List<dynamic>?)
             ?.map((image) => image.toString())
             .toList() ??
         <String>[];
+    final partnerDistance = _doubleFromAny(
+      json['matchedDistance'] ??
+          json['distance'] ??
+          room['matchedDistance'] ??
+          room['distance'] ??
+          partner['matchedDistance'] ??
+          partner['distance'],
+    );
 
     final chatList = (json['chat'] as List<dynamic>?) ?? [];
     final messages = chatList
@@ -51,8 +69,25 @@ class ChatRoomMessages {
       isChatDisabled: isChatDisabled,
       partnerName: partnerName,
       partnerImages: partnerImages,
+      partnerProfile: partnerProfile,
+      partnerDistance: partnerDistance,
       relationshipScore: json['relationshipScore'] as int?,
       messages: messages,
     );
+  }
+
+  static double? _doubleFromAny(Object? value) {
+    if (value is double) return value;
+    if (value is num) return value.toDouble();
+    if (value is String) return double.tryParse(value);
+    return null;
+  }
+
+  static Map<String, dynamic> _mapFromAny(Object? value) {
+    if (value is Map<String, dynamic>) return value;
+    if (value is Map) {
+      return value.map((key, mapValue) => MapEntry(key.toString(), mapValue));
+    }
+    return const {};
   }
 }

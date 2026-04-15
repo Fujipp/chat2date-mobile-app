@@ -185,9 +185,7 @@ class _OtpPageState extends ConsumerState<OtpPage> {
   Widget build(BuildContext context) {
     final masked = _maskPhone(_phone);
 
-    return GestureDetector(
-      onTap: () => FocusScope.of(context).unfocus(),
-      child: Scaffold(
+    return Scaffold(
         backgroundColor: Colors.white,
         resizeToAvoidBottomInset: true,
         body: SafeArea(
@@ -296,7 +294,6 @@ class _OtpPageState extends ConsumerState<OtpPage> {
             ),
           ),
         ),
-      ),
     );
   }
 }

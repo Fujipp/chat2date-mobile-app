@@ -6,7 +6,9 @@ import 'package:chat2date/components/common/app_raw_scrollbar.dart';
 import 'package:chat2date/components/calendar/calendar_modal.dart';
 import 'package:chat2date/components/chat/chat_text_component.dart';
 import 'package:chat2date/components/common/modal_component.dart';
+import 'package:chat2date/components/card/generic_card.dart';
 import 'package:chat2date/components/design_system/feedback/index.dart';
+import 'package:chat2date/components/layout/responsive_container.dart';
 import 'package:chat2date/components/layout/header.dart';
 import 'package:chat2date/components/modal/feature_guide_modal.dart';
 import 'package:chat2date/components/modal/relationship_mission_modal.dart';
@@ -19,6 +21,7 @@ import 'package:chat2date/components/design_system/organisms/ds_bot_chat.dart';
 import 'package:chat2date/components/design_system/organisms/ds_gps_alert.dart';
 import 'package:chat2date/components/design_system/organisms/ds_spin_wheel_card.dart';
 import 'package:chat2date/core/theme/app_assets.dart';
+import 'package:chat2date/features/profile/screens/selection_icon_mapper.dart';
 import 'package:chat2date/models/appointment.dart';
 import 'package:chat2date/models/chat_access_status.dart';
 import 'package:chat2date/models/chat_message.dart';
@@ -33,6 +36,7 @@ import 'package:chat2date/services/emergency_service.dart';
 import 'package:chat2date/services/game_service.dart';
 import 'package:chat2date/services/game_socket_service.dart';
 import 'package:chat2date/services/location_service.dart';
+import 'package:chat2date/services/preference_service.dart';
 import 'package:chat2date/services/review_service.dart';
 import 'package:chat2date/services/sos_service.dart';
 import 'package:chat2date/services/user_service.dart';
@@ -40,6 +44,8 @@ import 'package:chat2date/stores/chat_room_cache_store.dart';
 import 'package:chat2date/stores/game_store.dart';
 import 'package:chat2date/stores/user_store.dart';
 import 'package:chat2date/core/theme/app_colors.dart';
+import 'package:chat2date/core/theme/tokens/typography/body_text_styles.dart';
+import 'package:chat2date/core/theme/tokens/typography/display_text_styles.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
@@ -145,6 +151,9 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
   List<String> _chatUserImages = [];
   int? _chatUserAge;
   String? _chatUserId; // เพิ่ม userId สำหรับ Report
+  User? _chatUserMeta;
+  Map<String, dynamic> _chatUserProfileRaw = const {};
+  double? _chatUserDistance;
 
   // === Spinwheel Cooldown Logic ===
   int _cooldownDays = 7; // จำนวนวันที่ต้องรอก่อนหมุนได้อีกครั้ง
@@ -287,16 +296,18 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
   void _syncCurrentRoomCache() {
     final roomId = widget.roomId;
     if (roomId == null || roomId.isEmpty) return;
-    ref.read(chatRoomCacheProvider.notifier).setRoom(
-      ChatRoomCacheEntry(
-        roomId: roomId,
-        messages: List<ChatMessage>.from(_messages),
-        partnerName: _chatUserName,
-        partnerImages: List<String>.from(_chatUserImages),
-        relationshipScore: _relationshipScore,
-        isChatDisabled: _isChatDisabled,
-      ),
-    );
+    ref
+        .read(chatRoomCacheProvider.notifier)
+        .setRoom(
+          ChatRoomCacheEntry(
+            roomId: roomId,
+            messages: List<ChatMessage>.from(_messages),
+            partnerName: _chatUserName,
+            partnerImages: List<String>.from(_chatUserImages),
+            relationshipScore: _relationshipScore,
+            isChatDisabled: _isChatDisabled,
+          ),
+        );
   }
 
   void _scheduleBootstrap() {
@@ -456,7 +467,6 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
         _isFirstMessageBonus = roomData.isFirstMessageBonus;
         _dailyMessagesCount = roomData.dailyMessageCount;
       });
-
     } else {
       final chatService = ref.read(chatServiceProvider);
       final roomData =
@@ -561,6 +571,7 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
       if (!mounted || user == null) return;
 
       setState(() {
+        _chatUserMeta = user;
         _chatUserAge = _calculateAge(user.birthday);
       });
     } catch (_) {}
@@ -593,7 +604,8 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
       return;
     }
     final prefs = await SharedPreferences.getInstance();
-    final savedName = prefs.getString(_latestSpunPlaceNamePrefsKey(roomId)) ?? '';
+    final savedName =
+        prefs.getString(_latestSpunPlaceNamePrefsKey(roomId)) ?? '';
     final savedImage =
         prefs.getString(_latestSpunPlaceImagePrefsKey(roomId)) ?? '';
     if (!mounted) {
@@ -611,7 +623,10 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
       return;
     }
     final prefs = await SharedPreferences.getInstance();
-    await prefs.setString(_latestSpunPlaceNamePrefsKey(roomId), _lastSpunPlaceName);
+    await prefs.setString(
+      _latestSpunPlaceNamePrefsKey(roomId),
+      _lastSpunPlaceName,
+    );
     await prefs.setString(
       _latestSpunPlaceImagePrefsKey(roomId),
       _lastSpunPlaceImageUrl,
@@ -678,6 +693,10 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
         _hasMoreMessages = sortedMessages.length >= _pageSize;
         _relationshipScore = roomData.relationshipScore;
         _isChatDisabled = roomData.isChatDisabled;
+        _chatUserDistance = roomData.partnerDistance;
+        _chatUserProfileRaw = Map<String, dynamic>.from(
+          roomData.partnerProfile,
+        );
         //  _applyRelationshipScore(roomData.relationshipScore);
         if (widget.userName == null && roomData.partnerName != null) {
           _chatUserName = roomData.partnerName!;
@@ -821,7 +840,6 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
         _dailyMessagesCount = data['dailyMessageCount'] ?? 0;
         _isFirstMessageBonus = data['isFirstMessageBonus'] ?? false;
       });
-
     });
 
     _chatSocketService?.spinStream.listen((payload) async {
@@ -1006,7 +1024,9 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
     final remaining = until.difference(DateTime.now()).inSeconds;
     return remaining <= 0 ? 0 : remaining + 1;
   }
-  bool get _canAdjustSpinFilters => !_isSpinSearchCoolingDown && !_isSpinLoading;
+
+  bool get _canAdjustSpinFilters =>
+      !_isSpinSearchCoolingDown && !_isSpinLoading;
   String get _spinPrimaryActionLabel {
     if (!_isSpinLeader) {
       return 'กำลังรอคู่ของคุณสุ่ม';
@@ -1022,6 +1042,7 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
     }
     return 'สุ่มสถานที่เดต';
   }
+
   String? get _spinStatusMessage {
     if (_isSpinLoading) {
       return 'กำลังโหลดสถานที่เดตจากระยะที่เลือก';
@@ -1044,23 +1065,18 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
   }
 
   List<DsSpinWheelItem> get _spinWheelItems {
-    return _dynamicPrizes
-        .map(
-          (place) {
-            final imageUrl = place['imageUrl'] as String?;
-            return DsSpinWheelItem(
-              label: (place['name'] as String?) ?? 'Place',
-              imageProvider:
-                  (imageUrl?.isNotEmpty ?? false)
-                  ? _spinWheelImageProviderCache.putIfAbsent(
-                      imageUrl!,
-                      () => NetworkImage(imageUrl),
-                    )
-                  : null,
-            );
-          },
-        )
-        .toList();
+    return _dynamicPrizes.map((place) {
+      final imageUrl = place['imageUrl'] as String?;
+      return DsSpinWheelItem(
+        label: (place['name'] as String?) ?? 'Place',
+        imageProvider: (imageUrl?.isNotEmpty ?? false)
+            ? _spinWheelImageProviderCache.putIfAbsent(
+                imageUrl!,
+                () => NetworkImage(imageUrl),
+              )
+            : null,
+      );
+    }).toList();
   }
 
   ImageProvider<Object>? _botPlaceImageProvider(ChatMessage message) {
@@ -1128,7 +1144,9 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
     }).toList();
   }
 
-  Future<void> _precacheSpinPrizeImages(List<Map<String, dynamic>> prizes) async {
+  Future<void> _precacheSpinPrizeImages(
+    List<Map<String, dynamic>> prizes,
+  ) async {
     if (!mounted) {
       return;
     }
@@ -1152,7 +1170,9 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
     setState(() {
       _spinSearchCooldownUntil = until;
     });
-    _spinSearchCooldownTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
+    _spinSearchCooldownTimer = Timer.periodic(const Duration(seconds: 1), (
+      timer,
+    ) {
       if (!mounted) {
         timer.cancel();
         return;
@@ -1168,11 +1188,7 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
     });
   }
 
-  void _updateSpinFilters({
-    int? indexMode,
-    int? indexSelected,
-    double? range,
-  }) {
+  void _updateSpinFilters({int? indexMode, int? indexSelected, double? range}) {
     if (!_canAdjustSpinFilters) {
       return;
     }
@@ -1614,28 +1630,25 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
     return images;
   }
 
-  Future<void> _showChatUserGallery({int initialIndex = 0}) async {
+  Future<void> _openChatUserProfile({int initialIndex = 0}) async {
     final images = _effectiveChatUserImages;
     if (images.isEmpty) return;
 
-    await showGeneralDialog(
-      context: context,
-      barrierDismissible: true,
-      barrierLabel: 'gallery',
-      barrierColor: Colors.black.withValues(alpha: 0.82),
-      pageBuilder: (context, _, __) {
-        return _ChatUserGalleryDialog(
-          images: images,
-          initialIndex: initialIndex.clamp(0, images.length - 1),
-          userName: _chatDisplayName,
-        );
-      },
-      transitionBuilder: (context, animation, secondaryAnimation, child) {
-        return FadeTransition(
-          opacity: CurvedAnimation(parent: animation, curve: Curves.easeOut),
-          child: child,
-        );
-      },
+    await Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (context) {
+          return _ChatUserProfileScreen(
+            images: images,
+            initialIndex: initialIndex.clamp(0, images.length - 1),
+            userName: _chatDisplayName,
+            targetUserId: _chatUserId,
+            initialUser: _chatUserMeta,
+            initialProfileJson: _chatUserProfileRaw,
+            initialDistance: _chatUserDistance,
+            relationshipScore: _relationshipScore,
+          );
+        },
+      ),
     );
   }
 
@@ -1643,7 +1656,7 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
     return GestureDetector(
       onTap: _isChatDisabled || _effectiveChatUserImages.isEmpty
           ? null
-          : _showChatUserGallery,
+          : _openChatUserProfile,
       behavior: HitTestBehavior.opaque,
       child: Column(
         mainAxisSize: MainAxisSize.min,
@@ -2868,15 +2881,15 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
         try {
           final pos = await Geolocator.getCurrentPosition();
 
-          final shareUrl = await ref.read(locationServiceProvider).shareLocation(
-            latitude: pos.latitude,
-            longitude: pos.longitude,
-          );
+          final shareUrl = await ref
+              .read(locationServiceProvider)
+              .shareLocation(latitude: pos.latitude, longitude: pos.longitude);
 
           if (shareUrl.isNotEmpty) {
             await SharePlus.instance.share(
               ShareParams(
-                text: 'ฉันกำลังไปเดตนะ! นี่คือตำแหน่งล่าสุดของฉันตอนนี้นะ:\n$shareUrl',
+                text:
+                    'ฉันกำลังไปเดตนะ! นี่คือตำแหน่งล่าสุดของฉันตอนนี้นะ:\n$shareUrl',
               ),
             );
           }
@@ -2896,16 +2909,20 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
       onSosTriggered: (calledNumber) async {
         try {
           final pos = await Geolocator.getCurrentPosition(
-            locationSettings: const LocationSettings(accuracy: LocationAccuracy.high),
+            locationSettings: const LocationSettings(
+              accuracy: LocationAccuracy.high,
+            ),
           );
           if (calledNumber == '191') return;
 
-          await ref.read(sosServiceProvider).triggerSos(
-            appointmentId: _existingAppointment!.appointmentId,
-            latitude: pos.latitude,
-            longitude: pos.longitude,
-            calledNumber: calledNumber,
-          );
+          await ref
+              .read(sosServiceProvider)
+              .triggerSos(
+                appointmentId: _existingAppointment!.appointmentId,
+                latitude: pos.latitude,
+                longitude: pos.longitude,
+                calledNumber: calledNumber,
+              );
         } catch (e) {
           if (mounted) {
             Toast.show(
@@ -3210,273 +3227,292 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
             behavior: HitTestBehavior.translucent,
             onTap: _dismissKeyboard,
             child: Stack(
-            children: [
-              SafeArea(
-                child: Column(
-                  children: [
-                    DsAppSecondaryHeader(
-                      variant: _mapDsHeaderVariant(),
-                      center: _buildChatHeaderCenter(),
-                      trailing: _isChatDisabled
-                          ? const SizedBox.shrink()
-                          : null,
-                      cooldownText: '${_cooldownDays.clamp(1, 9)}',
-                      showCalendarAction: _isChatDisabled
-                          ? false
-                          : _shouldShowCalendarIcon,
-                      showCalendarUnreadDot: _calendarHasUnreadUpdate,
-                      showBottomBorder: false,
-                      onBackTap: () async {
-                        final nav = Navigator.of(context);
-                        await _exitRoomOnce();
-                        if (!mounted) return;
-                        nav.maybePop();
-                      },
-                      onPrimaryActionTap:
-                          _headerVariant == ChatHeaderVariant.chat1
-                          ? (_isChatDisabled ? null : _openReportScreen)
-                          : (_shouldShowCalendarIcon
-                                ? _handleCalendarTap
-                                : null),
-                      onCalendarActionTap: _isChatDisabled
-                          ? null
-                          : (_shouldShowCalendarIcon
-                                ? _handleCalendarTap
-                                : null),
-                      onSecondaryActionTap:
-                          (_headerVariant == ChatHeaderVariant.chat2)
-                          ? _handleSpinwheelTap
-                          : null,
-                      onTertiaryActionTap: _isChatDisabled
-                          ? null
-                          : _openReportScreen,
-                    ),
+              children: [
+                SafeArea(
+                  child: Column(
+                    children: [
+                      DsAppSecondaryHeader(
+                        variant: _mapDsHeaderVariant(),
+                        center: _buildChatHeaderCenter(),
+                        trailing: _isChatDisabled
+                            ? const SizedBox.shrink()
+                            : null,
+                        cooldownText: '${_cooldownDays.clamp(1, 9)}',
+                        showCalendarAction: _isChatDisabled
+                            ? false
+                            : _shouldShowCalendarIcon,
+                        showCalendarUnreadDot: _calendarHasUnreadUpdate,
+                        showBottomBorder: false,
+                        onBackTap: () async {
+                          final nav = Navigator.of(context);
+                          await _exitRoomOnce();
+                          if (!mounted) return;
+                          nav.maybePop();
+                        },
+                        onPrimaryActionTap:
+                            _headerVariant == ChatHeaderVariant.chat1
+                            ? (_isChatDisabled ? null : _openReportScreen)
+                            : (_shouldShowCalendarIcon
+                                  ? _handleCalendarTap
+                                  : null),
+                        onCalendarActionTap: _isChatDisabled
+                            ? null
+                            : (_shouldShowCalendarIcon
+                                  ? _handleCalendarTap
+                                  : null),
+                        onSecondaryActionTap:
+                            (_headerVariant == ChatHeaderVariant.chat2)
+                            ? _handleSpinwheelTap
+                            : null,
+                        onTertiaryActionTap: _isChatDisabled
+                            ? null
+                            : _openReportScreen,
+                      ),
 
-                    // --- ส่วนแชททั้งหมด (ScoreRow + ListView + Input) ---
-                    Expanded(
-                      child: Column(
-                        children: [
-                          const SizedBox(height: 6),
+                      // --- ส่วนแชททั้งหมด (ScoreRow + ListView + Input) ---
+                      Expanded(
+                        child: Column(
+                          children: [
+                            const SizedBox(height: 6),
 
-                          Padding(
-                            padding: const EdgeInsets.symmetric(horizontal: 19),
-                            child: _buildRelationshipBar(),
-                          ),
-                          const SizedBox(height: 8),
-                          const SizedBox(height: 4),
-                          Expanded(
-                            child: _isLoadingMessages
-                                ? const Center(
-                                    child: CircularProgressIndicator(),
-                                  )
-                                : _messageError != null
-                                ? Center(
-                                    child: Column(
-                                      mainAxisAlignment:
-                                          MainAxisAlignment.center,
-                                      children: [
-                                        Text(
-                                          _messageError!,
-                                          style: const TextStyle(
-                                            color: Colors.red,
-                                          ),
-                                          textAlign: TextAlign.center,
-                                        ),
-                                        const SizedBox(height: 16),
-                                        ElevatedButton(
-                                          onPressed: _loadChatRoomMessages,
-                                          child: const Text('ลองใหม่'),
-                                        ),
-                                      ],
-                                    ),
-                                  )
-                                : _messages.isEmpty
-                                ? const Center(
-                                    child: Text(
-                                      'ยังไม่มีข้อความ',
-                                      style: TextStyle(
-                                        color: Colors.grey,
-                                        fontSize: 16,
-                                      ),
-                                    ),
-                                  )
-                                : !_isInitialViewportReady
-                                ? const Center(
-                                    child: CircularProgressIndicator(
-                                      color: AppColors.brandPrimary,
-                                    ),
-                                  )
-                                : AppRawScrollbar(
-                                    controller: _scrollController,
-                                    child: ListView.builder(
-                                      controller: _scrollController,
-                                      reverse: true,
-                                      padding: EdgeInsets.fromLTRB(
-                                        20,
-                                        showGpsOverlay ? 128 : 12,
-                                        20,
-                                        24,
-                                      ),
-                                      itemCount:
-                                          _messages.length +
-                                          (_isLoadingMore ? 1 : 0),
-                                      itemBuilder: (context, index) {
-                                      if (_isLoadingMore &&
-                                          index == _messages.length) {
-                                        return const Padding(
-                                          padding: EdgeInsets.only(bottom: 12),
-                                          child: Center(
-                                            child: CircularProgressIndicator(),
-                                          ),
-                                        );
-                                      }
-
-                                      final messageIndex =
-                                          _messages.length - 1 - index;
-                                      final message = _messages[messageIndex];
-                                      final bool isGroupedWithNext =
-                                          messageIndex > 0 &&
-                                          _messages[messageIndex - 1].isOwn ==
-                                              message.isOwn &&
-                                          !_messages[messageIndex - 1].isBot &&
-                                          !message.isBot;
-                                      final double bottomGap = isGroupedWithNext
-                                          ? 10
-                                          : 12;
-                                      final bool showTimestamp =
-                                          _shouldShowTimestamp(messageIndex);
-
-                                      return Column(
-                                        crossAxisAlignment:
-                                            CrossAxisAlignment.stretch,
+                            Padding(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 19,
+                              ),
+                              child: _buildRelationshipBar(),
+                            ),
+                            const SizedBox(height: 8),
+                            const SizedBox(height: 4),
+                            Expanded(
+                              child: _isLoadingMessages
+                                  ? const Center(
+                                      child: CircularProgressIndicator(),
+                                    )
+                                  : _messageError != null
+                                  ? Center(
+                                      child: Column(
+                                        mainAxisAlignment:
+                                            MainAxisAlignment.center,
                                         children: [
-                                          if (showTimestamp)
-                                            Padding(
-                                              padding: const EdgeInsets.only(
-                                                bottom: 8,
-                                              ),
-                                              child: Center(
-                                                child: _buildChatTimestamp(
-                                                  message.timestamp,
-                                                ),
-                                              ),
+                                          Text(
+                                            _messageError!,
+                                            style: const TextStyle(
+                                              color: Colors.red,
                                             ),
-                                          Padding(
-                                            padding: EdgeInsets.only(
-                                              bottom: bottomGap,
-                                            ),
-                                            child: _buildMessageWidget(
-                                              message,
-                                              messageIndex,
-                                              latestOwnIndex: latestOwnIndex,
-                                            ),
+                                            textAlign: TextAlign.center,
+                                          ),
+                                          const SizedBox(height: 16),
+                                          ElevatedButton(
+                                            onPressed: _loadChatRoomMessages,
+                                            child: const Text('ลองใหม่'),
                                           ),
                                         ],
-                                      );
-                                      },
-                                    ),
-                                  ),
-                          ),
-                          if (_isChatDisabled)
-                            Padding(
-                              key: _chatInputKey,
-                              padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-                              child: DsChatMessageInput(
-                                width: double.infinity,
-                                enabled: false,
-                                disabledText:
-                                    'ห้องแชทนี้ถูกระงับการสนทนาเนื่องจากมีการรายงาน',
-                              ),
-                            )
-                          else
-                            Padding(
-                              key: _chatInputKey,
-                              padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-                              child: DsChatMessageInput(
-                                width: double.infinity,
-                                enabled:
-                                    !_isSending &&
-                                    (widget.roomId?.isNotEmpty ?? false),
-                                hintText: 'พิมพ์ข้อความ',
-                                disabledText:
-                                    'ไม่สามารถส่งข้อความได้เนื่องจากมีการรายงาน',
-                                controller: _messageController,
-                                onFocusChanged: (hasFocus) {
-                                  if (hasFocus) {
-                                    _lockToBottomForKeyboard();
-                                  }
-                                },
-                                onChanged: (value) {
-                                  setState(
-                                    () => _hasText = value.trim().isNotEmpty,
-                                  );
-                                  _keepLatestMessageVisible(animated: false);
-                                },
-                                onSend:
-                                    _hasText &&
-                                        !_isSending &&
-                                        (widget.roomId?.isNotEmpty ?? false)
-                                    ? () => _sendMessage()
-                                    : null,
-                              ),
-                            ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-              ),
+                                      ),
+                                    )
+                                  : _messages.isEmpty
+                                  ? const Center(
+                                      child: Text(
+                                        'ยังไม่มีข้อความ',
+                                        style: TextStyle(
+                                          color: Colors.grey,
+                                          fontSize: 16,
+                                        ),
+                                      ),
+                                    )
+                                  : !_isInitialViewportReady
+                                  ? const Center(
+                                      child: CircularProgressIndicator(
+                                        color: AppColors.brandPrimary,
+                                      ),
+                                    )
+                                  : AppRawScrollbar(
+                                      controller: _scrollController,
+                                      child: ListView.builder(
+                                        controller: _scrollController,
+                                        reverse: true,
+                                        padding: EdgeInsets.fromLTRB(
+                                          20,
+                                          showGpsOverlay ? 128 : 12,
+                                          20,
+                                          24,
+                                        ),
+                                        itemCount:
+                                            _messages.length +
+                                            (_isLoadingMore ? 1 : 0),
+                                        itemBuilder: (context, index) {
+                                          if (_isLoadingMore &&
+                                              index == _messages.length) {
+                                            return const Padding(
+                                              padding: EdgeInsets.only(
+                                                bottom: 12,
+                                              ),
+                                              child: Center(
+                                                child:
+                                                    CircularProgressIndicator(),
+                                              ),
+                                            );
+                                          }
 
-              //ปุ่มเทสเกม
-              // Positioned(
-              //   top: 100, // ปรับตำแหน่งแนวตั้ง (ให้หลบ Header)
-              //   right: 0, // ชิดขวา
-              //   child: Container(
-              //     decoration: const BoxDecoration(
-              //       color: Colors.red, // สีแดงเด่นๆ ให้รู้ว่าเป็นปุ่ม Test
-              //       borderRadius: BorderRadius.only(
-              //         topLeft: Radius.circular(20),
-              //         bottomLeft: Radius.circular(20),
-              //       ),
-              //     ),
-              //     child: IconButton(
-              //       icon: const Icon(
-              //         Icons.videogame_asset,
-              //         color: Colors.white,
-              //       ),
-              //       onPressed: () async {
-              //         // ✅ แบบที่ถูก: ยิงไปบอก Server ให้ Server สั่งเปิดเกมพร้อมกัน
-              //         final roomId = widget.roomId;
-              //         // ⚠️ เปลี่ยน IP เป็น IP เครื่องคอมคุณ
-              //         final url = Uri.parse(
-              //           'http://cp25ssi2.sit.kmutt.ac.th:8080/api/v1/test/trigger-game/$roomId',
-              //         );
-              //         try {
-              //           debugPrint("Shooting trigger to $url");
-              //           await http.post(url);
-              //         } catch (e) {
-              //           debugPrint("Error triggering game: $e");
-              //         }
-              //       },
-              //     ),
-              //   ),
-              // ),
-              if (showGpsOverlay)
-                Positioned(
-                  top: gpsOverlayTop,
-                  left: 0,
-                  right: 0,
-                  child: IgnorePointer(
-                    ignoring: false,
-                    child: Center(
-                      child: SizedBox(
-                        width: 333,
-                        child: _buildGpsOverlayWidget(),
+                                          final messageIndex =
+                                              _messages.length - 1 - index;
+                                          final message =
+                                              _messages[messageIndex];
+                                          final bool isGroupedWithNext =
+                                              messageIndex > 0 &&
+                                              _messages[messageIndex - 1]
+                                                      .isOwn ==
+                                                  message.isOwn &&
+                                              !_messages[messageIndex - 1]
+                                                  .isBot &&
+                                              !message.isBot;
+                                          final double bottomGap =
+                                              isGroupedWithNext ? 10 : 12;
+                                          final bool showTimestamp =
+                                              _shouldShowTimestamp(
+                                                messageIndex,
+                                              );
+
+                                          return Column(
+                                            crossAxisAlignment:
+                                                CrossAxisAlignment.stretch,
+                                            children: [
+                                              if (showTimestamp)
+                                                Padding(
+                                                  padding:
+                                                      const EdgeInsets.only(
+                                                        bottom: 8,
+                                                      ),
+                                                  child: Center(
+                                                    child: _buildChatTimestamp(
+                                                      message.timestamp,
+                                                    ),
+                                                  ),
+                                                ),
+                                              Padding(
+                                                padding: EdgeInsets.only(
+                                                  bottom: bottomGap,
+                                                ),
+                                                child: _buildMessageWidget(
+                                                  message,
+                                                  messageIndex,
+                                                  latestOwnIndex:
+                                                      latestOwnIndex,
+                                                ),
+                                              ),
+                                            ],
+                                          );
+                                        },
+                                      ),
+                                    ),
+                            ),
+                            if (_isChatDisabled)
+                              Padding(
+                                key: _chatInputKey,
+                                padding: const EdgeInsets.fromLTRB(
+                                  16,
+                                  0,
+                                  16,
+                                  16,
+                                ),
+                                child: DsChatMessageInput(
+                                  width: double.infinity,
+                                  enabled: false,
+                                  disabledText:
+                                      'ห้องแชทนี้ถูกระงับการสนทนาเนื่องจากมีการรายงาน',
+                                ),
+                              )
+                            else
+                              Padding(
+                                key: _chatInputKey,
+                                padding: const EdgeInsets.fromLTRB(
+                                  16,
+                                  0,
+                                  16,
+                                  16,
+                                ),
+                                child: DsChatMessageInput(
+                                  width: double.infinity,
+                                  enabled: widget.roomId?.isNotEmpty ?? false,
+                                  hintText: 'พิมพ์ข้อความ',
+                                  disabledText:
+                                      'ไม่สามารถส่งข้อความได้เนื่องจากมีการรายงาน',
+                                  controller: _messageController,
+                                  onFocusChanged: (hasFocus) {
+                                    if (hasFocus) {
+                                      _lockToBottomForKeyboard();
+                                    }
+                                  },
+                                  onChanged: (value) {
+                                    setState(
+                                      () => _hasText = value.trim().isNotEmpty,
+                                    );
+                                    _keepLatestMessageVisible(animated: false);
+                                  },
+                                  onSend:
+                                      _hasText &&
+                                          !_isSending &&
+                                          (widget.roomId?.isNotEmpty ?? false)
+                                      ? () => _sendMessage()
+                                      : null,
+                                ),
+                              ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+
+                //ปุ่มเทสเกม
+                // Positioned(
+                //   top: 100, // ปรับตำแหน่งแนวตั้ง (ให้หลบ Header)
+                //   right: 0, // ชิดขวา
+                //   child: Container(
+                //     decoration: const BoxDecoration(
+                //       color: Colors.red, // สีแดงเด่นๆ ให้รู้ว่าเป็นปุ่ม Test
+                //       borderRadius: BorderRadius.only(
+                //         topLeft: Radius.circular(20),
+                //         bottomLeft: Radius.circular(20),
+                //       ),
+                //     ),
+                //     child: IconButton(
+                //       icon: const Icon(
+                //         Icons.videogame_asset,
+                //         color: Colors.white,
+                //       ),
+                //       onPressed: () async {
+                //         // ✅ แบบที่ถูก: ยิงไปบอก Server ให้ Server สั่งเปิดเกมพร้อมกัน
+                //         final roomId = widget.roomId;
+                //         // ⚠️ เปลี่ยน IP เป็น IP เครื่องคอมคุณ
+                //         final url = Uri.parse(
+                //           'http://cp25ssi2.sit.kmutt.ac.th:8080/api/v1/test/trigger-game/$roomId',
+                //         );
+                //         try {
+                //           debugPrint("Shooting trigger to $url");
+                //           await http.post(url);
+                //         } catch (e) {
+                //           debugPrint("Error triggering game: $e");
+                //         }
+                //       },
+                //     ),
+                //   ),
+                // ),
+                if (showGpsOverlay)
+                  Positioned(
+                    top: gpsOverlayTop,
+                    left: 0,
+                    right: 0,
+                    child: IgnorePointer(
+                      ignoring: false,
+                      child: Center(
+                        child: SizedBox(
+                          width: 333,
+                          child: _buildGpsOverlayWidget(),
+                        ),
                       ),
                     ),
                   ),
-                ),
-              if (_showWheelModal) ...[
+                if (_showWheelModal) ...[
                   Positioned.fill(
                     child: GestureDetector(
                       behavior: HitTestBehavior.opaque,
@@ -3559,7 +3595,8 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
                                   ...?_dynamicPrizes
                                       .cast<Map<String, dynamic>?>()
                                       .firstWhere(
-                                        (place) => place?['name'] == result.label,
+                                        (place) =>
+                                            place?['name'] == result.label,
                                         orElse: () => null,
                                       ),
                                 });
@@ -3574,8 +3611,9 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
                               },
                               onVariantChanged: (variant) async {
                                 _updateSpinFilters(
-                                  indexMode:
-                                      variant == DsSpinWheelVariant.pair ? 1 : 0,
+                                  indexMode: variant == DsSpinWheelVariant.pair
+                                      ? 1
+                                      : 0,
                                 );
                               },
                               onReferenceChanged: (index) async {
@@ -3587,70 +3625,70 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
                       ),
                     ),
                   ),
-              ],
-              UnlockDateModal(
-                isVisible: _showUnlockDate,
-                onConfirm: _confirmCalendarUnlockIntro,
-              ),
-
-              // === Calendar Modal (เหมือน SpinWheel overlay) ===
-              if (_showCalendarModal) ...[
-                CalendarModal(
-                  isVisible: _showCalendarModal,
-                  placeName: _calendarPlaceName,
-                  placeCountText: 'คุณมี 1 สถานที่เดต!!',
-                  hasUnsavedChanges: _calendarHasUnsavedChanges,
-                  isReadOnly: _calendarIsEditMode && _isCalendarViewOnly,
-                  initialMonth: () {
-                    final dt = _calendarIsEditMode
-                        ? (_existingAppointment?.dateTime?.toLocal() ??
-                              DateTime.now())
-                        : DateTime.now();
-                    return DateTime(dt.year, dt.month, 1);
-                  }(),
-                  initialTime: _calendarIsEditMode
-                      ? () {
-                          final dt =
-                              _existingAppointment?.dateTime?.toLocal() ??
-                              DateTime.now();
-                          return TimeOfDay.fromDateTime(dt);
-                        }()
-                      : null,
-                  initialSelectedDate: _calendarIsEditMode
-                      ? _existingAppointment?.dateTime?.toLocal()
-                      : null,
-                  isEditMode: _calendarIsEditMode,
-                  onDirtyChanged: (dirty) {
-                    if (!mounted) return;
-                    setState(() {
-                      _calendarHasUnsavedChanges = dirty;
-                    });
-                  },
-                  onClose: (hasUnsavedChanges) {
-                    if (hasUnsavedChanges) {
-                      _showCancelEditConfirmDialog();
-                    } else {
-                      _closeCalendar();
-                    }
-                  },
-                  onTrash: () {
-                    final id = _existingAppointment?.appointmentId;
-                    if (id != null) _showDeleteConfirmDialog(id);
-                  },
-                  onSave: (date, time) async {
-                    _closeCalendar();
-                    await _saveAppointment(
-                      date: date,
-                      isEditMode: _calendarIsEditMode,
-                      existingId: _existingAppointment?.appointmentId,
-                      placeId: _calendarPlaceId,
-                      placeName: _calendarPlaceName,
-                    );
-                  },
+                ],
+                UnlockDateModal(
+                  isVisible: _showUnlockDate,
+                  onConfirm: _confirmCalendarUnlockIntro,
                 ),
+
+                // === Calendar Modal (เหมือน SpinWheel overlay) ===
+                if (_showCalendarModal) ...[
+                  CalendarModal(
+                    isVisible: _showCalendarModal,
+                    placeName: _calendarPlaceName,
+                    placeCountText: 'คุณมี 1 สถานที่เดต!!',
+                    hasUnsavedChanges: _calendarHasUnsavedChanges,
+                    isReadOnly: _calendarIsEditMode && _isCalendarViewOnly,
+                    initialMonth: () {
+                      final dt = _calendarIsEditMode
+                          ? (_existingAppointment?.dateTime?.toLocal() ??
+                                DateTime.now())
+                          : DateTime.now();
+                      return DateTime(dt.year, dt.month, 1);
+                    }(),
+                    initialTime: _calendarIsEditMode
+                        ? () {
+                            final dt =
+                                _existingAppointment?.dateTime?.toLocal() ??
+                                DateTime.now();
+                            return TimeOfDay.fromDateTime(dt);
+                          }()
+                        : null,
+                    initialSelectedDate: _calendarIsEditMode
+                        ? _existingAppointment?.dateTime?.toLocal()
+                        : null,
+                    isEditMode: _calendarIsEditMode,
+                    onDirtyChanged: (dirty) {
+                      if (!mounted) return;
+                      setState(() {
+                        _calendarHasUnsavedChanges = dirty;
+                      });
+                    },
+                    onClose: (hasUnsavedChanges) {
+                      if (hasUnsavedChanges) {
+                        _showCancelEditConfirmDialog();
+                      } else {
+                        _closeCalendar();
+                      }
+                    },
+                    onTrash: () {
+                      final id = _existingAppointment?.appointmentId;
+                      if (id != null) _showDeleteConfirmDialog(id);
+                    },
+                    onSave: (date, time) async {
+                      _closeCalendar();
+                      await _saveAppointment(
+                        date: date,
+                        isEditMode: _calendarIsEditMode,
+                        existingId: _existingAppointment?.appointmentId,
+                        placeId: _calendarPlaceId,
+                        placeName: _calendarPlaceName,
+                      );
+                    },
+                  ),
+                ],
               ],
-            ],
-          ),
+            ),
           ),
         ),
       ),
@@ -3658,36 +3696,94 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
   }
 }
 
-class _ChatUserGalleryDialog extends StatefulWidget {
-  const _ChatUserGalleryDialog({
+class _ChatUserProfileScreen extends ConsumerStatefulWidget {
+  const _ChatUserProfileScreen({
     required this.images,
     required this.initialIndex,
     required this.userName,
+    required this.targetUserId,
+    required this.initialUser,
+    required this.initialProfileJson,
+    required this.initialDistance,
+    required this.relationshipScore,
   });
 
   final List<String> images;
   final int initialIndex;
   final String userName;
+  final String? targetUserId;
+  final User? initialUser;
+  final Map<String, dynamic> initialProfileJson;
+  final double? initialDistance;
+  final int? relationshipScore;
 
   @override
-  State<_ChatUserGalleryDialog> createState() => _ChatUserGalleryDialogState();
+  ConsumerState<_ChatUserProfileScreen> createState() =>
+      _ChatUserProfileScreenState();
 }
 
-class _ChatUserGalleryDialogState extends State<_ChatUserGalleryDialog> {
+class _ChatUserProfileScreenState
+    extends ConsumerState<_ChatUserProfileScreen> {
   late final PageController _pageController;
   late int _currentIndex;
+  User? _user;
+  _ChatUserProfileData? _profile;
+  bool _isLoadingUser = false;
 
   @override
   void initState() {
     super.initState();
     _currentIndex = widget.initialIndex;
     _pageController = PageController(initialPage: widget.initialIndex);
+    _user = widget.initialUser;
+    _profile = _ChatUserProfileData.fromProfileJson(
+      widget.initialProfileJson,
+      fallbackDistance: widget.initialDistance,
+    );
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        unawaited(_loadProfileData());
+      }
+    });
   }
 
   @override
   void dispose() {
     _pageController.dispose();
     super.dispose();
+  }
+
+  Future<void> _loadProfileData() async {
+    final targetUserId = widget.targetUserId;
+    if (targetUserId == null || targetUserId.isEmpty) return;
+
+    setState(() => _isLoadingUser = true);
+    final userService = ref.read(userServiceProvider);
+    User? fetchedUser = _user;
+    Map<String, dynamic> profileJson = widget.initialProfileJson;
+    try {
+      await ref.read(preferenceServiceProvider).getPreference();
+    } catch (_) {
+      // Preference catalog is a helper only; raw labels can still render.
+    }
+    try {
+      fetchedUser ??= await userService.fetchUserById(targetUserId);
+    } catch (_) {}
+    try {
+      profileJson = await userService.fetchProfileById(targetUserId);
+    } catch (_) {}
+
+    final prefs = ref.read(userStoreProvider)['preferences'];
+    if (!mounted) return;
+    setState(() {
+      _user = fetchedUser;
+      _profile = _ChatUserProfileData.fromProfileJson(
+        profileJson,
+        preferences: prefs is Map ? prefs : null,
+        fallbackDistance: widget.initialDistance,
+      );
+      _isLoadingUser = false;
+    });
   }
 
   bool _isSvg(String path) {
@@ -3704,8 +3800,28 @@ class _ChatUserGalleryDialogState extends State<_ChatUserGalleryDialog> {
     }
 
     return path.startsWith('http')
-        ? Image.network(path, fit: BoxFit.contain)
-        : Image.asset(path, fit: BoxFit.contain);
+        ? Image.network(
+            path,
+            fit: BoxFit.contain,
+            errorBuilder: (context, error, stackTrace) {
+              return const Icon(
+                Icons.person_rounded,
+                color: AppColors.textDisabled,
+                size: 72,
+              );
+            },
+          )
+        : Image.asset(
+            path,
+            fit: BoxFit.contain,
+            errorBuilder: (context, error, stackTrace) {
+              return const Icon(
+                Icons.person_rounded,
+                color: AppColors.textDisabled,
+                size: 72,
+              );
+            },
+          );
   }
 
   void _goTo(int index) {
@@ -3723,118 +3839,506 @@ class _ChatUserGalleryDialogState extends State<_ChatUserGalleryDialog> {
   void _goPrevious() =>
       _goTo((_currentIndex - 1 + widget.images.length) % widget.images.length);
 
-  @override
-  Widget build(BuildContext context) {
-    return Material(
-      color: Colors.transparent,
-      child: SafeArea(
-        child: Stack(
-          children: [
-            Positioned.fill(
-              child: GestureDetector(
-                onTap: () => Navigator.of(context).pop(),
-                child: const ColoredBox(color: Colors.transparent),
-              ),
+  int? _calculateAge(DateTime? birthday) {
+    if (birthday == null) return null;
+    final now = DateTime.now();
+    int age = now.year - birthday.year;
+    final hadBirthdayThisYear =
+        now.month > birthday.month ||
+        (now.month == birthday.month && now.day >= birthday.day);
+    if (!hadBirthdayThisYear) age -= 1;
+    return age >= 0 ? age : null;
+  }
+
+  String get _displayName {
+    final user = _user;
+    final nickname = user?.nickname;
+    if (nickname != null && nickname.trim().isNotEmpty) {
+      return nickname.trim();
+    }
+    return widget.userName;
+  }
+
+  String get _ageText {
+    final age = _profile?.age ?? _calculateAge(_user?.birthday);
+    return age == null ? 'ไม่ระบุอายุ' : '$age ปี';
+  }
+
+  String get _profileInfoTitle => '$_displayName';
+
+  Widget _buildProfileSection(String title, List<String> items) {
+    final labels = items.map(displaySelectionLabel).toList();
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          title,
+          style: AppDisplayTextStyles.subtitleBold.copyWith(
+            color: AppColors.textBlack,
+          ),
+        ),
+        const SizedBox(height: 8),
+        if (labels.isEmpty)
+          GenericCard(
+            iconType: CardIconType.icon,
+            icon: Icons.info_outline_rounded,
+            iconColor: AppColors.textSupport,
+            iconBackground: AppColors.surfaceMuted,
+            title: _isLoadingUser ? 'กำลังโหลดข้อมูล' : 'ยังไม่มีข้อมูล',
+            backgroundColor: AppColors.surfaceMuted,
+            padding: const EdgeInsets.all(12),
+          )
+        else
+          TagSelection(
+            items: labels,
+            initialSelected: List<int>.generate(
+              labels.length,
+              (index) => index,
             ),
-            Positioned.fill(
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(24, 60, 24, 40),
-                child: Column(
-                  children: [
-                    Row(
-                      children: [
-                        Expanded(
-                          child: Text(
-                            widget.userName,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontSize: 20,
-                              fontFamily: 'Inter',
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                        ),
-                        IconButton(
-                          onPressed: () => Navigator.of(context).pop(),
-                          icon: const Icon(
-                            Icons.close_rounded,
-                            color: Colors.white,
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 12),
-                    Expanded(
-                      child: Stack(
-                        children: [
-                          PageView.builder(
-                            controller: _pageController,
-                            itemCount: widget.images.length,
-                            onPageChanged: (index) {
-                              setState(() => _currentIndex = index);
-                            },
-                            itemBuilder: (context, index) {
-                              return Center(
-                                child: ClipRRect(
-                                  borderRadius: BorderRadius.circular(28),
-                                  child: ColoredBox(
-                                    color: Colors.white.withValues(alpha: 0.06),
-                                    child: InteractiveViewer(
-                                      minScale: 1,
-                                      maxScale: 3,
-                                      child: SizedBox.expand(
-                                        child: _buildImage(
-                                          widget.images[index],
-                                        ),
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                              );
-                            },
-                          ),
-                          Positioned(
-                            left: 0,
-                            top: 0,
-                            bottom: 0,
-                            width: 96,
-                            child: GestureDetector(
-                              behavior: HitTestBehavior.translucent,
-                              onTap: _goPrevious,
-                            ),
-                          ),
-                          Positioned(
-                            right: 0,
-                            top: 0,
-                            bottom: 0,
-                            width: 96,
-                            child: GestureDetector(
-                              behavior: HitTestBehavior.translucent,
-                              onTap: _goNext,
-                            ),
-                          ),
-                        ],
+            shape: TagShape.rounded,
+            readOnly: true,
+          ),
+      ],
+    );
+  }
+
+  Widget _buildDistanceCard() {
+    final distance = _profile?.distance;
+    final subtitle = distance == null
+        ? 'ยังไม่มีข้อมูลระยะห่าง'
+        : '${distance.round()} km.';
+    return GenericCard(
+      iconType: CardIconType.icon,
+      icon: Icons.location_on_rounded,
+      iconColor: AppColors.brandPrimary,
+      iconBackground: AppColors.surfaceMuted,
+      title: 'ระยะห่างที่แมต',
+      subtitle: subtitle,
+      backgroundColor: AppColors.background,
+      padding: const EdgeInsets.all(12),
+    );
+  }
+
+  Widget _buildProfileInfoPanel() {
+    final profile = _profile;
+
+    return DecoratedBox(
+      decoration: const BoxDecoration(
+        color: AppColors.background,
+        border: Border(top: BorderSide(color: AppColors.inputBorder)),
+      ),
+      child: ConstrainedBox(
+        constraints: BoxConstraints(
+          maxHeight: MediaQuery.sizeOf(context).height * 0.46,
+        ),
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.fromLTRB(16, 14, 16, 18),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      _profileInfoTitle,
+                      style: AppDisplayTextStyles.subtitleBold.copyWith(
+                        color: AppColors.textBlack,
                       ),
                     ),
-                    const SizedBox(height: 16),
-                    Text(
-                      '${_currentIndex + 1}/${widget.images.length}',
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 14,
-                        fontFamily: 'Inter',
-                        fontWeight: FontWeight.w500,
+                  ),
+                  if (_isLoadingUser)
+                    const SizedBox(
+                      width: 14,
+                      height: 14,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: AppColors.brandPrimary,
+                      ),
+                    ),
+                ],
+              ),
+              const SizedBox(height: 10),
+              GenericCard(
+                iconType: CardIconType.avatar,
+                icon: Icons.person_rounded,
+                title: _displayName,
+                subtitle: _ageText,
+                backgroundColor: AppColors.surfaceMuted,
+                padding: const EdgeInsets.all(12),
+              ),
+              _buildProfileSection('ไลฟ์สไตล์', profile?.lifestyles ?? []),
+              const SizedBox(height: 14),
+              _buildProfileSection('สิ่งที่สนใจ', profile?.interests ?? []),
+              const SizedBox(height: 14),
+              _buildProfileSection(
+                'สไตล์การท่องเที่ยว',
+                profile?.travelStyles ?? [],
+              ),
+              const SizedBox(height: 14),
+              _buildDistanceCard(),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: AppColors.background,
+      body: SafeArea(
+        child: Column(
+          children: [
+            DsAppSecondaryHeader(
+              variant: DsAppSecondaryHeaderVariant.baseText,
+              title: _profileInfoTitle,
+              showBottomBorder: true,
+              bottomBorderSpacing: 0,
+              onBackTap: () => Navigator.of(context).pop(),
+            ),
+            Expanded(
+              child: ColoredBox(
+                color: AppColors.surface,
+                child: Stack(
+                  children: [
+                    PageView.builder(
+                      controller: _pageController,
+                      itemCount: widget.images.length,
+                      onPageChanged: (index) {
+                        setState(() => _currentIndex = index);
+                      },
+                      itemBuilder: (context, index) {
+                        return Center(
+                          child: InteractiveViewer(
+                            minScale: 1,
+                            maxScale: 3,
+                            child: Padding(
+                              padding: const EdgeInsets.all(12),
+                              child: _buildImage(widget.images[index]),
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+                    if (widget.images.length > 1) ...[
+                      Positioned(
+                        left: 0,
+                        top: 0,
+                        bottom: 0,
+                        width: 96,
+                        child: GestureDetector(
+                          behavior: HitTestBehavior.translucent,
+                          onTap: _goPrevious,
+                        ),
+                      ),
+                      Positioned(
+                        right: 0,
+                        top: 0,
+                        bottom: 0,
+                        width: 96,
+                        child: GestureDetector(
+                          behavior: HitTestBehavior.translucent,
+                          onTap: _goNext,
+                        ),
+                      ),
+                    ],
+                    Positioned(
+                      right: 16,
+                      top: 16,
+                      child: DecoratedBox(
+                        decoration: BoxDecoration(
+                          color: Colors.black.withValues(alpha: 0.46),
+                          borderRadius: BorderRadius.circular(999),
+                        ),
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 12,
+                            vertical: 6,
+                          ),
+                          child: Text(
+                            '${_currentIndex + 1}/${widget.images.length}',
+                            style: AppBodyTextStyles.captionBold.copyWith(
+                              color: Colors.white,
+                            ),
+                          ),
+                        ),
                       ),
                     ),
                   ],
                 ),
               ),
             ),
+            if (widget.images.length > 1)
+              SizedBox(
+                height: 74,
+                child: ListView.separated(
+                  scrollDirection: Axis.horizontal,
+                  padding: const EdgeInsets.fromLTRB(16, 10, 16, 10),
+                  itemBuilder: (context, index) {
+                    final isSelected = index == _currentIndex;
+                    return GestureDetector(
+                      onTap: () => _goTo(index),
+                      child: AnimatedContainer(
+                        duration: const Duration(milliseconds: 160),
+                        width: 54,
+                        height: 54,
+                        clipBehavior: Clip.antiAlias,
+                        decoration: BoxDecoration(
+                          color: AppColors.surfaceMuted,
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(
+                            color: isSelected
+                                ? AppColors.brandPrimary
+                                : AppColors.inputBorder,
+                            width: isSelected ? 2 : 1,
+                          ),
+                        ),
+                        child: _buildImage(widget.images[index]),
+                      ),
+                    );
+                  },
+                  separatorBuilder: (context, index) =>
+                      const SizedBox(width: 8),
+                  itemCount: widget.images.length,
+                ),
+              ),
+            _buildProfileInfoPanel(),
           ],
         ),
       ),
     );
+  }
+}
+
+class _ChatUserProfileData {
+  const _ChatUserProfileData({
+    required this.lifestyles,
+    required this.interests,
+    required this.travelStyles,
+    required this.tags,
+    this.age,
+    this.distance,
+  });
+
+  final List<String> lifestyles;
+  final List<String> interests;
+  final List<String> travelStyles;
+  final List<String> tags;
+  final int? age;
+  final double? distance;
+
+  factory _ChatUserProfileData.fromProfileJson(
+    Map<String, dynamic> json, {
+    Map<dynamic, dynamic>? preferences,
+    double? fallbackDistance,
+  }) {
+    final lifeCatalog = _catalogList(preferences?['lifeStyles']);
+    final interestCatalog = _catalogList(preferences?['interests']);
+    final travelCatalog = _catalogList(preferences?['travelStyles']);
+    final tagCatalog = _catalogList(preferences?['tags']);
+
+    return _ChatUserProfileData(
+      lifestyles: _resolveSelectionList(
+        _firstValue(json, const [
+          'lifestyles',
+          'lifeStyles',
+          'lifeStyle',
+          'lifestyle',
+          'userLifeStyles',
+          'userLifestyles',
+          'userHasLifestyles',
+        ]),
+        lifeCatalog,
+        labelKeys: const ['lifestyle', 'lifeStyle', 'name', 'label'],
+      ),
+      interests: _resolveSelectionList(
+        _firstValue(json, const [
+          'interests',
+          'interest',
+          'userInterests',
+          'userHasInterests',
+        ]),
+        interestCatalog,
+        labelKeys: const ['interest', 'name', 'label'],
+      ),
+      travelStyles: _resolveSelectionList(
+        _firstValue(json, const [
+          'travelStyles',
+          'travelStyle',
+          'travelstyles',
+          'travelstyle',
+          'userTravelStyles',
+          'userTravelstyles',
+          'userHasTravelstyles',
+          'userHasTravelStyles',
+        ]),
+        travelCatalog,
+        labelKeys: const ['travelstyle', 'travelStyle', 'name', 'label'],
+      ),
+      tags: _resolveSelectionList(
+        json['tags'],
+        tagCatalog,
+        labelKeys: const ['tag', 'name', 'label'],
+      ),
+      age: _intFromAny(json['age']),
+      distance:
+          _doubleFromAny(
+            json['matchedDistance'] ??
+                json['distance'] ??
+                json['matchDistance'] ??
+                json['distanceKm'],
+          ) ??
+          fallbackDistance,
+    );
+  }
+
+  static List<dynamic> _catalogList(Object? value) {
+    if (value is List) return value;
+    return const [];
+  }
+
+  static List<String> _resolveSelectionList(
+    Object? raw,
+    List<dynamic> catalog, {
+    required List<String> labelKeys,
+  }) {
+    if (raw is String) {
+      try {
+        final decoded = jsonDecode(raw);
+        return _resolveSelectionList(decoded, catalog, labelKeys: labelKeys);
+      } catch (_) {
+        return raw.trim().isEmpty ? const [] : [raw];
+      }
+    }
+    if (raw is! List) return const [];
+    final labels = <String>[];
+    for (final item in raw) {
+      final label = _labelFromSelectionItem(
+        item,
+        catalog,
+        labelKeys: labelKeys,
+      );
+      if (label != null && label.trim().isNotEmpty) {
+        labels.add(label.trim());
+      }
+    }
+    return labels.toSet().toList();
+  }
+
+  static String? _labelFromSelectionItem(
+    Object? item,
+    List<dynamic> catalog, {
+    required List<String> labelKeys,
+  }) {
+    if (item == null) return null;
+    if (item is String) return item;
+    if (item is num) return _labelFromCatalog(item.toInt(), catalog, labelKeys);
+    if (item is Map) {
+      for (final key in labelKeys) {
+        final value = item[key];
+        if (value != null &&
+            value is! Map &&
+            value is! List &&
+            value.toString().trim().isNotEmpty) {
+          return value.toString();
+        }
+      }
+      for (final key in labelKeys) {
+        final nested = item[key] ?? item['${key}_data'];
+        if (nested is Map) {
+          final nestedLabel = _labelFromSelectionItem(
+            nested,
+            catalog,
+            labelKeys: labelKeys,
+          );
+          if (nestedLabel != null) return nestedLabel;
+        }
+      }
+      final id = _intFromAny(
+        item['id'] ??
+            item['interestId'] ??
+            item['lifestyleId'] ??
+            item['travelstyleId'] ??
+            item['travelStyleId'] ??
+            item['tagId'] ??
+            item['interest_interestId'] ??
+            item['lifestyle_lifestyleId'] ??
+            item['travelstyle_travelId'] ??
+            item['travelStyle_travelId'] ??
+            item['tag_tagId'],
+      );
+      if (id != null) return _labelFromCatalog(id, catalog, labelKeys);
+    }
+    return null;
+  }
+
+  static String? _labelFromCatalog(
+    int id,
+    List<dynamic> catalog,
+    List<String> labelKeys,
+  ) {
+    for (final item in catalog) {
+      final itemId = _intFromAny(_dynamicValue(item, 'id'));
+      if (itemId != id) continue;
+      for (final key in labelKeys) {
+        final label = _dynamicValue(item, key);
+        if (label != null && label.toString().trim().isNotEmpty) {
+          return label.toString();
+        }
+      }
+    }
+    return null;
+  }
+
+  static Object? _dynamicValue(Object? object, String key) {
+    if (object is Map) return object[key];
+    try {
+      final dynamic dynamicObject = object;
+      switch (key) {
+        case 'id':
+          return dynamicObject.id;
+        case 'interest':
+          return dynamicObject.interest;
+        case 'lifestyle':
+          return dynamicObject.lifestyle;
+        case 'lifeStyle':
+          return dynamicObject.lifestyle;
+        case 'travelstyle':
+          return dynamicObject.travelstyle;
+        case 'travelStyle':
+          return dynamicObject.travelstyle;
+        case 'tag':
+          return dynamicObject.tag;
+        case 'name':
+          return dynamicObject.name;
+        case 'label':
+          return dynamicObject.label;
+      }
+    } catch (_) {}
+    return null;
+  }
+
+  static int? _intFromAny(Object? value) {
+    if (value is int) return value;
+    if (value is num) return value.toInt();
+    if (value is String) return int.tryParse(value);
+    return null;
+  }
+
+  static double? _doubleFromAny(Object? value) {
+    if (value is double) return value;
+    if (value is num) return value.toDouble();
+    if (value is String) return double.tryParse(value);
+    return null;
+  }
+
+  static Object? _firstValue(Map<String, dynamic> json, List<String> keys) {
+    for (final key in keys) {
+      if (json.containsKey(key) && json[key] != null) {
+        return json[key];
+      }
+    }
+    return null;
   }
 }
