@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'dart:async';
 import 'dart:convert';
 
@@ -107,7 +108,7 @@ class ChatListSocketService {
           final event = ChatListUpdateEvent.fromJson(json);
           _updateController.add(event);
         } catch (e) {
-          print('[ChatListSocket] Error parsing update: $e');
+          debugPrint('[ChatListSocket] Error parsing update: $e');
         }
       },
     );

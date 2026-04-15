@@ -465,7 +465,7 @@ class ChatToDateHeaderWhite extends StatelessWidget {
         color: Colors.white,
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+            color: Colors.black.withValues(alpha: 0.05),
             blurRadius: 10,
             offset: const Offset(0, 2),
           ),
@@ -482,7 +482,7 @@ class ChatToDateHeaderWhite extends StatelessWidget {
                 leftIconPath,
                 width: 120,
                 height: 40,
-                color: svgColor,
+                colorFilter: ColorFilter.mode(svgColor, BlendMode.srcIn),
                 fit: BoxFit.contain,
               ),
             ),
@@ -500,7 +500,7 @@ class ChatToDateHeaderWhite extends StatelessWidget {
                   rightIconPath,
                   width: 24,
                   height: 24,
-                  color: svgColor,
+                  colorFilter: ColorFilter.mode(svgColor, BlendMode.srcIn),
                   fit: BoxFit.contain,
                 ),
               ),
@@ -541,7 +541,7 @@ class ChatToDateHeaderGradient extends StatelessWidget {
         ),
         boxShadow: [
           BoxShadow(
-            color: AppColors.btnPrimary.withOpacity(0.3),
+            color: AppColors.btnPrimary.withValues(alpha: 0.3),
             blurRadius: 15,
             offset: const Offset(0, 4),
           ),
@@ -558,7 +558,7 @@ class ChatToDateHeaderGradient extends StatelessWidget {
                 leftIconPath,
                 width: 120,
                 height: 40,
-                color: svgColor,
+                colorFilter: ColorFilter.mode(svgColor, BlendMode.srcIn),
                 fit: BoxFit.contain,
               ),
             ),
@@ -575,7 +575,7 @@ class ChatToDateHeaderGradient extends StatelessWidget {
                 rightIconPath,
                 width: 24,
                 height: 24,
-                color: svgColor,
+                colorFilter: ColorFilter.mode(svgColor, BlendMode.srcIn),
                 fit: BoxFit.contain,
               ),
             ),

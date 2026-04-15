@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:chat2date/app/app.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
@@ -8,6 +10,17 @@ import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'firebase_options.dart';
+
+/// Allow self-signed / university-issued certificates for the project server.
+class _AllowBadCertHttpOverrides extends HttpOverrides {
+  @override
+  HttpClient createHttpClient(SecurityContext? context) {
+    return super.createHttpClient(context)
+      ..badCertificateCallback =
+          (X509Certificate cert, String host, int port) =>
+              host == 'cp25ssi2.sit.kmutt.ac.th';
+  }
+}
 
 /// Handle FCM notification tap to navigate to chat
 void _handleNotificationNavigation(RemoteMessage message) {
@@ -38,6 +51,9 @@ Future<void> main() async {
   // โหลด .env
   await dotenv.load(fileName: ".env");
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+
+  // Allow university-issued certificate on project server
+  HttpOverrides.global = _AllowBadCertHttpOverrides();
 
   // Setup FCM message handlers
   _setupFcmHandlers();

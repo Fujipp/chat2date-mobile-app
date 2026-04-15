@@ -84,7 +84,6 @@ class AuthService {
         }
         final user = User.fromJson(userJson);
         final email = user.email;
-        final accountStatus = user.accountStatus;
         final version = user.version?.toString() ?? '0';
 
         if (user.userId.isNotEmpty) {
@@ -131,7 +130,7 @@ class AuthService {
         );
       }
     } catch (e) {
-      print('Google Sign-In Error: $e');
+      debugPrint('Google Sign-In Error: $e');
 
       final String errorMessage = _getGoogleSignInErrorMessage(e);
       throw Exception(errorMessage);
@@ -193,13 +192,7 @@ class AuthService {
       await _storage.delete(key: 'refreshToken');
       await _storage.deleteAll();
 
-      ref.read(userStoreProvider.notifier).state = {
-        'user': null,
-        'accessToken': null,
-        'cardFaceBytes': null,
-        'profile': null,
-        'preferences': null,
-      };
+      ref.read(userStoreProvider.notifier).clearUser();
 
       debugPrint('✅ Signed out successfully');
     } catch (e) {
@@ -208,13 +201,7 @@ class AuthService {
       await _storage.delete(key: 'refreshToken');
       await _storage.deleteAll();
 
-      ref.read(userStoreProvider.notifier).state = {
-        'user': null,
-        'accessToken': null,
-        'cardFaceBytes': null,
-        'profile': null,
-        'preferences': null,
-      };
+      ref.read(userStoreProvider.notifier).clearUser();
 
       rethrow;
     }

@@ -106,7 +106,7 @@ class _TagAutocompleteState extends State<TagAutocomplete> {
             boxShadow: [
               // Add a subtle shadow to the input box
               BoxShadow(
-                color: Colors.black.withOpacity(0.05),
+                color: Colors.black.withValues(alpha: 0.05),
                 spreadRadius: 1,
                 blurRadius: 3,
               ),
@@ -191,7 +191,7 @@ class _TagAutocompleteState extends State<TagAutocomplete> {
               boxShadow: [
                 // Add a stronger shadow to lift the suggestion box
                 BoxShadow(
-                  color: Colors.black.withOpacity(0.15),
+                  color: Colors.black.withValues(alpha: 0.15),
                   spreadRadius: 2,
                   blurRadius: 10,
                   offset: const Offset(0, 4),
@@ -213,9 +213,7 @@ class _TagAutocompleteState extends State<TagAutocomplete> {
                       ),
                       onTap: () => _addTag(tag),
                       dense: true,
-                      hoverColor: AppColors.brandSecondary.withOpacity(
-                        0.1,
-                      ), // Nice hover effect
+                      hoverColor: AppColors.brandSecondary.withValues(alpha: 0.1), // Nice hover effect
                       contentPadding: const EdgeInsets.symmetric(
                         horizontal: 16, // More padding
                         vertical: 0,

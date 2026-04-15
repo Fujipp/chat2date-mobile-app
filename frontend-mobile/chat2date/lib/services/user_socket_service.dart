@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'dart:async';
 import 'dart:convert';
 
@@ -68,7 +69,7 @@ class UserSocketService {
           final json = jsonDecode(body) as Map<String, dynamic>;
           _controller.add(json);
         } catch (e) {
-          print('[UserSocket] ❌ parse error: $e');
+          debugPrint('[UserSocket] ❌ parse error: $e');
         }
       },
     );

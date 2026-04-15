@@ -1,4 +1,3 @@
-import 'dart:ui';
 import 'package:chat2date/components/buttons/ds_button.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
@@ -34,7 +33,7 @@ class RelationshipMissionModal extends StatelessWidget {
           borderRadius: BorderRadius.circular(32),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.15),
+              color: Colors.black.withValues(alpha: 0.15),
               blurRadius: 30,
               offset: const Offset(0, 10),
             ),
@@ -109,9 +108,9 @@ class RelationshipMissionModal extends StatelessWidget {
       return Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: AppColors.brandSecondary.withOpacity(0.1),
+          color: AppColors.brandSecondary.withValues(alpha: 0.1),
           borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: AppColors.brandSecondary.withOpacity(0.3)),
+          border: Border.all(color: AppColors.brandSecondary.withValues(alpha: 0.3)),
         ),
         child: Row(
           children: [
@@ -146,7 +145,7 @@ class RelationshipMissionModal extends StatelessWidget {
         decoration: BoxDecoration(
           color: AppColors.neutral200,
           borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: AppColors.neutral200.withOpacity(0.3)),
+          border: Border.all(color: AppColors.neutral200.withValues(alpha: 0.3)),
         ),
         child: Row(
           children: [
@@ -171,7 +170,7 @@ class RelationshipMissionModal extends StatelessWidget {
       decoration: BoxDecoration(
         color: AppColors.badgeErrorBg,
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: AppColors.error.withOpacity(0.3)),
+        border: Border.all(color: AppColors.error.withValues(alpha: 0.3)),
       ),
       child: Row(
         children: [
@@ -279,7 +278,7 @@ class RelationshipMissionModal extends StatelessWidget {
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
           color: isActive
-              ? AppColors.error.withOpacity(0.4)
+              ? AppColors.error.withValues(alpha: 0.4)
               : AppColors.neutral200,
           width: 1,
         ),
@@ -380,11 +379,11 @@ class RelationshipMissionModal extends StatelessWidget {
       duration: const Duration(milliseconds: 300),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: isCompleted ? iconColor.withOpacity(0.05) : AppColors.neutral50,
+        color: isCompleted ? iconColor.withValues(alpha: 0.05) : AppColors.neutral50,
         borderRadius: BorderRadius.circular(24),
         border: Border.all(
           color: isCompleted
-              ? iconColor.withOpacity(0.5)
+              ? iconColor.withValues(alpha: 0.5)
               : AppColors.neutral200,
           width: 1.5,
         ),
@@ -440,7 +439,7 @@ class RelationshipMissionModal extends StatelessWidget {
                     borderRadius: BorderRadius.circular(10),
                     child: LinearProgressIndicator(
                       value: progressValue,
-                      backgroundColor: iconColor.withOpacity(0.1),
+                      backgroundColor: iconColor.withValues(alpha: 0.1),
                       color: iconColor,
                       minHeight: 6,
                     ),
@@ -482,7 +481,7 @@ class RelationshipMissionModal extends StatelessWidget {
       decoration: BoxDecoration(
         color: AppColors.neutral50,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.neutral200.withOpacity(0.5)),
+        border: Border.all(color: AppColors.neutral200.withValues(alpha: 0.5)),
       ),
       child: Row(
         mainAxisAlignment:

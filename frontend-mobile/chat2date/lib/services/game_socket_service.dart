@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'dart:async';
 import 'dart:convert';
 import 'dart:math';
@@ -66,7 +67,7 @@ class GameSocketService {
     _connecting = false;
     _reconnectAttempts = 0;
 
-    print("🎮 Game Socket Connected! Room: $roomId");
+    debugPrint("🎮 Game Socket Connected! Room: $roomId");
 
     _client?.subscribe(
       destination: '/topic/games/$roomId',
@@ -75,7 +76,7 @@ class GameSocketService {
         if (body == null) return;
         try {
           final json = jsonDecode(body) as Map<String, dynamic>;
-          print("📩 Game Event: $json");
+          debugPrint("📩 Game Event: $json");
 
           _gameController.add(json);
 
@@ -84,7 +85,7 @@ class GameSocketService {
             _scoreController.add(json);
           }
         } catch (e) {
-          print("⚠️ Error parsing game event: $e");
+          debugPrint("⚠️ Error parsing game event: $e");
         }
       },
     );
@@ -121,6 +122,6 @@ class GameSocketService {
     try {
       _scoreController.close();
     } catch (_) {}
-    print("🔌 Game Socket Disposed");
+    debugPrint("🔌 Game Socket Disposed");
   }
 }

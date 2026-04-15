@@ -87,7 +87,7 @@ class _CustomRangeSliderState extends State<CustomRangeSlider> {
         inactiveTrackColor: const Color(0xFFE0E0E0),
         thumbColor: const Color(0xFF6B7280),
         thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 8),
-        overlayColor: const Color(0xFF6B7280).withOpacity(0.2),
+        overlayColor: const Color(0xFF6B7280).withValues(alpha: 0.2),
         overlayShape: const RoundSliderOverlayShape(overlayRadius: 16),
         trackShape: const RoundedRectSliderTrackShape(),
       ),

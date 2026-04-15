@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'dart:convert';
 
 import 'package:chat2date/core/config/backend_base.dart';
@@ -40,16 +41,16 @@ class ReviewService {
     if (wantToContinue != null) body['want_to_continue'] = wantToContinue;
     if (wantToUnmatch != null) body['want_to_unmatch'] = wantToUnmatch;
 
-    print("📤 POST $url");
-    print("📦 body: $body");
+    debugPrint("📤 POST $url");
+    debugPrint("📦 body: $body");
 
     final response = await client.post(
       url,
       body: json.encode(body),
     );
 
-    print("📥 status: ${response.statusCode}");
-    print("📥 body: ${response.body}");
+    debugPrint("📥 status: ${response.statusCode}");
+    debugPrint("📥 body: ${response.body}");
 
     if (response.statusCode != 201 && response.statusCode != 200) {
       throw Exception('ไม่สามารถส่งรีวิวได้');

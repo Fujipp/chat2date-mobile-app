@@ -43,4 +43,14 @@ class UserStore extends _$UserStore {
   void setPreferences(Map<String, dynamic> pref) {
     state = {...state, 'preferences': pref};
   }
+
+  void clearUser() {
+    state = {
+      'user': null,
+      'accessToken': null,
+      'cardFaceBytes': null,
+      'profile': null,
+      'preferences': null,
+    };
+  }
 }

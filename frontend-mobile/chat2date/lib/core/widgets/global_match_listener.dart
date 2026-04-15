@@ -41,13 +41,13 @@ class _GlobalMatchListenerState extends ConsumerState<GlobalMatchListener> {
 
   void _handleMatchEvent(MatchEventDto event) {
     if (_isNavigatingToMatch) {
-      print('[GlobalMatchListener] navigation in progress, skip duplicate event');
+      debugPrint('[GlobalMatchListener] navigation in progress, skip duplicate event');
       return;
     }
 
     final eventKey = _buildEventKey(event);
     if (_isDuplicateEvent(eventKey)) {
-      print('[GlobalMatchListener] duplicate match event ignored: $eventKey');
+      debugPrint('[GlobalMatchListener] duplicate match event ignored: $eventKey');
       return;
     }
 
@@ -65,7 +65,7 @@ class _GlobalMatchListenerState extends ConsumerState<GlobalMatchListener> {
       final navigator = widget.navigatorKey?.currentState;
       if (navigator == null) {
         // ถ้า navigatorKey ยังไม่มี state แสดงว่ายังหา navigator ไม่เจอ ป้องกัน exception
-        print('[GlobalMatchListener] navigator not ready, skip navigation');
+        debugPrint('[GlobalMatchListener] navigator not ready, skip navigation');
         _isNavigatingToMatch = false;
         return;
       }
@@ -107,7 +107,7 @@ class _GlobalMatchListenerState extends ConsumerState<GlobalMatchListener> {
         final event = next.valueOrNull;
         if (event == null) return;
 
-        print('[GlobalMatchListener] Match event received: ${event.selfName} <-> ${event.partnerName}');
+        debugPrint('[GlobalMatchListener] Match event received: ${event.selfName} <-> ${event.partnerName}');
         _handleMatchEvent(event);
       },
     );

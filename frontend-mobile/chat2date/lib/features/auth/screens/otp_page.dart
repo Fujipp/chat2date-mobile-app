@@ -7,7 +7,6 @@ import 'package:chat2date/models/user.dart';
 import 'package:chat2date/services/backend_otp_service.dart';
 import 'package:chat2date/stores/user_store.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
@@ -52,8 +51,12 @@ class _OtpPageState extends ConsumerState<OtpPage> {
   @override
   void dispose() {
     _timer?.cancel();
-    for (final c in _ctls) c.dispose();
-    for (final f in _nodes) f.dispose();
+    for (final c in _ctls) {
+      c.dispose();
+    }
+    for (final f in _nodes) {
+      f.dispose();
+    }
     super.dispose();
   }
 
@@ -76,39 +79,6 @@ class _OtpPageState extends ConsumerState<OtpPage> {
 
   String _cleanError(dynamic e) {
     return e.toString().replaceAll(RegExp(r'^Exception:\s*'), '');
-  }
-
-  void _onChanged(int index, String value) {
-    if (value.length > 1) {
-      final digits = value.replaceAll(RegExp(r'\D'), '').split('');
-      for (var i = 0; i < _length && i < digits.length; i++) {
-        _ctls[i].text = digits[i];
-      }
-      final target = (digits.length >= _length) ? _length - 1 : digits.length;
-      if (target < _nodes.length) _nodes[target].requestFocus();
-      setState(() {});
-      return;
-    }
-
-    if (value.isNotEmpty && index < _length - 1) {
-      _nodes[index + 1].requestFocus();
-    } else if (value.isEmpty && index > 0) {
-      _nodes[index - 1].requestFocus();
-    }
-    setState(() {});
-  }
-
-  KeyEventResult _onKey(FocusNode node, KeyEvent event, int index) {
-    if (event is KeyDownEvent &&
-        event.logicalKey == LogicalKeyboardKey.backspace) {
-      if (_ctls[index].text.isEmpty && index > 0) {
-        _nodes[index - 1].requestFocus();
-        _ctls[index - 1].clear();
-        setState(() {});
-        return KeyEventResult.handled;
-      }
-    }
-    return KeyEventResult.ignored;
   }
 
   Future<void> _verify() async {
@@ -158,6 +128,7 @@ class _OtpPageState extends ConsumerState<OtpPage> {
         final authController = ref.read(authControllerProvider);
         final result = authController.determineRoute(user, onLogin);
 
+        if (!mounted) return;
         Toast.dismissCurrent();
         Navigator.pushNamed(
           context,

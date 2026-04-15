@@ -1,6 +1,5 @@
 import 'dart:convert';
 import 'package:chat2date/models/dto/preference_dto.dart';
-import 'package:chat2date/services/user_service.dart';
 import 'package:chat2date/stores/user_store.dart';
 import 'package:chat2date/core/config/backend_base.dart';
 import 'package:chat2date/core/utils/authenticated_client.dart';

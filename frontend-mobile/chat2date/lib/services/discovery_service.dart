@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'dart:convert';
 
 import 'package:chat2date/core/config/backend_base.dart';
@@ -29,21 +30,21 @@ class DiscoveryService {
         '${ApiBase.baseUrl}/discovery',
       ).replace(queryParameters: queryParams);
 
-      print('🌐 Fetching: $uri');
+      debugPrint('🌐 Fetching: $uri');
 
       final response = await client.get(uri);
 
-      print('📥 Response status: ${response.statusCode}');
+      debugPrint('📥 Response status: ${response.statusCode}');
 
       if (response.statusCode == 200) {
         final List<dynamic> data = jsonDecode(response.body);
-        print('✅ Loaded ${data.length} candidates');
+        debugPrint('✅ Loaded ${data.length} candidates');
         return data.map((json) => DiscoveryResponse.fromJson(json)).toList();
       } else {
         throw Exception('Failed to load candidates: ${response.statusCode}');
       }
     } catch (e) {
-      print('❌ Error fetching candidates: $e');
+      debugPrint('❌ Error fetching candidates: $e');
       rethrow;
     }
   }
@@ -61,16 +62,16 @@ class DiscoveryService {
 
     final body = {'targetUserId': targetUserId, 'action': action};
 
-    print('➡️ [Feedback] POST $uri');
-    print('   body   : ${jsonEncode(body)}');
+    debugPrint('➡️ [Feedback] POST $uri');
+    debugPrint('   body   : ${jsonEncode(body)}');
 
     final res = await client.post(
       uri,
       body: jsonEncode(body),
     );
 
-    print('⬅️ [Feedback] status: ${res.statusCode}');
-    print('   response body: ${res.body}');
+    debugPrint('⬅️ [Feedback] status: ${res.statusCode}');
+    debugPrint('   response body: ${res.body}');
 
     if (res.statusCode != 201) {
       throw Exception('Feedback failed: ${res.statusCode} ${res.body}');
@@ -162,7 +163,7 @@ class DiscoveryNotifier extends StateNotifier<DiscoveryState> {
 
     // ✅ เช็คว่า notifier ยัง mount อยู่หรือไม่
     if (!mounted) {
-      print('⚠️ Notifier disposed, skipping load');
+      debugPrint('⚠️ Notifier disposed, skipping load');
       return;
     }
 
@@ -188,11 +189,11 @@ class DiscoveryNotifier extends StateNotifier<DiscoveryState> {
 
       // ✅ เช็คอีกครั้งหลัง await
       if (!mounted) {
-        print('⚠️ Notifier disposed after load, discarding results');
+        debugPrint('⚠️ Notifier disposed after load, discarding results');
         return;
       }
 
-      print('✅ Loaded ${candidates.length} candidates');
+      debugPrint('✅ Loaded ${candidates.length} candidates');
 
       if (candidates.isEmpty) {
         state = state.copyWith(
@@ -213,7 +214,7 @@ class DiscoveryNotifier extends StateNotifier<DiscoveryState> {
         _prefetchCandidatesIfNeeded();
       }
     } catch (e) {
-      print('❌ Error in loadCandidates: $e');
+      debugPrint('❌ Error in loadCandidates: $e');
 
       final remaining = _minimumLoadingDuration - stopwatch.elapsed;
       if (remaining > Duration.zero) {
@@ -221,7 +222,7 @@ class DiscoveryNotifier extends StateNotifier<DiscoveryState> {
       }
 
       if (!mounted) {
-        print('⚠️ Notifier disposed during error handling');
+        debugPrint('⚠️ Notifier disposed during error handling');
         return;
       }
 
@@ -241,10 +242,10 @@ class DiscoveryNotifier extends StateNotifier<DiscoveryState> {
   /// ไปหน้า candidate ถัดไป
   void nextCandidate() {
     if (!mounted) return;
-    print(state.hasMore);
+    debugPrint(state.hasMore.toString());
     if (state.hasMore) {
       state = state.copyWith(currentIndex: state.currentIndex + 1);
-      print(
+      debugPrint(
         '📍 Current index: ${state.currentIndex}/${state.candidates.length - 1}',
       );
       _prefetchCandidatesIfNeeded();
@@ -303,12 +304,12 @@ class DiscoveryNotifier extends StateNotifier<DiscoveryState> {
 
       if (!mounted) return null;
 
-      print('👍 Liked: ${candidate.nickname}');
+      debugPrint('👍 Liked: ${candidate.nickname}');
       nextCandidate();
 
       return feedback; // ✅ คืน feedback ออกไปให้ UI ใช้เช็ค matched
     } catch (e) {
-      print('❌ Like error: $e');
+      debugPrint('❌ Like error: $e');
       return null;
     }
   }
@@ -329,9 +330,9 @@ class DiscoveryNotifier extends StateNotifier<DiscoveryState> {
 
       if (!mounted) return;
 
-      print('👎 Unliked: ${candidate.nickname}');
+      debugPrint('👎 Unliked: ${candidate.nickname}');
     } catch (e) {
-      print('❌ Unlike error: $e');
+      debugPrint('❌ Unlike error: $e');
     }
 
     nextCandidate();
@@ -341,7 +342,7 @@ class DiscoveryNotifier extends StateNotifier<DiscoveryState> {
   Future<void> refresh({int minDistance = 1, int maxDistance = 160}) async {
     if (!mounted) return;
 
-    print('🔄 Refreshing candidates...');
+    debugPrint('🔄 Refreshing candidates...');
     await loadCandidates(minDistance: minDistance, maxDistance: maxDistance);
   }
 }

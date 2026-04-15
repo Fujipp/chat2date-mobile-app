@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'dart:async';
 import 'dart:convert';
 import 'dart:math';
@@ -138,7 +139,7 @@ class ChatSocketService {
           final json = jsonDecode(body) as Map<String, dynamic>;
           _relationshipController.add(json); // ส่งข้อมูลเข้า Stream
         } catch (e) {
-          print("Error decoding relationship stats: $e");
+          debugPrint("Error decoding relationship stats: $e");
         }
       },
     );
@@ -151,7 +152,7 @@ class ChatSocketService {
           final json = jsonDecode(body) as Map<String, dynamic>;
           _appointmentController.add(json);
         } catch (e) {
-          print('Error decoding appointment event: $e');
+          debugPrint('Error decoding appointment event: $e');
         }
       },
     );
@@ -164,7 +165,7 @@ class ChatSocketService {
           final json = jsonDecode(body) as Map<String, dynamic>;
           _reviewController.add(json);
         } catch (e) {
-          print("Error decoding review event: $e");
+          debugPrint("Error decoding review event: $e");
         }
       },
     );
@@ -177,7 +178,7 @@ class ChatSocketService {
           final json = jsonDecode(body) as Map<String, dynamic>;
           _reviewController.add(json);
         } catch (e) {
-          print("Error decoding user review event: $e");
+          debugPrint("Error decoding user review event: $e");
         }
       },
     );
@@ -192,7 +193,7 @@ class ChatSocketService {
             json,
           ); // ส่งข้อมูล FRESH_MODE หรือ CMD_SPIN_START เข้า Stream
         } catch (e) {
-          print("Error decoding spin event: $e");
+          debugPrint("Error decoding spin event: $e");
         }
       },
     );

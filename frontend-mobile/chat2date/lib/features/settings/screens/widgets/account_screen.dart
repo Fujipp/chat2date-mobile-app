@@ -141,9 +141,9 @@ class _AccountSettingsScreenState extends ConsumerState<AccountSettingsScreen> {
 
   String _formatGender(Sex? sex) {
     switch (sex) {
-      case Sex.MALE:
+      case Sex.male:
         return 'ชาย';
-      case Sex.FEMALE:
+      case Sex.female:
         return 'หญิง';
       case null:
         return '';

@@ -1,7 +1,6 @@
 import 'dart:convert';
 
 import 'package:chat2date/core/config/backend_base.dart';
-import 'package:chat2date/features/discovery/screens/discovery_screen.dart';
 import 'package:chat2date/features/auth/screens/home_login_page.dart';
 import 'package:chat2date/services/user_service.dart';
 import 'package:chat2date/stores/user_store.dart';
@@ -52,7 +51,7 @@ Future<Map<String, dynamic>> tryRefresh(dynamic ref) async {
 
     return {'success': false};
   } catch (e) {
-    print('❌ Refresh token error: $e');
+    debugPrint('❌ Refresh token error: $e');
     return {'success': false};
   }
 }

@@ -309,7 +309,7 @@ class _SpinDateComponentState extends State<SpinDateComponent>
                 Container(
                   padding: const EdgeInsets.all(20),
                   decoration: BoxDecoration(
-                    color: AppColors.lightBrandSecondary.withOpacity(0.3),
+                    color: AppColors.lightBrandSecondary.withValues(alpha: 0.3),
                     shape: BoxShape.circle,
                   ),
                   child: SvgPicture.asset(
@@ -448,8 +448,9 @@ class _SpinDateComponentState extends State<SpinDateComponent>
                       ),
                       GestureDetector(
                         onTap: () {
-                          if (_controller.isAnimating || widget.prizes.isEmpty)
+                          if (_controller.isAnimating || widget.prizes.isEmpty) {
                             return;
+                          }
 
                           if (widget.isLeader) {
                             widget.onTriggerSpin?.call();
@@ -618,7 +619,7 @@ class _InlineWheelPainter extends CustomPainter {
       AppColors.brandPrimary200,
       AppColors.lightBrandSecondary,
       AppColors.badgeWarning,
-      AppColors.info.withOpacity(0.3),
+      AppColors.info.withValues(alpha: 0.3),
     ];
 
     // --- 1. วาดส่วนพื้นหลังและรูปภาพ ---
@@ -665,7 +666,7 @@ class _InlineWheelPainter extends CustomPainter {
           ..shader = ui.Gradient.radial(
             center,
             radius,
-            [Colors.black.withOpacity(0.0), Colors.black.withOpacity(0.2)],
+            [Colors.black.withValues(alpha: 0.0), Colors.black.withValues(alpha: 0.2)],
             [0.7, 1.0],
           );
         canvas.drawPath(path, shadowPaint);
@@ -708,7 +709,7 @@ class _InlineWheelPainter extends CustomPainter {
         ..shader = ui.Gradient.radial(
           center,
           radius,
-          [Colors.black.withOpacity(0.0), Colors.black.withOpacity(0.1)],
+          [Colors.black.withValues(alpha: 0.0), Colors.black.withValues(alpha: 0.1)],
           [0.8, 1.0],
         );
       canvas.drawPath(path, shadowPaint);
@@ -830,7 +831,7 @@ class _StaticNeedlePainter extends CustomPainter {
       center.translate(0, 3),
       23,
       Paint()
-        ..color = Colors.black.withOpacity(0.3)
+        ..color = Colors.black.withValues(alpha: 0.3)
         ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 6),
     );
 
@@ -853,7 +854,7 @@ class _StaticNeedlePainter extends CustomPainter {
       center,
       22,
       Paint()
-        ..color = Colors.white.withOpacity(0.6)
+        ..color = Colors.white.withValues(alpha: 0.6)
         ..style = PaintingStyle.stroke
         ..strokeWidth = 2
         ..isAntiAlias = true,
@@ -867,7 +868,7 @@ class _StaticNeedlePainter extends CustomPainter {
         ..shader = ui.Gradient.radial(
           center.translate(0, 8),
           22,
-          [Colors.black.withOpacity(0.15), Colors.transparent],
+          [Colors.black.withValues(alpha: 0.15), Colors.transparent],
           [0.4, 1.0],
         ),
     );

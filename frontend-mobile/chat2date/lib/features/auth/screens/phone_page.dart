@@ -1,11 +1,9 @@
 import 'dart:async';
 
 import 'package:chat2date/components/design_system/index.dart';
-import 'package:chat2date/core/theme/app_colors.dart';
 import 'package:chat2date/services/backend_otp_service.dart';
 import 'package:chat2date/services/user_service.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 
 class PhonePage extends StatefulWidget {
   const PhonePage({super.key});
@@ -77,6 +75,7 @@ class _PhonePageState extends State<PhonePage> {
         return;
       }
 
+      if (!mounted) return;
       final response = await BackendOtpService.sendOtp(phone, context);
 
       if (response != "") {

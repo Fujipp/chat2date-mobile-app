@@ -88,7 +88,7 @@ class ScoreRow extends StatelessWidget {
     }
 
     // === สร้างหัวใจ ===
-    Widget _buildHeart() {
+    Widget buildHeart() {
       if (isLevelMax) {
         // หัวใจเป็นรุ้ง และซ่อนตัวเลข
         return SizedBox(
@@ -143,7 +143,7 @@ class ScoreRow extends StatelessWidget {
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
         // หัวใจ (รุ้งเมื่อ level 3)
-        _buildHeart(),
+        buildHeart(),
 
         // หลอด (รุ้งเมื่อ level 3)
         StackedProgressBar(

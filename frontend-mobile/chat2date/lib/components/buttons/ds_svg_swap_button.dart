@@ -92,9 +92,7 @@ class _DsSvgSwapButtonState extends State<DsSvgSwapButton> {
 
         // glow ยิ่ง active ยิ่งแรง
         final double blur = widget.glowBlur * t;
-        final Color glowColor = widget.glowColor.withOpacity(
-          widget.glowColor.opacity * t,
-        );
+        final Color glowColor = widget.glowColor.withValues(alpha: widget.glowColor.a * t);
 
         return SizedBox(
           width: outerSize,

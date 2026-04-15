@@ -62,16 +62,16 @@ class AuthController {
 
   NavigationResult determineRoute(User user, bool onLogin) {
     switch (user.accountStatus) {
-      case AccountStatus.PENDING:
+      case AccountStatus.pending:
         if (onLogin) {
           return NavigationResult('/policy', arguments: {"goKyc": true});
         }
         return NavigationResult('/kyc-id-ocr');
 
-      case AccountStatus.ACTIVE:
+      case AccountStatus.active:
         return NavigationResult('/main');
 
-      case AccountStatus.SUSPENDED:
+      case AccountStatus.suspended:
         return NavigationResult.error('บัญชีถูกระงับ');
 
       default:

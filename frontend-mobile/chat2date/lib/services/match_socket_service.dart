@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'dart:async';
 import 'dart:convert';
 import 'dart:math';
@@ -32,7 +33,7 @@ class MatchSocketService {
     _connecting = true;
 
     final wsUrl = '${ApiBase.websocketBase}${ApiBase.websocketPath}';
-    print('[MatchSocket] connecting to $wsUrl');
+    debugPrint('[MatchSocket] connecting to $wsUrl');
     final headers = <String, String>{
       if (accessToken?.isNotEmpty == true) 'Authorization': 'Bearer $accessToken',
     };
@@ -46,12 +47,12 @@ class MatchSocketService {
         },
         onWebSocketError: (err) {
           _connecting = false;
-          print('[MatchSocket] websocket error: $err');
+          debugPrint('[MatchSocket] websocket error: $err');
           _scheduleReconnect();
         },
         onStompError: (frame) {
           _connecting = false;
-          print('[MatchSocket] stomp error: ${frame.body}');
+          debugPrint('[MatchSocket] stomp error: ${frame.body}');
           _scheduleReconnect();
         },
         onDisconnect: (_) {
@@ -70,20 +71,20 @@ class MatchSocketService {
   void _onConnect(StompFrame frame) {
     _connecting = false;
     _reconnectAttempts = 0;
-    print('[MatchSocket] connected, subscribing to /topic/matches/$userId');
+    debugPrint('[MatchSocket] connected, subscribing to /topic/matches/$userId');
     _client?.subscribe(
       destination: '/topic/matches/$userId',
       callback: (frame) {
         final body = frame.body;
-        print('[MatchSocket] received frame: ${body?.substring(0, body.length > 200 ? 200 : body.length)}');
+        debugPrint('[MatchSocket] received frame: ${body?.substring(0, body.length > 200 ? 200 : body.length)}');
         if (body == null) return;
         try {
           final json = jsonDecode(body) as Map<String, dynamic>;
           final event = MatchEventDto.fromJson(json);
           _controller.add(event);
         } catch (e, st) {
-          print('[MatchSocket] failed to handle frame: $e');
-          print(st);
+          debugPrint('[MatchSocket] failed to handle frame: $e');
+          debugPrint(st.toString());
         }
       },
     );
@@ -95,7 +96,7 @@ class MatchSocketService {
     // exponential backoff capped at 30s
     final int seconds = min(30, 1 << (_reconnectAttempts - 1 >= 0 ? _reconnectAttempts - 1 : 0));
     final delay = Duration(seconds: max(1, seconds));
-    print('[MatchSocket] scheduling reconnect in ${delay.inSeconds}s (attempt=$_reconnectAttempts)');
+    debugPrint('[MatchSocket] scheduling reconnect in ${delay.inSeconds}s (attempt=$_reconnectAttempts)');
     Future.delayed(delay, () {
       if (_disposed) return;
       // clear any previous client and try reconnect

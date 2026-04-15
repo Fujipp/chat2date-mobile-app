@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'dart:convert';
 import 'package:chat2date/core/config/backend_base.dart';
 import 'package:chat2date/core/utils/authenticated_client.dart';
@@ -131,7 +132,7 @@ class DateRecommendService {
         throw Exception('Server error: ${response.statusCode}');
       }
     } catch (e) {
-      print("Error in checkStatusSpin: $e");
+      debugPrint("Error in checkStatusSpin: $e");
       throw Exception('Failed to check spin status: $e');
     }
   }
@@ -154,7 +155,7 @@ class DateRecommendService {
         throw Exception('Failed to send close command: $errorMsg');
       }
     } catch (e) {
-      print("Error in closeRemoteModal: $e");
+      debugPrint("Error in closeRemoteModal: $e");
       throw Exception('Network error or server is down');
     }
   }

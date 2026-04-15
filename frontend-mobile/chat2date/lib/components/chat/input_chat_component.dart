@@ -99,7 +99,7 @@ class InputChatComponent extends StatelessWidget {
                       decoration: InputDecoration(
                         hintText: hintText,
                         hintStyle: TextStyle(
-                          color: const Color(0xFF1F2024).withOpacity(0.5),
+                          color: const Color(0xFF1F2024).withValues(alpha: 0.5),
                           fontSize: 14,
                           fontFamily: 'Inter',
                         ),

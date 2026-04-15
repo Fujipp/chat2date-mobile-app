@@ -319,7 +319,7 @@ class _ChatScreenDemoState extends State<ChatScreenDemo> {
           top: 85,
           child: GestureDetector(
             onTap: () => setState(() => _showWheelModal = false),
-            child: Container(color: Colors.black.withOpacity(0.5)),
+            child: Container(color: Colors.black.withValues(alpha: 0.5)),
           ),
         ),
         Positioned.fill(
@@ -338,7 +338,7 @@ class _ChatScreenDemoState extends State<ChatScreenDemo> {
                     borderRadius: BorderRadius.circular(24),
                     boxShadow: [
                       BoxShadow(
-                        color: Colors.black.withOpacity(0.2),
+                        color: Colors.black.withValues(alpha: 0.2),
                         blurRadius: 20,
                         offset: const Offset(0, 10),
                       ),

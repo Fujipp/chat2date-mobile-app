@@ -207,7 +207,7 @@ class CardChatComponent extends StatelessWidget {
           boxShadow: isNewMatch
               ? [
                   BoxShadow(
-                    color: AppColors.btnPrimary.withOpacity(0.3),
+                    color: AppColors.btnPrimary.withValues(alpha: 0.3),
                     blurRadius: 8,
                     spreadRadius: 2,
                   ),
@@ -252,7 +252,7 @@ class CardChatComponent extends StatelessWidget {
           boxShadow: isNewMatch
               ? [
                   BoxShadow(
-                    color: AppColors.btnPrimary.withOpacity(0.3),
+                    color: AppColors.btnPrimary.withValues(alpha: 0.3),
                     blurRadius: 8,
                     spreadRadius: 2,
                   ),
@@ -300,7 +300,7 @@ class CardChatComponent extends StatelessWidget {
       height: size,
       decoration: BoxDecoration(
         shape: BoxShape.circle,
-        color: AppColors.btnPrimary.withOpacity(0.2),
+        color: AppColors.btnPrimary.withValues(alpha: 0.2),
         border: Border.all(color: Colors.white, width: 2.0),
       ),
       child: Icon(
@@ -322,7 +322,7 @@ class CardChatComponent extends StatelessWidget {
           borderRadius: BorderRadius.circular(12),
           boxShadow: [
             BoxShadow(
-              color: const Color(0xFFFF4757).withOpacity(0.3),
+              color: const Color(0xFFFF4757).withValues(alpha: 0.3),
               blurRadius: 4,
               offset: const Offset(0, 2),
             ),
@@ -352,7 +352,7 @@ class CardChatComponent extends StatelessWidget {
           borderRadius: BorderRadius.circular(12),
           boxShadow: [
             BoxShadow(
-              color: const Color(0xFFFF6B6B).withOpacity(0.4),
+              color: const Color(0xFFFF6B6B).withValues(alpha: 0.4),
               blurRadius: 6,
               offset: const Offset(0, 2),
             ),

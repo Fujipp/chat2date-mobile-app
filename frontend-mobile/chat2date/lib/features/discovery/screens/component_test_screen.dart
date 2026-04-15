@@ -83,7 +83,7 @@ class _ComponentTestScreenState extends State<ComponentTestScreen> {
     if (code.length != 6) return; // กันเคสเผลอกดก่อนครบ
     setState(() => _submitting = true);
     try {
-      // TODO: เรียก API ตรวจสอบ OTP ของ Dev ตรงนี้
+      // เรียก API ตรวจสอบ OTP ของ Dev ตรงนี้
       // ตัวอย่างชั่วคราว:
       // await Future.delayed(const Duration(milliseconds: 600));
       debugPrint('Submit OTP: $code');
@@ -220,8 +220,8 @@ class _ComponentTestScreenState extends State<ComponentTestScreen> {
             subtitle: 'Subtitle',
             actionType: CardActionType.button,
             buttonText: 'Button',
-            onTap: () => print('Card tapped'),
-            onButtonTap: () => print('Button tapped'),
+            onTap: () => debugPrint('Card tapped'),
+            onButtonTap: () => debugPrint('Button tapped'),
           ),
           GenericCard(
             iconType: CardIconType.image,
@@ -229,14 +229,14 @@ class _ComponentTestScreenState extends State<ComponentTestScreen> {
             title: 'Title',
             subtitle: 'Subtitle',
             actionType: CardActionType.chevron,
-            onTap: () => print('Card tapped'),
+            onTap: () => debugPrint('Card tapped'),
           ),
           GenericCard(
             iconType: CardIconType.image,
             //iconBackground: Colors.blue[50],
             title: 'Title',
             subtitle: 'Subtitle',
-            onTap: () => print('Card tapped'),
+            onTap: () => debugPrint('Card tapped'),
           ),
           const SizedBox(height: 8),
           GenericCard(
@@ -248,7 +248,7 @@ class _ComponentTestScreenState extends State<ComponentTestScreen> {
             subtitle: 'Subtitle',
             actionType: CardActionType.button,
             buttonText: 'Button',
-            onButtonTap: () => print('Button tapped'),
+            onButtonTap: () => debugPrint('Button tapped'),
           ),
           GenericCard(
             iconType: CardIconType.avatar,
@@ -258,7 +258,7 @@ class _ComponentTestScreenState extends State<ComponentTestScreen> {
             title: 'Title',
             subtitle: 'Subtitle',
             actionType: CardActionType.chevron,
-            onTap: () => print('Card tapped'),
+            onTap: () => debugPrint('Card tapped'),
           ),
           GenericCard(
             iconType: CardIconType.avatar,
@@ -285,7 +285,7 @@ class _ComponentTestScreenState extends State<ComponentTestScreen> {
             subtitle: 'Subtitle',
             actionType: CardActionType.button,
             buttonText: 'Button',
-            onButtonTap: () => print('Button tapped'),
+            onButtonTap: () => debugPrint('Button tapped'),
           ),
           GenericCard(
             iconType: CardIconType.icon,
@@ -295,7 +295,7 @@ class _ComponentTestScreenState extends State<ComponentTestScreen> {
             title: 'Title',
             subtitle: 'Subtitle',
             actionType: CardActionType.chevron,
-            onTap: () => print('Card tapped'),
+            onTap: () => debugPrint('Card tapped'),
           ),
           GenericCard(
             iconType: CardIconType.icon,
@@ -322,40 +322,40 @@ class _ComponentTestScreenState extends State<ComponentTestScreen> {
             style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
           ),
           DsAppHomeHeader(
-            onActionTap: () => print('Home header action pressed'),
+            onActionTap: () => debugPrint('Home header action pressed'),
           ),
           const SizedBox(height: 16),
           DsAppSecondaryHeader(
             variant: DsAppSecondaryHeaderVariant.baseText,
             title: 'Text',
-            onBackTap: () => print('Secondary header back'),
+            onBackTap: () => debugPrint('Secondary header back'),
           ),
           const SizedBox(height: 16),
           DsAppSecondaryHeader(
             variant: DsAppSecondaryHeaderVariant.chat1,
             name: 'Name',
-            onPrimaryActionTap: () => print('Secondary header chat1 action'),
+            onPrimaryActionTap: () => debugPrint('Secondary header chat1 action'),
           ),
           const SizedBox(height: 16),
           DsAppSecondaryHeader(
             variant: DsAppSecondaryHeaderVariant.chat2,
             name: 'Name',
-            onPrimaryActionTap: () => print('Secondary header chat2 action'),
+            onPrimaryActionTap: () => debugPrint('Secondary header chat2 action'),
           ),
           const SizedBox(height: 16),
           DsAppSecondaryHeader(
             variant: DsAppSecondaryHeaderVariant.chat3,
             name: 'Name',
-            onPrimaryActionTap: () => print('Secondary header chat3 action'),
+            onPrimaryActionTap: () => debugPrint('Secondary header chat3 action'),
           ),
           const SizedBox(height: 16),
           DsAppSecondaryHeader(
             variant: DsAppSecondaryHeaderVariant.chat4,
             name: 'Name',
             cooldownText: '7',
-            onPrimaryActionTap: () => print('Secondary header chat4 left'),
-            onSecondaryActionTap: () => print('Secondary header chat4 center'),
-            onTertiaryActionTap: () => print('Secondary header chat4 right'),
+            onPrimaryActionTap: () => debugPrint('Secondary header chat4 left'),
+            onSecondaryActionTap: () => debugPrint('Secondary header chat4 center'),
+            onTertiaryActionTap: () => debugPrint('Secondary header chat4 right'),
           ),
           const SizedBox(height: 16),
           Header(
@@ -363,7 +363,7 @@ class _ComponentTestScreenState extends State<ComponentTestScreen> {
             showCalendar: true,
             showSpinwheel: true,
             showFlag: true,
-            onBack: () => print('Back pressed'),
+            onBack: () => debugPrint('Back pressed'),
           ),
           SizedBox(height: 16),
           Header(
@@ -986,7 +986,7 @@ class _ComponentTestScreenState extends State<ComponentTestScreen> {
             accentColor: const Color(0xFFFF6B81),
             onClose: (_) => Navigator.of(context).maybePop(),
             onTrash: () {
-              // TODO: เคลียร์ค่าที่ Dev อยากลบ เช่น วันที่/เวลา/สถานที่
+              // เคลียร์ค่าที่ Dev อยากลบ เช่น วันที่/เวลา/สถานที่
               Toast.show(
                 context,
                 type: ToastType.info,
@@ -1527,7 +1527,7 @@ class _ComponentTestScreenState extends State<ComponentTestScreen> {
 
           ImageUploadGrid(
             onImagesChanged: (images) {
-              print('จำนวนรูปที่เลือก: ${images.length}');
+              debugPrint('จำนวนรูปที่เลือก: ${images.length}');
             },
           ),
           CustomRangeSlider(

@@ -39,7 +39,7 @@ class LocationService {
 
     // 3) ดึงตำแหน่ง
     final pos = await Geolocator.getCurrentPosition(
-      desiredAccuracy: LocationAccuracy.high,
+      locationSettings: const LocationSettings(accuracy: LocationAccuracy.high),
     );
     return pos;
   }

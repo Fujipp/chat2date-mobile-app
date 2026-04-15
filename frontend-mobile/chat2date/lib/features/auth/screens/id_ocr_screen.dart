@@ -281,9 +281,9 @@ class _IdOcrScreenState extends ConsumerState<IdOcrScreen> {
       }
 
       final sex = (_ocrResult!.gender == 'ชาย')
-          ? Sex.MALE
+          ? Sex.male
           : (_ocrResult!.gender == 'หญิง')
-              ? Sex.FEMALE
+              ? Sex.female
               : null;
 
       final userToUpdate = User(

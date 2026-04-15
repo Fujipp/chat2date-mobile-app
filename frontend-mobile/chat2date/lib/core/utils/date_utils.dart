@@ -1,4 +1,4 @@
-library date_utils;
+library;
 
 int calcAge(DateTime dob) {
   final now = DateTime.now();

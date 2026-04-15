@@ -16,6 +16,7 @@ Future<void> ensureLocationOrGoHome(BuildContext context) async {
   }
 
   // Denied or permanentlyDenied → go home
+  if (!context.mounted) return;
   Navigator.pushReplacementNamed(context, '/login');
 }
 

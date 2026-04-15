@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'dart:convert';
 
 import 'package:chat2date/core/config/backend_base.dart';
@@ -49,7 +50,7 @@ class GameService {
     final uri = Uri.parse('${ApiBase.baseUrl}/games/ready/$gameId');
     final response = await client.post(uri);
     _checkError(response);
-    return response as http.Response; // Since authenticated client extends http.BaseClient
+    return response; // Since authenticated client extends http.BaseClient
   }
 
   Future<void> sendTimeout(String gameId) async {
@@ -60,27 +61,27 @@ class GameService {
 
   // --- Helper Methods ---
   Future<http.Response> _get(Uri uri) async {
-    print('🌐 GET: $uri');
+    debugPrint('🌐 GET: $uri');
     final client = ref.read(authenticatedClientProvider);
     final response = await client.get(uri);
     _checkError(response);
-    return response as http.Response;
+    return response;
   }
 
   Future<http.Response> _post(Uri uri, Map<String, dynamic> body) async {
-    print('🌐 POST: $uri');
+    debugPrint('🌐 POST: $uri');
     final client = ref.read(authenticatedClientProvider);
     final response = await client.post(
       uri,
       body: jsonEncode(body),
     );
     _checkError(response);
-    return response as http.Response;
+    return response;
   }
 
   void _checkError(http.Response response) {
     if (response.statusCode >= 400) {
-      print('❌ Error ${response.statusCode}: ${response.body}');
+      debugPrint('❌ Error ${response.statusCode}: ${response.body}');
       throw Exception('API Error: ${response.statusCode}');
     }
   }

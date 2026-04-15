@@ -1,4 +1,3 @@
-import 'package:chat2date/core/theme/app_colors.dart';
 import 'package:flutter/material.dart';
 
 class PreferenceCard extends StatefulWidget {

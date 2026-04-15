@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'dart:convert';
 
 import 'package:chat2date/core/config/backend_base.dart';
@@ -84,7 +85,7 @@ class AppointmentService {
       '${ApiBase.baseUrl}/dates/appointments/$appointmentId',
     );
 
-    print(dateTime.toUtc().toIso8601String());
+    debugPrint(dateTime.toUtc().toIso8601String());
     final response = await client.put(
       uri,
       body: jsonEncode({

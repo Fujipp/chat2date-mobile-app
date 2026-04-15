@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'dart:convert';
 
 import 'package:chat2date/core/config/backend_base.dart';
@@ -95,14 +96,14 @@ class UserService {
       if (response.statusCode == 204) {
         // ลบข้อมูล local
         await authService(ref).signOut();
-        print('✅ Account deleted successfully');
+        debugPrint('✅ Account deleted successfully');
         return true;
       } else {
-        print('❌ Failed to delete account: ${response.body}');
+        debugPrint('❌ Failed to delete account: ${response.body}');
         return false;
       }
     } catch (e) {
-      print('❌ Delete account error: $e');
+      debugPrint('❌ Delete account error: $e');
       return false;
     }
   }
@@ -121,12 +122,12 @@ class UserService {
       );
 
       if (response.statusCode == 200) {
-        print('✅ Account been store');
+        debugPrint('✅ Account been store');
       } else {
         throw Exception('Failed to restore account: ${response.body}');
       }
     } catch (e) {
-      print('❌ error: $e');
+      debugPrint('❌ error: $e');
       rethrow;
     }
   }

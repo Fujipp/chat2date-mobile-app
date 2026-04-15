@@ -25,7 +25,7 @@ class RestoreAccountDialog {
               shape: RoundedRectangleBorder(
                 side: BorderSide(
                   width: 1,
-                  color: Colors.black.withOpacity(0.10),
+                  color: Colors.black.withValues(alpha: 0.10),
                 ),
                 borderRadius: BorderRadius.circular(16),
               ),

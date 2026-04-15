@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'dart:convert';
 
 import 'package:chat2date/core/config/backend_base.dart';
@@ -124,7 +125,7 @@ class ChatService {
   /// เข้าห้อง (Mark as Read)
   /// POST /api/v1/chats/access
   Future<void> enterRoom(String roomId) async {
-    print('[ChatService] enterRoom called for roomId=$roomId');
+    debugPrint('[ChatService] enterRoom called for roomId=$roomId');
     final userState = ref.read(userStoreProvider);
     final userId = _currentUserId(userState);
     if (userId.isEmpty) {
@@ -133,13 +134,13 @@ class ChatService {
 
     final client = ref.read(authenticatedClientProvider);
     final uri = Uri.parse('${ApiBase.baseUrl}/chats/access');
-    print('[ChatService] POST $uri');
+    debugPrint('[ChatService] POST $uri');
     final response = await client.post(
       uri,
       body: jsonEncode({'roomId': roomId, 'userId': userId, 'type': 'ENTER'}),
     );
 
-    print('[ChatService] enterRoom response: ${response.statusCode}');
+    debugPrint('[ChatService] enterRoom response: ${response.statusCode}');
 
     if (response.statusCode == 201 || response.statusCode == 409) {
       return;
@@ -271,7 +272,7 @@ class ChatService {
     }
 
     if (response.statusCode == 429) {
-      print("Rate limit hit for room $roomId - skipping update.");
+      debugPrint("Rate limit hit for room $roomId - skipping update.");
       return null;
     }
 
@@ -291,7 +292,7 @@ class ChatService {
       }
       return ''; // กันพลาดให้เป็น true (คือเคยเห็นแล้ว) เพื่อไม่ให้ Noti เด้งค้าง
     } catch (e) {
-      print('Check Noti Error: $e');
+      debugPrint('Check Noti Error: $e');
       return '';
     }
   }

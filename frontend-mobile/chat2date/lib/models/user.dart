@@ -1,10 +1,10 @@
-enum Provider { GOOGLE, OTP }
+enum Provider { google, otp }
 
-enum Sex { MALE, FEMALE }
+enum Sex { male, female }
 
-enum AccountStatus { ACTIVE, SUSPENDED, PENDING }
+enum AccountStatus { active, suspended, pending }
 
-enum Role { USER, ADMIN }
+enum Role { user, admin }
 
 class User {
   final String userId;
@@ -50,7 +50,7 @@ class User {
     T? enumFromString<T>(List<T> values, String? key) {
       if (key == null) return null;
       return values.firstWhere(
-        (e) => e.toString().split('.').last == key,
+        (e) => e.toString().split('.').last.toUpperCase() == key.toUpperCase(),
         orElse: () => values.first,
       );
     }
@@ -84,18 +84,18 @@ class User {
     'userId': userId,
     'email': email,
     'phoneNumber': phoneNumber,
-    'provider': provider?.toString().split('.').last,
+    'provider': provider?.name.toUpperCase(),
     'firstname': firstname,
     'lastname': lastname,
     'nickname': nickname,
     'cardId': cardId,
     'birthday': birthday?.toIso8601String(),
-    'sex': sex?.toString().split('.').last,
+    'sex': sex?.name.toUpperCase(),
     'behaviorScore': behaviorScore,
     'isBlacklist': isBlacklist,
-    'accountStatus': accountStatus?.toString().split('.').last,
+    'accountStatus': accountStatus?.name.toUpperCase(),
     'version': version,
-    'role': role?.toString().split('.').last,
+    'role': role?.name.toUpperCase(),
     'isTutorial': isTutorial
   };
 }

@@ -110,7 +110,6 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
   String _lastSpunPlaceName = ''; // ★ แก้: ไม่ใช่ final เพื่อให้อัพเดตได้
   String _lastSpunPlaceImageUrl = '';
   bool _isCalendarLoading = false;
-  DateTime? _lastSpinTime;
   // overlay state (เหมือน SpinWheel)
   bool _showCalendarModal = false;
   String _calendarPlaceName = '';
@@ -148,7 +147,6 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
   String? _chatUserId; // เพิ่ม userId สำหรับ Report
 
   // === Spinwheel Cooldown Logic ===
-  DateTime? _lastSpinDate; // วันที่หมุนวงล้อล่าสุด
   int _cooldownDays = 7; // จำนวนวันที่ต้องรอก่อนหมุนได้อีกครั้ง
   bool _canSpin = true; // true = กดได้ (Chat 2/3), false = cooldown (Chat 4)
   ChatHeaderVariant _headerVariant = ChatHeaderVariant.chat1;
@@ -187,14 +185,14 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
       final type = payload['type'];
 
       if (type == 'WAITING_START') {
-        print("⏳ Received WAITING_START. Going to Waiting Room...");
+        debugPrint("⏳ Received WAITING_START. Going to Waiting Room...");
         if (mounted) {
           _navigateToGameScreen(roomId);
         }
       }
 
       if (type == 'GAME_START') {
-        print("🎮 Received GAME_START via Socket!");
+        debugPrint("🎮 Received GAME_START via Socket!");
         if (mounted) {
           _navigateToGameScreen(roomId);
         }
@@ -208,7 +206,7 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
           try {
             ref.read(gameProvider.notifier).socketMessage(payload, myUserId);
           } catch (e) {
-            print("❌ Error forwarding event: $e");
+            debugPrint("❌ Error forwarding event: $e");
           }
         }
       }
@@ -336,69 +334,6 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
     await _refreshCalendarAppointmentState(markAsSeen: isSelfChange);
   }
 
-  //game
-  Future<void> _handleGameStart() async {
-    final roomId = widget.roomId;
-    if (roomId == null) return;
-
-    try {
-      final statusData = await ref
-          .read(gameServiceProvider)
-          .checkGameStatus(roomId as int);
-
-      // ✅ อัปเดต Switch Case ให้ตรงกับ Backend
-      switch (statusData.gameStatus) {
-        case 'NEW':
-        case 'RESUME':
-          _navigateToGameScreen(roomId);
-          break;
-
-        case 'RETRY_AVAILABLE':
-          _addLocalBotMessage(
-            type: BotMessageType.minigame,
-            text: 'Guessing Time',
-            description:
-                'เกมรอบก่อนหน้าสิ้นสุดลงแล้ว คุณและคู่เดตสามารถกดเริ่มใหม่เพื่อเล่นรอบถัดไปได้ทันที',
-            subDescription: 'เมื่อครบ 2 คนกดเริ่ม เกมจะเปิดคำถามให้พร้อมกัน',
-            actionText: 'เล่นอีกรอบ',
-            isDisabled: false,
-            remainingSeconds: statusData.remainingSeconds?.toInt() ?? 0,
-            onAction: () {
-              _navigateToGameScreen(roomId);
-            },
-          );
-          break;
-
-        // 🟢 กรณีชนะ/จบสมบูรณ์ (ต้องรอหลอดถัดไป)
-        case 'COMPLETED_FINISHED':
-          _addLocalBotMessage(
-            type: BotMessageType.askSuccess,
-            text: 'Guessing Time',
-            description:
-                'คุณเล่นเกมรอบนี้เสร็จสมบูรณ์แล้ว กรุณารอให้หลอดความสัมพันธ์พร้อมก่อนเริ่มรอบถัดไป',
-            actionText: 'เจอกันรอบหน้า',
-            isDisabled: true, // ❌ ปุ่มกดไม่ได้
-          );
-          break;
-
-        // 🔴 กรณีหมดเวลา 24 ชม. แล้วยังไม่ชนะ (หมดสิทธิ์)
-        case 'EXPIRED':
-          _addLocalBotMessage(
-            type: BotMessageType.minigameFail,
-            text: 'Guessing Time',
-            description:
-                'หมดเวลาของรอบนี้แล้ว คุณพลาดโอกาสของรอบก่อนหน้าไป กรุณารอรอบถัดไปจากระบบ',
-            subDescription: 'ตอนนี้ยังไม่สามารถเข้าเกมได้',
-            actionText: 'หมดเวลาแล้ว',
-            isDisabled: true,
-          );
-          break;
-      }
-    } catch (e) {
-      debugPrint('Error checking game: $e');
-    }
-  }
-
   // ฟังก์ชันสำหรับจัดการสถานะปุ่มของ Bot Message
   List<ChatMessage> _updateBotMessageStatus(List<ChatMessage> messages) {
     if (messages.isEmpty) return messages;
@@ -433,42 +368,13 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
     }).toList();
   }
 
-  void _addLocalBotMessage({
-    required BotMessageType type,
-    required String text,
-    String? description,
-    String? subDescription,
-    String? actionText,
-    bool isDisabled = false,
-    int? remainingSeconds,
-    VoidCallback? onAction,
-  }) {
-    final botMsg = ChatMessage(
-      id: DateTime.now().toString(),
-      text: text,
-      isOwn: false,
-      isBot: true,
-      timestamp: DateTime.now(),
-      botType: type,
-      description: description,
-      subDescription: subDescription,
-      actionButtonText: actionText,
-      isActionDisabled: isDisabled,
-      remainingSeconds: remainingSeconds,
-    );
-
-    setState(() {
-      _messages.add(botMsg);
-      _scrollToBottom();
-    });
-  }
-
   bool _isNavigatingToGame = false;
 
   Future<void> _navigateToGameScreen(String roomId) async {
     if (_isNavigatingToGame) return; // ✅ block ทันที ก่อน delay
     _isNavigatingToGame = true; // ✅ ไม่ต้อง setState เพราะแค่ guard flag
 
+    final nav = Navigator.of(context);
     FocusScope.of(context).unfocus();
     await Future.delayed(const Duration(milliseconds: 300));
     if (!mounted) {
@@ -516,8 +422,7 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
     _gameSocketService?.dispose();
     _gameSubscription?.cancel();
 
-    final result = await Navigator.push(
-      context,
+    await nav.push(
       MaterialPageRoute(
         builder: (context) => GuessingGameScreen(roomId: int.tryParse(roomId)),
       ),
@@ -532,12 +437,6 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
       await _initUpdateRelationshipBar(true);
       _initGameSocket();
     }
-  }
-
-  String _formatDuration(int? seconds) {
-    if (seconds == null) return "-";
-    final duration = Duration(seconds: seconds);
-    return "${duration.inHours} ชม. ${duration.inMinutes % 60} นาที";
   }
 
   Future<void> _initUpdateRelationshipBar(bool onUpdate) async {
@@ -603,7 +502,7 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
     // กรณีพับหน้าจอ (Paused) หรือ ปิดแอป (Detached)
     if (state == AppLifecycleState.paused ||
         state == AppLifecycleState.detached) {
-      print("App is backgrounded or killed: Exiting room");
+      debugPrint("App is backgrounded or killed: Exiting room");
       _exitRoomOnce();
     }
 
@@ -634,11 +533,12 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
       final numbers = await ref
           .read(emergencyCallServiceProvider)
           .getEmergencyCalls();
-      if (mounted)
+      if (mounted) {
         setState(() {
           _emergencyNumbers = numbers;
           _isEmergencyLoaded = true;
         });
+      }
     } catch (_) {
       if (mounted) setState(() => _isEmergencyLoaded = true);
     }
@@ -802,8 +702,6 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
       });
     }
   }
-
-  StreamSubscription? _scoreSubscription;
 
   Future<void> _loadMoreMessages() async {
     if (_isLoadingMessages || _isLoadingMore || !_hasMoreMessages) return;
@@ -1793,198 +1691,6 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
     );
   }
 
-  Widget _buildHeaderActionButton({
-    required Widget child,
-    VoidCallback? onTap,
-  }) {
-    return _ChatHeaderTapTarget(onTap: onTap, child: child);
-  }
-
-  Widget _buildCalendarActionIcon() {
-    return SizedBox(
-      width: 19,
-      height: 21.11,
-      child: Stack(
-        clipBehavior: Clip.none,
-        alignment: Alignment.center,
-        children: [
-          SvgPicture.asset(
-            AppAssets.headerSecondaryChat4LeftAction,
-            width: 19,
-            height: 21.11,
-          ),
-          if (_calendarHasUnreadUpdate)
-            Positioned(
-              top: -3,
-              right: -3,
-              child: Container(
-                width: 8,
-                height: 8,
-                decoration: const BoxDecoration(
-                  color: AppColors.brandPrimary,
-                  shape: BoxShape.circle,
-                ),
-              ),
-            ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildSpinCooldownActionIcon(int cooldownValue) {
-    return SizedBox(
-      width: 25,
-      height: 31,
-      child: Stack(
-        clipBehavior: Clip.none,
-        alignment: Alignment.center,
-        children: [
-          Positioned(
-            top: 5,
-            child: SvgPicture.asset(
-              AppAssets.spinwheelIcon,
-              width: 25,
-              height: 25,
-            ),
-          ),
-          Positioned(
-            top: 13,
-            left: cooldownValue < 0 ? 10 : 9,
-            child: SizedBox(
-              width: 7,
-              height: 10,
-              child: Center(
-                child: Text(
-                  '$cooldownValue',
-                  style: const TextStyle(
-                    color: Color(0xFF6B7280),
-                    fontSize: 10,
-                    fontWeight: FontWeight.w700,
-                    height: 1,
-                    fontFamily: 'Inter',
-                  ),
-                ),
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildChatHeaderTrailing() {
-    switch (_headerVariant) {
-      case ChatHeaderVariant.chat1:
-        return _buildHeaderActionButton(
-          onTap: _isChatDisabled
-              ? null
-              : () {
-                  Navigator.pushReplacementNamed(
-                    context,
-                    '/report',
-                    arguments: {
-                      'roomId': widget.roomId,
-                      'targetUserId': _chatUserId,
-                      'userName': _chatUserName,
-                      'avatarUrl': _chatUserAvatar,
-                    },
-                  );
-                },
-          child: SvgPicture.asset(
-            AppAssets.headerSecondaryChat1Actions,
-            width: 25,
-            height: 27,
-          ),
-        );
-      case ChatHeaderVariant.chat2:
-        return Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            if (_shouldShowCalendarIcon) ...[
-              _buildHeaderActionButton(
-                onTap: _handleCalendarTap,
-                child: _buildCalendarActionIcon(),
-              ),
-              const SizedBox(width: 10),
-            ],
-            _buildHeaderActionButton(
-              onTap: _handleSpinwheelTap,
-              child: SvgPicture.asset(
-                AppAssets.headerSecondaryChat3CenterAction,
-                width: 25,
-                height: 31,
-              ),
-            ),
-            const SizedBox(width: 10),
-            _buildHeaderActionButton(
-              onTap: _isChatDisabled
-                  ? null
-                  : () {
-                      Navigator.pushReplacementNamed(
-                        context,
-                        '/report',
-                        arguments: {
-                          'roomId': widget.roomId,
-                          'targetUserId': _chatUserId,
-                          'userName': _chatUserName,
-                          'avatarUrl': _chatUserAvatar,
-                        },
-                      );
-                    },
-              child: SvgPicture.asset(
-                AppAssets.headerSecondaryChat4RightAction,
-                width: 25,
-                height: 27,
-              ),
-            ),
-          ],
-        );
-      case ChatHeaderVariant.chat3:
-      case ChatHeaderVariant.chat4:
-        final cooldownValue = _cooldownDays.clamp(1, 9);
-        return Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            if (_shouldShowCalendarIcon) ...[
-              _buildHeaderActionButton(
-                onTap: _handleCalendarTap,
-                child: _buildCalendarActionIcon(),
-              ),
-              const SizedBox(width: 10),
-            ],
-            _buildHeaderActionButton(
-              onTap: _headerVariant == ChatHeaderVariant.chat3
-                  ? _handleSpinwheelTap
-                  : null,
-              child: _buildSpinCooldownActionIcon(cooldownValue),
-            ),
-            const SizedBox(width: 10),
-            _buildHeaderActionButton(
-              onTap: _isChatDisabled
-                  ? null
-                  : () {
-                      Navigator.pushReplacementNamed(
-                        context,
-                        '/report',
-                        arguments: {
-                          'roomId': widget.roomId,
-                          'targetUserId': _chatUserId,
-                          'userName': _chatUserName,
-                          'avatarUrl': _chatUserAvatar,
-                        },
-                      );
-                    },
-              child: SvgPicture.asset(
-                AppAssets.headerSecondaryChat4RightAction,
-                width: 25,
-                height: 27,
-              ),
-            ),
-          ],
-        );
-    }
-  }
-
   Widget _buildRelationshipBar() {
     final displayHeartCount = _isChatDisabled ? 0 : _heartCount;
     final displayProgress = _isChatDisabled ? 0.0 : _currentPercent;
@@ -2175,7 +1881,6 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
 
   void _onSpinComplete(Map<String, dynamic> result) async {
     setState(() {
-      _lastSpinDate = DateTime.now();
       _lastSpunPlaceId = (result['placeId'] as String?) ?? '';
       _lastSpunPlaceName = (result['name'] as String?) ?? '';
       _lastSpunPlaceImageUrl = (result['imageUrl'] as String?) ?? '';
@@ -2201,7 +1906,7 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
         await service.closeRemoteModal(widget.roomId!);
         _clearWheelState();
       } catch (e) {
-        print("Error fetching date recommendations: $e");
+        debugPrint("Error fetching date recommendations: $e");
       }
     }
   }
@@ -2702,14 +2407,6 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
         _hasTimeBreakAfter(index);
   }
 
-  /// ตรวจสอบว่าเป็นข้อความสุดท้ายในกลุ่มหรือไม่
-  bool _isLastInGroup(int index) {
-    if (index >= _messages.length - 1) return true;
-    return _messages[index + 1].isOwn != _messages[index].isOwn ||
-        _messages[index + 1].isBot ||
-        _hasTimeBreakAfter(index);
-  }
-
   void _triggerUnlockDate() async {
     if (_showUnlockDate || _hasSeenCalendarUnlockIntro) {
       return;
@@ -2931,12 +2628,11 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
         wantToUnmatch: null,
       );
     } catch (e) {
-      print("❌ submitReview error: $e");
+      debugPrint("❌ submitReview error: $e");
     }
   }
 
   void _showWaitingModal() {
-    final dialogKey = GlobalKey();
     bool isDialogOpen = true;
 
     showDialog(
@@ -3178,8 +2874,10 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
           );
 
           if (shareUrl.isNotEmpty) {
-            await Share.share(
-              'ฉันกำลังไปเดตนะ! นี่คือตำแหน่งล่าสุดของฉันตอนนี้นะ:\n$shareUrl',
+            await SharePlus.instance.share(
+              ShareParams(
+                text: 'ฉันกำลังไปเดตนะ! นี่คือตำแหน่งล่าสุดของฉันตอนนี้นะ:\n$shareUrl',
+              ),
             );
           }
         } catch (e) {
@@ -3198,7 +2896,7 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
       onSosTriggered: (calledNumber) async {
         try {
           final pos = await Geolocator.getCurrentPosition(
-            desiredAccuracy: LocationAccuracy.high,
+            locationSettings: const LocationSettings(accuracy: LocationAccuracy.high),
           );
           if (calledNumber == '191') return;
 
@@ -3420,7 +3118,7 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
     final userObj = userState['user'] as User?;
     final fetchUser = await userService.getUser(userObj!.userId);
 
-    if (fetchUser?.isTutorial == false) {
+    if (fetchUser?.isTutorial == false && mounted) {
       await showGeneralDialog(
         context: context,
         barrierDismissible: false,
@@ -3459,7 +3157,7 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
           version: fetchUser.version,
           isTutorial: true,
         );
-        final updatedUser = await userService.updateUser(user);
+        await userService.updateUser(user);
       } catch (e) {
         debugPrint('Error updating tutorial status: $e');
       }
@@ -3497,10 +3195,10 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
     if (showGpsOverlay) {
       _maybeShowEmergencySuggestionForGps();
     }
-    return WillPopScope(
-      onWillPop: () async {
-        await _exitRoomOnce();
-        return true;
+    return PopScope(
+      canPop: true,
+      onPopInvokedWithResult: (didPop, _) async {
+        if (didPop) await _exitRoomOnce();
       },
       child: Scaffold(
         backgroundColor: AppColors.background,
@@ -3529,9 +3227,10 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
                       showCalendarUnreadDot: _calendarHasUnreadUpdate,
                       showBottomBorder: false,
                       onBackTap: () async {
+                        final nav = Navigator.of(context);
                         await _exitRoomOnce();
                         if (!mounted) return;
-                        Navigator.maybePop(context);
+                        nav.maybePop();
                       },
                       onPrimaryActionTap:
                           _headerVariant == ChatHeaderVariant.chat1
@@ -3753,10 +3452,10 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
               //           'http://cp25ssi2.sit.kmutt.ac.th:8080/api/v1/test/trigger-game/$roomId',
               //         );
               //         try {
-              //           print("Shooting trigger to $url");
+              //           debugPrint("Shooting trigger to $url");
               //           await http.post(url);
               //         } catch (e) {
-              //           print("Error triggering game: $e");
+              //           debugPrint("Error triggering game: $e");
               //         }
               //       },
               //     ),
@@ -3953,48 +3652,6 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
             ],
           ),
           ),
-        ),
-      ),
-    );
-  }
-}
-
-class _ChatHeaderTapTarget extends StatefulWidget {
-  const _ChatHeaderTapTarget({required this.child, this.onTap});
-
-  final Widget child;
-  final VoidCallback? onTap;
-
-  @override
-  State<_ChatHeaderTapTarget> createState() => _ChatHeaderTapTargetState();
-}
-
-class _ChatHeaderTapTargetState extends State<_ChatHeaderTapTarget> {
-  bool _pressed = false;
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: widget.onTap,
-      onTapDown: widget.onTap != null
-          ? (_) => setState(() => _pressed = true)
-          : null,
-      onTapUp: widget.onTap != null
-          ? (_) => setState(() => _pressed = false)
-          : null,
-      onTapCancel: widget.onTap != null
-          ? () => setState(() => _pressed = false)
-          : null,
-      behavior: HitTestBehavior.opaque,
-      child: AnimatedScale(
-        duration: const Duration(milliseconds: 140),
-        curve: Curves.easeOutCubic,
-        scale: _pressed ? 1.04 : 1,
-        child: AnimatedSlide(
-          duration: const Duration(milliseconds: 140),
-          curve: Curves.easeOutCubic,
-          offset: _pressed ? const Offset(0, -0.06) : Offset.zero,
-          child: Padding(padding: const EdgeInsets.all(4), child: widget.child),
         ),
       ),
     );

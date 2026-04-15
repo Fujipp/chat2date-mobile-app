@@ -36,6 +36,7 @@ dependencies:
   stomp_dart_client: ^1.0.0
   google_sign_in: ^7.2.0
   flutter_riverpod: ^2.6.1
+  riverpod_annotation: ^2.6.1
   flutter_secure_storage: ^9.2.4
   provider: ^6.1.5+1
 
@@ -63,7 +64,6 @@ dev_dependencies:
 
   # สำหรับ generate code (riverpod ฯลฯ)
   build_runner: ^2.4.11
-  riverpod_annotation: ^2.6.1
   riverpod_generator: ^2.6.1
 
   # === Splash & App Icon ===

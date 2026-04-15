@@ -87,7 +87,7 @@ class _DiscoveryScreenState extends ConsumerState<DiscoveryScreen>
 
       // 3) Try to get a position
       final pos = await Geolocator.getCurrentPosition(
-        desiredAccuracy: LocationAccuracy.high,
+        locationSettings: const LocationSettings(accuracy: LocationAccuracy.high),
       );
 
       // Treat (0,0) as invalid (do not proceed)
@@ -194,8 +194,8 @@ class _DiscoveryScreenState extends ConsumerState<DiscoveryScreen>
     if (_userId == null) return;
     try {
       final prefs = await SharedPreferences.getInstance();
-      final start = prefs.getDouble('distanceRange:${_userId}:start');
-      final end = prefs.getDouble('distanceRange:${_userId}:end');
+      final start = prefs.getDouble('distanceRange:$_userId:start');
+      final end = prefs.getDouble('distanceRange:$_userId:end');
       if (start != null && end != null) {
         setState(() {
           _selectedRange = RangeValues(
@@ -223,11 +223,11 @@ class _DiscoveryScreenState extends ConsumerState<DiscoveryScreen>
 
     final prefs = await SharedPreferences.getInstance();
     await prefs.setDouble(
-      'distanceRange:${_userId}:start',
+      'distanceRange:$_userId:start',
       normalized.start,
     );
     await prefs.setDouble(
-      'distanceRange:${_userId}:end',
+      'distanceRange:$_userId:end',
       normalized.end,
     );
   }
@@ -436,13 +436,13 @@ class _DiscoveryScreenState extends ConsumerState<DiscoveryScreen>
   // ---------- Utils ----------
 
   Color _blurredWhite(double t) {
-    if (t < 0.1) return Colors.black.withOpacity(0.01);
+    if (t < 0.1) return Colors.black.withValues(alpha: 0.01);
     final k = ((t - 0.1) / 0.9).clamp(0.0, 0.5);
-    return Colors.white.withOpacity(k);
+    return Colors.white.withValues(alpha: k);
   }
 
   void _nextImage(int maxLength) {
-    print(_index);
+    debugPrint(_index.toString());
     setState(() => _index = (_index + 1) % maxLength);
   }
 
@@ -533,10 +533,9 @@ class _DiscoveryScreenState extends ConsumerState<DiscoveryScreen>
     showDialog(
       context: context,
       builder: (context) {
+        final nav = Navigator.of(context);
         Future.delayed(const Duration(milliseconds: 7500), () {
-          if (Navigator.canPop(context)) {
-            Navigator.pop(context);
-          }
+          if (nav.canPop()) nav.pop();
         });
 
         return Center(
@@ -684,7 +683,7 @@ class _DiscoveryScreenState extends ConsumerState<DiscoveryScreen>
           if (!mounted) return;
           debugPrint('[Discovery] 🎉 Initialization complete!');
         } catch (e) {
-          print('❌ Error initializing discovery: $e');
+          debugPrint('❌ Error initializing discovery: $e');
         }
       });
     }
@@ -997,7 +996,7 @@ class _CandidateViewState extends ConsumerState<_CandidateView> {
             NetworkImage(widget.candidate.photos.first),
             context,
           ).catchError((e) {
-            print('⚠️ Failed to precache image: $e');
+            debugPrint('⚠️ Failed to precache image: $e');
             return null;
           });
     } else if (!_hasPreloaded) {
