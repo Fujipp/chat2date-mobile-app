@@ -32,12 +32,35 @@ show_sizes() {
   done
 }
 
-require_flutter() {
-  if ! command -v flutter >/dev/null 2>&1; then
-    echo "flutter not found in PATH"
-    echo "Please open a shell where Flutter is installed, or export PATH/FLUTTER_ROOT first."
-    exit 1
+resolve_flutter() {
+  if command -v flutter >/dev/null 2>&1; then
+    FLUTTER_BIN="$(command -v flutter)"
+    return 0
   fi
+
+  local candidates=(
+    "$FLUTTER_ROOT/bin/flutter"
+    "$HOME/flutter/bin/flutter"
+    "$HOME/development/flutter/bin/flutter"
+    "$HOME/Development/flutter/bin/flutter"
+    "$HOME/fvm/default/bin/flutter"
+    "$HOME/.fvm/default/bin/flutter"
+    "/opt/flutter/bin/flutter"
+  )
+
+  local path
+  for path in "${candidates[@]}"; do
+    if [ -n "$path" ] && [ -x "$path" ]; then
+      FLUTTER_BIN="$path"
+      return 0
+    fi
+  done
+
+  echo "flutter not found in PATH or common install locations"
+  echo "Please export FLUTTER_ROOT or add Flutter to PATH, then rerun."
+  echo "Tried:"
+  printf '  - %s\n' "${candidates[@]}"
+  exit 1
 }
 
 clean_project() {
@@ -57,7 +80,7 @@ clean_project() {
     )
   fi
 
-  flutter clean || true
+  "$FLUTTER_BIN" clean || true
 }
 
 usage() {
@@ -83,16 +106,17 @@ if [[ "${1:-}" == "-h" || "${1:-}" == "--help" ]]; then
   exit 0
 fi
 
-require_flutter
+resolve_flutter
+log "Using Flutter: $FLUTTER_BIN"
 show_sizes
 clean_project
 show_sizes
 
 log "Running flutter pub get"
-flutter pub get
+"$FLUTTER_BIN" pub get
 
 log "Starting flutter run $*"
-flutter run "$@"
+"$FLUTTER_BIN" run "$@"
 
 log "flutter run exited"
 show_sizes
