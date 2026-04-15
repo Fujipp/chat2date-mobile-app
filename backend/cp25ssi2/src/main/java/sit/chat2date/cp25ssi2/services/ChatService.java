@@ -36,6 +36,10 @@ public class ChatService {
     private final UserPhotoRepository userPhotoRepository;
     private final RelationshipStatsRepository relationshipStatsRepository;
     private final ReportRepository reportRepository;
+    private final UserHasInterestRepository userHasInterestRepository;
+    private final UserHasLifestyleRepository userHasLifestyleRepository;
+    private final UserHasTravelstyleRepository userHasTravelstyleRepository;
+    private final UserLocationRepository userLocationRepository;
     private final ChatSocketService chatSocketService;
     private final NotificationService notificationService;
     private final ObjectMapper objectMapper;
@@ -168,6 +172,10 @@ public class ChatService {
                 .partner(ChatRoomDetailResponse.PartnerInfo.builder()
                         .senderName(partner.getNickname())
                         .senderImage(getPhotos(partner.getUserId()))
+                        .interests(getInterestIds(partner.getUserId()))
+                        .lifeStyles(getLifeStyleIds(partner.getUserId()))
+                        .travelStyles(getTravelStyleIds(partner.getUserId()))
+                        .distance(calculateDistanceKm(userId, partner.getUserId()))
                         .build())
                 .relationshipScore(relationshipScore)
                 .build();
@@ -298,6 +306,46 @@ public class ChatService {
         } catch (Exception e) {
             return new ArrayList<>();
         }
+    }
+
+    private List<Integer> getInterestIds(String userId) {
+        return userHasInterestRepository.findAllByUser_UserId(userId).stream()
+                .map(userHasInterest -> userHasInterest.getInterestInterest().getId())
+                .collect(Collectors.toList());
+    }
+
+    private List<Integer> getLifeStyleIds(String userId) {
+        return userHasLifestyleRepository.findAllByUser_UserId(userId).stream()
+                .map(userHasLifestyle -> userHasLifestyle.getLifestyleLifestyle().getId())
+                .collect(Collectors.toList());
+    }
+
+    private List<Integer> getTravelStyleIds(String userId) {
+        return userHasTravelstyleRepository.findAllByUser_UserId(userId).stream()
+                .map(userHasTravelstyle -> userHasTravelstyle.getTravelstyleTravel().getId())
+                .collect(Collectors.toList());
+    }
+
+    private Double calculateDistanceKm(String userId, String partnerId) {
+        UserLocation myLocation = userLocationRepository.findFirstByUser_UserId(userId);
+        UserLocation partnerLocation = userLocationRepository.findFirstByUser_UserId(partnerId);
+        if (myLocation == null || partnerLocation == null) {
+            return null;
+        }
+
+        double lat1 = Math.toRadians(myLocation.getLatitude().doubleValue());
+        double lon1 = Math.toRadians(myLocation.getLongitude().doubleValue());
+        double lat2 = Math.toRadians(partnerLocation.getLatitude().doubleValue());
+        double lon2 = Math.toRadians(partnerLocation.getLongitude().doubleValue());
+
+        double deltaLat = lat2 - lat1;
+        double deltaLon = lon2 - lon1;
+        double a = Math.sin(deltaLat / 2) * Math.sin(deltaLat / 2)
+                + Math.cos(lat1) * Math.cos(lat2)
+                * Math.sin(deltaLon / 2) * Math.sin(deltaLon / 2);
+        double c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+        double earthRadiusKm = 6371.0;
+        return earthRadiusKm * c;
     }
 
     public String getAnonymizedChatHistory(Integer roomId) {
