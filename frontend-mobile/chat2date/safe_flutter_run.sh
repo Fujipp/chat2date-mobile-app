@@ -38,8 +38,9 @@ resolve_flutter() {
     return 0
   fi
 
+  local flutter_root="${FLUTTER_ROOT:-}"
   local candidates=(
-    "$FLUTTER_ROOT/bin/flutter"
+    "$flutter_root/bin/flutter"
     "$HOME/flutter/bin/flutter"
     "$HOME/flutter-sdk/bin/flutter"
     "$HOME/development/flutter/bin/flutter"
