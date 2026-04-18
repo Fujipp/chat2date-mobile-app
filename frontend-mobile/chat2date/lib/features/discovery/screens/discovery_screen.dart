@@ -3,12 +3,18 @@ import 'dart:ui' show ImageFilter;
 
 import 'package:chat2date/components/buttons/ds_button.dart';
 import 'package:chat2date/components/common/modal_component.dart';
-import 'package:chat2date/components/layout/menu_bar.dart';
-import 'package:chat2date/components/toasts/toast.dart';
 import 'package:chat2date/components/design_system/controls/ds_reaction_button.dart';
 import 'package:chat2date/components/design_system/controls/ds_slider.dart';
 import 'package:chat2date/components/design_system/organisms/ds_app_home_header.dart';
+import 'package:chat2date/components/layout/menu_bar.dart';
+import 'package:chat2date/components/toasts/toast.dart';
 import 'package:chat2date/core/theme/app_assets.dart';
+import 'package:chat2date/core/theme/app_colors.dart';
+import 'package:chat2date/core/theme/tokens/colors/app_gradients.dart';
+import 'package:chat2date/core/theme/tokens/colors/input_colors.dart';
+import 'package:chat2date/core/theme/tokens/colors/text_colors.dart';
+import 'package:chat2date/features/discovery/widgets/home_search_loading_content.dart';
+import 'package:chat2date/features/profile/screens/selection_icon_mapper.dart';
 import 'package:chat2date/models/dto/discovery_dto.dart';
 import 'package:chat2date/models/user.dart';
 import 'package:chat2date/services/discovery_service.dart';
@@ -17,19 +23,16 @@ import 'package:chat2date/services/location_service.dart';
 import 'package:chat2date/services/swipe_quota_service.dart';
 import 'package:chat2date/services/user_service.dart';
 import 'package:chat2date/stores/user_store.dart';
-import 'package:chat2date/core/theme/app_colors.dart';
-import 'package:chat2date/core/theme/tokens/colors/app_gradients.dart';
-import 'package:chat2date/core/theme/tokens/colors/input_colors.dart';
-import 'package:chat2date/core/theme/tokens/colors/text_colors.dart';
-import 'package:chat2date/features/profile/screens/selection_icon_mapper.dart';
-import 'package:chat2date/features/discovery/widgets/home_search_loading_content.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 // NOTE: We deliberately handle location permission inline here (minimal change)
 // rather than introducing new global wrappers to satisfy the requirement.
 import 'package:geolocator/geolocator.dart';
-import 'package:sliding_up_panel/sliding_up_panel.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:sliding_up_panel/sliding_up_panel.dart';
+
+const double kMaxDiscoveryDistance = 1500.0;
+const double kDefaultDiscoveryDistance = 160.0;
 
 class DiscoveryScreen extends ConsumerStatefulWidget {
   final int selectedIndex;
@@ -87,7 +90,9 @@ class _DiscoveryScreenState extends ConsumerState<DiscoveryScreen>
 
       // 3) Try to get a position
       final pos = await Geolocator.getCurrentPosition(
-        locationSettings: const LocationSettings(accuracy: LocationAccuracy.high),
+        locationSettings: const LocationSettings(
+          accuracy: LocationAccuracy.high,
+        ),
       );
 
       // Treat (0,0) as invalid (do not proceed)
@@ -185,9 +190,10 @@ class _DiscoveryScreenState extends ConsumerState<DiscoveryScreen>
   String? _userId;
   int? behaviorScore;
 
-  RangeValues _selectedRange = const RangeValues(0, 160);
+  // Default: show 0–160 km on first launch; user can extend up to 1,500 km.
+  RangeValues _selectedRange = const RangeValues(0, kDefaultDiscoveryDistance);
   bool _isDistancePanelOpen = false;
-  double _distanceKm = 160;
+  double _distanceKm = kDefaultDiscoveryDistance;
   bool _isSavingDistancePanel = false;
 
   Future<void> _loadPersistedRange() async {
@@ -199,8 +205,8 @@ class _DiscoveryScreenState extends ConsumerState<DiscoveryScreen>
       if (start != null && end != null) {
         setState(() {
           _selectedRange = RangeValues(
-            start.clamp(0.0, 160.0),
-            end.clamp(0.0, 160.0),
+            start.clamp(0.0, kMaxDiscoveryDistance),
+            end.clamp(0.0, kMaxDiscoveryDistance),
           );
           _distanceKm = _selectedRange.end;
         });
@@ -212,8 +218,8 @@ class _DiscoveryScreenState extends ConsumerState<DiscoveryScreen>
     if (_userId == null) return;
 
     final normalized = RangeValues(
-      values.start.clamp(0.0, 160.0),
-      values.end.clamp(0.0, 160.0),
+      values.start.clamp(0.0, kMaxDiscoveryDistance),
+      values.end.clamp(0.0, kMaxDiscoveryDistance),
     );
 
     setState(() {
@@ -222,21 +228,17 @@ class _DiscoveryScreenState extends ConsumerState<DiscoveryScreen>
     });
 
     final prefs = await SharedPreferences.getInstance();
-    await prefs.setDouble(
-      'distanceRange:$_userId:start',
-      normalized.start,
-    );
-    await prefs.setDouble(
-      'distanceRange:$_userId:end',
-      normalized.end,
-    );
+    await prefs.setDouble('distanceRange:$_userId:start', normalized.start);
+    await prefs.setDouble('distanceRange:$_userId:end', normalized.end);
   }
 
   Future<void> _refreshCandidatesSafely(RangeValues values) async {
     if (_userId == null) return;
 
     try {
-      await ref.read(discoveryProvider(_userId!).notifier).refresh(
+      await ref
+          .read(discoveryProvider(_userId!).notifier)
+          .refresh(
             minDistance: values.start.round(),
             maxDistance: values.end.round(),
           );
@@ -253,13 +255,15 @@ class _DiscoveryScreenState extends ConsumerState<DiscoveryScreen>
         'interestedDistanceMin': values.start.round(),
         'interestedDistanceMax': values.end.round(),
       };
-      await ref.read(userServiceProvider).addPreferenceMatchUser(preferenceMatch);
+      await ref
+          .read(userServiceProvider)
+          .addPreferenceMatchUser(preferenceMatch);
     } catch (_) {}
   }
 
   void _toggleDistancePanel() {
     setState(() {
-      _distanceKm = _selectedRange.end.clamp(1.0, 160.0);
+      _distanceKm = _selectedRange.end.clamp(1.0, kMaxDiscoveryDistance);
       _isDistancePanelOpen = !_isDistancePanelOpen;
     });
   }
@@ -267,7 +271,10 @@ class _DiscoveryScreenState extends ConsumerState<DiscoveryScreen>
   Future<void> _saveDistancePanel() async {
     if (_isSavingDistancePanel) return;
 
-    final selectedRange = RangeValues(0, _distanceKm.clamp(1.0, 160.0));
+    final selectedRange = RangeValues(
+      0,
+      _distanceKm.clamp(1.0, kMaxDiscoveryDistance),
+    );
     final isUnchanged =
         selectedRange.start.round() == _selectedRange.start.round() &&
         selectedRange.end.round() == _selectedRange.end.round();
@@ -405,7 +412,7 @@ class _DiscoveryScreenState extends ConsumerState<DiscoveryScreen>
             DsSlider(
               value: _distanceKm,
               min: 1,
-              max: 160,
+              max: kMaxDiscoveryDistance, // 1,500 km
               width: double.infinity,
               onChanged: (value) {
                 setState(() {
@@ -729,7 +736,9 @@ class _DiscoveryScreenState extends ConsumerState<DiscoveryScreen>
     }
 
     // Backend error และ empty state ใช้หน้ากลางเดียวกัน
-    if (discoveryState.error != null || currentCandidate == null || discoveryState.isEmpty) {
+    if (discoveryState.error != null ||
+        currentCandidate == null ||
+        discoveryState.isEmpty) {
       return _buildHomeFallbackState();
     }
 
@@ -807,102 +816,98 @@ class _DiscoveryScreenState extends ConsumerState<DiscoveryScreen>
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-                            const Icon(
-                              Icons.person_search_rounded,
-                              size: 134,
-                              color: AppColors.brandPrimary,
-                            ),
-                            const SizedBox(height: 10),
-                            const SizedBox(
-                              width: 358,
-                              child: Column(
-                                children: [
-                                  Text(
-                                    'ไม่พบคนที่เหมาะสมในขณะนี้',
-                                    textAlign: TextAlign.center,
-                                    style: TextStyle(
-                                      fontSize: 22,
-                                      height: 28 / 22,
-                                      fontWeight: FontWeight.w600,
-                                      color: AppColors.textPrimary,
-                                      fontFamily: 'Inter',
-                                    ),
-                                  ),
-                                  SizedBox(height: 2),
-                                  Text(
-                                    'ไม่ต้องกังวลเรามีคำแนะนำให้คุณ',
-                                    textAlign: TextAlign.center,
-                                    style: TextStyle(
-                                      fontSize: 16,
-                                      height: 22 / 16,
-                                      color: TextColors.supportText,
-                                      fontFamily: 'Inter',
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                            const SizedBox(height: 10),
-                            Container(
-                              width: 358,
-                              padding: const EdgeInsets.fromLTRB(20, 10, 20, 24),
-                              decoration: BoxDecoration(
-                                color: InputColors.background,
-                                borderRadius: BorderRadius.circular(20),
-                                border: Border.all(color: InputColors.border),
-                              ),
-                              child: const Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  SizedBox(
-                                    height: 47,
-                                    child: Align(
-                                      alignment: Alignment.centerLeft,
-                                      child: Text(
-                                        'คำแนะนำ : ให้ลองปรับเปลี่ยนตามนี้',
-                                        style: TextStyle(
-                                          fontSize: 14,
-                                          height: 20 / 14,
-                                          color: TextColors.secondary,
-                                          fontFamily: 'Inter',
-                                        ),
-                                      ),
-                                    ),
-                                  ),
-                                  _EmptySuggestionLine(
-                                    text: 'ปรับระยะทางการค้นหาคู่เดตให้มากขึ้น',
-                                  ),
-                                  _EmptySuggestionLine(
-                                    text: 'ปรับประเภทคู่เดตที่สนใจ',
-                                  ),
-                                  _EmptySuggestionLine(
-                                    text: 'ลองค้นหาใหม่อีกครั้ง',
-                                  ),
-                                ],
-                              ),
-                            ),
-                            const SizedBox(height: 10),
-                            DsButton(
-                              label: 'ค้นหาอีกครั้ง',
-                              onPressed: () async {
-                                await _refreshCandidatesSafely(_selectedRange);
-                              },
-                              width: 231,
-                              size: DsButtonSize.md,
-                              variant: DsButtonVariant.outlinePrimary,
-                              leadingSvgAsset: AppAssets.refreshIcon,
-                              iconSize: 17,
-                            ),
-                            const SizedBox(height: 10),
-                            DsButton(
-                              label: 'ปรับระยะทางค้นหา',
-                              onPressed: _toggleDistancePanel,
-                              width: 231,
-                              size: DsButtonSize.md,
-                              variant: DsButtonVariant.outlinePrimary,
-                              leadingSvgAsset: AppAssets.settingsIcon,
-                              iconSize: 20,
-                            ),
+              const Icon(
+                Icons.person_search_rounded,
+                size: 134,
+                color: AppColors.brandPrimary,
+              ),
+              const SizedBox(height: 10),
+              const SizedBox(
+                width: 358,
+                child: Column(
+                  children: [
+                    Text(
+                      'ไม่พบคนที่เหมาะสมในขณะนี้',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        fontSize: 22,
+                        height: 28 / 22,
+                        fontWeight: FontWeight.w600,
+                        color: AppColors.textPrimary,
+                        fontFamily: 'Inter',
+                      ),
+                    ),
+                    SizedBox(height: 2),
+                    Text(
+                      'ไม่ต้องกังวลเรามีคำแนะนำให้คุณ',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        fontSize: 16,
+                        height: 22 / 16,
+                        color: TextColors.supportText,
+                        fontFamily: 'Inter',
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 10),
+              Container(
+                width: 358,
+                padding: const EdgeInsets.fromLTRB(20, 10, 20, 24),
+                decoration: BoxDecoration(
+                  color: InputColors.background,
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(color: InputColors.border),
+                ),
+                child: const Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    SizedBox(
+                      height: 47,
+                      child: Align(
+                        alignment: Alignment.centerLeft,
+                        child: Text(
+                          'คำแนะนำ : ให้ลองปรับเปลี่ยนตามนี้',
+                          style: TextStyle(
+                            fontSize: 14,
+                            height: 20 / 14,
+                            color: TextColors.secondary,
+                            fontFamily: 'Inter',
+                          ),
+                        ),
+                      ),
+                    ),
+                    _EmptySuggestionLine(
+                      text: 'ปรับระยะทางการค้นหาคู่เดตให้มากขึ้น',
+                    ),
+                    _EmptySuggestionLine(text: 'ปรับประเภทคู่เดตที่สนใจ'),
+                    _EmptySuggestionLine(text: 'ลองค้นหาใหม่อีกครั้ง'),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 10),
+              DsButton(
+                label: 'ค้นหาอีกครั้ง',
+                onPressed: () async {
+                  await _refreshCandidatesSafely(_selectedRange);
+                },
+                width: 231,
+                size: DsButtonSize.md,
+                variant: DsButtonVariant.outlinePrimary,
+                leadingSvgAsset: AppAssets.refreshIcon,
+                iconSize: 17,
+              ),
+              const SizedBox(height: 10),
+              DsButton(
+                label: 'ปรับระยะทางค้นหา',
+                onPressed: _toggleDistancePanel,
+                width: 231,
+                size: DsButtonSize.md,
+                variant: DsButtonVariant.outlinePrimary,
+                leadingSvgAsset: AppAssets.settingsIcon,
+                iconSize: 20,
+              ),
             ],
           ),
         ),
@@ -1335,222 +1340,227 @@ class _CandidateViewState extends ConsumerState<_CandidateView> {
             final aboutHeight = constraints.maxHeight;
 
             return Stack(
+              children: [
+                Positioned.fill(
+                  child: DecoratedBox(
+                    decoration: BoxDecoration(
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: 0.22),
+                          blurRadius: 28,
+                          spreadRadius: 2,
+                          offset: const Offset(0, 10),
+                        ),
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: 0.10),
+                          blurRadius: 8,
+                          offset: const Offset(0, 2),
+                        ),
+                      ],
+                    ),
+                    child: GestureDetector(
+                      behavior: HitTestBehavior.opaque,
+                      onTapUp: (details) => _handleImageTap(
+                        details,
+                        constraints.maxWidth,
+                        images.length,
+                      ),
+                      child: Stack(
+                        clipBehavior: Clip.none,
+                        fit: StackFit.expand,
                         children: [
-                          Positioned.fill(
-                            child: DecoratedBox(
-                              decoration: BoxDecoration(
-                                boxShadow: [
-                                  BoxShadow(
-                                    color: Colors.black.withValues(alpha: 0.22),
-                                    blurRadius: 28,
-                                    spreadRadius: 2,
-                                    offset: const Offset(0, 10),
-                                  ),
-                                  BoxShadow(
-                                    color: Colors.black.withValues(alpha: 0.10),
-                                    blurRadius: 8,
-                                    offset: const Offset(0, 2),
-                                  ),
-                                ],
+                          ClipRect(
+                            child: Opacity(
+                              opacity: widget.opacity,
+                              child: Transform.translate(
+                                offset: Offset(dx, dy),
+                                child: Transform.rotate(
+                                  angle: rot,
+                                  child: hasImages
+                                      ? Image.network(
+                                          images[widget.index],
+                                          fit: BoxFit.cover,
+                                          errorBuilder:
+                                              (context, error, stackTrace) {
+                                                return _buildImageFallback(sex);
+                                              },
+                                        )
+                                      : _buildImageFallback(sex),
+                                ),
                               ),
-                              child: GestureDetector(
-                                behavior: HitTestBehavior.opaque,
-                                onTapUp: (details) => _handleImageTap(
-                                  details,
-                                  constraints.maxWidth,
-                                  images.length,
-                                ),
-                                child: Stack(
-                                  clipBehavior: Clip.none,
-                                  fit: StackFit.expand,
-                                  children: [
-                                      ClipRect(
-                                        child: Opacity(
-                                          opacity: widget.opacity,
-                                          child: Transform.translate(
-                                            offset: Offset(dx, dy),
-                                            child: Transform.rotate(
-                                              angle: rot,
-                                              child: hasImages
-                                                  ? Image.network(
-                                                      images[widget.index],
-                                                      fit: BoxFit.cover,
-                                                      errorBuilder: (context, error, stackTrace) {
-                                                        return _buildImageFallback(sex);
-                                                      },
-                                                    )
-                                                  : _buildImageFallback(sex),
-                                            ),
-                                          ),
-                                        ),
-                                      ),
-                                      Positioned(
-                                        left: -28,
-                                        right: -28,
-                                        bottom: -18,
-                                        child: IgnorePointer(
-                                          child: ImageFiltered(
-                                            imageFilter: ImageFilter.blur(
-                                              sigmaX: 0,
-                                              sigmaY: 18,
-                                            ),
-                                            child: Container(
-                                              height: 278,
-                                              decoration: const BoxDecoration(
-                                                borderRadius: BorderRadius.vertical(
-                                                  bottom: Radius.circular(42),
-                                                ),
-                                                gradient: LinearGradient(
-                                                  begin: Alignment.topCenter,
-                                                  end: Alignment.bottomCenter,
-                                                  stops: [0.0, 0.22, 0.58, 1.0],
-                                                  colors: [
-                                                    Color(0x00000000),
-                                                    Color(0x22000000),
-                                                    Color(0xCC1F1F1F),
-                                                    Colors.black,
-                                                  ],
-                                                ),
-                                              ),
-                                            ),
-                                          ),
-                                        ),
-                                      ),
-                                      if (widget.remainingAction != null)
-                                        Positioned(
-                                          top: 18,
-                                          right: 18,
-                                          child: Container(
-                                            padding: const EdgeInsets.symmetric(
-                                              horizontal: 12,
-                                              vertical: 6,
-                                            ),
-                                            decoration: BoxDecoration(
-                                              color: Colors.black.withValues(alpha: 0.48),
-                                              borderRadius: BorderRadius.circular(20),
-                                              border: Border.all(
-                                                color: Colors.white.withValues(alpha: 0.2),
-                                              ),
-                                            ),
-                                            child: Row(
-                                              mainAxisSize: MainAxisSize.min,
-                                              children: [
-                                                const Icon(
-                                                  Icons.bolt_rounded,
-                                                  size: 16,
-                                                  color: AppColors.brandSecondary,
-                                                ),
-                                                const SizedBox(width: 4),
-                                                Text(
-                                                  '${widget.remainingAction}',
-                                                  style: const TextStyle(
-                                                    fontSize: 14,
-                                                    fontWeight: FontWeight.w700,
-                                                    color: AppColors.textOnDark,
-                                                    fontFamily: 'Inter',
-                                                  ),
-                                                ),
-                                              ],
-                                            ),
-                                          ),
-                                        ),
-                                    ],
-                                  ),
-                                ),
                             ),
                           ),
-                          if (!_isAboutOpen)
+                          Positioned(
+                            left: -28,
+                            right: -28,
+                            bottom: -18,
+                            child: IgnorePointer(
+                              child: ImageFiltered(
+                                imageFilter: ImageFilter.blur(
+                                  sigmaX: 0,
+                                  sigmaY: 18,
+                                ),
+                                child: Container(
+                                  height: 278,
+                                  decoration: const BoxDecoration(
+                                    borderRadius: BorderRadius.vertical(
+                                      bottom: Radius.circular(42),
+                                    ),
+                                    gradient: LinearGradient(
+                                      begin: Alignment.topCenter,
+                                      end: Alignment.bottomCenter,
+                                      stops: [0.0, 0.22, 0.58, 1.0],
+                                      colors: [
+                                        Color(0x00000000),
+                                        Color(0x22000000),
+                                        Color(0xCC1F1F1F),
+                                        Colors.black,
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
+                          if (widget.remainingAction != null)
                             Positioned(
-                              left: 0,
-                              right: 0,
-                              bottom: 94,
-                              child: Padding(
-                                padding: const EdgeInsets.symmetric(horizontal: 30),
-                                child: Column(
+                              top: 18,
+                              right: 18,
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 12,
+                                  vertical: 6,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: Colors.black.withValues(alpha: 0.48),
+                                  borderRadius: BorderRadius.circular(20),
+                                  border: Border.all(
+                                    color: Colors.white.withValues(alpha: 0.2),
+                                  ),
+                                ),
+                                child: Row(
                                   mainAxisSize: MainAxisSize.min,
                                   children: [
-                                    Row(
-                                      mainAxisAlignment: MainAxisAlignment.center,
-                                      children: List.generate(
-                                        max(images.length, 1),
-                                        (index) => Container(
-                                          width: 5,
-                                          height: 5,
-                                          margin: const EdgeInsets.symmetric(horizontal: 2.5),
-                                          decoration: BoxDecoration(
-                                            color: index == widget.index
-                                                ? AppColors.background
-                                                : Colors.white.withValues(alpha: 0.42),
-                                            shape: BoxShape.circle,
-                                          ),
-                                        ),
+                                    const Icon(
+                                      Icons.bolt_rounded,
+                                      size: 16,
+                                      color: AppColors.brandSecondary,
+                                    ),
+                                    const SizedBox(width: 4),
+                                    Text(
+                                      '${widget.remainingAction}',
+                                      style: const TextStyle(
+                                        fontSize: 14,
+                                        fontWeight: FontWeight.w700,
+                                        color: AppColors.textOnDark,
+                                        fontFamily: 'Inter',
                                       ),
                                     ),
-                                    const SizedBox(height: 12),
-                                    Align(
-                                      alignment: Alignment.centerLeft,
-                                      child: Text(
-                                        '${widget.candidate.nickname} (${widget.candidate.age})',
-                                        style: const TextStyle(
-                                          fontSize: 22,
-                                          height: 28 / 22,
-                                          fontWeight: FontWeight.w600,
-                                          color: AppColors.textOnDark,
-                                          fontFamily: 'Inter',
-                                        ),
-                                      ),
-                                    ),
-                                    if (tags.isNotEmpty) ...[
-                                      const SizedBox(height: 11),
-                                      Align(
-                                        alignment: Alignment.centerLeft,
-                                        child: Wrap(
-                                          spacing: 5,
-                                          runSpacing: 7,
-                                          children: tags.map(_buildClosedTagChip).toList(),
-                                        ),
-                                      ),
-                                    ],
                                   ],
                                 ),
                               ),
                             ),
-                          AnimatedPositioned(
-                            duration: const Duration(milliseconds: 260),
-                            curve: Curves.easeOutCubic,
-                            top: aboutTop,
-                            left: 0,
-                            right: 0,
-                            height: aboutHeight,
-                            child: _buildAboutSheet(aboutHeight),
-                          ),
-                          Positioned(
-                            left: 0,
-                            right: 0,
-                            bottom: 20,
-                            child: Row(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                if (!_isAboutOpen) ...[
-                                  DsReactionButton(
-                                    type: DsReactionButtonType.pass,
-                                    onTap: _handlePass,
-                                  ),
-                                  const SizedBox(width: 25),
-                                ],
-                                _buildInfoToggleButton(expanded: _isAboutOpen),
-                                if (!_isAboutOpen) ...[
-                                  const SizedBox(width: 25),
-                                  DsReactionButton(
-                                    type: DsReactionButtonType.match,
-                                    onTap: _handleLike,
-                                  ),
-                                ],
-                              ],
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+                if (!_isAboutOpen)
+                  Positioned(
+                    left: 0,
+                    right: 0,
+                    bottom: 94,
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 30),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: List.generate(
+                              max(images.length, 1),
+                              (index) => Container(
+                                width: 5,
+                                height: 5,
+                                margin: const EdgeInsets.symmetric(
+                                  horizontal: 2.5,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: index == widget.index
+                                      ? AppColors.background
+                                      : Colors.white.withValues(alpha: 0.42),
+                                  shape: BoxShape.circle,
+                                ),
+                              ),
                             ),
                           ),
+                          const SizedBox(height: 12),
+                          Align(
+                            alignment: Alignment.centerLeft,
+                            child: Text(
+                              '${widget.candidate.nickname} (${widget.candidate.age})',
+                              style: const TextStyle(
+                                fontSize: 22,
+                                height: 28 / 22,
+                                fontWeight: FontWeight.w600,
+                                color: AppColors.textOnDark,
+                                fontFamily: 'Inter',
+                              ),
+                            ),
+                          ),
+                          if (tags.isNotEmpty) ...[
+                            const SizedBox(height: 11),
+                            Align(
+                              alignment: Alignment.centerLeft,
+                              child: Wrap(
+                                spacing: 5,
+                                runSpacing: 7,
+                                children: tags
+                                    .map(_buildClosedTagChip)
+                                    .toList(),
+                              ),
+                            ),
+                          ],
                         ],
-                      );
+                      ),
+                    ),
+                  ),
+                AnimatedPositioned(
+                  duration: const Duration(milliseconds: 260),
+                  curve: Curves.easeOutCubic,
+                  top: aboutTop,
+                  left: 0,
+                  right: 0,
+                  height: aboutHeight,
+                  child: _buildAboutSheet(aboutHeight),
+                ),
+                Positioned(
+                  left: 0,
+                  right: 0,
+                  bottom: 20,
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      if (!_isAboutOpen) ...[
+                        DsReactionButton(
+                          type: DsReactionButtonType.pass,
+                          onTap: _handlePass,
+                        ),
+                        const SizedBox(width: 25),
+                      ],
+                      _buildInfoToggleButton(expanded: _isAboutOpen),
+                      if (!_isAboutOpen) ...[
+                        const SizedBox(width: 25),
+                        DsReactionButton(
+                          type: DsReactionButtonType.match,
+                          onTap: _handleLike,
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
+              ],
+            );
           },
         );
       },
