@@ -143,7 +143,7 @@ class RelationshipMissionModal extends StatelessWidget {
       return Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: AppColors.neutral200,
+          color: AppColors.neutral300,
           borderRadius: BorderRadius.circular(20),
           border: Border.all(color: AppColors.neutral200.withValues(alpha: 0.3)),
         ),
@@ -152,10 +152,10 @@ class RelationshipMissionModal extends StatelessWidget {
             const Expanded(
               child: Text(
                 'สถานะ: เพิ่งเริ่มต้นการสนทนา รักษาแต้มความสัมพันธ์ด้วยการคุยต่อเนื่องนะ!',
-                style: TextStyle(
+                style: const TextStyle(
                   fontSize: 13,
                   fontWeight: FontWeight.bold,
-                  color: AppColors.btnTextSecondary,
+                  color: AppColors.inputPlaceholder,
                 ),
               ),
             ),
@@ -202,7 +202,7 @@ class RelationshipMissionModal extends StatelessWidget {
                       : 'รีบทักไปคุยเพื่อรักษาแต้มความสัมพันธ์นะ',
                   style: const TextStyle(
                     fontSize: 11,
-                    color: AppColors.brandOnSecondary,
+                    color: AppColors.textSecondary,
                   ),
                 ),
               ],

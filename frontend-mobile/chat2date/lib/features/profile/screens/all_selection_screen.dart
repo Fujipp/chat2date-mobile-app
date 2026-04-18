@@ -554,7 +554,7 @@ class _SelectionTile extends StatelessWidget {
                   textAlign: TextAlign.center,
                   style: TextStyle(
                     color: foreground,
-                    fontSize: 14,
+                    fontSize: 12,
                     fontWeight: FontWeight.w500,
                     height: 1.2,
                   ),
