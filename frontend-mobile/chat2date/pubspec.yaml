@@ -163,7 +163,7 @@ flutter_native_splash:
     # *ถ้าไม่กำหนด image ตรงนี้ Android จะใช้ app icon แทน*
     # ระวัง: Android 12 จะ clip เป็นวงกลม
     # แนะนำให้ใช้ไฟล์ PNG พื้นหลังโปร่ง (transparent) เช่น โลโก้เดี่ยว ๆ
-    image: assets/branding/logos/logo_chat2date_splash_source.png
+    image: assets/branding/logos/logo_chat2date_splash_sm.png
     # image_dark: assets/branding/logos/logo_chat2date_splash_source.png
 
     # สีพื้นหลังของวงกลมด้านหลังโลโก้ (ถ้าอยากให้มีวงกลม)
