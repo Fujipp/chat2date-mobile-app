@@ -213,7 +213,7 @@ class DsAppSecondaryHeader extends StatelessWidget {
       return const SizedBox.shrink();
     }
 
-    final int cooldownValue = int.tryParse(cooldownText)?.clamp(1, 9) ?? 7;
+    final String displayCooldown = cooldownText == '-' ? '-' : cooldownText;
 
     switch (variant) {
       case DsAppSecondaryHeaderVariant.chat1:
@@ -278,7 +278,7 @@ class DsAppSecondaryHeader extends StatelessWidget {
                       ),
                       alignment: Alignment.center,
                       child: Text(
-                        '$cooldownValue',
+                        '$displayCooldown',
                         textAlign: TextAlign.center,
                         style: AppBodyTextStyles.overline.copyWith(
                           color: AppColors.textBlack,

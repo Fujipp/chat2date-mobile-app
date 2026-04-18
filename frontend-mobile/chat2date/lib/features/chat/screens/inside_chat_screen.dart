@@ -3246,7 +3246,7 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
                         trailing: _isChatDisabled
                             ? const SizedBox.shrink()
                             : null,
-                        cooldownText: '${_cooldownDays.clamp(1, 9)}',
+                        cooldownText: _cooldownDays == -1 ? '-' : '${_cooldownDays.clamp(1, 9)}',
                         showCalendarAction: _isChatDisabled
                             ? false
                             : _shouldShowCalendarIcon,
