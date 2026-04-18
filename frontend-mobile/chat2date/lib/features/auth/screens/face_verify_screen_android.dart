@@ -199,8 +199,8 @@ class _FaceVerifyScreenAndroidState
         imageFormatGroup: ImageFormatGroup.yuv420,
       );
       _cam = ctrl;
-
       await ctrl.initialize();
+      await ctrl.setZoomLevel(1.0);
       if (!mounted) return;
 
       setState(() {
@@ -315,7 +315,7 @@ class _FaceVerifyScreenAndroidState
       final rightEye = f.rightEyeOpenProbability;
       final smileProb = f.smilingProbability ?? 0.0;
 
-        // ตรวจตาเปิดสำหรับบางเงื่อนไข (ใช้แบบ inline ในแต่ละท่า)
+      // ตรวจตาเปิดสำหรับบางเงื่อนไข (ใช้แบบ inline ในแต่ละท่า)
 
       if (_sequence.isEmpty) {
         _buildRandomSequence();
@@ -430,9 +430,9 @@ class _FaceVerifyScreenAndroidState
         if (correct) {
           _stepHoldSeconds += dt.clamp(0.0, 0.25);
         } else {
-          _stepHoldSeconds = (_stepHoldSeconds -
-                  (dt.clamp(0.0, 0.25) * _stepDecayFactor))
-              .clamp(0.0, _stepSecondsRequired);
+          _stepHoldSeconds =
+              (_stepHoldSeconds - (dt.clamp(0.0, 0.25) * _stepDecayFactor))
+                  .clamp(0.0, _stepSecondsRequired);
         }
       }
 
@@ -757,27 +757,13 @@ class _FaceVerifyScreenAndroidState
       return const SizedBox.shrink();
     }
 
-    final size = MediaQuery.of(context).size;
-    final deviceRatio = size.width / size.height;
-
-    double previewRatio = _cam!.value.aspectRatio;
-    if (size.height > size.width) {
-      previewRatio = 1 / previewRatio;
-    }
-
-    // final isFront =
-    //     _cam!.description.lensDirection == CameraLensDirection.front; // ไม่ได้ใช้ใน UI
-
-    return Center(
-      child: Transform.scale(
-        scale: previewRatio / deviceRatio,
-        child: AspectRatio(
-          aspectRatio: previewRatio,
-          child: Transform(
-            alignment: Alignment.center,
-            transform: Matrix4.identity(),
-            child: CameraPreview(_cam!),
-          ),
+    return ClipRect(
+      child: FittedBox(
+        fit: BoxFit.contain,
+        child: SizedBox(
+          width: _cam!.value.previewSize!.height,
+          height: _cam!.value.previewSize!.width,
+          child: CameraPreview(_cam!),
         ),
       ),
     );
@@ -987,10 +973,7 @@ class _FaceScanMaskPainter extends CustomPainter {
     final layerRect = Offset.zero & size;
     canvas.saveLayer(layerRect, Paint());
 
-    canvas.drawRect(
-      layerRect,
-      Paint()..color = Colors.white,
-    );
+    canvas.drawRect(layerRect, Paint()..color = Colors.white);
 
     canvas.drawCircle(
       size.center(Offset.zero),

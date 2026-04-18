@@ -19,7 +19,6 @@ import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
 import 'package:permission_handler/permission_handler.dart';
 
-
 class IdOcrScreen extends ConsumerStatefulWidget {
   const IdOcrScreen({super.key});
 
@@ -283,8 +282,8 @@ class _IdOcrScreenState extends ConsumerState<IdOcrScreen> {
       final sex = (_ocrResult!.gender == 'ชาย')
           ? Sex.male
           : (_ocrResult!.gender == 'หญิง')
-              ? Sex.female
-              : null;
+          ? Sex.female
+          : null;
 
       final userToUpdate = User(
         userId: currentUser.userId,
@@ -302,7 +301,10 @@ class _IdOcrScreenState extends ConsumerState<IdOcrScreen> {
 
       final storage = const FlutterSecureStorage();
       await storage.write(key: 'userId', value: updatedUser.userId);
-      await storage.write(key: 'version', value: updatedUser.version.toString());
+      await storage.write(
+        key: 'version',
+        value: updatedUser.version.toString(),
+      );
       await storage.write(key: 'accessToken', value: accessToken);
 
       final faceBytes = _cardFace ?? await _image!.readAsBytes();
@@ -321,11 +323,19 @@ class _IdOcrScreenState extends ConsumerState<IdOcrScreen> {
       );
     } catch (e) {
       if (!mounted) return;
+
+      String msg = _cleanError(e);
+
+      if (msg.contains('500')) {
+        msg = 'ไม่สามารถดำเนินการได้ เนื่องจากข้อมูลนี้ถูกลงทะเบียนไว้แล้ว';
+        _resetCapture();
+      }
+
       Toast.show(
         context,
         type: ToastType.error,
         title: 'อัปเดตไม่สำเร็จ',
-        message: _cleanError(e),
+        message: msg,
       );
     } finally {
       if (mounted) setState(() => _busy = false);
@@ -349,43 +359,21 @@ class _IdOcrScreenState extends ConsumerState<IdOcrScreen> {
     }
 
     if (_cameraReady && _camCtrl != null && _camCtrl!.value.isInitialized) {
-      return LayoutBuilder(
-        builder: (context, constraints) {
-          final frameAspect = constraints.maxWidth / constraints.maxHeight;
-
-          double previewAspect = _camCtrl!.value.aspectRatio;
-          if (constraints.maxHeight > constraints.maxWidth) {
-            previewAspect = 1 / previewAspect;
-          }
-
-          return ClipRect(
-            child: Transform.scale(
-              scale: previewAspect / frameAspect,
-              alignment: Alignment.center,
-              child: Center(
-                child: AspectRatio(
-                  aspectRatio: previewAspect,
-                  child: AbsorbPointer(
-                    absorbing: true,
-                    child: CameraPreview(_camCtrl!),
-                  ),
-                ),
-              ),
-            ),
-          );
-        },
+      return ClipRect(
+        child: FittedBox(
+          fit: BoxFit.cover, // สำคัญมาก
+          child: SizedBox(
+            width: _camCtrl!.value.previewSize!.height,
+            height: _camCtrl!.value.previewSize!.width,
+            child: CameraPreview(_camCtrl!),
+          ),
+        ),
       );
     }
 
     return Container(
       color: const Color(0xFFF2F4F7),
-      child: const Center(
-        child: Icon(
-          Icons.camera_alt_rounded,
-          size: 48,
-          color: Color(0xFF8F9098),
-        ),
-      ),
+      child: const Center(child: Icon(Icons.camera_alt_rounded, size: 48)),
     );
   }
 
@@ -407,136 +395,231 @@ class _IdOcrScreenState extends ConsumerState<IdOcrScreen> {
                 onBackTap: _busy
                     ? null
                     : () => Navigator.pushNamedAndRemoveUntil(
-                          context, '/login', (route) => false),
+                        context,
+                        '/login',
+                        (route) => false,
+                      ),
               ),
 
-             // ─── Camera Viewfinder (Improved Version) ──────────────────
-Padding(
-  padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 16),
-  child: AspectRatio(
-    aspectRatio: 1.586, // ID card ratio
-    child: ClipRRect(
-      borderRadius: BorderRadius.circular(20),
-      child: Stack(
-        fit: StackFit.expand,
-        children: [
-          // 1. กล้องหรือรูปที่ถ่ายแล้ว
-          _buildPreviewSurface(),
-
-          // 2. Custom Overlay (เจาะรูตรงกลาง)
-          // ถ้าถ่ายรูปแล้ว (_image != null) อาจจะซ่อนหรือเปลี่ยนเป็นสีจางลงได้
-          if (_image == null)
-            Positioned.fill(
-              child: ColorFiltered(
-                colorFilter: ColorFilter.mode(
-                  Colors.black.withValues(alpha: 0.5), // ความมืดของรอบนอก
-                  BlendMode.srcOut,
+              // ─── Camera Viewfinder (Improved Version) ──────────────────
+              Padding(
+                // แก้ตรงนี้จุดเดียว
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 30,
+                  vertical: 8,
                 ),
-                child: Stack(
-                  children: [
-                    Container(
-                      decoration: const BoxDecoration(
-                        color: Colors.black,
-                        backgroundBlendMode: BlendMode.dstOut,
-                      ),
-                    ),
-                    // ส่วนที่ "เจาะรู" ออก (ต้องมี margin หรือขนาดเล็กกว่า parent เล็กน้อย)
-                    Align(
-                      alignment: Alignment.center,
-                      child: Container(
-                        margin: const EdgeInsets.all(2), // ให้เห็นเส้นขอบ Border
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(18),
+                child: AspectRatio(
+                  aspectRatio: 1.586, // ID card ratio
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(20),
+                    child: Stack(
+                      fit: StackFit.expand,
+                      children: [
+                        // 1. กล้องหรือรูปที่ถ่ายแล้ว
+                        _buildPreviewSurface(),
+
+                        // 2. Custom Overlay (เจาะรูตรงกลาง)
+                        // ถ้าถ่ายรูปแล้ว (_image != null) อาจจะซ่อนหรือเปลี่ยนเป็นสีจางลงได้
+                        if (_image == null)
+                          Positioned.fill(
+                            child: ColorFiltered(
+                              colorFilter: ColorFilter.mode(
+                                Colors.black.withValues(
+                                  alpha: 0.5,
+                                ), // ความมืดของรอบนอก
+                                BlendMode.srcOut,
+                              ),
+                              child: Stack(
+                                children: [
+                                  Container(
+                                    decoration: const BoxDecoration(
+                                      color: Colors.black,
+                                      backgroundBlendMode: BlendMode.dstOut,
+                                    ),
+                                  ),
+                                  // ส่วนที่ "เจาะรู" ออก (ต้องมี margin หรือขนาดเล็กกว่า parent เล็กน้อย)
+                                  Align(
+                                    alignment: Alignment.center,
+                                    child: Container(
+                                      margin: const EdgeInsets.all(
+                                        2,
+                                      ), // ให้เห็นเส้นขอบ Border
+                                      decoration: BoxDecoration(
+                                        color: Colors.white,
+                                        borderRadius: BorderRadius.circular(18),
+                                      ),
+                                      width: double.infinity,
+                                      height: double.infinity,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+
+                        // 3. Viewfinder border overlay (เส้นขอบ)
+                        IgnorePointer(
+                          child: Container(
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(20),
+                              border: Border.all(
+                                width: 3,
+                                color: _image != null
+                                    ? AppColors.accept
+                                    : AppColors.brandPrimary.withValues(
+                                        alpha: 0.8,
+                                      ),
+                              ),
+                            ),
+                          ),
                         ),
-                        width: double.infinity,
-                        height: double.infinity,
-                      ),
+
+                        // 4. คำแนะนำกลางช่อง (ถ้ายังไม่ได้ถ่าย)
+                        if (_image == null && !_busy)
+                          const Center(
+                            child: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(
+                                  Icons.credit_card_rounded,
+                                  color: Colors.white54,
+                                  size: 40,
+                                ),
+                                SizedBox(height: 8),
+                                Text(
+                                  "วางบัตรให้ตรงกรอบ",
+                                  style: TextStyle(
+                                    color: Colors.white70,
+                                    fontSize: 12,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+
+                        // 5. ปุ่ม Re-take
+                        if (_image != null && !_busy)
+                          Positioned(
+                            top: 12,
+                            right: 12,
+                            child: GestureDetector(
+                              onTap: _resetCapture,
+                              child: Container(
+                                padding: const EdgeInsets.all(8),
+                                decoration: const BoxDecoration(
+                                  color: Colors.black54,
+                                  shape: BoxShape.circle,
+                                ),
+                                child: const Icon(
+                                  Icons.close,
+                                  color: Colors.white,
+                                  size: 20,
+                                ),
+                              ),
+                            ),
+                          ),
+
+                        // 6. Loading overlay
+                        if (_busy)
+                          Container(
+                            color: Colors.black45,
+                            child: const Center(
+                              child: CircularProgressIndicator(
+                                color: Colors.white,
+                              ),
+                            ),
+                          ),
+                      ],
                     ),
-                  ],
-                ),
-              ),
-            ),
-
-          // 3. Viewfinder border overlay (เส้นขอบ)
-          IgnorePointer(
-            child: Container(
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(20),
-                border: Border.all(
-                  width: 3,
-                  color: _image != null
-                      ? AppColors.accept
-                      : AppColors.brandPrimary.withValues(alpha: 0.8),
-                ),
-              ),
-            ),
-          ),
-
-          // 4. คำแนะนำกลางช่อง (ถ้ายังไม่ได้ถ่าย)
-          if (_image == null && !_busy)
-            const Center(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(Icons.credit_card_rounded, color: Colors.white54, size: 40),
-                  SizedBox(height: 8),
-                  Text(
-                    "วางบัตรให้ตรงกรอบ",
-                    style: TextStyle(color: Colors.white70, fontSize: 12),
                   ),
-                ],
-              ),
-            ),
-
-          // 5. ปุ่ม Re-take
-          if (_image != null && !_busy)
-            Positioned(
-              top: 12,
-              right: 12,
-              child: GestureDetector(
-                onTap: _resetCapture,
-                child: Container(
-                  padding: const EdgeInsets.all(8),
-                  decoration: const BoxDecoration(
-                    color: Colors.black54,
-                    shape: BoxShape.circle,
-                  ),
-                  child: const Icon(Icons.close, color: Colors.white, size: 20),
                 ),
               ),
-            ),
-
-          // 6. Loading overlay
-          if (_busy)
-            Container(
-              color: Colors.black45,
-              child: const Center(
-                child: CircularProgressIndicator(color: Colors.white),
-              ),
-            ),
-        ],
-      ),
-    ),
-  ),
-),
 
               // ─── Album button ───────────────────────
-              GestureDetector(
-                onTap: _busy ? null : _pickFromGallery,
-                child: Text(
-                  'เลือกจากอัลบั้ม',
-                  style: TextStyle(
-                    color: AppColors.brandPrimary,
-                    fontSize: 14,
-                    fontFamily: 'Inter',
-                    fontWeight: FontWeight.w600,
-                    decoration: TextDecoration.underline,
+              // ─── Shutter Row ────────────────────────
+              // ─── Shutter Row ────────────────────────
+              if (!canConfirm)
+                Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 4),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      GestureDetector(
+                        onTap: _busy ? null : _pickFromGallery,
+                        child: Opacity(
+                          opacity: _busy ? 0.4 : 1,
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Container(
+                                width: 40, // ลดจาก 48
+                                height: 40, // ลดจาก 48
+                                decoration: BoxDecoration(
+                                  shape: BoxShape.circle,
+                                  color: const Color(0xFFF2F4F7),
+                                ),
+                                child: Icon(
+                                  Icons.photo_library_rounded,
+                                  color: AppColors.brandPrimary,
+                                  size: 18, // ลดจาก 22
+                                ),
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                'อัลบั้ม',
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  color: AppColors.brandPrimary,
+                                  fontFamily: 'Inter',
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+
+                      const SizedBox(width: 32), // ลดจาก 40
+                      // Shutter button หลัก
+                      GestureDetector(
+                        onTap: canCapture ? _captureFromCamera : null,
+                        child: Opacity(
+                          opacity: canCapture ? 1 : 0.4,
+                          child: Container(
+                            width: 60, // ลดจาก 72
+                            height: 60, // ลดจาก 72
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              border: Border.all(
+                                color: AppColors.brandPrimary,
+                                width: 3,
+                              ),
+                            ),
+                            child: Center(
+                              child: Container(
+                                width: 46, // ลดจาก 56
+                                height: 46, // ลดจาก 56
+                                decoration: BoxDecoration(
+                                  shape: BoxShape.circle,
+                                  color: AppColors.brandPrimary,
+                                ),
+                                child: const Icon(
+                                  Icons.camera_alt_rounded,
+                                  color: Colors.white,
+                                  size: 22, // ลดจาก 26
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+
+                      const SizedBox(width: 32),
+                      const SizedBox(width: 40),
+                    ],
                   ),
                 ),
-              ),
 
-              const SizedBox(height: 16),
+              const SizedBox(height: 8),
 
               // ─── OCR Result Fields ──────────────────
               Expanded(
@@ -624,12 +707,10 @@ Padding(
                 child: SizedBox(
                   width: 231,
                   child: DsButton(
-                    label: canConfirm ? 'ยืนยันข้อมูล' : 'ถ่ายรูป',
+                    label: canConfirm ? 'ยืนยันข้อมูล' : 'กรุณาสแกนบัตร',
                     size: DsButtonSize.md,
                     variant: DsButtonVariant.outlinePrimary,
-                    onPressed: canConfirm
-                        ? _submit
-                        : (canCapture ? _captureFromCamera : null),
+                    onPressed: canConfirm ? _submit : null,
                   ),
                 ),
               ),
