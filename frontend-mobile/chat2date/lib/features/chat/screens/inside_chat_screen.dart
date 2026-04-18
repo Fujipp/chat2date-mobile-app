@@ -2,32 +2,35 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:ui';
 
-import 'package:chat2date/components/common/app_raw_scrollbar.dart';
 import 'package:chat2date/components/calendar/calendar_modal.dart';
-import 'package:chat2date/components/chat/chat_text_component.dart';
-import 'package:chat2date/components/common/modal_component.dart';
 import 'package:chat2date/components/card/generic_card.dart';
-import 'package:chat2date/components/design_system/feedback/index.dart';
-import 'package:chat2date/components/layout/responsive_container.dart';
-import 'package:chat2date/components/layout/header.dart';
-import 'package:chat2date/components/modal/feature_guide_modal.dart';
-import 'package:chat2date/components/modal/relationship_mission_modal.dart';
-import 'package:chat2date/components/page/unlock_date_modal.dart';
+import 'package:chat2date/components/chat/chat_text_component.dart';
+import 'package:chat2date/components/common/app_raw_scrollbar.dart';
+import 'package:chat2date/components/common/modal_component.dart';
 import 'package:chat2date/components/design_system/controls/ds_level_progress_bar.dart';
+import 'package:chat2date/components/design_system/feedback/index.dart';
 import 'package:chat2date/components/design_system/inputs/ds_chat_message_input.dart';
 import 'package:chat2date/components/design_system/inputs/ios_themed_chat_text_view.dart';
 import 'package:chat2date/components/design_system/organisms/ds_app_secondary_header.dart';
 import 'package:chat2date/components/design_system/organisms/ds_bot_chat.dart';
 import 'package:chat2date/components/design_system/organisms/ds_gps_alert.dart';
 import 'package:chat2date/components/design_system/organisms/ds_spin_wheel_card.dart';
+import 'package:chat2date/components/layout/header.dart';
+import 'package:chat2date/components/layout/responsive_container.dart';
+import 'package:chat2date/components/modal/feature_guide_modal.dart';
+import 'package:chat2date/components/modal/relationship_mission_modal.dart';
+import 'package:chat2date/components/page/unlock_date_modal.dart';
 import 'package:chat2date/core/theme/app_assets.dart';
+import 'package:chat2date/core/theme/app_colors.dart';
+import 'package:chat2date/core/theme/tokens/typography/body_text_styles.dart';
+import 'package:chat2date/core/theme/tokens/typography/display_text_styles.dart';
+import 'package:chat2date/features/game/screens/guessing_game_screen.dart';
 import 'package:chat2date/features/profile/screens/selection_icon_mapper.dart';
 import 'package:chat2date/models/appointment.dart';
 import 'package:chat2date/models/chat_access_status.dart';
 import 'package:chat2date/models/chat_message.dart';
 import 'package:chat2date/models/relationship_bar.dart';
 import 'package:chat2date/models/user.dart';
-import 'package:chat2date/features/game/screens/guessing_game_screen.dart';
 import 'package:chat2date/services/appointment_service.dart';
 import 'package:chat2date/services/chat_service.dart';
 import 'package:chat2date/services/chat_socket_service.dart';
@@ -43,9 +46,6 @@ import 'package:chat2date/services/user_service.dart';
 import 'package:chat2date/stores/chat_room_cache_store.dart';
 import 'package:chat2date/stores/game_store.dart';
 import 'package:chat2date/stores/user_store.dart';
-import 'package:chat2date/core/theme/app_colors.dart';
-import 'package:chat2date/core/theme/tokens/typography/body_text_styles.dart';
-import 'package:chat2date/core/theme/tokens/typography/display_text_styles.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
@@ -564,17 +564,26 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
     final targetUserId = _chatUserId;
     if (targetUserId == null || targetUserId.isEmpty) return;
 
-    try {
-      final user = await ref
-          .read(userServiceProvider)
-          .fetchUserById(targetUserId);
-      if (!mounted || user == null) return;
+    // ใช้ profileRaw ที่ set แล้วจาก _loadChatRoomMessages
+    final raw = _chatUserProfileRaw;
+    debugPrint('📋 profileRaw keys: ${raw.keys.toList()}');
+    debugPrint('📋 profileRaw birthday: ${raw['birthday']}');
 
-      setState(() {
-        _chatUserMeta = user;
-        _chatUserAge = _calculateAge(user.birthday);
-      });
-    } catch (_) {}
+    final rawAge = raw['age'];
+    final rawBirthday = raw['birthday'] ?? raw['birthDate'];
+
+    DateTime? birthday;
+    if (rawBirthday is String) {
+      birthday = DateTime.tryParse(rawBirthday);
+    }
+
+    final age = rawAge is int
+        ? rawAge
+        : (birthday != null ? _calculateAge(birthday) : null);
+
+    if (mounted) {
+      setState(() => _chatUserAge = age);
+    }
   }
 
   int? _calculateAge(DateTime? birthday) {
@@ -1640,7 +1649,7 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
           return _ChatUserProfileScreen(
             images: images,
             initialIndex: initialIndex.clamp(0, images.length - 1),
-            userName: _chatDisplayName,
+            userName: _chatUserName,
             targetUserId: _chatUserId,
             initialUser: _chatUserMeta,
             initialProfileJson: _chatUserProfileRaw,
@@ -3864,7 +3873,9 @@ class _ChatUserProfileScreenState
     return age == null ? 'ไม่ระบุอายุ' : '$age ปี';
   }
 
-  String get _profileInfoTitle => '$_displayName';
+  int? get _rawAge => _profile?.age ?? _calculateAge(_user?.birthday);
+
+  String get _profileInfoTitle => _displayName;
 
   Widget _buildProfileSection(String title, List<String> items) {
     final labels = items.map(displaySelectionLabel).toList();
@@ -3939,10 +3950,23 @@ class _ChatUserProfileScreenState
               Row(
                 children: [
                   Expanded(
-                    child: Text(
-                      _profileInfoTitle,
-                      style: AppDisplayTextStyles.subtitleBold.copyWith(
-                        color: AppColors.textBlack,
+                    child: RichText(
+                      text: TextSpan(
+                        text: _profileInfoTitle,
+                        style: AppDisplayTextStyles.subtitleBold.copyWith(
+                          color: AppColors.textBlack,
+                          fontSize: 20,
+                        ),
+                        children: [
+                          if (_rawAge != null)
+                            TextSpan(
+                              text: ', $_rawAge',
+                              style: AppDisplayTextStyles.subtitleBold.copyWith(
+                                color: AppColors.textBlack.withOpacity(0.6),
+                                fontSize: 18,
+                              ),
+                            ),
+                        ],
                       ),
                     ),
                   ),
@@ -3957,15 +3981,8 @@ class _ChatUserProfileScreenState
                     ),
                 ],
               ),
-              const SizedBox(height: 10),
-              GenericCard(
-                iconType: CardIconType.avatar,
-                icon: Icons.person_rounded,
-                title: _displayName,
-                subtitle: _ageText,
-                backgroundColor: AppColors.surfaceMuted,
-                padding: const EdgeInsets.all(12),
-              ),
+              const SizedBox(height: 28),
+
               _buildProfileSection('ไลฟ์สไตล์', profile?.lifestyles ?? []),
               const SizedBox(height: 14),
               _buildProfileSection('สิ่งที่สนใจ', profile?.interests ?? []),
@@ -3992,7 +4009,7 @@ class _ChatUserProfileScreenState
           children: [
             DsAppSecondaryHeader(
               variant: DsAppSecondaryHeaderVariant.baseText,
-              title: _profileInfoTitle,
+              title: "ข้อมูลเกี่ยวกับคู่เดต",
               showBottomBorder: true,
               bottomBorderSpacing: 0,
               onBackTap: () => Navigator.of(context).pop(),
@@ -4138,6 +4155,23 @@ class _ChatUserProfileData {
     final travelCatalog = _catalogList(preferences?['travelStyles']);
     final tagCatalog = _catalogList(preferences?['tags']);
 
+    int? resolvedAge = _intFromAny(json['age']);
+    if (resolvedAge == null) {
+      final rawBirthday = json['birthday'] ?? json['birthDate'];
+      if (rawBirthday is String) {
+        final bday = DateTime.tryParse(rawBirthday);
+        if (bday != null) {
+          final now = DateTime.now();
+          int age = now.year - bday.year;
+          if (now.month < bday.month ||
+              (now.month == bday.month && now.day < bday.day)) {
+            age -= 1;
+          }
+          resolvedAge = age >= 0 ? age : null;
+        }
+      }
+    }
+
     return _ChatUserProfileData(
       lifestyles: _resolveSelectionList(
         _firstValue(json, const [
@@ -4181,7 +4215,7 @@ class _ChatUserProfileData {
         tagCatalog,
         labelKeys: const ['tag', 'name', 'label'],
       ),
-      age: _intFromAny(json['age']),
+      age: resolvedAge,
       distance:
           _doubleFromAny(
             json['matchedDistance'] ??

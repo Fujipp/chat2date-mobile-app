@@ -412,11 +412,11 @@ class _DiscoveryScreenState extends ConsumerState<DiscoveryScreen>
             DsSlider(
               value: _distanceKm,
               min: 1,
-              max: kMaxDiscoveryDistance, // 1,500 km
+              max: kMaxDiscoveryDistance,
               width: double.infinity,
               onChanged: (value) {
                 setState(() {
-                  _distanceKm = value;
+                  _distanceKm = (value / 10).round() * 10.0;
                 });
               },
             ),
