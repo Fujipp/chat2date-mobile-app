@@ -176,6 +176,7 @@ public class ChatService {
                         .lifeStyles(getLifeStyleIds(partner.getUserId()))
                         .travelStyles(getTravelStyleIds(partner.getUserId()))
                         .distance(calculateDistanceKm(userId, partner.getUserId()))
+                        .birthday(partner.getBirthday())
                         .build())
                 .relationshipScore(relationshipScore)
                 .build();
