@@ -395,7 +395,7 @@ class _CooldownSpinwheelIcon extends StatelessWidget {
         children: [
           // Spinwheel icon
           Positioned(
-            top: 5,
+            top: 0,
             child: SvgPicture.asset(
               'assets/icons/ui/icon_spinwheel.svg',
               width: 25,

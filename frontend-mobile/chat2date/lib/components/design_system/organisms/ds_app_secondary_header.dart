@@ -236,13 +236,13 @@ class DsAppSecondaryHeader extends StatelessWidget {
             onTap: onSecondaryActionTap,
             padding: EdgeInsets.zero,
             child: SizedBox(
-              width: 28,
-              height: 28,
+              width: 31,
+              height: 31,
               child: Center(
                 child: SvgPicture.asset(
                   AppAssets.headerSecondaryChat3CenterAction,
-                  width: 28,
-                  height: 28,
+                  width: 31,
+                  height: 31,
                 ),
               ),
             ),
@@ -256,7 +256,7 @@ class DsAppSecondaryHeader extends StatelessWidget {
             onTap: onSecondaryActionTap,
             padding: EdgeInsets.zero,
             child: SizedBox(
-              width: 28,
+              width: 31,
               height: 31,
               child: Stack(
                 clipBehavior: Clip.none,
@@ -264,8 +264,8 @@ class DsAppSecondaryHeader extends StatelessWidget {
                 children: [
                   SvgPicture.asset(
                     AppAssets.headerSecondaryChat4CenterAction,
-                    width: 28,
-                    height: 28,
+                    width: 31,
+                    height: 31,
                   ),
                   Positioned(
                     top: 6,
@@ -386,7 +386,7 @@ class DsAppSecondaryHeader extends StatelessWidget {
           ),
           const SizedBox(width: 6),
           SizedBox(
-            width: 28,
+            width: 31,
             height: 31,
             child: middle == null ? null : Center(child: middle),
           ),

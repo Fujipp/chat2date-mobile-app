@@ -2290,6 +2290,7 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
         } else {
           _headerVariant = ChatHeaderVariant.chat4;
         }
+        print(_headerVariant);
       });
     } catch (e) {
       debugPrint("Error in _checkSpinWheelCondition: $e");

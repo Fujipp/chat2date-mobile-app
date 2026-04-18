@@ -24,7 +24,7 @@ class _FeatureGuideModalState extends State<FeatureGuideModal> {
       description:
           'ระบบความสัมพันธ์จะคำนวณจากการพูดคุย\nสม่ำเสมอ เพื่อปลดล็อกสิ่งใหม่ๆ ไปพร้อมกัน',
       visual: const _FeatureIconFrame(
-        assetPath: 'assets/icons/ui/icon_chat.svg',
+        assetPath: AppAssets.logoSvg,
       ),
     ),
     _FeaturePageData(
@@ -110,7 +110,7 @@ class _FeatureGuideModalState extends State<FeatureGuideModal> {
               mainAxisSize: MainAxisSize.min,
               children: [
                 Text(
-                  'วิธีการใช้งานเบื่องต้น',
+                  'วิธีการใช้งานเบื้องต้น',
                   textAlign: TextAlign.center,
                   style: AppDisplayTextStyles.subtitleBold.copyWith(
                     color: const Color(0xFF1F2024),
