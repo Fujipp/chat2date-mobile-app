@@ -71,7 +71,10 @@ class _FullScreenMapPageState extends State<FullScreenMapPage> {
   List<LatLng> _currentRoutePoints = [];
   DateTime _lastRerouteTime = DateTime(2000);
 
-  LatLng? _lastCameraPosition;
+  double _currentBearing = 0;
+
+  CameraPosition? _lastCameraPosition;
+  bool _isFollowingUser = true;
 
   @override
   void dispose() {
@@ -91,6 +94,7 @@ class _FullScreenMapPageState extends State<FullScreenMapPage> {
             distanceFilter: 10,
           ),
         ).listen((pos) {
+          _currentBearing = pos.heading;
           final newLatLng = LatLng(pos.latitude, pos.longitude);
           if (mounted) setState(() => _currentPosition = newLatLng);
 
@@ -99,10 +103,18 @@ class _FullScreenMapPageState extends State<FullScreenMapPage> {
           if (latDiff > 0.0001 || lngDiff > 0.0001) {
             _lastCameraLat = pos.latitude;
             _lastCameraLng = pos.longitude;
-            if (mounted && _mapController != null) {
+
+            if (mounted && _mapController != null && _isFollowingUser) {
               try {
                 _mapController!.animateCamera(
-                  CameraUpdate.newLatLng(newLatLng),
+                  CameraUpdate.newCameraPosition(
+                    CameraPosition(
+                      target: newLatLng,
+                      zoom: 17,
+                      bearing: pos.heading,
+                      tilt: 45,
+                    ),
+                  ),
                 );
               } catch (e) {
                 debugPrint('animateCamera error (disposed): $e');
@@ -268,6 +280,21 @@ class _FullScreenMapPageState extends State<FullScreenMapPage> {
     }
   }
 
+  Widget _buildMapButton({required IconData icon}) {
+    return Container(
+      width: 42,
+      height: 42,
+      decoration: BoxDecoration(
+        color: Colors.white,
+        shape: BoxShape.circle,
+        boxShadow: [
+          BoxShadow(color: Colors.black.withValues(alpha: 0.15), blurRadius: 6),
+        ],
+      ),
+      child: Icon(icon, size: 20),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -302,12 +329,66 @@ class _FullScreenMapPageState extends State<FullScreenMapPage> {
 
               _startPositionStream();
             },
+            onCameraMove: (cameraPosition) {
+              _lastCameraPosition = cameraPosition;
+            },
+            onCameraMoveStarted: () {
+              _isFollowingUser = false;
+            },
             myLocationEnabled: true,
-            myLocationButtonEnabled: true,
+            myLocationButtonEnabled: false,
+            compassEnabled: false,
             markers: _markers,
             polylines: _polylines,
           ),
 
+          Positioned(
+            right: 12,
+            bottom: 120,
+            child: Column(
+              children: [
+                GestureDetector(
+                  onTap: () async {
+                    final pos = await Geolocator.getCurrentPosition();
+
+                    _isFollowingUser = true;
+
+                    _mapController?.animateCamera(
+                      CameraUpdate.newCameraPosition(
+                        CameraPosition(
+                          target: LatLng(pos.latitude, pos.longitude),
+                          zoom: 17,
+                          bearing: 0,
+                          tilt: 0,
+                        ),
+                      ),
+                    );
+                  },
+                  child: _buildMapButton(icon: Icons.my_location),
+                ),
+                const SizedBox(height: 10),
+                GestureDetector(
+                  onTap: () {
+                    if (_lastCameraPosition == null) return;
+
+                    _isFollowingUser = false;
+
+                    _mapController?.animateCamera(
+                      CameraUpdate.newCameraPosition(
+                        CameraPosition(
+                          target: _lastCameraPosition!.target,
+                          zoom: _lastCameraPosition!.zoom,
+                          bearing: 0,
+                          tilt: _lastCameraPosition!.tilt,
+                        ),
+                      ),
+                    );
+                  },
+                  child: _buildMapButton(icon: Icons.explore),
+                ),
+              ],
+            ),
+          ),
           if (_isRouteLoading)
             const Positioned(
               top: 60,
@@ -895,7 +976,7 @@ class _GpsMapAlertState extends State<GpsMapAlert> with WidgetsBindingObserver {
         style: const TextStyle(
           fontFamily: 'Inter',
           color: AppColors.error,
-          fontSize: 16,
+          fontSize: 14,
           fontWeight: FontWeight.w400,
           height: 1.375,
         ),
@@ -997,8 +1078,8 @@ class _GpsMapAlertState extends State<GpsMapAlert> with WidgetsBindingObserver {
                               _startPositionStream();
                             },
                             myLocationEnabled: true,
-                            myLocationButtonEnabled: false,
-                            zoomControlsEnabled: false,
+                            myLocationButtonEnabled: true,
+                            zoomControlsEnabled: true,
                             // scrollGesturesEnabled: false,
                             // zoomGesturesEnabled: false,
                             // rotateGesturesEnabled: false,
