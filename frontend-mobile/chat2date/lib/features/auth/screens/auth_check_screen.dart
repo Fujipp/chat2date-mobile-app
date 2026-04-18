@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import 'package:chat2date/core/config/backend_base.dart';
 import 'package:chat2date/features/auth/screens/home_login_page.dart';
+import 'package:chat2date/models/user.dart';
 import 'package:chat2date/services/user_service.dart';
 import 'package:chat2date/stores/user_store.dart';
 import 'package:flutter/material.dart';
@@ -127,6 +128,22 @@ class _AuthCheckPageState extends ConsumerState<AuthCheckPage> {
         .setUser(user, refreshResult['accessToken']);
 
     // STEP 5 — เข้าบ้าน
+    _routeByUserState(user);
+  }
+
+  void _routeByUserState(User user) {
+    if (!mounted) return;
+
+    if (user.accountStatus == AccountStatus.pending) {
+      Navigator.pushReplacementNamed(context, '/kyc-id-ocr');
+      return;
+    }
+
+    if (user.nickname == null || user.nickname == 'User') {
+      Navigator.pushReplacementNamed(context, '/profileSetup');
+      return;
+    }
+
     _goHome();
   }
 
