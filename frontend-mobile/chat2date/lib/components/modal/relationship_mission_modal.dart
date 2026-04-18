@@ -168,7 +168,7 @@ class RelationshipMissionModal extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: AppColors.badgeErrorBg,
+        color: AppColors.pastel7,
         borderRadius: BorderRadius.circular(20),
         border: Border.all(color: AppColors.error.withValues(alpha: 0.3)),
       ),
@@ -179,7 +179,7 @@ class RelationshipMissionModal extends StatelessWidget {
             width: 24,
             height: 24,
             colorFilter: const ColorFilter.mode(
-              AppColors.error,
+              AppColors.errorSurface,
               BlendMode.srcIn,
             ),
           ),
@@ -202,7 +202,7 @@ class RelationshipMissionModal extends StatelessWidget {
                       : 'รีบทักไปคุยเพื่อรักษาแต้มความสัมพันธ์นะ',
                   style: const TextStyle(
                     fontSize: 11,
-                    color: AppColors.textSecondary,
+                    color: AppColors.brandOnSecondary,
                   ),
                 ),
               ],
@@ -274,7 +274,7 @@ class RelationshipMissionModal extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       decoration: BoxDecoration(
-        color: isActive ? AppColors.badgeErrorBg : AppColors.neutral50,
+        color: isActive ? AppColors.pastel7 : AppColors.neutral50,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
           color: isActive
@@ -291,7 +291,7 @@ class RelationshipMissionModal extends StatelessWidget {
             style: TextStyle(
               fontSize: 12,
               fontWeight: isActive ? FontWeight.bold : FontWeight.normal,
-              color: isActive ? AppColors.error : AppColors.textSecondary,
+              color: isActive ? AppColors.errorSurface : AppColors.textSecondary,
             ),
           ),
           Text(
@@ -347,7 +347,7 @@ class RelationshipMissionModal extends StatelessWidget {
                 width: 24,
                 height: 24,
                 colorFilter: const ColorFilter.mode(
-                  AppColors.textMuted, // แนะนำให้ใช้สีเทา Muted ตาม UI ปกติ
+                  AppColors.textNeutral, 
                   BlendMode.srcIn,
                 ),
               ),

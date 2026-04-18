@@ -18,7 +18,6 @@ abstract final class AppAssets {
       'assets/images/illustrations/illustration_spin_wheel_base.svg';
   static const String spinWheelArrowIllustration =
       'assets/images/illustrations/illustration_spin_wheel_arrow.svg';
-  
 
   static const String placeholderFemale =
       'assets/images/placeholders/female.jpg';
