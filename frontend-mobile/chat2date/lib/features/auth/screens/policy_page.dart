@@ -169,8 +169,10 @@ class _PolicyPageState extends State<PolicyPage> {
   Widget build(BuildContext context) {
     final args = ModalRoute.of(context)?.settings.arguments;
     bool onKyc = false;
+    bool onRegis = false;
     if (args is Map<String, dynamic>) {
       onKyc = args['goKyc'] as bool? ?? false;
+      onRegis = args['onRegister'] as bool? ?? false;
     }
     final bool showAcceptanceFlow = args is Map<String, dynamic>;
 
@@ -185,7 +187,13 @@ class _PolicyPageState extends State<PolicyPage> {
                 DsAppSecondaryHeader(
                   variant: DsAppSecondaryHeaderVariant.baseText,
                   title: 'ข้อตกลง',
-                  onBackTap: () => Navigator.pop(context),
+                  onBackTap: () {
+                    if(!onKyc && onRegis) {
+                      Navigator.pushReplacementNamed(context, '/login');
+                      return;
+                    }
+                    Navigator.pop(context);
+                  },
                   center: Text(
                     'ข้อตกลง',
                     style: Theme.of(context).textTheme.titleMedium?.copyWith(

@@ -21,7 +21,19 @@ class _PhonePageState extends State<PhonePage> {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted) _phoneFocusNode.requestFocus();
+      if (mounted) {
+        final args = ModalRoute.of(context)?.settings.arguments;
+        if (args is Map && args.containsKey('phone')) {
+          final String phone = args['phone'];
+          setState(() {
+            _phoneCtrl.text = phone;
+            _phoneCtrl.selection = TextSelection.fromPosition(
+              TextPosition(offset: _phoneCtrl.text.length),
+            );
+          });
+        }
+        _phoneFocusNode.requestFocus();
+      }
     });
   }
 
@@ -79,7 +91,8 @@ class _PhonePageState extends State<PhonePage> {
           context,
           type: ToastType.warning,
           title: 'ไม่ถูกต้อง',
-          message: 'ไม่สามารถลงทะเบียนเบอร์นี้ได้ เนื่องจากมีเบอร์นี้ในระบบแล้ว',
+          message:
+              'ไม่สามารถลงทะเบียนเบอร์นี้ได้ เนื่องจากมีเบอร์นี้ในระบบแล้ว',
         );
         return;
       }
@@ -114,72 +127,77 @@ class _PhonePageState extends State<PhonePage> {
   @override
   Widget build(BuildContext context) {
     final arguments = ModalRoute.of(context)?.settings.arguments;
-    final bool loginOtp = arguments is bool ? arguments : false;
+
+    bool loginOtp = false;
+    if (arguments is bool) {
+      loginOtp = arguments;
+    } else if (arguments is Map) {
+      loginOtp = arguments['onLogin'] ?? false;
+    }
 
     return Scaffold(
-        backgroundColor: Colors.white,
-        resizeToAvoidBottomInset: true,
-        body: SafeArea(
-          child: Center(
-            child: Column(
-              children: [
-                // ─── Header ─────────────────────────────
-                DsAppSecondaryHeader(
-                  variant: DsAppSecondaryHeaderVariant.baseText,
-                  title: loginOtp ? 'เข้าสู่ระบบ' : 'ลงทะเบียน',
-                  onBackTap: () {
-                    if (loginOtp) {
-                      Navigator.pushReplacementNamed(context, '/login');
-                    } else {
-                      Navigator.pushReplacementNamed(context, '/policy');
+      backgroundColor: Colors.white,
+      resizeToAvoidBottomInset: true,
+      body: SafeArea(
+        child: Center(
+          child: Column(
+            children: [
+              // ─── Header ─────────────────────────────
+              DsAppSecondaryHeader(
+                variant: DsAppSecondaryHeaderVariant.baseText,
+                title: loginOtp ? 'เข้าสู่ระบบ' : 'ลงทะเบียน',
+                onBackTap: () {
+                  if (loginOtp) {
+                    Navigator.pushReplacementNamed(context, '/login');
+                  } else {
+                    Navigator.pushReplacementNamed(context, '/policy');
+                  }
+                },
+              ),
+
+              const SizedBox(height: 50),
+
+              // ─── Phone Input ────────────────────────
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 48),
+                child: DsTextField(
+                  label: 'เบอร์โทรศัพท์',
+                  hintText: '+66',
+                  controller: _phoneCtrl,
+                  focusNode: _phoneFocusNode,
+                  keyboardType: TextInputType.phone,
+                  onChanged: (v) {
+                    if (v.length > 10) {
+                      _phoneCtrl.text = v.substring(0, 10);
+                      _phoneCtrl.selection = TextSelection.fromPosition(
+                        const TextPosition(offset: 10),
+                      );
                     }
+                    setState(() {});
                   },
                 ),
+              ),
 
-                const SizedBox(height: 50),
+              const SizedBox(height: 50),
 
-                // ─── Phone Input ────────────────────────
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 48),
-                  child: DsTextField(
-                    label: 'เบอร์โทรศัพท์',
-                    hintText: '+66',
-                    controller: _phoneCtrl,
-                    focusNode: _phoneFocusNode,
-                    keyboardType: TextInputType.phone,
-                    onChanged: (v) {
-                      if (v.length > 10) {
-                        _phoneCtrl.text = v.substring(0, 10);
-                        _phoneCtrl.selection = TextSelection.fromPosition(
-                          const TextPosition(offset: 10),
-                        );
-                      }
-                      setState(() {});
-                    },
-                  ),
+              // ─── Button ─────────────────────────────
+              SizedBox(
+                width: 231,
+                child: DsButton(
+                  label: _loading ? 'กำลังส่ง...' : 'ยืนยัน',
+                  size: DsButtonSize.md,
+                  variant: DsButtonVariant.outlinePrimary,
+                  onPressed:
+                      (!_loading &&
+                          _isValidThaiMobile(_normalizePhone(_phoneCtrl.text)))
+                      ? () => _submit(loginOtp)
+                      : null,
                 ),
-
-                const SizedBox(height: 50),
-
-                // ─── Button ─────────────────────────────
-                SizedBox(
-                  width: 231,
-                  child: DsButton(
-                    label: _loading ? 'กำลังส่ง...' : 'ยืนยัน',
-                    size: DsButtonSize.md,
-                    variant: DsButtonVariant.outlinePrimary,
-                    onPressed: (!_loading &&
-                            _isValidThaiMobile(
-                              _normalizePhone(_phoneCtrl.text),
-                            ))
-                        ? () => _submit(loginOtp)
-                        : null,
-                  ),
-                ),
-              ],
-            ),
+              ),
+            ],
           ),
         ),
+      ),
     );
   }
 }

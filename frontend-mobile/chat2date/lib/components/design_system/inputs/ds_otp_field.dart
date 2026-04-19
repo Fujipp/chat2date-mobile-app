@@ -70,6 +70,19 @@ class _DsOtpFieldState extends State<DsOtpField> {
     }
   }
 
+  void _requestFocusWithKeyboard() {
+    if (_focusNode.hasFocus) {
+      // ✅ ถ้า focus ค้างอยู่แต่ keyboard ปิด ให้ unfocus ก่อนแล้วค่อย focus ใหม่
+      _focusNode.unfocus();
+      Future.delayed(const Duration(milliseconds: 100), () {
+        if (!mounted) return;
+        _focusNode.requestFocus();
+      });
+    } else {
+      _focusNode.requestFocus();
+    }
+  }
+
   void _focusAt(int index) {
     final text = _controller.text;
     final safeIndex = index.clamp(0, widget.length - 1);
@@ -77,7 +90,10 @@ class _DsOtpFieldState extends State<DsOtpField> {
 
     TextSelection selection;
     if (safeIndex < text.length) {
-      selection = TextSelection(baseOffset: safeIndex, extentOffset: safeIndex + 1);
+      selection = TextSelection(
+        baseOffset: safeIndex,
+        extentOffset: safeIndex + 1,
+      );
       _replaceMode = true;
     } else {
       selection = TextSelection.collapsed(offset: target);
@@ -85,7 +101,7 @@ class _DsOtpFieldState extends State<DsOtpField> {
     }
 
     _selectedIndex = safeIndex;
-    _focusNode.requestFocus();
+    _requestFocusWithKeyboard(); // ✅ เปลี่ยนจาก _focusNode.requestFocus()
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
       _controller.selection = selection;
@@ -105,7 +121,8 @@ class _DsOtpFieldState extends State<DsOtpField> {
     }
 
     final selection = _controller.selection;
-    final hasRange = selection.start >= 0 &&
+    final hasRange =
+        selection.start >= 0 &&
         selection.end >= 0 &&
         selection.start != selection.end;
 
@@ -120,7 +137,9 @@ class _DsOtpFieldState extends State<DsOtpField> {
       _selectedIndex = start > 0 ? start - 1 : 0;
       _replaceMode = false;
     } else {
-      final cursor = selection.baseOffset < 0 ? text.length : selection.baseOffset;
+      final cursor = selection.baseOffset < 0
+          ? text.length
+          : selection.baseOffset;
       final removeIndex = cursor > 0 ? cursor - 1 : text.length - 1;
       final updated = text.replaceRange(removeIndex, removeIndex + 1, '');
       _controller.value = TextEditingValue(
@@ -204,15 +223,21 @@ class _DsOtpFieldState extends State<DsOtpField> {
                         fillColor: Colors.transparent,
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(_fieldRadius),
-                          borderSide: const BorderSide(color: AppColors.background),
+                          borderSide: const BorderSide(
+                            color: AppColors.background,
+                          ),
                         ),
                         enabledBorder: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(_fieldRadius),
-                          borderSide: const BorderSide(color: AppColors.background),
+                          borderSide: const BorderSide(
+                            color: AppColors.background,
+                          ),
                         ),
                         focusedBorder: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(_fieldRadius),
-                          borderSide: const BorderSide(color: AppColors.background),
+                          borderSide: const BorderSide(
+                            color: AppColors.background,
+                          ),
                         ),
                         contentPadding: EdgeInsets.zero,
                       ),
@@ -221,9 +246,12 @@ class _DsOtpFieldState extends State<DsOtpField> {
                         LengthLimitingTextInputFormatter(widget.length),
                       ],
                       onChanged: (text) {
-                        final replaceIndex = _replaceMode ? _selectedIndex : null;
+                        final replaceIndex = _replaceMode
+                            ? _selectedIndex
+                            : null;
 
-                        if (replaceIndex != null && replaceIndex + 1 < text.length) {
+                        if (replaceIndex != null &&
+                            replaceIndex + 1 < text.length) {
                           final nextIndex = replaceIndex + 1;
                           _selectedIndex = nextIndex;
                           _replaceMode = true;

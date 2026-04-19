@@ -88,7 +88,7 @@ class HomeLoginPage extends ConsumerWidget {
                           onPressed: () => Navigator.pushNamed(
                             context,
                             '/policy',
-                            arguments: {'goKyc': false},
+                            arguments: {'goKyc': false, 'onRegister': true},
                           ),
                         ),
                       ),

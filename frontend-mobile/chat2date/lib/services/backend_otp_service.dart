@@ -97,7 +97,7 @@ class BackendOtpService {
       }
     }
     final phone = (jsonDecode(res.body)['phoneNumber'] ?? '') as String;
-    if (phone.isEmpty) throw 'No phone from backend';
+    if (phone.isEmpty) throw 'cannot request OTP too many times';
     return phone;
   }
 

@@ -186,114 +186,116 @@ class _OtpPageState extends ConsumerState<OtpPage> {
     final masked = _maskPhone(_phone);
 
     return Scaffold(
-        backgroundColor: Colors.white,
-        resizeToAvoidBottomInset: true,
-        body: SafeArea(
-          child: Center(
-            child: Column(
-              children: [
-                // ─── Header ─────────────────────────────
-                DsAppSecondaryHeader(
-                  variant: DsAppSecondaryHeaderVariant.baseText,
-                  title: 'ยืนยัน',
-                  onBackTap: () => Navigator.pushNamed(
-                    context,
-                    '/phone',
-                    arguments: onLogin,
-                  ),
+      backgroundColor: Colors.white,
+      resizeToAvoidBottomInset: true,
+      body: SafeArea(
+        child: Center(
+          child: Column(
+            children: [
+              DsAppSecondaryHeader(
+                variant: DsAppSecondaryHeaderVariant.baseText,
+                title: 'ยืนยัน',
+                onBackTap: () => Navigator.pushNamed(
+                  context,
+                  '/phone',
+                  arguments: {
+                    'onLogin': onLogin,
+                    'phone': _phone,
+                  },
                 ),
+              ),
 
-                const SizedBox(height: 50),
+              const SizedBox(height: 50),
 
-                // ─── Description ─────────────────────────
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 48),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'รหัสยืนยันถูกส่งไปยังเบอร์ $masked',
-                        style: const TextStyle(
-                          color: Color(0xFF2E3036),
-                          fontSize: 16,
-                          fontFamily: 'Inter',
-                          fontWeight: FontWeight.w400,
+              // ─── Description ─────────────────────────
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 48),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'รหัสยืนยันถูกส่งไปยังเบอร์ $masked',
+                      style: const TextStyle(
+                        color: Color(0xFF2E3036),
+                        fontSize: 16,
+                        fontFamily: 'Inter',
+                        fontWeight: FontWeight.w400,
+                      ),
+                    ),
+
+                    const SizedBox(height: 24),
+
+                    // ─── OTP Field ──────────────────────
+                    DsOtpField(
+                      label: 'กรอกรหัส OTP',
+                      length: _length,
+                      autoFocus: true,
+                      onCompleted: (_) {
+                        if (!_verifying) _verify();
+                      },
+                      onChanged: (code) => setState(() {
+                        for (var i = 0; i < _length; i++) {
+                          _ctls[i].text = i < code.length ? code[i] : '';
+                        }
+                      }),
+                    ),
+
+                    const SizedBox(height: 10),
+
+                    // ─── Countdown + Resend ─────────────
+                    Row(
+                      children: [
+                        Text(
+                          _seconds > 0
+                              ? 'ส่งอีกครั้งได้ภายใน $_seconds วินาที'
+                              : 'ไม่ได้รับรหัส?',
+                          style: const TextStyle(
+                            color: Color(0xFF8F9098),
+                            fontSize: 12,
+                            fontFamily: 'Inter',
+                            fontWeight: FontWeight.w400,
+                          ),
                         ),
-                      ),
-
-                      const SizedBox(height: 24),
-
-                      // ─── OTP Field ──────────────────────
-                      DsOtpField(
-                        label: 'กรอกรหัส OTP',
-                        length: _length,
-                        autoFocus: true,
-                        onCompleted: (_) {
-                          if (!_verifying) _verify();
-                        },
-                        onChanged: (code) => setState(() {
-                          for (var i = 0; i < _length; i++) {
-                            _ctls[i].text = i < code.length ? code[i] : '';
-                          }
-                        }),
-                      ),
-
-                      const SizedBox(height: 10),
-
-                      // ─── Countdown + Resend ─────────────
-                      Row(
-                        children: [
-                          Text(
-                            _seconds > 0
-                                ? 'ส่งอีกครั้งได้ภายใน $_seconds วินาที'
-                                : 'ไม่ได้รับรหัส?',
-                            style: const TextStyle(
-                              color: Color(0xFF8F9098),
+                        const SizedBox(width: 8),
+                        GestureDetector(
+                          onTap: (_seconds == 0 && !_resending)
+                              ? _resend
+                              : null,
+                          child: Text(
+                            _resending ? 'กำลังส่ง...' : 'ส่งอีกครั้ง',
+                            style: TextStyle(
+                              color: (_seconds == 0 && !_resending)
+                                  ? AppColors.brandPrimary
+                                  : const Color(0xFF8F9098),
                               fontSize: 12,
                               fontFamily: 'Inter',
-                              fontWeight: FontWeight.w400,
+                              fontWeight: FontWeight.w600,
+                              decoration: TextDecoration.underline,
                             ),
                           ),
-                          const SizedBox(width: 8),
-                          GestureDetector(
-                            onTap: (_seconds == 0 && !_resending)
-                                ? _resend
-                                : null,
-                            child: Text(
-                              _resending ? 'กำลังส่ง...' : 'ส่งอีกครั้ง',
-                              style: TextStyle(
-                                color: (_seconds == 0 && !_resending)
-                                    ? AppColors.brandPrimary
-                                    : const Color(0xFF8F9098),
-                                fontSize: 12,
-                                fontFamily: 'Inter',
-                                fontWeight: FontWeight.w600,
-                                decoration: TextDecoration.underline,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
+                        ),
+                      ],
+                    ),
+                  ],
                 ),
+              ),
 
-                const SizedBox(height: 50),
+              const SizedBox(height: 50),
 
-                // ─── Button ─────────────────────────────
-                SizedBox(
-                  width: 231,
-                  child: DsButton(
-                    label: _verifying ? 'กำลังยืนยัน...' : 'ยืนยัน',
-                    size: DsButtonSize.md,
-                    variant: DsButtonVariant.outlinePrimary,
-                    onPressed: (_canVerify && !_verifying) ? _verify : null,
-                  ),
+              // ─── Button ─────────────────────────────
+              SizedBox(
+                width: 231,
+                child: DsButton(
+                  label: _verifying ? 'กำลังยืนยัน...' : 'ยืนยัน',
+                  size: DsButtonSize.md,
+                  variant: DsButtonVariant.outlinePrimary,
+                  onPressed: (_canVerify && !_verifying) ? _verify : null,
                 ),
-              ],
-            ),
+              ),
+            ],
           ),
         ),
+      ),
     );
   }
 }
