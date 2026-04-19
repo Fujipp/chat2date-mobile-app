@@ -194,4 +194,26 @@ class DateRecommendService {
       throw Exception('Network error: ไม่สามารถเริ่มสุ่มได้');
     }
   }
+
+  Future<Map<String, dynamic>?> getRoomSession(String roomId) async {
+    final client = ref.read(authenticatedClientProvider);
+
+    try {
+      final response = await client.get(
+        Uri.parse('${ApiBase.baseUrl}/dates/recommendations/$roomId/session'),
+        headers: {'Content-Type': 'application/json'},
+      );
+
+      if (response.statusCode == 200) {
+        return jsonDecode(utf8.decode(response.bodyBytes));
+      } else if (response.statusCode == 404) {
+        return null;
+      } else {
+        throw Exception('Failed to get room session');
+      }
+    } catch (e) {
+      print('getRoomSession error: $e');
+      return null;
+    }
+  }
 }

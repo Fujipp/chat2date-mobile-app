@@ -538,6 +538,7 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
       _initConfirmStatus(),
       _checkSpinWheelCondition(),
       _checkAndShowReviewModal(),
+      _restoreSpinSessionIfNeeded(),
     ]);
     try {
       final numbers = await ref
@@ -806,6 +807,12 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
   Future<void> _exitRoomOnce() async {
     if (_hasExited) return;
     _hasExited = true;
+    if (_isSpinSessionActive && _leaderId == _currentUserId) {
+      try {
+        await ref.read(dateRecommendProvider).closeRemoteModal(widget.roomId!);
+      } catch (_) {}
+      await _clearPersistedSpinSession();
+    }
     await _exitRoom();
   }
 
@@ -879,14 +886,16 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
           }
 
           setState(() {
-            _isSpinSessionActive = true;
-            _showWheelModal = true;
+            if (!_isSpinSessionActive || _currentUserId == leaderIdFromSocket) {
+              _showWheelModal = true;
+              _isSpinSessionActive = true;
+            }
             _leaderId = leaderIdFromSocket;
 
             _indexMode = (modeStr == 'DISTANCE') ? 0 : 1;
 
             if (_currentUserId == leaderIdFromSocket) {
-              _indexSelected = (targetStr == nickname) ? 1 : 0;
+              _indexSelected = (targetStr == "ME") ? 1 : 0;
             } else {
               _indexSelected = (targetStr == "PARTNER") ? 1 : 0;
             }
@@ -999,6 +1008,7 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
 
   void _clearWheelState() {
     _spinSearchCooldownTimer?.cancel();
+    unawaited(_clearPersistedSpinSession());
     setState(() {
       _isSpinSessionActive = false;
       _showWheelModal = false;
@@ -1014,6 +1024,85 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
       _isSpinLoading = false;
       _spinSearchCooldownUntil = null;
     });
+  }
+
+  String _spinSessionPrefsKey(String roomId) {
+    final userId = _currentUserId ?? 'guest';
+    return 'spin_session_${userId}_$roomId';
+  }
+
+  Future<void> _persistSpinSession() async {
+    final roomId = widget.roomId;
+    if (roomId == null || roomId.isEmpty || _leaderId == null) return;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(
+      _spinSessionPrefsKey(roomId),
+      jsonEncode({
+        'leaderId': _leaderId,
+        'indexMode': _indexMode,
+        'indexSelected': _indexSelected,
+        'range': _currentRange,
+        'prizes': _dynamicPrizes,
+      }),
+    );
+  }
+
+  Future<void> _clearPersistedSpinSession() async {
+    final roomId = widget.roomId;
+    if (roomId == null || roomId.isEmpty) return;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove(_spinSessionPrefsKey(roomId));
+  }
+
+  Future<void> _restoreSpinSessionIfNeeded() async {
+    final roomId = widget.roomId;
+    final currentUserId = _currentUserId;
+    if (roomId == null || roomId.isEmpty || currentUserId == null) return;
+
+    try {
+      final service = ref.read(dateRecommendProvider);
+      final sessionData = await service.getRoomSession(roomId);
+
+      if (sessionData == null) {
+        await _clearPersistedSpinSession();
+        if (mounted) _clearWheelState();
+        return;
+      }
+
+      final leaderId = sessionData['leaderId']?.toString();
+      final modeStr = sessionData['mode'] ?? 'MIDPOINT';
+      final targetStr = sessionData['userTarget'] ?? 'PARTNER';
+      final rawData = sessionData['data'] ?? {};
+      final placesList = rawData['places'] as List? ?? [];
+      final mappedPrizes = _mapSpinPlaces(placesList);
+
+      await _precacheSpinPrizeImages(mappedPrizes);
+      if (!mounted) return;
+
+      setState(() {
+        _isSpinSessionActive = true;
+        _leaderId = leaderId;
+        _showWheelModal = true;
+
+        _indexMode = (modeStr == 'DISTANCE') ? 0 : 1;
+
+        if (currentUserId == leaderId) {
+          _indexSelected = (targetStr == "ME") ? 1 : 0;
+        } else {
+          _indexSelected = (targetStr == "PARTNER") ? 1 : 0;
+        }
+
+        _currentRange = (sessionData['range'] as num?)?.toDouble() ?? 20;
+        _storedSpinIndexMode = _indexMode;
+        _storedSpinIndexSelected = _indexSelected;
+        _storedSpinRange = _currentRange;
+        _dynamicPrizes = mappedPrizes;
+        winningIndex = null;
+      });
+    } catch (e) {
+      await _clearPersistedSpinSession();
+      if (mounted) _clearWheelState();
+    }
   }
 
   bool get _isSpinLeader => _leaderId != null && _leaderId == _currentUserId;
@@ -1926,8 +2015,12 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
           userTarget: userTarget,
         );
         await service.closeRemoteModal(widget.roomId!);
+        await _clearPersistedSpinSession();
         _clearWheelState();
       } catch (e) {
+        await service.closeRemoteModal(widget.roomId!);
+        await _clearPersistedSpinSession();
+        _clearWheelState();
         debugPrint("Error fetching date recommendations: $e");
       }
     }
@@ -1990,12 +2083,49 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
       return;
     }
 
+    final roomId = widget.roomId;
+    if (roomId == null || roomId.isEmpty) return;
+
+    final service = ref.read(dateRecommendProvider);
+    final sessionData = await service.getRoomSession(roomId);
+
+    if (sessionData != null) {
+      final leaderId = sessionData['leaderId']?.toString();
+      final modeStr = sessionData['mode'] ?? 'MIDPOINT';
+      final targetStr = sessionData['userTarget'] ?? 'PARTNER';
+      final rawData = sessionData['data'] ?? {};
+      final placesList = rawData['places'] as List? ?? [];
+      final mappedPrizes = _mapSpinPlaces(placesList);
+
+      setState(() {
+        _isSpinSessionActive = true;
+        _leaderId = leaderId;
+        _showWheelModal = true;
+
+        _indexMode = (modeStr == 'DISTANCE') ? 0 : 1;
+
+        if (_currentUserId == leaderId) {
+          _indexSelected = (targetStr == "ME") ? 1 : 0;
+        } else {
+          _indexSelected = (targetStr == "PARTNER") ? 1 : 0;
+        }
+
+        _currentRange = (sessionData['range'] as num?)?.toDouble() ?? 20;
+        _storedSpinIndexMode = _indexMode;
+        _storedSpinIndexSelected = _indexSelected;
+        _storedSpinRange = _currentRange;
+        _dynamicPrizes = mappedPrizes;
+        winningIndex = null;
+      });
+      return;
+    }
+
     setState(() {
       _leaderId = _currentUserId;
       _isSpinSessionActive = true;
       _showWheelModal = true;
     });
-    final loaded = await _prepareBeforeSpin(20, "MIDPOINT", null, false);
+    final loaded = await _prepareBeforeSpin(20, "MIDPOINT", "", false);
     if (!loaded || !mounted) {
       _clearWheelState();
       return;
@@ -3246,7 +3376,9 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
                         trailing: _isChatDisabled
                             ? const SizedBox.shrink()
                             : null,
-                        cooldownText: _cooldownDays == -1 ? '-' : '${_cooldownDays.clamp(1, 9)}',
+                        cooldownText: _cooldownDays == -1
+                            ? '-'
+                            : '${_cooldownDays.clamp(1, 9)}',
                         showCalendarAction: _isChatDisabled
                             ? false
                             : _shouldShowCalendarIcon,
