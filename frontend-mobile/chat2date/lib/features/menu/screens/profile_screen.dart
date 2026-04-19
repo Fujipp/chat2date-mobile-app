@@ -288,7 +288,8 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     List<String> backendUrls,
   ) async {
     final prefs = await SharedPreferences.getInstance();
-    final saved = prefs.getStringList(_photoOrderKey(userId)) ?? const <String>[];
+    final saved =
+        prefs.getStringList(_photoOrderKey(userId)) ?? const <String>[];
     if (saved.isEmpty) return backendUrls;
 
     final backendSet = backendUrls.toSet();
@@ -369,10 +370,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     }
 
     if (_deletedImages.isNotEmpty) {
-      await service.removePhoto(
-        userId: user.userId,
-        imageUrls: _deletedImages,
-      );
+      await service.removePhoto(userId: user.userId, imageUrls: _deletedImages);
     }
   }
 
@@ -519,11 +517,17 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
           errorMessage.contains('upload failed')) {
         _showFaceVerificationDialog();
       } else {
+        setState(() {
+          _photoUrls = List<String>.from(_oldPhotos);
+          _selectedImages = [];
+          _deletedImages = [];
+        });
         Toast.show(
           context,
           type: ToastType.error,
           title: 'ผิดพลาด',
-          message: 'เกิดข้อผิดพลาด: $e',
+          message:
+              'เกิดข้อผิดพลาด: ต้องมีรูปหน้าอย่างน้อย 1 ภาพ และรูปต้องมีใบหน้าที่ชัดเจนตรงกับบัตรประชาชน',
         );
       }
     } finally {
@@ -537,10 +541,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     final result = await Navigator.pushNamed(
       context,
       '/lifestylesSelection',
-      arguments: {
-        'items': _lifeStyles,
-        'selected': _selectedLifestyles,
-      },
+      arguments: {'items': _lifeStyles, 'selected': _selectedLifestyles},
     );
 
     if (result is List<int>) {
@@ -558,10 +559,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     final result = await Navigator.pushNamed(
       context,
       '/interestsSelection',
-      arguments: {
-        'items': _interests,
-        'selected': _selectedInterests,
-      },
+      arguments: {'items': _interests, 'selected': _selectedInterests},
     );
 
     if (result is List<int>) {
@@ -579,10 +577,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     final result = await Navigator.pushNamed(
       context,
       '/tagsSelection',
-      arguments: {
-        'items': _tags,
-        'selected': _selectedTags,
-      },
+      arguments: {'items': _tags, 'selected': _selectedTags},
     );
 
     if (result is List<int>) {
@@ -821,8 +816,8 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                     color: selected
                         ? Colors.transparent
                         : disabled
-                            ? InputColors.border
-                            : InputColors.border,
+                        ? InputColors.border
+                        : InputColors.border,
                   ),
                 ),
                 padding: const EdgeInsets.symmetric(horizontal: 12),
@@ -845,8 +840,8 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                           color: selected
                               ? TextColors.secondary
                               : disabled
-                                  ? TextColors.disabled
-                                  : TextColors.supportText,
+                              ? TextColors.disabled
+                              : TextColors.supportText,
                           fontSize: 14,
                           fontWeight: FontWeight.w400,
                           height: 20 / 14,
@@ -877,11 +872,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
           ),
         ),
         const SizedBox(height: 12),
-        Center(
-          child: DsProgressRing(
-            value: _behaviorScore,
-          ),
-        ),
+        Center(child: DsProgressRing(value: _behaviorScore)),
         const SizedBox(height: 16),
         const Text(
           'เกณฑ์คะแนนความประพฤติ:',
@@ -942,12 +933,12 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     return AppRawScrollbar(
       controller: _scrollController,
       child: SingleChildScrollView(
-          controller: _scrollController,
-          padding: EdgeInsets.fromLTRB(25, 12, 25, bottomPadding),
-          child: Center(
-            child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 310),
-              child: Column(
+        controller: _scrollController,
+        padding: EdgeInsets.fromLTRB(25, 12, 25, bottomPadding),
+        child: Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 310),
+            child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 DsTextField(
@@ -1055,10 +1046,10 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                 const SizedBox(height: 24),
                 _buildBehaviorSection(),
               ],
-              ),
             ),
           ),
         ),
+      ),
     );
   }
 
