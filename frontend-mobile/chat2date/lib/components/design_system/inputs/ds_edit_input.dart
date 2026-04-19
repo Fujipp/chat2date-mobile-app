@@ -121,8 +121,9 @@ class _EditInputFieldState extends State<EditInputField> {
   }
 
   void _clearText() {
-    _controller.clear();
-    _focusNode.requestFocus();
+    setState(() {
+      _controller.clear();
+    });
   }
 
   @override
