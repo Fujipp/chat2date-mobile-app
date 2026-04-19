@@ -223,8 +223,9 @@ class _ChatListScreenState extends ConsumerState<ChatListScreen>
       pendingNotis = [];
       final chatService = ref.read(chatServiceProvider);
       final matches = await chatService.getMatches();
-      final filteredMatches =
-          matches.where((match) => match.type == 'new').toList();
+      final filteredMatches = matches
+          .where((match) => match.type == 'new')
+          .toList();
 
       if (!mounted) return;
       setState(() {
@@ -273,7 +274,7 @@ class _ChatListScreenState extends ConsumerState<ChatListScreen>
                       decoration: BoxDecoration(
                         color: isBefore
                             ? AppColors.badgeWarning
-                            : AppColors.badgeErrorBg,
+                            : AppColors.deniedDisabled,
                         shape: BoxShape.circle,
                       ),
                     ),
@@ -283,8 +284,8 @@ class _ChatListScreenState extends ConsumerState<ChatListScreen>
                           : Icons.heart_broken_rounded,
                       size: 40,
                       color: isBefore
-                          ? AppColors.warning
-                          : AppColors.brandAccentStrong,
+                          ? AppColors.badgeSecondaryBg
+                          : AppColors.denied,
                     ),
                   ],
                 ),
@@ -355,25 +356,6 @@ class _ChatListScreenState extends ConsumerState<ChatListScreen>
     }
   }
 
-  Future<void> _checkAndShowNotifications(
-    String roomId,
-    String partnerName,
-  ) async {
-    if (!mounted) return;
-    final chatService = ref.read(chatServiceProvider);
-
-    try {
-      final String notiType = await chatService.checkNotiStatus(roomId);
-
-      if (notiType != 'NONE' && notiType.isNotEmpty) {
-        final List<Map<String, String>> toShow = [
-          {'name': partnerName, 'type': notiType, 'roomId': roomId},
-        ];
-        await _showSequentialDialogs(toShow);
-      }
-    } catch (_) {}
-  }
-
   bool _isSvgImage(String? path) {
     if (path == null || path.isEmpty) return false;
     final uri = Uri.tryParse(path);
@@ -392,8 +374,10 @@ class _ChatListScreenState extends ConsumerState<ChatListScreen>
     if (difference.inHours < 1) return '${difference.inMinutes} นาทีที่แล้ว';
     if (difference.inDays < 1) return '${difference.inHours} ชั่วโมงที่แล้ว';
     if (difference.inDays < 7) return '${difference.inDays} วันที่แล้ว';
-    if (difference.inDays < 30) return '${difference.inDays ~/ 7} สัปดาห์ที่แล้ว';
-    if (difference.inDays < 365) return '${difference.inDays ~/ 30} เดือนที่แล้ว';
+    if (difference.inDays < 30)
+      return '${difference.inDays ~/ 7} สัปดาห์ที่แล้ว';
+    if (difference.inDays < 365)
+      return '${difference.inDays ~/ 30} เดือนที่แล้ว';
     return '${difference.inDays ~/ 365} ปีที่แล้ว';
   }
 
@@ -420,6 +404,19 @@ class _ChatListScreenState extends ConsumerState<ChatListScreen>
   }) async {
     final chatService = ref.read(chatServiceProvider);
     if (!mounted) return;
+    final String notiType = await chatService.checkNotiStatus(roomId);
+
+    if (notiType != 'NONE' && notiType.isNotEmpty) {
+      final List<Map<String, String>> toShow = [
+        {'name': partnerName, 'type': notiType, 'roomId': roomId},
+      ];
+
+      await _showSequentialDialogs(toShow);
+      if (notiType != 'BEFORE') {
+        return;
+      }
+    }
+
     final navigation = Navigator.pushNamed(
       context,
       '/chat',
@@ -436,7 +433,6 @@ class _ChatListScreenState extends ConsumerState<ChatListScreen>
         await chatService.updateRelationshipBar(roomId);
       } catch (_) {}
     }());
-    unawaited(_checkAndShowNotifications(roomId, partnerName));
 
     await navigation;
   }
@@ -651,10 +647,7 @@ class _ChatListScreenState extends ConsumerState<ChatListScreen>
       body: SafeArea(
         child: Column(
           children: [
-            DsAppHomeHeader(
-              showBottomBorder: true,
-              bottomBorderSpacing: 0,
-            ),
+            DsAppHomeHeader(showBottomBorder: true, bottomBorderSpacing: 0),
             Expanded(
               child: Column(
                 children: [
@@ -689,10 +682,7 @@ class _ChatListScreenState extends ConsumerState<ChatListScreen>
 }
 
 class _ChatSwitcher extends StatelessWidget {
-  const _ChatSwitcher({
-    required this.selectedTab,
-    required this.onChanged,
-  });
+  const _ChatSwitcher({required this.selectedTab, required this.onChanged});
 
   final _ChatListTab selectedTab;
   final ValueChanged<_ChatListTab> onChanged;
@@ -794,15 +784,13 @@ class _ChatListCardState extends State<_ChatListCard> {
   static const LinearGradient _highlightGradient = LinearGradient(
     begin: Alignment.centerLeft,
     end: Alignment.centerRight,
-    colors: [
-      MainColors.primary,
-      DataColors.pastel5,
-    ],
+    colors: [MainColors.primary, DataColors.pastel5],
   );
 
   @override
   Widget build(BuildContext context) {
-    final bool showUnread = widget.unreadCount != null && widget.unreadCount! > 0;
+    final bool showUnread =
+        widget.unreadCount != null && widget.unreadCount! > 0;
     final borderColor = _isPressed
         ? AppColors.surface.withValues(alpha: 0.16)
         : Colors.transparent;
@@ -894,10 +882,7 @@ class _ChatListCardState extends State<_ChatListCard> {
 }
 
 class _ChatAvatar extends StatelessWidget {
-  const _ChatAvatar({
-    this.avatarPath,
-    required this.isSvgAvatar,
-  });
+  const _ChatAvatar({this.avatarPath, required this.isSvgAvatar});
 
   final String? avatarPath;
   final bool isSvgAvatar;
@@ -912,10 +897,7 @@ class _ChatAvatar extends StatelessWidget {
         decoration: BoxDecoration(
           shape: BoxShape.circle,
           color: AppColors.surface,
-          border: Border.all(
-            color: Colors.white,
-            width: 2,
-          ),
+          border: Border.all(color: Colors.white, width: 2),
           image: DecorationImage(
             image: avatarPath!.startsWith('http')
                 ? NetworkImage(avatarPath!)
@@ -929,26 +911,17 @@ class _ChatAvatar extends StatelessWidget {
     return DecoratedBox(
       decoration: BoxDecoration(
         shape: BoxShape.circle,
-        border: Border.all(
-          color: Colors.white,
-          width: 2,
-        ),
+        border: Border.all(color: Colors.white, width: 2),
       ),
       child: ClipOval(
-        child: SizedBox.square(
-          dimension: _size,
-          child: _buildAvatarContent(),
-        ),
+        child: SizedBox.square(dimension: _size, child: _buildAvatarContent()),
       ),
     );
   }
 
   Widget _buildAvatarContent() {
     if (avatarPath == null || avatarPath!.isEmpty) {
-      return ColoredBox(
-        color: AppColors.surface,
-        child: _fallback(),
-      );
+      return ColoredBox(color: AppColors.surface, child: _fallback());
     }
 
     if (isSvgAvatar) {
@@ -968,26 +941,16 @@ class _ChatAvatar extends StatelessWidget {
 
       return ColoredBox(
         color: AppColors.surface,
-        child: SizedBox.square(
-          dimension: _size,
-          child: svg,
-        ),
+        child: SizedBox.square(dimension: _size, child: svg),
       );
     }
 
-    return ColoredBox(
-      color: AppColors.surface,
-      child: _fallback(),
-    );
+    return ColoredBox(color: AppColors.surface, child: _fallback());
   }
 
   Widget _fallback() {
     return const Center(
-      child: Icon(
-        Icons.person,
-        size: 34,
-        color: AppColors.textOnDark,
-      ),
+      child: Icon(Icons.person, size: 34, color: AppColors.textOnDark),
     );
   }
 }
