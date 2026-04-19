@@ -2712,7 +2712,11 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
     if (_isReviewModalShown) return;
 
     final appt = _existingAppointment;
-    if (appt == null || appt.dateTime == null) {
+    if (appt == null ||
+        appt.dateTime == null ||
+        !DateTime.now().isAfter(
+          appt.dateTime!.toLocal().add(const Duration(hours: 3)),
+        )) {
       return;
     }
 
