@@ -3,6 +3,8 @@ import 'dart:io';
 
 import 'package:chat2date/core/config/backend_base.dart';
 import 'package:chat2date/stores/user_store.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter_image_compress/flutter_image_compress.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:http/http.dart' as http;
 
@@ -32,9 +34,30 @@ class PhotoVerificationService {
     request.headers['Authorization'] = 'Bearer $accessToken';
 
     for (var file in profileImages) {
-      request.files.add(
-        await http.MultipartFile.fromPath('profile_images', file.path),
+      final compressed = await FlutterImageCompress.compressWithFile(
+        file.path,
+        quality: 70,
+        minWidth: 1024,
+        minHeight: 1024,
       );
+
+      if (compressed == null) {
+        debugPrint('⚠️ compress failed, using original: ${file.path}');
+        request.files.add(
+          await http.MultipartFile.fromPath('profile_images', file.path),
+        );
+      } else {
+        debugPrint(
+          '📦 compressed: ${file.lengthSync()} → ${compressed.length} bytes',
+        );
+        request.files.add(
+          http.MultipartFile.fromBytes(
+            'profile_images',
+            compressed,
+            filename: file.path.split('/').last,
+          ),
+        );
+      }
     }
 
     request.fields['id_card_base64'] = idCardBase64;
@@ -44,7 +67,16 @@ class PhotoVerificationService {
     final response = await http.Response.fromStream(streamedResponse);
 
     if (response.statusCode != 200) {
-      throw Exception('Upload failed: ${response.body}');
+      if (response.statusCode == 413) {
+        throw Exception('image_too_large: รูปภาพมีขนาดใหญ่เกินไป');
+      }
+      final body = response.body.toLowerCase();
+      if (body.contains('face') || body.contains('ใบหน้า')) {
+        throw Exception('face_verification_failed: ${response.body}');
+      }
+      throw Exception(
+        'request_failed: ${response.statusCode} ${response.body}',
+      );
     }
 
     return jsonDecode(response.body);
