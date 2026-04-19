@@ -1,6 +1,19 @@
 platform :ios, '15.5'
 ENV['COCOAPODS_DISABLE_STATS'] = 'true'
 
+# Load .env file for API keys without requiring the Ruby dotenv gem.
+env_file = File.expand_path('../.env', __FILE__)
+if File.exist?(env_file)
+  File.foreach(env_file) do |line|
+    next if line.strip.empty? || line.lstrip.start_with?('#')
+
+    key, value = line.strip.split('=', 2)
+    next if key.nil? || value.nil? || ENV.key?(key)
+
+    ENV[key] = value.gsub(/\A['"]|['"]\z/, '')
+  end
+end
+
 project 'Runner', { 'Debug' => :debug, 'Profile' => :release, 'Release' => :release }
 
 def flutter_root
@@ -41,6 +54,13 @@ post_install do |installer|
         'PERMISSION_CAMERA=1',
         'PERMISSION_PHOTOS=1',
       ]
+    end
+  end
+
+  # Set GOOGLE_MAPS_API_KEY from .env
+  installer.aggregate_targets.each do |target|
+    target.build_configurations.each do |config|
+      config.build_settings['GOOGLE_MAPS_API_KEY'] = ENV['GOOGLE_API_KEY'] || ''
     end
   end
 end
