@@ -1,5 +1,3 @@
-import 'dart:math' as math;
-
 import 'package:chat2date/components/design_system/buttons/ds_button.dart';
 import 'package:chat2date/components/design_system/organisms/ds_bot_chat.dart';
 import 'package:chat2date/core/theme/app_colors.dart';
@@ -113,8 +111,7 @@ class ResultView extends StatelessWidget {
                     ),
                     const SizedBox(height: 16),
                     _ResultProgressBar(
-                      basePercent: basePercent,
-                      totalPercent: totalPercent,
+                      baseScore: baseScore,
                       bonusLabel: '+$gameBonus',
                     ),
                     const SizedBox(height: 12),
@@ -172,82 +169,54 @@ class ResultView extends StatelessWidget {
 }
 
 class _ResultProgressBar extends StatelessWidget {
-  const _ResultProgressBar({
-    required this.basePercent,
-    required this.totalPercent,
-    required this.bonusLabel,
-  });
+  const _ResultProgressBar({required this.baseScore, required this.bonusLabel});
 
-  final double basePercent;
-  final double totalPercent;
+  final int baseScore;
   final String bonusLabel;
 
   @override
   Widget build(BuildContext context) {
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final totalWidth = constraints.maxWidth;
-
-        final double lowerBound = totalWidth * basePercent;
-        final double upperBound = totalWidth - 40;
-
-        final double safeUpperBound = math.max(lowerBound, upperBound);
-
-        final bonusLeft = (totalWidth * totalPercent - 20).clamp(
-          lowerBound,
-          safeUpperBound,
-        );
-
-        return SizedBox(
-          height: 26,
-          child: Stack(
-            children: [
-              Positioned.fill(
-                child: Container(
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFE3E3E6),
-                    borderRadius: BorderRadius.circular(999),
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(999),
+      child: SizedBox(
+        height: 26,
+        child: Row(
+          children: [
+            Expanded(
+              flex: 8,
+              child: Container(
+                color: AppColors.brandPrimary,
+                alignment: Alignment.center,
+                child: Text(
+                  '$baseScore',
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 14,
+                    fontWeight: FontWeight.w700,
+                    height: 20 / 14,
                   ),
                 ),
               ),
-              FractionallySizedBox(
-                widthFactor: totalPercent,
-                child: Container(
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFFFD20A),
-                    borderRadius: BorderRadius.circular(999),
+            ),
+            Expanded(
+              flex: 2,
+              child: Container(
+                color: const Color(0xFFFFD20A),
+                alignment: Alignment.center,
+                child: Text(
+                  bonusLabel,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 14,
+                    fontWeight: FontWeight.w700,
+                    height: 20 / 14,
                   ),
                 ),
               ),
-              FractionallySizedBox(
-                widthFactor: basePercent,
-                child: Container(
-                  decoration: BoxDecoration(
-                    color: const Color(0xFF2D2D2D),
-                    borderRadius: BorderRadius.circular(999),
-                  ),
-                ),
-              ),
-              Positioned(
-                left: bonusLeft,
-                top: 0,
-                bottom: 0,
-                child: Center(
-                  child: Text(
-                    bonusLabel,
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 14,
-                      fontWeight: FontWeight.w700,
-                      height: 20 / 14,
-                    ),
-                  ),
-                ),
-              ),
-            ],
-          ),
-        );
-      },
+            ),
+          ],
+        ),
+      ),
     );
   }
 }
