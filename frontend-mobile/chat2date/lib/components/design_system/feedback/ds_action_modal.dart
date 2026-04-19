@@ -273,7 +273,7 @@ class DsChoiceModal extends StatelessWidget {
           DsButton(
             label: negativeLabel,
             variant: DsButtonVariant.error,
-            width: 100,
+            width: 101,
             // size: DsButtonSize.xs,
             onPressed: negativeEnabled ? onNegativePressed ?? () {} : null,
           ),

@@ -72,7 +72,6 @@ class _DsOtpFieldState extends State<DsOtpField> {
 
   void _requestFocusWithKeyboard() {
     if (_focusNode.hasFocus) {
-      // ✅ ถ้า focus ค้างอยู่แต่ keyboard ปิด ให้ unfocus ก่อนแล้วค่อย focus ใหม่
       _focusNode.unfocus();
       Future.delayed(const Duration(milliseconds: 100), () {
         if (!mounted) return;
@@ -101,7 +100,7 @@ class _DsOtpFieldState extends State<DsOtpField> {
     }
 
     _selectedIndex = safeIndex;
-    _requestFocusWithKeyboard(); // ✅ เปลี่ยนจาก _focusNode.requestFocus()
+    _requestFocusWithKeyboard();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
       _controller.selection = selection;
