@@ -92,7 +92,8 @@ class DsActionModal extends StatelessWidget {
         Text(
           title,
           textAlign: TextAlign.center,
-          style: titleStyle ??
+          style:
+              titleStyle ??
               AppDisplayTextStyles.subtitleBold.copyWith(
                 color: AppColors.textBlack,
               ),
@@ -111,20 +112,14 @@ class DsActionModal extends StatelessWidget {
           const SizedBox(height: 6),
           SizedBox(
             width: double.infinity,
-            child: Align(
-              alignment: Alignment.center,
-              child: content!,
-            ),
+            child: Align(alignment: Alignment.center, child: content!),
           ),
         ],
         if (actions != null) ...[
           const SizedBox(height: 6),
           SizedBox(
             width: double.infinity,
-            child: Align(
-              alignment: Alignment.center,
-              child: actions!,
-            ),
+            child: Align(alignment: Alignment.center, child: actions!),
           ),
         ],
       ],
@@ -220,9 +215,7 @@ class DsModalInfoBox extends StatelessWidget {
           if (heading != null)
             Text(
               heading!,
-              style: AppBodyTextStyles.overline.copyWith(
-                color: headingColor,
-              ),
+              style: AppBodyTextStyles.overline.copyWith(color: headingColor),
             ),
           if (heading != null) const SizedBox(height: 5),
           for (final line in lines)
@@ -281,6 +274,7 @@ class DsChoiceModal extends StatelessWidget {
             label: negativeLabel,
             variant: DsButtonVariant.error,
             width: 100,
+            size: DsButtonSize.xs,
             onPressed: negativeEnabled ? onNegativePressed ?? () {} : null,
           ),
           const SizedBox(width: 32),
@@ -288,6 +282,7 @@ class DsChoiceModal extends StatelessWidget {
             label: positiveLabel,
             variant: DsButtonVariant.secondary,
             width: 100,
+            size: DsButtonSize.xs,
             onPressed: positiveEnabled ? onPositivePressed ?? () {} : null,
           ),
         ],
@@ -345,10 +340,10 @@ class DsAvatarDecisionModal extends StatelessWidget {
                             fit: BoxFit.cover,
                           )
                         : avatar ??
-                            SvgPicture.asset(
-                              AppAssets.headerSecondaryAvatar,
-                              fit: BoxFit.contain,
-                            ),
+                              SvgPicture.asset(
+                                AppAssets.headerSecondaryAvatar,
+                                fit: BoxFit.contain,
+                              ),
                   ),
                 ),
                 const SizedBox(height: 4),
@@ -371,10 +366,7 @@ class DsAvatarDecisionModal extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 10),
-          DsModalInfoBox(
-            heading: 'คำเตือน :',
-            lines: warningLines,
-          ),
+          DsModalInfoBox(heading: 'คำเตือน :', lines: warningLines),
         ],
       ),
       actions: Row(
@@ -417,25 +409,22 @@ class DsStarRating extends StatelessWidget {
   Widget build(BuildContext context) {
     return Wrap(
       spacing: 7,
-      children: List.generate(
-        count,
-        (index) {
-          final itemValue = index + 1;
-          final isActive = itemValue <= value;
-          return GestureDetector(
-            onTap: () => onChanged(itemValue),
-            child: SizedBox(
-              width: size,
-              height: size,
-              child: Icon(
-                Icons.star_rounded,
-                size: size,
-                color: isActive ? AppColors.warningIcon : const Color(0xFFD4D6DD),
-              ),
+      children: List.generate(count, (index) {
+        final itemValue = index + 1;
+        final isActive = itemValue <= value;
+        return GestureDetector(
+          onTap: () => onChanged(itemValue),
+          child: SizedBox(
+            width: size,
+            height: size,
+            child: Icon(
+              Icons.star_rounded,
+              size: size,
+              color: isActive ? AppColors.warningIcon : const Color(0xFFD4D6DD),
             ),
-          );
-        },
-      ),
+          ),
+        );
+      }),
     );
   }
 }
@@ -463,10 +452,7 @@ class DsRateAppModal extends StatelessWidget {
       minHeight: 320,
       content: Column(
         children: [
-          DsStarRating(
-            value: rating,
-            onChanged: onRatingChanged,
-          ),
+          DsStarRating(value: rating, onChanged: onRatingChanged),
           const SizedBox(height: 10),
           DsTextAreaField(
             label: 'อธิบายเพิ่มเติม',
@@ -512,11 +498,7 @@ class DsGuideBookPageData {
 }
 
 class DsGuideBookModal extends StatefulWidget {
-  const DsGuideBookModal({
-    super.key,
-    required this.pages,
-    this.onClose,
-  });
+  const DsGuideBookModal({super.key, required this.pages, this.onClose});
 
   final List<DsGuideBookPageData> pages;
   final VoidCallback? onClose;
@@ -649,10 +631,7 @@ class DsDeleteAccountModal extends StatelessWidget {
           topVisual: SizedBox(
             width: 78,
             height: 78,
-            child: SvgPicture.asset(
-              AppAssets.warningIcon,
-              fit: BoxFit.contain,
-            ),
+            child: SvgPicture.asset(AppAssets.warningIcon, fit: BoxFit.contain),
           ),
           title: 'ลบบัญชีของคุณ',
           content: Column(

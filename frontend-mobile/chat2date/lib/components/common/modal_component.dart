@@ -321,7 +321,7 @@ class _ModalComponentState extends State<ModalComponent> {
                   ),
                   _choiceButton(
                     label: widget.secondChoiceText!,
-                    backgroundColor: AppColors.brandSecondary,
+                    backgroundColor: AppColors.accept,
                     onTap: widget.onSecondChoice,
                   ),
                 ],

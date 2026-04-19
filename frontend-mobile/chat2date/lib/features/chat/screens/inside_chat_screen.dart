@@ -532,6 +532,9 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
   Future<void> _initializeChat() async {
     await _enterRoomOnce();
     await _loadChatRoomMessages();
+
+    await _fetchInitialAppointment();
+
     await Future.wait<void>([
       _loadChatUserMeta(),
       _fetchInitialAppointment(),
