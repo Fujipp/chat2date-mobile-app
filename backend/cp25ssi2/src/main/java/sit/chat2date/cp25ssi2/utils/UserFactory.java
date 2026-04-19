@@ -33,6 +33,7 @@ public class UserFactory {
                 .cardId(generatedCardId)
                 .birthday(LocalDate.of(2000, 1, 1))
                 .sex(Sex.MALE)
+                .isTutorial(false)
                 .build();
     }
 
