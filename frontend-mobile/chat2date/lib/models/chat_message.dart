@@ -162,7 +162,7 @@ class ChatMessage {
             ? message
             : 'รอบนี้ยังไม่สมบูรณ์ คุณสามารถเริ่มใหม่ได้เมื่อระบบอนุญาต';
         displaySubDescription = 'ยังไม่สามารถไปยังรอบนัดเดตได้';
-        btnText = 'ดูสถานะเกม';
+        btnText = 'เริ่มเกมอีกครั้ง';
       } else if (typeStr == 'DATE') {
         isBotMessage = true;
         mappedBotType = BotMessageType.ask;

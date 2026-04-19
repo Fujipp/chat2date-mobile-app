@@ -2636,7 +2636,6 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
     }
 
     if (type == 'REVIEW_RESULT') {
-      await _fetchInitialAppointment();
       final outcome = payload['outcome'] as String?;
 
       if (mounted) {
@@ -2664,12 +2663,16 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
           _showGoodEndingModal();
           break;
         case 'ONE_SIDED':
-          _showOneSidedModal(appt: _existingAppointment!);
+          final apptOneSided = _existingAppointment;
+          if (apptOneSided == null) return;
+          _showOneSidedModal(appt: apptOneSided);
           break;
         case 'BOTH_UNSATISFIED':
           if (!_hasShownBadEnding) {
+            final apptBad = _existingAppointment;
+            if (apptBad == null) return;
             _hasShownBadEnding = true;
-            _showBadEndingModal(appt: _existingAppointment!);
+            _showBadEndingModal(appt: apptBad);
           } else {
             _isResultModalShown = false;
           }
@@ -2687,13 +2690,18 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
             durationSeconds: 2,
             showCountdown: false,
           );
-
           Future.delayed(const Duration(seconds: 2), () {
             if (mounted) {
-              Navigator.pop(context);
+              Navigator.of(context, rootNavigator: true).popUntil(
+                (route) => route.isFirst || route.settings.name == '/chat-list',
+              );
             }
           });
           break;
+      }
+
+      if (outcome != 'UNMATCH') {
+        await _fetchInitialAppointment();
       }
     }
   }
