@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:chat2date/components/design_system/buttons/ds_button.dart';
 import 'package:chat2date/components/design_system/organisms/ds_bot_chat.dart';
 import 'package:chat2date/core/theme/app_colors.dart';
@@ -185,9 +187,15 @@ class _ResultProgressBar extends StatelessWidget {
     return LayoutBuilder(
       builder: (context, constraints) {
         final totalWidth = constraints.maxWidth;
+
+        final double lowerBound = totalWidth * basePercent;
+        final double upperBound = totalWidth - 40;
+
+        final double safeUpperBound = math.max(lowerBound, upperBound);
+
         final bonusLeft = (totalWidth * totalPercent - 20).clamp(
-          totalWidth * basePercent,
-          totalWidth - 40,
+          lowerBound,
+          safeUpperBound,
         );
 
         return SizedBox(
@@ -262,7 +270,9 @@ class _ResultPlayerScore extends StatelessWidget {
         CircleAvatar(
           radius: 30,
           backgroundColor: AppColors.inputBorder,
-          backgroundImage: avatarUrl.isNotEmpty ? NetworkImage(avatarUrl) : null,
+          backgroundImage: avatarUrl.isNotEmpty
+              ? NetworkImage(avatarUrl)
+              : null,
           child: avatarUrl.isEmpty
               ? const Icon(
                   Icons.person_rounded,

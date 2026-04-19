@@ -28,6 +28,19 @@ class _QuestionViewState extends State<QuestionView> {
   bool _isAnswered = false;
   String? _selectedOption;
 
+  late List<String> _shuffledOptions;
+
+  @override
+  void initState() {
+    super.initState();
+    _prepareShuffledOptions();
+  }
+
+  void _prepareShuffledOptions() {
+    _shuffledOptions = List<String>.from(widget.questionData.options)
+      ..shuffle();
+  }
+
   void _handleOptionTap(String option) {
     if (_isAnswered) return;
 
@@ -49,6 +62,7 @@ class _QuestionViewState extends State<QuestionView> {
       setState(() {
         _isAnswered = false;
         _selectedOption = null;
+        _prepareShuffledOptions();
       });
     }
   }
@@ -114,7 +128,10 @@ class _QuestionViewState extends State<QuestionView> {
                                 key: ValueKey<String?>(
                                   '${widget.questionData.questionId}$_selectedOption',
                                 ),
-                                padding: const EdgeInsets.only(top: 14, bottom: 2),
+                                padding: const EdgeInsets.only(
+                                  top: 14,
+                                  bottom: 2,
+                                ),
                                 child: _AnswerStatusChip(
                                   isCorrect:
                                       _selectedOption ==
@@ -123,21 +140,23 @@ class _QuestionViewState extends State<QuestionView> {
                               ),
                       ),
                       if (!_isAnswered) const SizedBox(height: 18),
-                      for (int index = 0;
-                          index < widget.questionData.options.length;
-                          index++) ...[
+                      for (
+                        int index = 0;
+                        index < _shuffledOptions.length;
+                        index++
+                      ) ...[
                         _QuestionOptionButton(
-                          label: widget.questionData.options[index],
+                          label: _shuffledOptions[index],
                           isAnswered: _isAnswered,
                           isSelected:
-                              _selectedOption == widget.questionData.options[index],
+                              _selectedOption == _shuffledOptions[index],
                           isCorrect:
                               widget.questionData.correct ==
-                              widget.questionData.options[index],
+                              _shuffledOptions[index],
                           onTap: () =>
-                              _handleOptionTap(widget.questionData.options[index]),
+                              _handleOptionTap(_shuffledOptions[index]),
                         ),
-                        if (index != widget.questionData.options.length - 1)
+                        if (index != _shuffledOptions.length - 1)
                           const SizedBox(height: 22),
                       ],
                     ],
