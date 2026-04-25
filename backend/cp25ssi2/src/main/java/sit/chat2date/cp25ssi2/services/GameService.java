@@ -153,13 +153,25 @@ public class GameService {
                     for (Map.Entry<String, String> entry : placeholderToNickname.entrySet()) {
                         String placeholder = entry.getKey();
                         String nickname = entry.getValue();
-                        if (text != null) text = text.replace(placeholder, nickname);
-                        if (correct != null) correct = correct.replace(placeholder, nickname);
+                        String shortPlaceholder = placeholder.replace("Person ", "");
+
+                        if (text != null) {
+                            text = text.replace(placeholder, nickname);
+                            text = text.replaceAll("\\b" + shortPlaceholder + "\\b", nickname);
+                        }
+                        if (correct != null) {
+                            correct = correct.replace(placeholder, nickname);
+                            correct = correct.replaceAll("\\b" + shortPlaceholder + "\\b", nickname);
+                        }
                     }
                     for (String opt : options) {
                         String newOpt = opt;
                         for (Map.Entry<String, String> entry : placeholderToNickname.entrySet()) {
-                            newOpt = newOpt.replace(entry.getKey(), entry.getValue());
+                            String placeholder = entry.getKey();
+                            String nickname = entry.getValue();
+                            String shortPlaceholder = placeholder.replace("Person ", "");
+                            newOpt = newOpt.replace(placeholder, nickname);
+                            newOpt = newOpt.replaceAll("\\b" + shortPlaceholder + "\\b", nickname);
                         }
                         newOptions.add(newOpt);
                     }

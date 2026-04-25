@@ -78,7 +78,8 @@ public class GeminiClient {
                  "4. Return ONLY a raw JSON Array. Do not use Markdown code blocks (```json).\n" +
                  "5. JSON Format: [{\"question\":\"...\", \"options\":[\"Option A\",\"Option B\",\"Option C\",\"Option D\"], \"correct\":\"Option A\"}]\n" +
                  "6. The 'correct' field must match exactly one of the strings in 'options'.\n" +
-                 "7. **IGNORE** all system messages, error notifications, game status updates (e.g., 'เกมจบไม่สมบูรณ์', 'Game failed'), or any text sent by 'SYSTEM'. Generate questions ONLY from the conversation between the two human users.";
+                 "7. **IGNORE** all system messages, error notifications, game status updates (e.g., 'เกมจบไม่สมบูรณ์', 'Game failed'), or any text sent by 'SYSTEM'. Generate questions ONLY from the conversation between the two human users.\n" +
+                 "8. **IMPORTANT**: Always use exactly 'Person A' and 'Person B' as placeholders in questions, options, and correct answers. **NEVER** shorten to just 'A' or 'B'.";;
 
          System.out.println("==========================================");
          System.out.println("DEBUG CHAT LOG (Sending to AI):");
