@@ -7,6 +7,7 @@ import 'package:chat2date/components/card/generic_card.dart';
 import 'package:chat2date/components/chat/chat_text_component.dart';
 import 'package:chat2date/components/common/app_raw_scrollbar.dart';
 import 'package:chat2date/components/common/modal_component.dart';
+import 'package:chat2date/components/design_system/buttons/ds_button.dart';
 import 'package:chat2date/components/design_system/controls/ds_level_progress_bar.dart';
 import 'package:chat2date/components/design_system/feedback/index.dart';
 import 'package:chat2date/components/design_system/inputs/ds_chat_message_input.dart';
@@ -451,11 +452,14 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
   }
 
   Future<void> _initUpdateRelationshipBar(bool onUpdate) async {
+    int oldHeartCount = 10;
+
     if (onUpdate) {
       final chatService = ref.read(chatServiceProvider);
       final roomData = await chatService.updateRelationshipBar(widget.roomId!);
       if (!mounted) return;
       setState(() {
+        oldHeartCount = _heartCount;
         if (roomData!.score >= 400) {
           _heartCount = 3; // ตันที่ 3 ดวง
           _currentPercent = 1.0; // ตันที่ 100% (1.0)
@@ -467,6 +471,11 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
         _isFirstMessageBonus = roomData.isFirstMessageBonus;
         _dailyMessagesCount = roomData.dailyMessageCount;
       });
+      if (oldHeartCount == 0 && _heartCount >= 1) {
+        FocusScope.of(context).unfocus();
+        await Future.delayed(const Duration(milliseconds: 300));
+        _triggerUnlockDate();
+      }
     } else {
       final chatService = ref.read(chatServiceProvider);
       final roomData =
@@ -485,6 +494,12 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
         _isFirstMessageBonus = roomData.isFirstMessageBonus;
         _dailyMessagesCount = roomData.dailyMessageCount;
       });
+
+      if (oldHeartCount == 0 && _heartCount >= 1) {
+        FocusScope.of(context).unfocus();
+        await Future.delayed(const Duration(milliseconds: 300));
+        _triggerUnlockDate();
+      }
 
       return;
     }
@@ -845,9 +860,11 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
     _appointmentSubscription = service.appointmentStream.listen(
       _handleAppointmentEvent,
     );
-    _relationshipSubscription = service.relationshipStream.listen((data) {
+    _relationshipSubscription = service.relationshipStream.listen((data) async {
+      int oldHeartCount = 10;
       if (!mounted) return;
       setState(() {
+        oldHeartCount = _heartCount;
         if (data['score'] >= 400) {
           _heartCount = 3; // ตันที่ 3 ดวง
           _currentPercent = 1.0; // ตันที่ 100% (1.0)
@@ -859,6 +876,12 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
         _dailyMessagesCount = data['dailyMessageCount'] ?? 0;
         _isFirstMessageBonus = data['isFirstMessageBonus'] ?? false;
       });
+
+      if (oldHeartCount == 0 && _heartCount >= 1) {
+        FocusScope.of(context).unfocus();
+        await Future.delayed(const Duration(milliseconds: 300));
+        _triggerUnlockDate();
+      }
     });
 
     _chatSocketService?.spinStream.listen((payload) async {
@@ -1474,7 +1497,7 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
       if (latestAppointment != null &&
           !hasSeenUnlockIntro &&
           !_showUnlockDate) {
-        _triggerUnlockDate();
+        _triggerCalendar();
       }
     } catch (e) {
       debugPrint('Error refreshing appointment state: $e');
@@ -2563,14 +2586,37 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
   }
 
   void _triggerUnlockDate() async {
-    if (_showUnlockDate || _hasSeenCalendarUnlockIntro) {
-      return;
-    }
     FocusScope.of(context).unfocus();
     await Future.delayed(const Duration(milliseconds: 300));
-    if (!mounted) return;
     setState(() {
       _showUnlockDate = true;
+      _headerVariant = ChatHeaderVariant.chat2;
+    });
+
+    Future.delayed(const Duration(seconds: 3), () {
+      if (mounted) {
+        setState(() {
+          _showUnlockDate = false;
+        });
+      }
+    });
+  }
+
+  bool _showUnlockCalendarModal = false;
+
+  void _triggerCalendar() async {
+    FocusScope.of(context).unfocus();
+    await Future.delayed(const Duration(milliseconds: 300));
+    setState(() {
+      _showUnlockCalendarModal = true;
+    });
+
+    Future.delayed(const Duration(seconds: 3), () {
+      if (mounted) {
+        setState(() {
+          _showUnlockCalendarModal = false;
+        });
+      }
     });
   }
 
@@ -3653,6 +3699,32 @@ class _InsideChatScreenState extends ConsumerState<InsideChatScreen>
                 //     ),
                 //   ),
                 // ),
+                if (_showUnlockCalendarModal)
+                  DsActionModal(
+                    title: 'Unlock Your Calendar',
+                    description:
+                        'ไปนัดหมายวันเวลาเดตสุดพิเศษ\nพร้อมกับคู่ของคุณกัน',
+                    minHeight: 283,
+                    decoration: DsActionModalDecoration.unlock,
+                    topVisual: SizedBox(
+                      width: 74,
+                      height: 82.22,
+                      child: Center(
+                        child: SvgPicture.asset(
+                          AppAssets.headerSecondaryChat4LeftAction,
+                          width: 74,
+                          height: 74,
+                          fit: BoxFit.contain,
+                        ),
+                      ),
+                    ),
+                    actions: DsButton(
+                      label: 'ไปกันเลย',
+                      variant: DsButtonVariant.primary,
+                      width: 231,
+                      onPressed: () {},
+                    ),
+                  ),
                 if (showGpsOverlay)
                   Positioned(
                     top: gpsOverlayTop,

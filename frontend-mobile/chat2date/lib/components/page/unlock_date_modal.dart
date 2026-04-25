@@ -115,7 +115,7 @@ class UnlockDateModal extends StatelessWidget {
                   height: 82,
                   child: Center(
                     child: SvgPicture.asset(
-                      AppAssets.headerSecondaryChat4LeftAction,
+                      AppAssets.spinwheelIcon,
                       width: 74,
                       height: 74,
                       fit: BoxFit.contain,
@@ -124,7 +124,7 @@ class UnlockDateModal extends StatelessWidget {
                 ),
                 const SizedBox(height: 6),
                 Text(
-                  'Unlock Your Calendar',
+                  'Unlock Date',
                   textAlign: TextAlign.center,
                   style: AppDisplayTextStyles.subtitleBold.copyWith(
                     color: AppColors.textBlack,
