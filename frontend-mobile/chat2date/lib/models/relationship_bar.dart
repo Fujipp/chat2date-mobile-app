@@ -1,0 +1,37 @@
+class RelationshipBar {
+  final int relationshipId;
+  final int score;
+  final int streakDays;
+  final bool isFirstMessageBonus;
+  final int dailyMessageCount;
+  final bool isDailyMessagesBonus;
+  final DateTime dailyDate;
+  final String notiBeforeUnmatch;
+  final String notiUnmatch;
+
+  RelationshipBar({
+    required this.relationshipId,
+    required this.score,
+    required this.streakDays,
+    required this.isFirstMessageBonus,
+    required this.dailyMessageCount,
+    required this.isDailyMessagesBonus,
+    required this.dailyDate,
+    required this.notiBeforeUnmatch,
+    required this.notiUnmatch
+  });
+
+  factory RelationshipBar.fromJson(Map<String, dynamic> json) {
+    return RelationshipBar(
+      relationshipId: json['relationshipId'] as int,
+      score: json['score'] as int,
+      streakDays: json['streakDays'] as int,
+      isFirstMessageBonus: json['isFirstMessageBonus'] as bool,
+      dailyMessageCount: json['dailyMessageCount'] as int,
+      isDailyMessagesBonus: json['isDailyMessagesBonus'] as bool,
+      dailyDate: DateTime.parse(json['dailyDate'] as String),
+      notiBeforeUnmatch: json['notiBeforeUnmatch'],
+      notiUnmatch: json['notiUnmatch']
+    );
+  }
+}

@@ -1,0 +1,197 @@
+name: chat2date
+description: 'A new Flutter project.'
+publish_to: 'none'
+version: 1.0.0+1
+
+environment:
+  sdk: ^3.9.2
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  cupertino_icons: ^1.0.8
+  camera: ^0.11.3
+  geolocator: ^13.0.1
+
+  # === ENV / Config ===
+  flutter_dotenv: ^6.0.0
+  device_info_plus: ^12.2.0
+  shared_preferences: ^2.1.1
+  uuid: ^4.5.2
+
+  # === UI / Routing ===
+  dropdown_button2: ^2.3.9
+  percent_indicator: ^4.2.5
+  flutter_svg: ^2.0.10
+  iconify_flutter: ^0.0.7
+  go_router: ^16.3.0
+  sliding_up_panel: ^2.0.0+1
+  flutter_fortune_wheel: ^1.3.0
+
+  # === Utils ===
+  intl: ^0.19.0
+  http: ^1.2.2
+  http_parser: ^4.0.2
+  stomp_dart_client: ^1.0.0
+  google_sign_in: ^7.2.0
+  flutter_riverpod: ^2.6.1
+  riverpod_annotation: ^2.6.1
+  flutter_secure_storage: ^9.2.4
+  provider: ^6.1.5+1
+
+  # === Media / Picker ===
+  image_picker: ^1.2.0
+  permission_handler: ^11.3.1
+
+  # === Calendar / Slider / ML ===
+  flutter_xlider: ^3.5.0
+  google_mlkit_face_detection: ^0.13.1
+  google_mlkit_commons: ^0.11.0
+
+  # === Firebase ===
+  firebase_core: ^3.9.0
+  firebase_messaging: ^15.0.0
+  url_launcher: ^6.3.2
+  share_plus: ^12.0.1
+  google_maps_flutter: ^2.14.2
+  flutter_image_compress: ^2.4.0
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+
+  flutter_lints: ^5.0.0
+
+  # สำหรับ generate code (riverpod ฯลฯ)
+  build_runner: ^2.4.11
+  riverpod_generator: ^2.6.1
+
+  # === Splash & App Icon ===
+  flutter_native_splash: ^2.4.7
+  flutter_launcher_icons: ^0.14.4
+
+  mockito: ^5.0.0 
+
+flutter:
+  uses-material-design: true
+
+  assets:
+    - assets/icons/
+    - assets/icons/gps/
+    - assets/icons/ui/
+    - assets/icons/buttons/
+    - assets/icons/headers/
+    - assets/icons/inputs/
+    - assets/icons/modals/
+    - assets/icons/navigation/
+    - assets/icons/selectors/
+    - assets/icons/toasts/
+    - assets/branding/
+    - assets/branding/logos/
+    - assets/images/
+    - assets/images/placeholders/
+    - assets/images/illustrations/
+    - assets/images/references/figma/
+    - .env
+
+  fonts:
+    - family: Inter
+      fonts:
+        - asset: assets/fonts/Inter/Inter-VariableFont_opsz,wght.ttf
+        - asset: assets/fonts/Inter/Inter-Italic-VariableFont_opsz,wght.ttf
+          style: italic
+
+    - family: IBMPlexSansThai
+      fonts:
+        - asset: assets/fonts/IBMPlexSansThai/IBMPlexSansThai-Regular.ttf
+          weight: 400
+        - asset: assets/fonts/IBMPlexSansThai/IBMPlexSansThai-SemiBold.ttf
+          weight: 600
+        - asset: assets/fonts/IBMPlexSansThai/IBMPlexSansThai-Bold.ttf
+          weight: 700
+
+    - family: Itim
+      fonts:
+        - asset: assets/fonts/Itim/Itim-Regular.ttf
+          weight: 400
+
+# ==============================
+#   CONFIG: Splash Screen
+# ==============================
+flutter_native_splash:
+  #======================================================================
+  #  BASIC CONFIG (ทุกแพลตฟอร์ม ยกเว้น Android 12+)
+  #======================================================================
+
+  # เปิดใช้บน platform ไหนบ้าง
+  android: true
+  ios: true
+  web: false
+
+  # ⚪ พื้นหลัง (เลือกอย่างใดอย่างหนึ่งระหว่าง color vs background_image)
+  # ถ้าใช้ color ห้ามใช้ background_image พร้อมกัน
+  color: "#FFFFFF"   # พื้นหลังขาว (เหมือนที่ Dev ตั้งไว้ก่อนหน้า)
+  # color_dark: "#FFFFFF"
+
+  # ถ้าจะใช้เป็นรูป background แทนสี ให้ comment color ด้านบน แล้วมาใช้อันนี้
+  # background_image: "assets/images/splash_bg.png"
+  # background_image_dark: "assets/images/splash_bg_dark.png"
+
+  # 🎯 โลโก้ตรงกลาง (ทุก platform)
+  # ใช้โลโก้หลักของแอป
+  image: assets/branding/logos/logo_chat2date_splash_source.png
+  # image_dark: assets/branding/logos/logo_chat2date_splash_source.png
+
+  # ตำแหน่งรูปบนแต่ละ platform
+  android_gravity: center
+  ios_content_mode: scaleAspectFit
+  web_image_mode: contain
+
+  # ซ่อนแถบสถานะตอน splash (Android), iOS จะซ่อนให้อยู่แล้ว
+  fullscreen: true
+
+  #======================================================================
+  #  ANDROID 12+ CONFIG
+  #======================================================================
+
+  android_12:
+    # พื้นหลังตอน splash
+    color: "#FFFFFF"
+    # color_dark: "#FFFFFF"
+
+    # โลโก้ตรงกลางของ Android 12+
+    # *ถ้าไม่กำหนด image ตรงนี้ Android จะใช้ app icon แทน*
+    # ระวัง: Android 12 จะ clip เป็นวงกลม
+    # แนะนำให้ใช้ไฟล์ PNG พื้นหลังโปร่ง (transparent) เช่น โลโก้เดี่ยว ๆ
+    image: assets/branding/logos/logo_chat2date_splash_sm.png
+    # image_dark: assets/branding/logos/logo_chat2date_splash_source.png
+
+    # สีพื้นหลังของวงกลมด้านหลังโลโก้ (ถ้าอยากให้มีวงกลม)
+    # ถ้าอยากให้โลโก้ลอย ๆ ไม่ต้องตั้งก็ได้
+    # icon_background_color: "#FFFFFF"
+    # icon_background_color_dark: "#FFFFFF"
+
+    # ถ้าอยากมี branding ล่าง ๆ ให้ใส่ตรงนี้ (ขนาดต้อง 800x320 px)
+    branding: assets/branding/logos/logo_chat2date_branding_source.png
+    # branding_dark: assets/branding/logos/logo_chat2date_branding_source.png
+
+
+# ==============================
+#   CONFIG: App Icon
+# ==============================
+flutter_launcher_icons:
+  android: true
+  ios: true
+  image_path: "assets/branding/app_icon/icon_chat2date.png"
+  min_sdk_android: 21
+
+  # iOS: ให้ lib ช่วยลบ alpha ทิ้ง (ตามที่ Dev ตั้งไว้)
+  remove_alpha_ios: true
+  background_color_ios: "#FFFFFF"
+
+  # (ออปชัน) เผื่อ Dev อยากรองรับ Adaptive Icon สวย ๆ บน Android
+  # adaptive_icon_background: "#FFFFFF"
+  # adaptive_icon_foreground: "assets/images/icon_chat2date_foreground.png"
+  # adaptive_icon_monochrome: "assets/images/icon_chat2date_mono.png"
+  

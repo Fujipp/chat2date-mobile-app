@@ -1,0 +1,17 @@
+server:
+  address: 0.0.0.0
+  port: 8080
+  tomcat:
+    connection-timeout: 10s
+
+spring:
+  mvc:
+    cors:
+      mappings:
+        "[/api/**]":
+          allowed-origins: "*"
+          allowed-methods: "GET,POST,OPTIONS"
+          allowed-headers: "*"
+  jackson:
+    serialization:
+      WRITE_DATES_AS_TIMESTAMPS: false

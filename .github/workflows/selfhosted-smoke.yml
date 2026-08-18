@@ -1,0 +1,18 @@
+name: Self-hosted Runner Smoke Test
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [ develop ]
+
+jobs:
+  ping:
+    runs-on: self-hosted
+    steps:
+      - name: Print runner info
+        run: |
+          echo "Runner hostname: $(hostname)"
+          echo "Runner user: $(whoami)"
+          uname -a
+      - name: List home directory
+        run: ls -la ~

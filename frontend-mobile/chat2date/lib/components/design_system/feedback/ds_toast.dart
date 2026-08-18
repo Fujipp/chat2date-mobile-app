@@ -1,0 +1,251 @@
+import 'dart:async';
+
+import 'package:chat2date/core/theme/app_assets.dart';
+import 'package:chat2date/core/theme/app_colors.dart';
+import 'package:chat2date/core/theme/tokens/typography/body_text_styles.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter_svg/flutter_svg.dart';
+
+enum ToastType { info, success, warning, error }
+
+typedef DsToast = Toast;
+typedef DsToastType = ToastType;
+
+class Toast extends StatelessWidget {
+  const Toast({
+    super.key,
+    required this.type,
+    this.title = '',
+    this.message = '',
+    this.onClose,
+    this.durationSeconds = 10,
+    this.autoDismiss = true,
+    this.showCountdown = false,
+    this.width = 342,
+  });
+
+  final ToastType type;
+  final String title;
+  final String message;
+  final VoidCallback? onClose;
+  final int durationSeconds;
+  final bool autoDismiss;
+  final bool showCountdown;
+  final double width;
+
+  static OverlayEntry? _currentEntry;
+  static Timer? _currentTimer;
+
+  static void dismissCurrent() {
+    _currentTimer?.cancel();
+    _currentTimer = null;
+    if (_currentEntry?.mounted ?? false) {
+      _currentEntry!.remove();
+    }
+    _currentEntry = null;
+  }
+
+  static void show(
+    BuildContext context, {
+    required ToastType type,
+    required String title,
+    required String message,
+    int durationSeconds = 10,
+    bool showCountdown = false,
+    bool autoDismiss = true,
+  }) {
+    dismissCurrent();
+
+    final overlay = Overlay.maybeOf(context);
+    if (overlay == null) return;
+
+    late final OverlayEntry entry;
+
+    void removeEntry() {
+      _currentTimer?.cancel();
+      _currentTimer = null;
+      if (entry.mounted) {
+        entry.remove();
+      }
+      if (_currentEntry == entry) _currentEntry = null;
+    }
+
+    entry = OverlayEntry(
+      builder: (_) => SafeArea(
+        child: Align(
+          alignment: Alignment.bottomCenter,
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
+            child: Material(
+              color: Colors.transparent,
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 342),
+                child: Toast(
+                  type: type,
+                  title: title,
+                  message: message,
+                  durationSeconds: durationSeconds,
+                  autoDismiss: autoDismiss,
+                  showCountdown: showCountdown,
+                  onClose: removeEntry,
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+
+    _currentEntry = entry;
+    overlay.insert(entry);
+
+    if (autoDismiss) {
+      _currentTimer = Timer(Duration(seconds: durationSeconds), removeEntry);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final hasTitle = title.trim().isNotEmpty;
+    final hasMessage = message.trim().isNotEmpty;
+
+    return Container(
+      width: width,
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          _ToastStatusIcon(type: type),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                if (hasTitle)
+                  Text(
+                    title,
+                    style: AppBodyTextStyles.toastBold.copyWith(
+                      color: AppColors.textOnDark,
+                    ),
+                  ),
+                if (hasTitle && hasMessage) const SizedBox(height: 4),
+                if (hasMessage)
+                  Text(
+                    message,
+                    style: AppBodyTextStyles.overline.copyWith(
+                      color: AppColors.textOnDark,
+                    ),
+                  ),
+              ],
+            ),
+          ),
+          if (onClose != null) ...[
+            const SizedBox(width: 16),
+            GestureDetector(
+              behavior: HitTestBehavior.opaque,
+              onTap: onClose,
+              child: SizedBox(
+                width: 24,
+                height: 24,
+                child: Center(
+                  child: SizedBox(
+                    width: 12,
+                    height: 12,
+                    child: SvgPicture.asset(
+                      AppAssets.toastCloseIcon,
+                      colorFilter: const ColorFilter.mode(
+                        AppColors.textOnDark,
+                        BlendMode.srcIn,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+class _ToastStatusIcon extends StatelessWidget {
+  const _ToastStatusIcon({required this.type});
+
+  final ToastType type;
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: 24,
+      height: 24,
+      child: Center(
+        child: Stack(
+          alignment: Alignment.center,
+          children: [
+            SvgPicture.asset(_badgeAsset, width: 22, height: 22),
+            SvgPicture.asset(
+              _glyphAsset,
+              width: _glyphWidth,
+              height: _glyphHeight,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  String get _badgeAsset {
+    switch (type) {
+      case ToastType.info:
+        return AppAssets.toastInfoBadge;
+      case ToastType.success:
+        return AppAssets.toastSuccessBadge;
+      case ToastType.warning:
+        return AppAssets.toastWarningBadge;
+      case ToastType.error:
+        return AppAssets.toastErrorBadge;
+    }
+  }
+
+  String get _glyphAsset {
+    switch (type) {
+      case ToastType.info:
+        return AppAssets.toastInfoGlyph;
+      case ToastType.success:
+        return AppAssets.toastSuccessGlyph;
+      case ToastType.warning:
+      case ToastType.error:
+        return AppAssets.toastWarningErrorGlyph;
+    }
+  }
+
+  double get _glyphWidth {
+    switch (type) {
+      case ToastType.info:
+        return 6.41;
+      case ToastType.success:
+        return 10.15;
+      case ToastType.warning:
+      case ToastType.error:
+        return 2.74;
+    }
+  }
+
+  double get _glyphHeight {
+    switch (type) {
+      case ToastType.info:
+        return 10.94;
+      case ToastType.success:
+        return 7.9;
+      case ToastType.warning:
+      case ToastType.error:
+        return 12.11;
+    }
+  }
+}

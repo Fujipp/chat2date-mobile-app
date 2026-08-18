@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "671859491710",
+    "project_id": "chat2date-46e6c",
+    "storage_bucket": "chat2date-46e6c.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:671859491710:android:d3e64fd75c0e9e66ffa92f",
+        "android_client_info": {
+          "package_name": "com.example.chat2date"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAkENMA71teuffn8l9OiePa3FdgM3Lepw8"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

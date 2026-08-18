@@ -1,0 +1,11 @@
+{
+    "configurations": [
+        {
+            "name": "Flutter (lib\\services\\user_service.dart)",
+            "type": "dart",
+            "request": "launch",
+            "cwd": "frontend-mobile\\chat2date",
+            "program": "lib\\services\\user_service.dart"
+        }
+    ]
+}

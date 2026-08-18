@@ -1,0 +1,4 @@
+{
+  "prettier.resolveGlobalModules": false,
+  "editor.formatOnSave": true
+}

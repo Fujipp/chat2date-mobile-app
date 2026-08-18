@@ -1,0 +1,211 @@
+import 'package:chat2date/core/theme/app_assets.dart';
+import 'package:chat2date/core/theme/app_colors.dart';
+import 'package:chat2date/core/theme/tokens/typography/body_text_styles.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter_svg/flutter_svg.dart';
+
+class CustomBottomNavBar extends StatefulWidget {
+  const CustomBottomNavBar({
+    super.key,
+    this.selectedIndex = 0,
+    this.onTap,
+  });
+
+  final int selectedIndex;
+  final Function(int)? onTap;
+
+  @override
+  State<CustomBottomNavBar> createState() => _CustomBottomNavBarState();
+}
+
+class _CustomBottomNavBarState extends State<CustomBottomNavBar> {
+  late int _selectedIndex;
+
+  static const List<_BottomNavItemData> _items = [
+    _BottomNavItemData(
+      label: 'Home',
+      activeIcon: AppAssets.navHomeActive,
+      inactiveIcon: AppAssets.navHomeInactive,
+    ),
+    _BottomNavItemData(
+      label: 'Chat',
+      activeIcon: AppAssets.navChatActive,
+      inactiveIcon: AppAssets.navChatInactive,
+    ),
+    _BottomNavItemData(
+      label: 'Profile',
+      activeIcon: AppAssets.navProfileActive,
+      inactiveIcon: AppAssets.navProfileInactive,
+    ),
+    _BottomNavItemData(
+      label: 'Setting',
+      activeIcon: AppAssets.navSettingActive,
+      inactiveIcon: AppAssets.navSettingInactive,
+    ),
+  ];
+
+  @override
+  void initState() {
+    super.initState();
+    _selectedIndex = widget.selectedIndex;
+  }
+
+  @override
+  void didUpdateWidget(covariant CustomBottomNavBar oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.selectedIndex != widget.selectedIndex) {
+      _selectedIndex = widget.selectedIndex;
+    }
+  }
+
+  void _handleTap(int index) {
+    setState(() {
+      _selectedIndex = index;
+    });
+
+    if (widget.onTap == null) return;
+
+    widget.onTap!(index);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final bottomInset = MediaQuery.of(context).padding.bottom;
+    final double contentBottomPadding = bottomInset > 0
+        ? (bottomInset - 2.0).clamp(0.0, double.infinity)
+        : 4.0;
+
+    return Container(
+      height: 60 + bottomInset,
+      color: AppColors.surface,
+      child: Padding(
+        padding: EdgeInsets.only(bottom: contentBottomPadding),
+        child: Align(
+          alignment: Alignment.bottomCenter,
+          child: SizedBox(
+            height: 42,
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: List.generate(_items.length, (index) {
+                final item = _items[index];
+                final bool isSelected = index == _selectedIndex;
+                return _BottomNavButton(
+                  label: item.label,
+                  iconPath: isSelected ? item.activeIcon : item.inactiveIcon,
+                  isSelected: isSelected,
+                  onTap: () => _handleTap(index),
+                );
+              }),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _BottomNavButton extends StatelessWidget {
+  const _BottomNavButton({
+    required this.label,
+    required this.iconPath,
+    required this.isSelected,
+    required this.onTap,
+  });
+
+  final String label;
+  final String iconPath;
+  final bool isSelected;
+  final VoidCallback onTap;
+
+  static const LinearGradient _activeGradient = LinearGradient(
+    begin: Alignment.topCenter,
+    end: Alignment.bottomCenter,
+    colors: [AppColors.brandPrimary, Color(0xFFFFF1A8)],
+  );
+
+  @override
+  Widget build(BuildContext context) {
+    final Widget iconWidget = label == 'Setting'
+        ? _buildSettingIcon()
+        : SvgPicture.asset(iconPath, fit: BoxFit.contain);
+
+    final Widget labelWidget = Text(
+      label,
+      textAlign: TextAlign.center,
+      maxLines: 1,
+      softWrap: false,
+      style: AppBodyTextStyles.captionBold.copyWith(
+        color: isSelected ? Colors.white : AppColors.textOnDark,
+        height: 1.15,
+      ),
+    );
+
+    return Expanded(
+      child: Align(
+        alignment: Alignment.center,
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(12),
+          child: SizedBox(
+            width: 56,
+            height: 40,
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                SizedBox(
+                  width: 24,
+                  height: 24,
+                  child: iconWidget,
+                ),
+                const SizedBox(height: 2),
+                if (isSelected)
+                  ShaderMask(
+                    blendMode: BlendMode.srcIn,
+                    shaderCallback: (bounds) => _activeGradient.createShader(
+                      Rect.fromLTWH(0, 0, bounds.width, bounds.height),
+                    ),
+                    child: labelWidget,
+                  )
+                else
+                  labelWidget,
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSettingIcon() {
+    final Widget icon = const Icon(
+      Icons.settings_rounded,
+      size: 24,
+      color: Colors.white,
+    );
+
+    if (!isSelected) {
+      return icon;
+    }
+
+    return ShaderMask(
+      blendMode: BlendMode.srcIn,
+      shaderCallback: (bounds) => _activeGradient.createShader(
+        Rect.fromLTWH(0, 0, bounds.width, bounds.height),
+      ),
+      child: icon,
+    );
+  }
+}
+
+class _BottomNavItemData {
+  const _BottomNavItemData({
+    required this.label,
+    required this.activeIcon,
+    required this.inactiveIcon,
+  });
+
+  final String label;
+  final String activeIcon;
+  final String inactiveIcon;
+}

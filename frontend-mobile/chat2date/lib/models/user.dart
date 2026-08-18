@@ -1,0 +1,101 @@
+enum Provider { google, otp }
+
+enum Sex { male, female }
+
+enum AccountStatus { active, suspended, pending }
+
+enum Role { user, admin }
+
+class User {
+  final String userId;
+  final String? email;
+  final String? phoneNumber;
+  final Provider? provider;
+  final String? firstname;
+  final String? lastname;
+  final String? nickname;
+  final String? cardId;
+  final DateTime? birthday;
+  final Sex? sex;
+  final int? behaviorScore;
+  final bool? isBlacklist;
+  final AccountStatus? accountStatus;
+  final int? version;
+  final Role? role;
+  final bool? isTutorial;
+
+  const User({
+    this.accountStatus,
+    required this.userId,
+    this.behaviorScore,
+    this.birthday,
+    this.cardId,
+    this.email,
+    this.firstname,
+    this.isBlacklist,
+    this.lastname,
+    this.nickname,
+    this.phoneNumber,
+    this.provider,
+    this.role,
+    this.sex,
+    this.version,
+    this.isTutorial
+  });
+
+  factory User.fromJson(Map<String, dynamic> json) {
+    DateTime? parseDate(String? dateStr) =>
+        dateStr != null ? DateTime.parse(dateStr) : null;
+
+    T? enumFromString<T>(List<T> values, String? key) {
+      if (key == null) return null;
+      return values.firstWhere(
+        (e) => e.toString().split('.').last.toUpperCase() == key.toUpperCase(),
+        orElse: () => values.first,
+      );
+    }
+    final userId = json['userId'] ?? json['id'];
+
+    return User(
+      userId: userId,
+      email: json['email'],
+      phoneNumber: json['phoneNumber'],
+      provider: enumFromString(Provider.values, json['provider']),
+      firstname: json['firstname'],
+      lastname: json['lastname'],
+      nickname: json['nickname'],
+      cardId: json['cardId'],
+      birthday: parseDate(json['birthday']),
+      sex: enumFromString(Sex.values, json['sex']),
+      behaviorScore: json['behaviorScore'],
+      isBlacklist: json['isBlacklist'],
+      accountStatus: enumFromString(
+        AccountStatus.values,
+        json['accountStatus'],
+      ),
+      version: json['version'],
+      role: enumFromString(Role.values, json['role']),
+      isTutorial: json['isTutorial']
+    );
+  }
+
+  // toJson
+  Map<String, dynamic> toJson() => {
+    'userId': userId,
+    'email': email,
+    'phoneNumber': phoneNumber,
+    'provider': provider?.name.toUpperCase(),
+    'firstname': firstname,
+    'lastname': lastname,
+    'nickname': nickname,
+    'cardId': cardId,
+    'birthday': birthday?.toIso8601String(),
+    'sex': sex?.name.toUpperCase(),
+    'behaviorScore': behaviorScore,
+    'isBlacklist': isBlacklist,
+    'accountStatus': accountStatus?.name.toUpperCase(),
+    'version': version,
+    'role': role?.name.toUpperCase(),
+    'isTutorial': isTutorial
+  };
+}

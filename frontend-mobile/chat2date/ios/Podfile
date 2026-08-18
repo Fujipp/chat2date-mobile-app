@@ -1,0 +1,66 @@
+platform :ios, '15.5'
+ENV['COCOAPODS_DISABLE_STATS'] = 'true'
+
+# Load .env file for API keys without requiring the Ruby dotenv gem.
+env_file = File.expand_path('../.env', __FILE__)
+if File.exist?(env_file)
+  File.foreach(env_file) do |line|
+    next if line.strip.empty? || line.lstrip.start_with?('#')
+
+    key, value = line.strip.split('=', 2)
+    next if key.nil? || value.nil? || ENV.key?(key)
+
+    ENV[key] = value.gsub(/\A['"]|['"]\z/, '')
+  end
+end
+
+project 'Runner', { 'Debug' => :debug, 'Profile' => :release, 'Release' => :release }
+
+def flutter_root
+  generated_xcode_build_settings_path = File.expand_path(File.join('..', 'Flutter', 'Generated.xcconfig'), __FILE__)
+  raise "Run 'flutter pub get' first." unless File.exist?(generated_xcode_build_settings_path)
+  File.foreach(generated_xcode_build_settings_path) do |line|
+    matches = line.match(/FLUTTER_ROOT\=(.*)/)
+    return matches[1].strip if matches
+  end
+  raise "FLUTTER_ROOT not found. Run 'flutter pub get' first."
+end
+
+require File.expand_path(File.join('packages', 'flutter_tools', 'bin', 'podhelper'), flutter_root)
+
+flutter_ios_podfile_setup
+
+target 'Runner' do
+  # ใช้ static frameworks จะนิ่งกับปลั๊กอินมากกว่า
+  use_frameworks! :linkage => :static
+  use_modular_headers!
+
+  flutter_install_all_ios_pods File.dirname(File.realpath(__FILE__))
+end
+
+post_install do |installer|
+  # บังคับระดับ "project" ของ Pods ด้วย (กันบางเคส override)
+  installer.pods_project.build_configurations.each do |config|
+    config.build_settings['IPHONEOS_DEPLOYMENT_TARGET'] = '15.5'
+  end
+
+  installer.pods_project.targets.each do |target|
+    flutter_additional_ios_build_settings(target)
+
+    target.build_configurations.each do |config|
+      config.build_settings['IPHONEOS_DEPLOYMENT_TARGET'] = '15.5'
+      config.build_settings['GCC_PREPROCESSOR_DEFINITIONS'] ||= [
+        '$(inherited)',
+        'PERMISSION_CAMERA=1',
+        'PERMISSION_PHOTOS=1',
+      ]
+    end
+  end
+
+  # Set GOOGLE_MAPS_API_KEY from .env
+  installer.aggregate_targets.each do |target|
+    target.build_configurations.each do |config|
+      config.build_settings['GOOGLE_MAPS_API_KEY'] = ENV['GOOGLE_API_KEY'] || ''
+    end
+  end
+end
